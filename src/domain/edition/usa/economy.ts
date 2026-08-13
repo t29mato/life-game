@@ -144,23 +144,34 @@ export const USA_ECONOMY: EconomyConstants = {
     shareOfPayday: 0.6,
   },
   /**
-   * $52,000 a child on average — five times what it was, and now a real share
-   * of a final total rather than a rounding error. It is the expected value of
-   * `childOutcome` below, and `lifeTiles.test.ts`'s sibling check in
-   * `economy.test.ts` is what stops the two drifting apart.
-   */
-  childBonus: 52_000,
-  /**
-   * Nine children in ten grow up and do something decent — $6,000 a pip, so
-   * $6,000 to $54,000 depending on how life went. The tenth is a star, and a
-   * star is worth a quarter of a million: enough to turn a game over on the
-   * results screen, which is exactly the story a board game about a life
-   * should be able to tell.
+   * Nine children in ten grow up and do something decent; the tenth is a star.
    *
-   * 4.5 x 6,000 + 0.1 x 250,000 = 52,000, which is `childBonus` above.
+   * The ordinary nine are paid `0.14` of a payday per pip, so a child who rolls
+   * a five hands back about seven tenths of one of their parent's paydays, and
+   * a whole ordinary life averages a little under two thirds of one. With the
+   * flat star folded in, one child is worth `0.63 x payday + $25,000`.
+   *
+   * Read that as a slope rather than a level, because the slope is the design.
+   * A master groomer's child averages **$46,400**, a median earner's **$69,100**
+   * and an agency owner's **$118,600** — two and a half times the first. That
+   * spread is what buys Family Lane a stake in the board's volatility. A flat
+   * bonus big enough to make the lane worth choosing measurably erased the
+   * difference between a groomer's life and an agency owner's, and that
+   * difference *is* what makes Straight to Work the volatile road.
+   *
+   * It is more than the flat $52,000 it replaces, and it has to be: the lane
+   * also has to be worth a computer seat choosing, which it never once was.
+   * Measured at these figures the computer takes Family Lane 286 times in 600
+   * and Fast Track the rest — a fork that turns on your wage and how much
+   * ladder you have left, which is what a fork is for.
+   *
+   * The star stays a quarter of a million, flat, for anybody's child: enough to
+   * turn a game over on the results screen, and a courier's kid making it big
+   * is the better story. It is also safe to leave flat — measured, shrinking it
+   * moved the volatility ratio by 0.013, so it is not where that lives.
    */
   childOutcome: {
-    perPip: 6_000,
+    perPipOfPayday: 0.14,
     starSpin: 10,
     starPayout: 250_000,
   },

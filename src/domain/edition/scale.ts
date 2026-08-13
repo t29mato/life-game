@@ -76,9 +76,9 @@ const scaleEconomy = (economy: EconomyConstants, factor: number): EconomyConstan
   },
   // Both fields are counts: a spin, and a share of a payday. Neither is money.
   household: economy.household,
-  childBonus: economy.childBonus * factor,
   childOutcome: {
-    perPip: economy.childOutcome.perPip * factor,
+    // A share of a payday is a ratio; only the flat star is money.
+    perPipOfPayday: economy.childOutcome.perPipOfPayday,
     starSpin: economy.childOutcome.starSpin,
     starPayout: economy.childOutcome.starPayout * factor,
   },

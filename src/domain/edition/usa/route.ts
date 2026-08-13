@@ -774,9 +774,16 @@ const FAMILY_LANE: readonly SpaceContent[] = [
     tone: 'purple', icon: 'space:piano-lessons', tier: LONG_ONLY,
   },
   {
-    id: 'family-6', kind: 'normal', title: 'Second Baby',
-    description: 'The house gets a little louder and a lot more full of love.',
-    effect: { type: 'haveChildren', count: 1 },
+    /*
+     * Two at once, and no new tile to say so. The route's length is
+     * load-bearing — where the paydays fall in the board's back half is
+     * measured — so the lane grows a family rather than growing longer. Three
+     * children on the standard board and four on the long one: a family, not a
+     * farm, and nobody is counting to five.
+     */
+    id: 'family-6', kind: 'normal', title: 'Twins',
+    description: 'The scan technician goes quiet, turns the screen round, and points at two of them.',
+    effect: { type: 'haveChildren', count: 2 },
     tone: 'purple', icon: 'space:second-baby', tier: EVERY_BOARD,
   },
   {
@@ -850,9 +857,15 @@ const FAST_TRACK: readonly SpaceContent[] = [
      * lands you a fee is a truer story about a conference than one that lands
      * you the job above yours.
      */
+    /*
+     * A review fewer. Three reviews and three payrolls on one lane is not a
+     * faster road, it is a different and better-paid game — and a talk that
+     * lands you a fee is a truer story about a conference than one that lands
+     * you the job above yours.
+     */
     id: 'fast-5', kind: 'normal', title: 'Conference Talk',
-    description: 'Your talk goes round the whole industry in a week, and three people upstairs watch it. Spin to see what they do about it.',
-    effect: { type: 'promotion', reason: 'Leadership watched your talk' },
+    description: 'Your talk goes round the whole industry in a week, and the organisers of the next three would like to book you.',
+    effect: { type: 'gainMoney', amount: 4_400, reason: 'Speaking fees' },
     tone: 'orange', icon: 'space:conference-talk', tier: STANDARD_UP,
   },
   setback('hard', EVERY_BOARD, 'fast-burnout', 'Burnout Leave',
@@ -896,7 +909,18 @@ const FAST_TRACK: readonly SpaceContent[] = [
     effect: { type: 'promotion', reason: 'A chair at the long table' },
     tone: 'orange', icon: 'space:corner-office', tier: STANDARD_UP,
   },
-  payday(EVERY_BOARD, 'fast-payday-3', 'The deposit lands while you are still in the airport lounge.'),
+  {
+    /*
+     * This was a third payroll, and a payroll is the heaviest thing a lane can
+     * carry: it pays for being *passed*, where every other tile has to be
+     * landed on. A counter-offer is still a good day at work; it is simply not
+     * another month's pay on top of it.
+     */
+    id: 'fast-payday-3', kind: 'normal', title: 'Retention Offer',
+    description: 'You mention, lightly, that somebody else has been in touch. The counter-offer arrives before lunch.',
+    effect: { type: 'payRaise' },
+    tone: 'orange', icon: 'space:pay-raise-talk', tier: EVERY_BOARD,
+  },
   {
     id: 'fast-equity', kind: 'normal', title: 'Equity Vests',
     description: 'Four years of paperwork turn into an actual number in an actual account.',

@@ -23,6 +23,7 @@ import {
   nextRungOf,
 } from '@domain/edition/lookup'
 import { AVERAGE_SPIN, expectedPayday, isCoveredAgainst, totalShares } from '@domain/rules/player'
+import { expectedChildValue } from '@domain/rules/children'
 import { expectedMarriageValue } from '@domain/rules/marriage'
 import type { GameCommand } from '../GameStore'
 import {
@@ -374,7 +375,7 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
        * chosen the lane — the bills were charged twice and the child paid
        * $10,000 once.
        */
-      return effect.count * economy.childBonus
+      return effect.count * expectedChildValue(player, economy)
     case 'buyHouse':
     case 'upgradeHouse':
       return units(5)

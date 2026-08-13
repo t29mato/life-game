@@ -476,7 +476,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-surgical-resident',
     title: 'Surgical Resident',
-    salary: 63_000,
+    salary: 64000,
     raiseStep: 6_200,
     requiresDegree: true,
     icon: 'career:surgeon',
@@ -487,7 +487,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-surgeon',
     title: 'Surgeon',
-    salary: 78_000,
+    salary: 79000,
     raiseStep: 8_200,
     requiresDegree: true,
     icon: 'career:surgeon',
@@ -496,7 +496,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-junior-associate',
     title: 'Junior Associate',
-    salary: 65_000,
+    salary: 66000,
     raiseStep: 6_400,
     requiresDegree: true,
     icon: 'career:corporate-lawyer',
@@ -507,7 +507,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-corporate-lawyer',
     title: 'Corporate Lawyer',
-    salary: 80_000,
+    salary: 81000,
     raiseStep: 8_400,
     requiresDegree: true,
     icon: 'career:corporate-lawyer',
@@ -516,7 +516,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-architectural-assistant',
     title: 'Architectural Assistant',
-    salary: 59_000,
+    salary: 60000,
     raiseStep: 5_800,
     requiresDegree: true,
     icon: 'career:architect',
@@ -527,7 +527,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-architect',
     title: 'Architect',
-    salary: 70_000,
+    salary: 71000,
     raiseStep: 7_400,
     requiresDegree: true,
     icon: 'career:architect',
@@ -536,7 +536,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-junior-engineer',
     title: 'Junior Engineer',
-    salary: 61_000,
+    salary: 62000,
     raiseStep: 6_000,
     requiresDegree: true,
     icon: 'career:software-engineer',
@@ -547,7 +547,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-software-engineer',
     title: 'Software Engineer',
-    salary: 74_000,
+    salary: 75000,
     raiseStep: 7_800,
     requiresDegree: true,
     icon: 'career:software-engineer',
@@ -556,7 +556,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-junior-designer',
     title: 'Junior Designer',
-    salary: 57_000,
+    salary: 58000,
     raiseStep: 5_600,
     requiresDegree: true,
     icon: 'career:game-designer',
@@ -567,7 +567,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-game-designer',
     title: 'Game Designer',
-    salary: 66_000,
+    salary: 67000,
     raiseStep: 7_000,
     requiresDegree: true,
     icon: 'career:game-designer',
@@ -576,7 +576,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-robotics-graduate',
     title: 'Robotics Graduate',
-    salary: 61_000,
+    salary: 62000,
     raiseStep: 6_000,
     requiresDegree: true,
     icon: 'tile:invention',
@@ -587,7 +587,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-robotics-engineer',
     title: 'Robotics Engineer',
-    salary: 72_000,
+    salary: 73000,
     raiseStep: 7_600,
     requiresDegree: true,
     icon: 'tile:invention',
@@ -596,7 +596,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-investment-analyst',
     title: 'Investment Analyst',
-    salary: 63_000,
+    salary: 64000,
     raiseStep: 6_200,
     requiresDegree: true,
     icon: 'finance:trading-floor',
@@ -607,7 +607,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-fund-manager',
     title: 'Fund Manager',
-    salary: 76_000,
+    salary: 77000,
     raiseStep: 8_000,
     requiresDegree: true,
     icon: 'finance:trading-floor',
@@ -616,7 +616,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-actuarial-trainee',
     title: 'Actuarial Trainee',
-    salary: 59_000,
+    salary: 60000,
     raiseStep: 5_800,
     requiresDegree: true,
     icon: 'finance:insurance-office',
@@ -627,7 +627,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-insurance-actuary',
     title: 'Insurance Actuary',
-    salary: 68_000,
+    salary: 69000,
     raiseStep: 7_200,
     requiresDegree: true,
     icon: 'finance:insurance-office',
@@ -636,7 +636,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-research-assistant',
     title: 'Research Assistant',
-    salary: 55_500,
+    salary: 56500,
     raiseStep: 5_400,
     requiresDegree: true,
     icon: 'career:marine-biologist',
@@ -647,7 +647,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-marine-biologist',
     title: 'Marine Biologist',
-    salary: 62_000,
+    salary: 63000,
     raiseStep: 6_600,
     requiresDegree: true,
     icon: 'career:marine-biologist',
@@ -656,8 +656,8 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-jobbing-writer',
     title: 'Jobbing Writer',
-    salary: 53_900,
-    payPerPip: 9_800,
+    salary: 55_000,
+    payPerPip: 10_000,
     raiseStep: 5_200,
     requiresDegree: true,
     icon: 'tile:novel',
@@ -668,8 +668,8 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-novelist',
     title: 'Novelist',
-    salary: 63_800,
-    payPerPip: 11_600,
+    salary: 64_900,
+    payPerPip: 11_800,
     raiseStep: 6_800,
     requiresDegree: true,
     icon: 'tile:novel',
@@ -679,7 +679,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-veterinarian',
     title: 'Veterinarian',
-    salary: 67_000,
+    salary: 68000,
     raiseStep: 8_000,
     requiresDegree: true,
     icon: 'tile:animal-shelter',
@@ -689,7 +689,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-university-professor',
     title: 'University Professor',
-    salary: 65_000,
+    salary: 66000,
     raiseStep: 7_800,
     requiresDegree: true,
     icon: 'space:cap-and-gown',

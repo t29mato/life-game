@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Difficulty, House, LifeTile, Player, Stock } from '../model/types'
 import {
-  CHILD_BONUS,
   LIFE_INSURANCE_PAYOUT,
   LOAN_REPAYMENT,
   STARTING_MONEY,
@@ -9,6 +8,7 @@ import {
 import { STOCKS } from '../edition/usa'
 import { DIFFICULTIES, loanRepaymentFor } from './difficulty'
 import { createPlayer } from './player'
+import { expectedChildValue } from './children'
 import { computeResults, estimateNetWorth } from './scoring'
 
 const HOUSE: House = {
@@ -49,7 +49,7 @@ describe('computeResults', () => {
       12_000 + // cash
       25_000 + // life tiles (10k + 15k)
       90_000 + // house resale
-      2 * CHILD_BONUS + // children bonus
+      Math.round(2 * expectedChildValue(p)) + // children, at what a payday is worth to them
       80_000 - // first retirement bonus
       2 * LOAN_REPAYMENT // loan penalty
 
@@ -63,7 +63,7 @@ describe('computeResults', () => {
         houseValue: 90_000,
         stockValue: 0,
         insurancePayout: 0,
-        childrenBonus: 2 * CHILD_BONUS,
+        childrenBonus: Math.round(2 * expectedChildValue(p)),
         retirementBonus: 80_000,
         loanPenalty: -2 * LOAN_REPAYMENT,
         total: expectedTotal,
@@ -120,10 +120,10 @@ describe('computeResults', () => {
     )
   })
 
-  it('adds CHILD_BONUS per child', () => {
+  it('adds what a child is worth to that player, per child', () => {
     const p = player({ children: 4, retirementRank: null })
     const results = computeResults([p], fixedResale(0), noStocks)
-    expect(results.standings[0]?.childrenBonus).toBe(4 * CHILD_BONUS)
+    expect(results.standings[0]?.childrenBonus).toBe(Math.round(4 * expectedChildValue(p)))
   })
 
   it('sorts standings by total descending', () => {
@@ -251,7 +251,7 @@ describe('computeResults maturing the life policy', () => {
 describe('estimateNetWorth', () => {
   it('adds cash, tiles, the house price and the children bonus', () => {
     const p = player({ money: 25_000, lifeTiles: [TILE_A, TILE_B], house: HOUSE, children: 2 })
-    expect(estimateNetWorth(p)).toBe(25_000 + 25_000 + HOUSE.price + 2 * CHILD_BONUS)
+    expect(estimateNetWorth(p)).toBe(25_000 + 25_000 + HOUSE.price + 2 * expectedChildValue(p))
   })
 
   it('values the house at what was paid for it, never at a rolled resale', () => {

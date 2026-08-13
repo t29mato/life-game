@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import {
   CASUAL_WAGE_PER_PIP,
-  CHILD_BONUS,
   COLLEGE_TUITION,
   EARLY_LOAN_REPAYMENT,
   FIRST_RETIREMENT_BONUS,
@@ -13,7 +12,15 @@ import {
   STARTING_MONEY,
   WEDDING_GIFT,
 } from '../model/constants'
+import type { Career, Player } from '../model/types'
+import { childReturnFor, expectedChildValue } from '../rules/children'
 import { hiringPoolFor } from './lookup'
+
+/** A player whose only interesting property is what a payday is worth to them. */
+const fixtureEarner = (salary: number): Player => {
+  const career = { salary } as Career
+  return { children: 0, career } as Player
+}
 import { DEFAULT_EDITION_ID, allEditions, editionFor, editionOf, registerEdition } from './registry'
 import { EDITION_USA } from './usa'
 import { scaleEdition } from './scale'
@@ -59,7 +66,6 @@ describe('the USA edition is the game that was already here', () => {
     expect(LOAN_REPAYMENT).toBe(economy.loanRepayment.normal)
     expect(EARLY_LOAN_REPAYMENT).toBe(economy.earlyLoanRepayment.normal)
     expect(WEDDING_GIFT).toBe(economy.weddingGift)
-    expect(CHILD_BONUS).toBe(economy.childBonus)
     expect(FIRST_RETIREMENT_BONUS).toBe(economy.firstRetirementBonus)
     expect(CASUAL_WAGE_PER_PIP).toBe(economy.casualWagePerPip)
     expect(INSURANCE_PREMIUM).toEqual(economy.insurancePremium)
@@ -92,22 +98,40 @@ describe('the USA edition is the game that was already here', () => {
    */
   it('holds the prices the rework put on children and on stopping early', () => {
     expect(EDITION_USA.economy).toMatchObject({
-      childBonus: 52_000,
-      childOutcome: { perPip: 6_000, starSpin: 10, starPayout: 250_000 },
+      childOutcome: { perPipOfPayday: 0.14, starSpin: 10, starPayout: 250_000 },
       fireNumber: 250_000,
       firePayoutPerPip: 64_000,
     })
   })
 
-  it('keeps the headline child figure equal to what a child actually pays', () => {
-    // `childBonus` is quoted by the panel, the live net worth and the computer's
-    // valuation of Family Lane; `childOutcome` is what the wheel really hands
-    // over. If the two drift, every one of those readouts starts lying.
-    const { childBonus, childOutcome } = EDITION_USA.economy
-    const ordinary = (1 + childOutcome.starSpin - 1) / 2 // mean pip below the star wedge
-    const starChance = (10 - childOutcome.starSpin + 1) / 10
-    const expected = ordinary * childOutcome.perPip * (1 - starChance) + childOutcome.starPayout * starChance
-    expect(Math.abs(expected - childBonus) / childBonus).toBeLessThan(0.05)
+  it('prices a child off what the parent earns, and the star off nothing at all', () => {
+    /*
+     * The whole point of the split. An ordinary life scales with the household
+     * that raised it; a star is a star whoever's child it is. If either half
+     * stopped being true the board would quietly lose the property Straight to
+     * Work is built on — see `children.ts`.
+     */
+    const groomer = fixtureEarner(34_000)
+    const owner = fixtureEarner(148_500)
+    expect(childReturnFor(owner, 5)).toBeGreaterThan(childReturnFor(groomer, 5) * 2)
+    expect(childReturnFor(groomer, 10)).toBe(childReturnFor(owner, 10))
+    expect(childReturnFor(groomer, 10)).toBe(EDITION_USA.economy.childOutcome.starPayout)
+  })
+
+  it('makes a child worth a real share of a working life, and more of a good one', () => {
+    /*
+     * On the median wage at the wedding a child averages a little over $69,000
+     * — up from the flat $52,000, because the lane had to be worth choosing at
+     * all. What matters more than the level is the *slope*: it is a fifth of
+     * that to somebody scraping by and half as much again to somebody running
+     * the place, and that slope is what gives Family Lane a stake in the
+     * board's volatility instead of flattening it.
+     */
+    expect(expectedChildValue(fixtureEarner(70_000))).toBeGreaterThan(60_000)
+    expect(expectedChildValue(fixtureEarner(70_000))).toBeLessThan(80_000)
+    expect(expectedChildValue(fixtureEarner(148_500))).toBeGreaterThan(
+      expectedChildValue(fixtureEarner(34_000)) * 1.8,
+    )
   })
 
   it('counts in dollars, rounded the way the board prints', () => {

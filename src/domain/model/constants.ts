@@ -33,8 +33,6 @@ export const LOAN_REPAYMENT: Money = USA_ECONOMY.loanRepayment.normal
 /** Wedding gift each other player hands the newlywed. */
 export const WEDDING_GIFT: Money = USA_ECONOMY.weddingGift
 
-/** Retirement payout per child, awarded at the final scoring. */
-export const CHILD_BONUS: Money = USA_ECONOMY.childBonus
 
 /** Bonus for the first player to retire; each later place gets half of the one before. */
 export const FIRST_RETIREMENT_BONUS: Money = USA_ECONOMY.firstRetirementBonus

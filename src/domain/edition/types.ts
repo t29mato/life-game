@@ -94,31 +94,31 @@ export interface EconomyConstants {
   /** What a `household` tile settles for a married player. */
   readonly household: HouseholdSpec
   /**
-   * What a child is worth at the final scoring **on average**.
-   *
-   * The figure to plan against, exactly as `Career.salary` is for a trade paid
-   * by the wheel: what actually happens is `childOutcome`, and this is its
-   * expected value. Everything that has to quote one number — the computer's
-   * valuation of Family Lane, the live net-worth readout, a panel with no dice
-   * to hand — quotes this one, and a catalogue test keeps the two honest.
-   */
-  readonly childBonus: Money
-  /**
    * How a grown-up child actually pays back: one spin each, at retirement.
    *
-   * A child used to be worth a flat $10,000 against final totals near
-   * $600,000 — 1.6%, which is not a reward, it is a rounding error, and the
-   * computer never once chose Family Lane in any measured run because a single
-   * payday was worth more than a child. The fix is the one the game's own
-   * theme asks for: most children do well, and one in ten turns out to be a
-   * star. The mean is now worth playing for and the tail is worth a story.
+   * Two halves, deliberately. The ordinary life is a share of what a *payday*
+   * is worth to the parent, so what a family can put behind a child depends on
+   * what the family has; the star is a flat sum anybody's child can win. See
+   * `src/domain/rules/children.ts` for why the split is load-bearing rather
+   * than decorative — in short, a child worth the same to a groomer and to an
+   * agency owner flattens the one difference the board's volatility runs on.
+   *
+   * There is deliberately no edition-wide "a child is worth X" constant any
+   * more. It would have to be a lie for every player who is not on the median
+   * wage; `expectedChildValue(player, economy)` is the honest form of it.
    */
   readonly childOutcome: {
-    /** Paid as `perPip × spin` for an ordinary life. */
-    readonly perPip: Money
+    /**
+     * Ordinary return per pip, as a share of one of the parent's paydays.
+     * A child rolling a 5 on a $70,000 wage hands back `5 x share x 70,000`.
+     */
+    readonly perPipOfPayday: number
     /** A spin of this or more, and that child made it. */
     readonly starSpin: SpinValue
-    /** What a star is worth instead — loud, rare, and the point of the change. */
+    /**
+     * What a star is worth instead — loud, rare, flat, and the point of the
+     * change. Flat because a courier's child has to be able to be one.
+     */
     readonly starPayout: Money
   }
   /** Bonus for the first player to retire; each later place gets half of the one before. */

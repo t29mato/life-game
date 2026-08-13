@@ -11,6 +11,7 @@ import type {
 import type { Edition } from '../edition/types'
 import { EDITION_USA } from '../edition/usa'
 import { findStock } from '../edition/lookup'
+import { childReturnFor, expectedChildValue } from './children'
 import { loanRepaymentFor } from './difficulty'
 
 function retirementBonusFor(rank: number | null, edition: Edition): Money {
@@ -43,29 +44,28 @@ function cashOutStocks(player: Player, rollStock: (stock: Stock) => Money, editi
  * free money, and they are already paid by the time this runs.
  *
  * With no wheel to hand — a panel, a test, any caller with no dice — every
- * child is worth the edition's average instead, which is exactly what
- * `childBonus` promises to be.
+ * child is worth what one is worth to *that player* on an average life, which
+ * is what `expectedChildValue` is for.
  */
 function scoreChildren(
   player: Player,
   rollChildSpin: (() => SpinValue) | undefined,
   edition: Edition,
 ): { readonly childrenBonus: Money; readonly childStars: number | undefined } {
-  const { childBonus, childOutcome } = edition.economy
+  const { economy } = edition
   if (!rollChildSpin) {
-    return { childrenBonus: player.children * childBonus, childStars: undefined }
+    return {
+      childrenBonus: Math.round(player.children * expectedChildValue(player, economy)),
+      childStars: undefined,
+    }
   }
 
   let childrenBonus = 0
   let childStars = 0
   for (let child = 0; child < player.children; child += 1) {
     const spin = rollChildSpin()
-    if (spin >= childOutcome.starSpin) {
-      childrenBonus += childOutcome.starPayout
-      childStars += 1
-    } else {
-      childrenBonus += childOutcome.perPip * spin
-    }
+    childrenBonus += childReturnFor(player, spin, economy)
+    if (spin >= economy.childOutcome.starSpin) childStars += 1
   }
   return { childrenBonus, childStars }
 }
@@ -122,7 +122,7 @@ function scorePlayer(
  * `rollChildSpin` is the wheel every child's grown-up life is decided on, and
  * it is last and optional for the same reason the others are injected at all:
  * the domain owns no randomness. A caller with no dice scores every child at
- * the edition's average, which is what `childBonus` is for.
+ * what one is worth to that player on an average life.
  */
 export function computeResults(
   players: readonly Player[],
@@ -190,7 +190,7 @@ export function estimateNetWorth(
     lifeTileValue +
     houseValue +
     stockValue +
-    player.children * edition.economy.childBonus -
+    player.children * expectedChildValue(player, edition.economy) -
     player.loans * loanRepaymentFor(difficulty, edition)
   )
 }
