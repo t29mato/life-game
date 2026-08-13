@@ -72,7 +72,7 @@ describe('the USA edition is the game that was already here', () => {
     // them moves every one of those measurements underneath it.
     expect(EDITION_USA.economy).toMatchObject({
       startingMoney: 10_000,
-      collegeTuition: 40_000,
+      collegeTuition: 52_000,
       loanPrincipal: 20_000,
       loanRepayment: { normal: 25_000, hard: 38_000, veryHard: 50_000 },
       earlyLoanRepayment: { normal: 22_000, hard: 28_000, veryHard: 34_000 },

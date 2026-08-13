@@ -236,8 +236,23 @@ export interface MarriageSpec {
 export interface HouseholdSpec {
   /** The spin the account breaks even on. Below it, the spending outran it. */
   readonly breakEvenSpin: SpinValue
-  /** Money per pip either side of that line. */
-  readonly perPip: Money
+  /**
+   * How much of one payday rides on each pip either side of that line.
+   *
+   * A share of the household's income rather than a flat sum, because that is
+   * how living with somebody actually works: spending rises to meet what comes
+   * in, and a couple on a restaurant owner's money do not overspend by the same
+   * dollar figure as a couple on a groomer's.
+   *
+   * It also has to be a share for the board to keep its shape. A flat swing is
+   * regressive — it lands hardest on whoever has least, which on this board is
+   * the school-leaver — and it dilutes the one relationship the opening fork is
+   * built on, because a sum common to both lanes drags their spreads together.
+   * Proportional does the opposite: the basic ladders run from $24k to $148.5k
+   * and the graduate band is a third as wide, so scaling by income widens
+   * Straight to Work exactly where it is supposed to be the volatile road.
+   */
+  readonly shareOfPayday: number
 }
 
 /** The two pools a career fair can deal from. A degree unlocks the second. */

@@ -683,7 +683,7 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
   },
   {
     id: 'main-gifts', kind: 'normal', title: 'Holiday Gifts',
-    description: 'One thoughtful present each, wrapped properly, and you are the only person at the table who remembered everybody.',
+    description: 'A present for everyone at the table, chosen with more thought than budget.',
     effect: { type: 'payEach', amount: 800, reason: 'A present for everyone' },
     tone: 'slate', icon: 'space:surprise-bonus', tier: EVERY_BOARD,
   },
@@ -844,6 +844,12 @@ const FAST_TRACK: readonly SpaceContent[] = [
     tone: 'orange', icon: 'space:client-win', tier: STANDARD_UP,
   },
   {
+    /*
+     * A review fewer. Three reviews and three payrolls on one lane is not a
+     * faster road, it is a different and better-paid game — and a talk that
+     * lands you a fee is a truer story about a conference than one that lands
+     * you the job above yours.
+     */
     id: 'fast-5', kind: 'normal', title: 'Conference Talk',
     description: 'Your talk goes round the whole industry in a week, and three people upstairs watch it. Spin to see what they do about it.',
     effect: { type: 'promotion', reason: 'Leadership watched your talk' },
@@ -971,12 +977,30 @@ const MIDTOWN: readonly SpaceContent[] = [
     effect: { type: 'promotion', reason: 'You won the room' },
     tone: 'orange', icon: 'space:client-win', tier: STANDARD_UP,
   },
+  /*
+   * The other half of marrying, and the reason the wedding is no longer the
+   * whole story. A single player walks past this; a married one finds out what
+   * kind of partner the wheel dealt them, one month at a time.
+   *
+   * A converted tile rather than a new one, deliberately: the route's length is
+   * load-bearing — where the paydays fall in the board's back half is measured
+   * in `createBoard.test.ts` — so adding tiles to say something new moves things
+   * that have nothing to do with marriage.
+   *
+   * `EVERY_BOARD`, including the short one, and that was measured rather than
+   * assumed. Without it a short game would run a *different rule set* — marriage
+   * there would be pure upside again, which is the exact flaw this whole pass
+   * existed to remove — and rules that differ by session length are worse than
+   * a point of drift. The short board is the tightest opening fork on the board
+   * at 44.2% against a floor of 40%, so the cost was checked: it holds.
+   */
   {
-    id: 'midtown-party', kind: 'normal', title: 'Birthday Party',
-    description: 'Twelve small guests, one bouncy castle, and every single parent stays for the wine.',
-    effect: { type: 'payEach', amount: 700, reason: 'The party you hosted' },
-    tone: 'slate', icon: 'space:school-play', tier: STANDARD_UP,
+    id: 'midtown-party', kind: 'normal', title: 'Joint Account',
+    description: 'You merge the accounts, and for the first time somebody else\'s spending is also, unavoidably, your spending.',
+    effect: { type: 'household', reason: 'The joint account, settled up' },
+    tone: 'purple', icon: 'finance:bank-visit', tier: EVERY_BOARD,
   },
+
   {
     /*
      * The trunk's bonus payday, and a conversion rather than an addition: this
@@ -992,7 +1016,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   },
   {
     id: 'midtown-raise', kind: 'normal', title: 'Mid-Career Raise',
-    description: 'Your review goes so well that payroll hears about it before you do.',
+    description: 'A quiet word, a new number, and a handshake on the way out of the room.',
     effect: { type: 'payRaise' },
     tone: 'slate', icon: 'space:pay-raise-talk', tier: EVERY_BOARD,
   },
@@ -1351,10 +1375,10 @@ const SUNSET_STRIP: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:garage-sale', tier: LONG_ONLY,
   },
   {
-    id: 'sunset-nest-egg', kind: 'normal', title: 'Nest Egg',
-    description: 'Decades of quiet paying-in turn out to have been doing something after all.',
-    effect: { type: 'gainMoney', amount: 6_000, reason: 'Nest egg matures' },
-    tone: 'slate', icon: 'space:quiet-savings', tier: LONG_ONLY,
+    id: 'sunset-nest-egg', kind: 'normal', title: 'The Sit-Down',
+    description: 'You both go through a year of statements at the kitchen table, and one of you has some explaining to do about a very nice coat.',
+    effect: { type: 'household', reason: 'A year of the joint account, gone through properly' },
+    tone: 'purple', icon: 'space:quiet-savings', tier: LONG_ONLY,
   },
   {
     id: 'sunset-last-spin', kind: 'normal', title: 'Last Big Spin',

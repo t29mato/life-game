@@ -23,6 +23,7 @@ import {
   nextRungOf,
 } from '@domain/edition/lookup'
 import { AVERAGE_SPIN, expectedPayday, isCoveredAgainst, totalShares } from '@domain/rules/player'
+import { expectedMarriageValue } from '@domain/rules/marriage'
 import type { GameCommand } from '../GameStore'
 import {
   BANK_LOAN_OPTION_ID,
@@ -81,6 +82,9 @@ const loanCostFor = (state: GameState, edition: Edition): Money =>
   loanRepaymentFor(state.difficulty, edition) - edition.economy.loanPrincipal
 
 /** Paydays a raise is expected to be collected over, so raises are worth something now. */
+/** The bar a review uses when the rung it is leaving does not name one. */
+const DEFAULT_PROMOTION_SPIN = 5
+
 const RAISE_HORIZON = 5
 
 /** Cash a CPU likes to keep free at the start of the board, tapering to nothing at retirement. */
@@ -339,7 +343,26 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
     case 'graduate':
       return player.hasDegree ? 0 : units(40)
     case 'getMarried':
-      return player.isMarried ? 0 : economy.weddingGift * rivals.length
+      /*
+       * The envelopes, plus whatever the wheel's own bands are worth.
+       *
+       * Pricing this at the gifts alone was right while marrying was pure
+       * upside. Now a low spin buys a reception nobody budgeted for and a
+       * rescued proposal arrives with somebody else's debts, so a seat that
+       * still priced it at the envelopes would walk into the good marriage and
+       * the bad one at the same number.
+       */
+      return player.isMarried ? 0 : expectedMarriageValue(economy, rivals.length)
+    case 'household':
+      /*
+       * Worth the average month to somebody married, and worth precisely
+       * nothing to somebody who is not — which is the whole shape of the tile.
+       */
+      return player.isMarried
+        ? (AVERAGE_SPIN - economy.household.breakEvenSpin) *
+          expectedPayday(player, economy) *
+          economy.household.shareOfPayday
+        : 0
     case 'haveChildren':
       /*
        * Worth what a child is worth at the final scoring, in full.
@@ -662,13 +685,30 @@ function scoreBranch(option: DecisionOption, context: Context, decision: Decisio
     hasDegree: player.hasDegree || [...mine].some((id) => board.spaces[id]?.effect.type === 'graduate'),
   }
 
+  /*
+   * The lane's own tiles, in the order they are walked, and how many of its
+   * paydays are still to come after each one.
+   *
+   * The second number is what stops a review being counted twice. A promotion
+   * is priced at the rise it earns over every payday still ahead; the paydays
+   * *on this lane* are then priced again, at the salary the walk has already
+   * climbed to. Both are right on their own and together they are the same
+   * money twice — on Fast Track that inflated the first review by $33,000 and
+   * helped keep Family Lane unpickable. So a review is paid for the paydays
+   * beyond this lane, and the lane's own paydays speak for themselves.
+   */
+  const laneSpaces = [...mine].filter((id) => !shared.has(id) && board.spaces[id])
+  let paydaysLeftOnLane = laneSpaces.filter((id) => board.spaces[id]?.kind === 'payday').length
+
   let laneValue = 0
   let outlay = 0
-  for (const id of mine) {
-    if (shared.has(id)) continue
+  for (const id of laneSpaces) {
     const space = board.spaces[id]
     if (!space) continue
-    const value = valueOfSpace(space, walked, state, paydaysAhead)
+    if (space.kind === 'payday') paydaysLeftOnLane -= 1
+    const horizonFor =
+      space.effect.type === 'promotion' ? Math.max(0, paydaysAhead - paydaysLeftOnLane) : paydaysAhead
+    const value = valueOfSpace(space, walked, state, horizonFor)
     if (value < 0) outlay += -value
     laneValue += value
 
@@ -686,8 +726,23 @@ function scoreBranch(option: DecisionOption, context: Context, decision: Decisio
      * nothing. Walking the state makes both lanes argue honestly.
      */
     if (space.effect.type === 'promotion' && walked.career) {
-      const next = nextRungOf(walked.career, edition)
-      if (next) walked = { ...walked, career: next }
+      const current = walked.career
+      const next = nextRungOf(current, edition)
+      if (next) {
+        /*
+         * Carried at the wage the review is *expected* to leave behind, not at
+         * the one it would leave if it always landed. A corner office lands
+         * three times in ten; walking the lane as though the climb were certain
+         * priced every payday after it at the salon owner's money for a stylist
+         * who will usually still be a stylist, and that single assumption was
+         * worth about $70,000 of imaginary income on Fast Track.
+         */
+        const odds = (11 - (current.promotionSpin ?? DEFAULT_PROMOTION_SPIN)) / 10
+        const promoted = Math.max(next.salary, current.salary + next.raiseStep)
+        const passedOver = current.salary + current.raiseStep
+        const salary = Math.round(odds * promoted + (1 - odds) * passedOver)
+        walked = { ...walked, career: { ...next, salary } }
+      }
     }
     if (space.effect.type === 'haveChildren') {
       walked = { ...walked, children: walked.children + space.effect.count }

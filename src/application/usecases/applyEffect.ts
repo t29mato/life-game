@@ -25,6 +25,7 @@ import {
   seniorityOf,
 } from '@domain/edition/lookup'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
+import { marriageBandFor } from '@domain/rules/marriage'
 import {
   addChildren,
   addLifeTiles,
@@ -35,6 +36,7 @@ import {
   hasCalling,
   hasInsurance,
   isCoveredAgainst,
+  expectedPayday,
   loseCareer as loseCareerFor,
   marryPlayer,
   promoteCareer,
@@ -115,13 +117,12 @@ export function emphasisForMoney(delta: Money, economy: EconomyConstants = USA_E
  * player exactly as they are to a married one — so what a refusal actually
  * costs is one round of gift envelopes. It buys a LIFE tile back, because a
  * year you spend entirely on yourself is worth something too.
+ *
+ * The same wheel now decides *which* marriage, because a wedding everybody pays
+ * you for and nothing else was the last uniformly good thing on this board. The
+ * bands live in the edition (`MarriageSpec`), so what a wedding costs and what a
+ * partner brings to it is a country's business rather than the engine's.
  */
-const PROPOSAL_SPIN = 3
-const SECOND_ASK_SPIN = 2
-/** Above this on the first ask, the whole county turns up and pays for it. */
-const GRAND_WEDDING_SPIN = 8
-/** What each guest hands over at a wedding that got out of hand, as a multiple. */
-const GRAND_WEDDING_GIFT = 1.5
 
 /**
  * The spin a review needs when the rung it is leaving does not say.
@@ -273,6 +274,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
    */
   const edition = editionOf(state)
   const { economy, currency } = edition
+  const { marriage, household } = economy
   const money = (amount: Money): string => formatMoney(amount, currency)
   const emphasisOf = (delta: Money): LandingEmphasis => emphasisForMoney(delta, economy)
 
@@ -601,9 +603,9 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
 
       // Two asks: the wheel decides, and then it decides again, kindlier.
       const asked = deps.random.spin()
-      const askedAgain = asked >= PROPOSAL_SPIN ? null : deps.random.spin()
+      const askedAgain = asked >= marriage.proposalSpin ? null : deps.random.spin()
 
-      if (askedAgain !== null && askedAgain < SECOND_ASK_SPIN) {
+      if (askedAgain !== null && askedAgain < marriage.secondAskSpin) {
         const tiles = deps.random.shuffle(edition.lifeTiles).slice(0, 1)
         const updated = addLifeTiles(player, tiles)
         const event: LandingEvent = {
@@ -629,37 +631,110 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
       }
 
-      const grand = asked >= GRAND_WEDDING_SPIN
-      const gift = grand ? Math.round(economy.weddingGift * GRAND_WEDDING_GIFT) : economy.weddingGift
+      /*
+       * Which marriage, not merely whether. The wheel that decided they said
+       * yes decides what it cost: a rescued proposal arrives with somebody
+       * else's debts, a low first ask is a reception nobody budgeted for, and
+       * only the top of the wheel is the marriage everybody pictures.
+       */
+      const outcome = askedAgain !== null ? marriage.rescued : marriageBandFor(marriage.outcomes, asked)
+      const gift = Math.round(economy.weddingGift * outcome.giftMultiplier)
       const payers = rivalsOf(state, player)
+
       let players = state.players
       let mover = marryPlayer(player)
       const notes: string[] = [
         askedAgain !== null
           ? `Spun a ${asked}, asked again, spun a ${askedAgain} — and this time, yes.`
-          : `Spun a ${asked}.${grand ? ' Nobody was expecting a wedding this size.' : ''}`,
+          : `Spun a ${asked}.`,
+        outcome.note,
       ]
+
       for (const payer of payers) {
         players = replacePlayer(players, debitPlayer(payer, gift, economy))
         mover = creditPlayer(mover, gift)
         notes.push(`${payer.name} pays a ${money(gift)} wedding gift.`)
       }
+      if (outcome.windfall > 0) {
+        mover = creditPlayer(mover, outcome.windfall)
+        notes.push(`Two incomes: ${money(outcome.windfall)}`)
+      }
+      if (outcome.cost > 0) {
+        mover = debitPlayer(mover, outcome.cost, economy)
+        notes.push(`The bill for it all: ${money(-outcome.cost)}`)
+      }
       players = replacePlayer(players, mover)
+
       const delta = mover.money - player.money
       const narration =
-        payers.length === 0
-          ? `Wedding bells for ${player.name} — a quiet ceremony, but a very happy one.`
-          : grand
-            ? `The wedding of the year! Everybody at this table is paying for it, ${player.name}.`
-            : `Wedding bells for ${player.name}! Everybody else, hand over those gift envelopes.`
+        delta < 0
+          ? `Married! And already ${money(-delta)} down, ${player.name} — nobody tells you about that part.`
+          : payers.length === 0
+            ? `Wedding bells for ${player.name} — a quiet ceremony, but a very happy one.`
+            : outcome.giftMultiplier > 1
+              ? `The wedding of the year! Everybody at this table is paying for it, ${player.name}.`
+              : `Wedding bells for ${player.name}! Everybody else, hand over those gift envelopes.`
       const event = baseEvent(space, delta, notes, 'milestone', narration)
       const log = appendLog(
         state,
         player.id,
-        grand ? `${player.name} gets married, spectacularly!` : `${player.name} gets married!`,
+        delta < 0
+          ? `${player.name} gets married, and is ${money(-delta)} worse off for it.`
+          : `${player.name} gets married!`,
         'milestone',
       )
       return { state: { ...state, players, log, pendingDecision: null }, event }
+    }
+
+    case 'household': {
+      /*
+       * A single player has nobody to split the bill with and nobody to argue
+       * with about it, so the tile passes them by entirely. This is the half of
+       * marriage that keeps happening after the wedding.
+       */
+      if (!player.isMarried) {
+        const event = baseEvent(
+          space,
+          0,
+          [effect.reason, 'Nobody else on the account, so nobody else to blame.'],
+          'normal',
+          `${player.name} answers to nobody about money this month.`,
+        )
+        const log = appendLog(state, player.id, `${player.name} has only themselves to answer to.`, 'info')
+        return { state: { ...state, log, pendingDecision: null }, event }
+      }
+
+      const spun = deps.random.spin()
+      const amount = Math.round(
+        (spun - household.breakEvenSpin) * expectedPayday(player, economy) * household.shareOfPayday,
+      )
+      const updated =
+        amount >= 0 ? creditPlayer(player, amount) : debitPlayer(player, -amount, economy)
+      const delta = updated.money - player.money
+
+      const notes =
+        amount < 0
+          ? [effect.reason, `Spun a ${spun} — the spending outran the account: ${money(delta)}`]
+          : amount === 0
+            ? [effect.reason, `Spun a ${spun} — the account comes out exactly level.`]
+            : [effect.reason, `Spun a ${spun} — two incomes carried it: ${money(delta)}`]
+      const narration =
+        amount < 0
+          ? `A ${spun}, and your partner has been shopping, ${player.name}. ${money(delta)}.`
+          : amount === 0
+            ? `A ${spun}, and the joint account lands exactly where it started. Nobody wins that argument.`
+            : `A ${spun}! Two incomes and a good month — ${money(delta)} for ${player.name}.`
+
+      const event = baseEvent(space, delta, notes, emphasisOf(delta), narration)
+      const log = appendLog(
+        state,
+        player.id,
+        amount < 0
+          ? `${player.name}'s joint account takes a hit, spinning a ${spun}: ${money(delta)}.`
+          : `${player.name}'s household comes out ahead, spinning a ${spun}: ${money(delta)}.`,
+        amount < 0 ? 'money-out' : 'money-in',
+      )
+      return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
     }
 
     case 'haveChildren': {

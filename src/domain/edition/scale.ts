@@ -1,5 +1,5 @@
 import type { Board, Career, Difficulty, House, LifeTile, Money, Space, SpaceEffect, Stock } from '../model/types'
-import type { CurrencySpec, EconomyConstants, Edition, EditionId } from './types'
+import type { CurrencySpec, EconomyConstants, Edition, EditionId, MarriageOutcome } from './types'
 
 /**
  * Builds an edition whose every sum of money is `factor` times another's.
@@ -45,6 +45,12 @@ const scaleStock = (stock: Stock, factor: number): Stock => ({
   payoutRange: scaleRange(stock.payoutRange, factor),
 })
 
+const scaleMarriageOutcome = (outcome: MarriageOutcome, factor: number): MarriageOutcome => ({
+  ...outcome,
+  cost: outcome.cost * factor,
+  windfall: outcome.windfall * factor,
+})
+
 const scaleByDifficulty = (
   byDifficulty: Readonly<Record<Difficulty, Money>>,
   factor: number,
@@ -61,6 +67,15 @@ const scaleEconomy = (economy: EconomyConstants, factor: number): EconomyConstan
   loanRepayment: scaleByDifficulty(economy.loanRepayment, factor),
   earlyLoanRepayment: scaleByDifficulty(economy.earlyLoanRepayment, factor),
   weddingGift: economy.weddingGift * factor,
+  // Spins and multipliers are counts, not money: only the sums are rescaled.
+  marriage: {
+    proposalSpin: economy.marriage.proposalSpin,
+    secondAskSpin: economy.marriage.secondAskSpin,
+    rescued: scaleMarriageOutcome(economy.marriage.rescued, factor),
+    outcomes: economy.marriage.outcomes.map((band) => scaleMarriageOutcome(band, factor)),
+  },
+  // Both fields are counts: a spin, and a share of a payday. Neither is money.
+  household: economy.household,
   childBonus: economy.childBonus * factor,
   childOutcome: {
     perPip: economy.childOutcome.perPip * factor,

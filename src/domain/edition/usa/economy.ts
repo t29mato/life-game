@@ -26,7 +26,18 @@ export const USA_CURRENCY: CurrencySpec = {
  */
 export const USA_ECONOMY: EconomyConstants = {
   startingMoney: 10_000,
-  collegeTuition: 40_000,
+  /**
+   * Tuition, and the reason it is no longer $40,000.
+   *
+   * The degree got more valuable when careers became ladders — a graduate is
+   * dealt a rung nobody else can reach — and it got more valuable again when
+   * marriage started paying out on a wheel, because the money that swings on
+   * that wheel scales with what you earn. Both of those pushed College Lane
+   * from an even fork to winning 56% of standard games. The bill is what the
+   * lane costs, so the bill is what had to answer for it: measured, not
+   * guessed, and $52,000 is where the fork comes back to even.
+   */
+  collegeTuition: 52_000,
   loanPrincipal: 20_000,
   /**
    * Normal is the game exactly as it has always played; the harder rates are
@@ -54,11 +65,17 @@ export const USA_ECONOMY: EconomyConstants = {
    * and only the top of the wheel is the unambiguously good one, where a second
    * income walks in the door with savings behind it.
    *
-   * The bad end is genuinely bad — at a two-player table a rescued proposal is
-   * $24,000 down — and the mean is still comfortably positive, which is the
-   * constraint that matters. Marriage has to stay worth doing: a negative
-   * expectation would mean nobody ever marries, and the whole family side of
-   * the board, children included, hangs off this tile.
+   * The bad end really is a loss — at a two-player table a rescued proposal
+   * finishes $2,000 down and the runaway reception barely clears the envelopes —
+   * and the mean is still comfortably positive, which is the constraint that
+   * matters. Marriage has to stay worth doing: a negative expectation would mean
+   * nobody ever marries, and the whole family side of the board, children
+   * included, hangs off this tile. `marriage.test.ts` is what holds that.
+   *
+   * The wedding is deliberately the *smaller* half of the downside. A flat bill
+   * is regressive — it lands hardest on the player with least, who on this board
+   * is the school-leaver — so the sums here stay modest and the real swing lives
+   * on the `household` tiles below, where it scales with what you earn.
    *
    * Note the table size does its own work here. Every rival pays a gift, so a
    * full table makes marriage reliably good and a duel makes it a real gamble —
@@ -72,7 +89,7 @@ export const USA_ECONOMY: EconomyConstants = {
       upTo: 10,
       note: 'They said yes the second time — and moved in with a car loan, a store card and a very relaxed attitude to both.',
       giftMultiplier: 1,
-      cost: 34_000,
+      cost: 12_000,
       windfall: 0,
     },
     outcomes: [
@@ -80,7 +97,7 @@ export const USA_ECONOMY: EconomyConstants = {
         upTo: 4,
         note: 'The reception ran away with itself: the room, the flowers, the photographer, and both families ordering the good wine.',
         giftMultiplier: 1,
-        cost: 22_000,
+        cost: 8_000,
         windfall: 0,
       },
       {
@@ -95,30 +112,36 @@ export const USA_ECONOMY: EconomyConstants = {
         note: 'Two incomes under one roof, and the rent suddenly looks like half of what it was.',
         giftMultiplier: 1,
         cost: 0,
-        windfall: 30_000,
+        windfall: 20_000,
       },
       {
         upTo: 10,
         note: 'The whole county turns up, everybody is generous, and your partner turns out to have been quietly saving for years.',
         giftMultiplier: 1.5,
         cost: 0,
-        windfall: 45_000,
+        windfall: 30_000,
       },
     ],
   },
   /**
-   * $9,000 a pip either side of a five: a bad month costs $36,000 and a good one
-   * brings $45,000, and the average month is worth $4,500.
+   * Three fifths of a payday riding on every pip either side of a five.
    *
-   * Barely profitable on purpose. If the joint account paid well it would be a
-   * reward for marrying rather than a consequence of it, and marriage already
-   * has its reward in the gift envelopes. What this adds is the thing the player
-   * asked for: months where the spending outran the household and being married
-   * is why you are down.
+   * Quoted in paydays rather than dollars because that is how it lands: a bad
+   * year costs about two and a half months' pay and a good one puts three
+   * ahead. On a $60,000 wage that is $36,000 a pip — a swing from $144,000 down
+   * to $180,000 up, which is the largest thing on the board outside retirement,
+   * and deliberately so. This is the tile that makes marriage a bet rather than
+   * a prize, and it only ever fires for players who took the bet.
+   *
+   * Barely profitable on average, at three tenths of a payday to the good. If
+   * the joint account paid well it would be a reward for marrying rather than a
+   * consequence of it, and marriage already has its reward in the envelopes.
+   * What this adds is the thing that was missing: years where the spending
+   * outran the household and being married is precisely why you are down.
    */
   household: {
     breakEvenSpin: 5,
-    perPip: 9_000,
+    shareOfPayday: 0.6,
   },
   /**
    * $52,000 a child on average — five times what it was, and now a real share
