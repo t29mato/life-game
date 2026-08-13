@@ -665,6 +665,8 @@ describe('the endgame is where the game is decided', () => {
     const board = createBoard(length, difficulty)
     const depth = distanceFromStart(board)
     const deepest = Math.max(...depth.values())
+    // Payouts only. A review is deliberately *not* one: it is an investment in
+    // every payday after it, so the board puts reviews early and the money late.
     const income = Object.values(board.spaces).filter(
       (s) => s.effect.type === 'payday' || s.effect.type === 'payRaise',
     )
@@ -673,10 +675,18 @@ describe('the endgame is where the game is decided', () => {
   })
 
   it('has more paydays and raises than the board it replaces (which had 5 and 3)', () => {
+    /*
+     * Counted as raise *or* review, because the review tiles are where most of
+     * the old raise tiles went. A review is a raise with something above it:
+     * a spin under the bar pays the ordinary raise, and a spin over it climbs a
+     * rung instead. Counting only `payRaise` would say the board lost income
+     * events when what it actually did was make them worth playing for.
+     */
     const board = createBoard('standard')
     const spaces = Object.values(board.spaces)
+    const raises = spaces.filter((s) => s.effect.type === 'payRaise' || s.effect.type === 'promotion')
     expect(spaces.filter((s) => s.effect.type === 'payday').length).toBeGreaterThan(5)
-    expect(spaces.filter((s) => s.effect.type === 'payRaise').length).toBeGreaterThan(3)
+    expect(raises.length).toBeGreaterThan(3)
   })
 })
 

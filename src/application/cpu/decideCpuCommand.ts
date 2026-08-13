@@ -14,7 +14,14 @@ import type { Edition, EconomyConstants } from '@domain/edition/types'
 import { SHARES_PER_PURCHASE } from '@domain/model/constants'
 import { difficultyProfile, earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
 import { editionOf } from '@domain/edition/registry'
-import { findCareer, findHouse, findStock, hiringPoolFor, nextRungOf } from '@domain/edition/lookup'
+import {
+  findCareer,
+  findHouse,
+  findStock,
+  hiringPoolFor,
+  ladderPositionOf,
+  nextRungOf,
+} from '@domain/edition/lookup'
 import { AVERAGE_SPIN, expectedPayday, isCoveredAgainst, totalShares } from '@domain/rules/player'
 import type { GameCommand } from '../GameStore'
 import {
@@ -428,12 +435,24 @@ interface Context {
 
 /**
  * What holding this rung is worth: the wage, the raises it will collect, and
- * the rung above it discounted by the odds of ever reaching it.
+ * every rung still above it, each discounted by the odds of ever getting there.
  *
  * The last term is what makes a ladder legible to a computer seat. Two jobs on
  * the same money are not the same job if one of them has a salon above it and
- * the other is the top of a two-rung trade, and without this the CPU would
- * take the flatter one half the time.
+ * the other is the top of a two-rung trade, and without this the CPU would take
+ * the flatter one half the time.
+ *
+ * It has to read the *whole* chain, not merely the next step up. The tall basic
+ * ladders are worth taking precisely because of what sits two rungs away — a
+ * session musician and a second shooter open on the same wage, with the same
+ * raise, and one of them has a record producer at the top — and a seat that
+ * looked one rung ahead priced that difference at $770 when it is really worth
+ * $12,000. Each rung is discounted by the product of every promotion spin
+ * between here and there, so the corner office counts for what it honestly is:
+ * a fifth of a chance, not a certainty.
+ *
+ * The rungs come from the ladder index rather than by chasing `promotesTo`,
+ * which is what keeps a miswritten catalogue that loops from hanging a turn.
  *
  * `salary` is the expected packet whether or not the job is steady, so an
  * unsteady trade and a contract of the same worth are compared on equal terms —
@@ -441,9 +460,18 @@ interface Context {
  * to one.
  */
 function careerWorth(career: Career, edition: Edition): number {
-  const above = nextRungOf(career, edition)
-  const odds = above ? (11 - (career.promotionSpin ?? 5)) / 10 : 0
-  const climb = above ? odds * Math.max(0, above.salary - career.salary) : 0
+  const position = ladderPositionOf(career.id, edition)
+  const above = position ? position.rungs.slice(position.rung) : []
+
+  let reach = 1
+  let climb = 0
+  above.forEach((rung, index) => {
+    // The spin written on the rung being *left* is what gates this step up.
+    const below = index === 0 ? career : (above[index - 1] as Career)
+    reach *= (11 - (below.promotionSpin ?? 5)) / 10
+    climb += reach * Math.max(0, rung.salary - career.salary)
+  })
+
   return career.salary + career.raiseStep * RAISE_HORIZON + climb
 }
 
@@ -582,7 +610,7 @@ function scoreRetire(option: DecisionOption, context: Context): number {
 }
 
 function scoreBranch(option: DecisionOption, context: Context, decision: Decision): number {
-  const { state, player } = context
+  const { state, player, edition } = context
   const board = state.board
   if (!board.spaces[option.id]) return UNKNOWN_OPTION_SCORE
 
@@ -629,7 +657,7 @@ function scoreBranch(option: DecisionOption, context: Context, decision: Decisio
    * measured, leaving the degree, the graduate careers and Family Lane's
    * children as content no computer seat ever reached.
    */
-  const walked: Player = {
+  let walked: Player = {
     ...player,
     hasDegree: player.hasDegree || [...mine].some((id) => board.spaces[id]?.effect.type === 'graduate'),
   }
@@ -643,6 +671,27 @@ function scoreBranch(option: DecisionOption, context: Context, decision: Decisio
     const value = valueOfSpace(space, walked, state, paydaysAhead)
     if (value < 0) outlay += -value
     laneValue += value
+
+    /*
+     * Carry the life forward as the lane is walked, or the lane gets counted
+     * as if every tile on it happened to the player standing at the fork.
+     *
+     * Both of these were deciding forks on their own. Three review tiles were
+     * each scored against today's rung, so Fast Track claimed the same climb
+     * from stylist to salon owner three times over and came to $511,900
+     * against Family Lane's $216,522 — the computer took Fast Track in all 600
+     * marriage forks I measured and no seat ever had a child. And a lane's
+     * `payPerChild` bills multiply by a child count that was still zero at the
+     * fork, so Family Lane's school fees were free and its child benefit paid
+     * nothing. Walking the state makes both lanes argue honestly.
+     */
+    if (space.effect.type === 'promotion' && walked.career) {
+      const next = nextRungOf(walked.career, edition)
+      if (next) walked = { ...walked, career: next }
+    }
+    if (space.effect.type === 'haveChildren') {
+      walked = { ...walked, children: walked.children + space.effect.count }
+    }
   }
   // What the lane's bills really cost on top of their face value: the interest
   // on any borrowing they force, plus the nag for spending down the reserve.

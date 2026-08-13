@@ -16,6 +16,7 @@ import {
   BANK_DECLINE_OPTION_ID,
   BANK_LOAN_OPTION_ID,
   BANK_REPAY_OPTION_ID,
+  CAREER_STAY_OPTION_ID,
   DECLINE_HOUSE_OPTION_ID,
   DECLINE_INSURANCE_OPTION_ID,
   DECLINE_STOCK_OPTION_ID,
@@ -74,14 +75,19 @@ describe('applyEffect', () => {
   })
 
   describe('payday', () => {
-    it('pays the career salary when employed', () => {
-      const career = BASIC_CAREERS[0]!
+    it('pays a contract flat, and does not touch the wheel to do it', () => {
+      // Salaried work is the one kind of payday the wheel has no say in. Burning
+      // a spin on it anyway would be invisible here but would shift every later
+      // draw in the game, so the unused wheel is part of the promise.
+      const career = BASIC_CAREERS.find((c) => c.payPerPip === undefined)!
       const player = fixturePlayer({ money: 1_000, career })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'payday' } })
-      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom() })
+      const random = createFakeRandom({ spins: [9] })
+      const { state: next, event } = applyEffect(state, space, { random })
       expect(next.players[0]!.money).toBe(1_000 + career.salary)
       expect(event.moneyDelta).toBe(career.salary)
+      expect(random.calls.spins).toBe(0)
       expect(next.log[0]!.tone).toBe('money-in')
     })
 
@@ -226,13 +232,23 @@ describe('applyEffect', () => {
   })
 
   describe('getMarried', () => {
-    it('marries the player and collects a wedding gift from every other active player', () => {
-      const mover = fixturePlayer({ id: 'p1', name: 'Alex', money: 50_000 })
-      const guest1 = fixturePlayer({ id: 'p2', name: 'Bo', money: 50_000 })
-      const guest2 = fixturePlayer({ id: 'p3', name: 'Cy', money: 50_000, isRetired: true })
-      const state = fixtureState({ players: [mover, guest1, guest2], currentPlayerIndex: 0 })
-      const space = fixtureSpace({ effect: { type: 'getMarried' } })
-      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom() })
+    /** Three guests, one of them retired and therefore not paying for anything. */
+    const weddingParty = () =>
+      fixtureState({
+        players: [
+          fixturePlayer({ id: 'p1', name: 'Alex', money: 50_000 }),
+          fixturePlayer({ id: 'p2', name: 'Bo', money: 50_000 }),
+          fixturePlayer({ id: 'p3', name: 'Cy', money: 50_000, isRetired: true }),
+        ],
+        currentPlayerIndex: 0,
+      })
+
+    const MARRIAGE_SPACE = { effect: { type: 'getMarried' } } as const
+
+    it('marries on a spin of 3 or better and collects a gift from every active guest', () => {
+      const state = weddingParty()
+      const space = fixtureSpace(MARRIAGE_SPACE)
+      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom({ spins: [3] }) })
 
       expect(next.players[0]!.isMarried).toBe(true)
       // only the non-retired guest pays; both have plenty of cash, so no auto-loan kicks in
@@ -240,6 +256,60 @@ describe('applyEffect', () => {
       expect(next.players[1]!.money).toBe(50_000 - WEDDING_GIFT)
       expect(next.players[2]!.money).toBe(50_000) // retired guest is skipped
       expect(event.moneyDelta).toBe(WEDDING_GIFT)
+    })
+
+    it('turns a spin of 8 or better into a wedding half again as expensive for the guests', () => {
+      const state = weddingParty()
+      const space = fixtureSpace(MARRIAGE_SPACE)
+      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom({ spins: [8] }) })
+
+      const grand = Math.round(WEDDING_GIFT * 1.5)
+      expect(next.players[0]!.isMarried).toBe(true)
+      expect(event.moneyDelta).toBe(grand)
+      expect(next.players[1]!.money).toBe(50_000 - grand)
+      expect(next.log[0]!.message).toContain('spectacularly')
+    })
+
+    it('asks again after a 1 or a 2, and a 2 on the second ask still gets a wedding', () => {
+      const state = weddingParty()
+      const space = fixtureSpace(MARRIAGE_SPACE)
+      // 1 is under the bar, so the wheel is given a second, kinder chance.
+      const random = createFakeRandom({ spins: [1, 2] })
+      const { state: next, event } = applyEffect(state, space, { random })
+
+      expect(random.calls.spins).toBe(2)
+      expect(next.players[0]!.isMarried).toBe(true)
+      expect(event.moneyDelta).toBe(WEDDING_GIFT)
+      expect(event.notes.join(' ')).toContain('this time, yes')
+    })
+
+    it('leaves the player single on a 1 and then a 1, and pays them a LIFE tile for the year', () => {
+      const state = weddingParty()
+      const space = fixtureSpace(MARRIAGE_SPACE)
+      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom({ spins: [1] }) })
+
+      expect(next.players[0]!.isMarried).toBe(false)
+      // Nobody pays for a wedding that did not happen.
+      expect(next.players[0]!.money).toBe(50_000)
+      expect(next.players[1]!.money).toBe(50_000)
+      expect(event.moneyDelta).toBe(0)
+      expect(event.lifeTilesGained).toHaveLength(1)
+      expect(next.players[0]!.lifeTiles).toHaveLength(1)
+      // Staying single must not close Family Lane off — that would make one bad
+      // spin cost the player the whole family side of the board.
+      expect(next.players[0]!.children).toBe(0)
+      expect(event.notes.join(' ')).toContain('still open')
+    })
+
+    it('is a no-op for a player who is already married', () => {
+      const state = fixtureState({ players: [fixturePlayer({ isMarried: true, money: 50_000 })] })
+      const space = fixtureSpace(MARRIAGE_SPACE)
+      const random = createFakeRandom({ spins: [10] })
+      const { state: next, event } = applyEffect(state, space, { random })
+
+      expect(next.players[0]!.money).toBe(50_000)
+      expect(event.moneyDelta).toBe(0)
+      expect(random.calls.spins).toBe(0)
     })
   })
 
@@ -543,18 +613,45 @@ describe('applyEffect', () => {
   // -------------------------------------------------------------------------
 
   describe('careerChange', () => {
-    it('offers two careers with no way to decline', () => {
-      const player = fixturePlayer({ career: BASIC_CAREERS[0]! })
+    it('offers two other trades and, third, the job the player already has', () => {
+      // A career is a ladder. Marching somebody off one they have climbed is a
+      // deletion of the arc they were playing for, so staying is an answer.
+      const current = BASIC_CAREERS[0]!
+      const player = fixturePlayer({ career: current })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'careerChange', reason: 'Headhunted!' } })
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
 
       expect(next.pendingDecision!.kind).toBe('career')
-      expect(next.pendingDecision!.options).toHaveLength(2)
+      expect(next.pendingDecision!.options).toHaveLength(3)
+
       const careerIds = new Set(BASIC_CAREERS.map((career) => career.id))
-      for (const option of next.pendingDecision!.options) {
-        expect(careerIds.has(option.id)).toBe(true)
-      }
+      const [first, second, stay] = next.pendingDecision!.options
+      expect(careerIds.has(first!.id)).toBe(true)
+      expect(careerIds.has(second!.id)).toBe(true)
+      expect(stay!.id).toBe(CAREER_STAY_OPTION_ID)
+      expect(stay!.label).toContain(current.title)
+    })
+
+    it('takes the decline away when the tile says nobody asked', () => {
+      const player = fixturePlayer({ career: BASIC_CAREERS[0]! })
+      const state = fixtureState({ players: [player] })
+      const space = fixtureSpace({
+        effect: { type: 'careerChange', reason: 'The whole department is reorganised.', compulsory: true },
+      })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+
+      expect(next.pendingDecision!.options).toHaveLength(2)
+      expect(next.pendingDecision!.options.map((option) => option.id)).not.toContain(CAREER_STAY_OPTION_ID)
+    })
+
+    it('takes the decline away from a player with no job, so a layoff always has a way back', () => {
+      const state = fixtureState({ players: [fixturePlayer({ career: null })] })
+      const space = fixtureSpace({ effect: { type: 'careerChange', reason: 'Career fair!' } })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+
+      expect(next.pendingDecision!.options).toHaveLength(2)
+      expect(next.pendingDecision!.options.map((option) => option.id)).not.toContain(CAREER_STAY_OPTION_ID)
     })
 
     it('never offers the job the player already has back to them', () => {

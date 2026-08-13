@@ -45,6 +45,82 @@ export const USA_ECONOMY: EconomyConstants = {
   },
   weddingGift: 10_000,
   /**
+   * The wheel decides the marriage, not just the wedding.
+   *
+   * Read down the bands and it is a life rather than a prize: a proposal that
+   * had to be asked twice brings someone who is still paying off a car they
+   * cannot afford; a low first ask is a reception the couple are still settling
+   * a year later; the middle is the sensible wedding most people actually have;
+   * and only the top of the wheel is the unambiguously good one, where a second
+   * income walks in the door with savings behind it.
+   *
+   * The bad end is genuinely bad — at a two-player table a rescued proposal is
+   * $24,000 down — and the mean is still comfortably positive, which is the
+   * constraint that matters. Marriage has to stay worth doing: a negative
+   * expectation would mean nobody ever marries, and the whole family side of
+   * the board, children included, hangs off this tile.
+   *
+   * Note the table size does its own work here. Every rival pays a gift, so a
+   * full table makes marriage reliably good and a duel makes it a real gamble —
+   * which is the right way round, because a duel is where a swing decides
+   * everything.
+   */
+  marriage: {
+    proposalSpin: 3,
+    secondAskSpin: 2,
+    rescued: {
+      upTo: 10,
+      note: 'They said yes the second time — and moved in with a car loan, a store card and a very relaxed attitude to both.',
+      giftMultiplier: 1,
+      cost: 34_000,
+      windfall: 0,
+    },
+    outcomes: [
+      {
+        upTo: 4,
+        note: 'The reception ran away with itself: the room, the flowers, the photographer, and both families ordering the good wine.',
+        giftMultiplier: 1,
+        cost: 22_000,
+        windfall: 0,
+      },
+      {
+        upTo: 7,
+        note: 'A small, sensible wedding. Forty people, one good speech, and the gifts covered it.',
+        giftMultiplier: 1,
+        cost: 0,
+        windfall: 0,
+      },
+      {
+        upTo: 9,
+        note: 'Two incomes under one roof, and the rent suddenly looks like half of what it was.',
+        giftMultiplier: 1,
+        cost: 0,
+        windfall: 30_000,
+      },
+      {
+        upTo: 10,
+        note: 'The whole county turns up, everybody is generous, and your partner turns out to have been quietly saving for years.',
+        giftMultiplier: 1.5,
+        cost: 0,
+        windfall: 45_000,
+      },
+    ],
+  },
+  /**
+   * $9,000 a pip either side of a five: a bad month costs $36,000 and a good one
+   * brings $45,000, and the average month is worth $4,500.
+   *
+   * Barely profitable on purpose. If the joint account paid well it would be a
+   * reward for marrying rather than a consequence of it, and marriage already
+   * has its reward in the gift envelopes. What this adds is the thing the player
+   * asked for: months where the spending outran the household and being married
+   * is why you are down.
+   */
+  household: {
+    breakEvenSpin: 5,
+    perPip: 9_000,
+  },
+  /**
    * $52,000 a child on average — five times what it was, and now a real share
    * of a final total rather than a rounding error. It is the expected value of
    * `childOutcome` below, and `lifeTiles.test.ts`'s sibling check in

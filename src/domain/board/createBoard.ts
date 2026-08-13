@@ -148,7 +148,23 @@ function spacesIn(segment: WalkedSegment): readonly SpaceContent[] {
 // ---------------------------------------------------------------------------
 
 const COLUMN_MIN = 1
-const COLUMN_MAX = 22
+/**
+ * How wide a row runs before the serpentine turns back.
+ *
+ * A board is a column of rows that gets longer; it is never a wider board. The
+ * route grew through the careers rework until the widest fork no longer fitted
+ * a row, and every fork that ran out of room pushed the right-hand bound
+ * further out instead of taking another row — so the *longest* board came out
+ * landscape, 33 columns against 18 rows, wider than the standard board it is
+ * supposed to be a longer version of. A phone renders that as a smear.
+ *
+ * Narrowing the row is what turns the extra tiles back into rows: the long
+ * board is 31x24 here, taller than it is wide, and each length is squarer than
+ * the one below it. `Board.test.tsx` is what actually holds that promise, and
+ * it is worth knowing the value is load-bearing rather than arbitrary — a row
+ * wide enough to swallow the home-buying fork whole stops adding rows again.
+ */
+const COLUMN_MAX = 19
 const ROW_STEP = 3
 
 interface Cursor {

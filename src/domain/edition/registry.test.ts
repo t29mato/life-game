@@ -13,6 +13,7 @@ import {
   STARTING_MONEY,
   WEDDING_GIFT,
 } from '../model/constants'
+import { hiringPoolFor } from './lookup'
 import { DEFAULT_EDITION_ID, allEditions, editionFor, editionOf, registerEdition } from './registry'
 import { EDITION_USA } from './usa'
 import { scaleEdition } from './scale'
@@ -68,7 +69,7 @@ describe('the USA edition is the game that was already here', () => {
   it('still holds the figures the board was tuned against', () => {
     // Spelled out rather than derived: these are the numbers every win rate in
     // `gameBalance.test.ts` was measured against, and a silent edit to any of
-    // them is exactly what this whole extraction had to avoid.
+    // them moves every one of those measurements underneath it.
     expect(EDITION_USA.economy).toMatchObject({
       startingMoney: 10_000,
       collegeTuition: 40_000,
@@ -76,13 +77,37 @@ describe('the USA edition is the game that was already here', () => {
       loanRepayment: { normal: 25_000, hard: 38_000, veryHard: 50_000 },
       earlyLoanRepayment: { normal: 22_000, hard: 28_000, veryHard: 34_000 },
       weddingGift: 10_000,
-      childBonus: 10_000,
       firstRetirementBonus: 80_000,
       casualWagePerPip: 900,
       insurancePremium: { home: 25_000, auto: 20_000, life: 50_000 },
       lifeInsurancePayout: 100_000,
       bigMoney: 50_000,
     })
+  })
+
+  /*
+   * What the rework added, guarded the same way. These are the three prices the
+   * new choices are made at — what a child is worth, what stopping early costs
+   * and pays — and every one of them was set by measurement rather than taste.
+   */
+  it('holds the prices the rework put on children and on stopping early', () => {
+    expect(EDITION_USA.economy).toMatchObject({
+      childBonus: 52_000,
+      childOutcome: { perPip: 6_000, starSpin: 10, starPayout: 250_000 },
+      fireNumber: 250_000,
+      firePayoutPerPip: 64_000,
+    })
+  })
+
+  it('keeps the headline child figure equal to what a child actually pays', () => {
+    // `childBonus` is quoted by the panel, the live net worth and the computer's
+    // valuation of Family Lane; `childOutcome` is what the wheel really hands
+    // over. If the two drift, every one of those readouts starts lying.
+    const { childBonus, childOutcome } = EDITION_USA.economy
+    const ordinary = (1 + childOutcome.starSpin - 1) / 2 // mean pip below the star wedge
+    const starChance = (10 - childOutcome.starSpin + 1) / 10
+    const expected = ordinary * childOutcome.perPip * (1 - starChance) + childOutcome.starPayout * starChance
+    expect(Math.abs(expected - childBonus) / childBonus).toBeLessThan(0.05)
   })
 
   it('counts in dollars, rounded the way the board prints', () => {
@@ -94,11 +119,21 @@ describe('the USA edition is the game that was already here', () => {
     })
   })
 
-  it('carries the catalogues the game already had', () => {
-    expect(EDITION_USA.careers.basic).toHaveLength(14)
-    expect(EDITION_USA.careers.graduate).toHaveLength(12)
+  it('carries catalogues deep enough that a re-draw is never the same two cards', () => {
+    // The career pools are counted in *rungs* now — a trade written out in order
+    // is several entries — so what a fair can actually deal is asserted below
+    // rather than read off these lengths.
+    expect(EDITION_USA.careers.basic.length).toBeGreaterThanOrEqual(30)
+    expect(EDITION_USA.careers.graduate.length).toBeGreaterThanOrEqual(20)
     expect(EDITION_USA.houses).toHaveLength(9)
     expect(EDITION_USA.lifeTiles).toHaveLength(36)
     expect(EDITION_USA.stocks).toHaveLength(5)
+  })
+
+  it('offers a fair enough trades to choose between, in both pools', () => {
+    // What the board deals is bottom rungs, and there have to be plenty: the
+    // career-change tiles re-draw two every time they fire.
+    expect(hiringPoolFor(EDITION_USA, false).length).toBeGreaterThanOrEqual(10)
+    expect(hiringPoolFor(EDITION_USA, true).length).toBeGreaterThanOrEqual(10)
   })
 })

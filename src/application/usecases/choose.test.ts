@@ -81,7 +81,9 @@ describe('choose', () => {
     })
 
     it('continues walking the chosen branch and pays paydays passed along it', () => {
-      const player = fixturePlayer({ spaceId: 'fork', career: BASIC_CAREERS[0]!, money: 0 })
+      // Salaried, so the figure asserted is the pass-through rule and not a spin.
+      const salaried = BASIC_CAREERS.find((career) => career.payPerPip === undefined)!
+      const player = fixturePlayer({ spaceId: 'fork', career: salaried, money: 0 })
       const state = decisionState({
         players: [player],
         stepsRemaining: 3,
@@ -101,7 +103,7 @@ describe('choose', () => {
       expect(next.movementPath).toEqual(['longBranch', 'mid', 'merge'])
       expect(next.stepsRemaining).toBe(0)
       expect(next.players[0]!.spaceId).toBe('merge')
-      expect(next.players[0]!.money).toBe(BASIC_CAREERS[0]!.salary) // mid payday passed through
+      expect(next.players[0]!.money).toBe(salaried.salary) // mid payday passed through
     })
   })
 

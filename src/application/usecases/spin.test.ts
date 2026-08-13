@@ -4,6 +4,9 @@ import { fixtureMovementBoard, fixturePlayer, fixtureState } from '../testing/fi
 import { createFakeRandom } from '../testing/fakes'
 import { spin } from './spin'
 
+/** A career paid by contract: one payday is one predictable figure. */
+const SALARIED_CAREER = BASIC_CAREERS.find((career) => career.payPerPip === undefined)!
+
 describe('spin', () => {
   it('throws when the phase is not awaitingSpin', () => {
     const state = fixtureState({ board: fixtureMovementBoard(), phase: 'moving' })
@@ -27,7 +30,9 @@ describe('spin', () => {
 
   it('pays out salary for every payday passed through (not landed on)', () => {
     const board = fixtureMovementBoard()
-    const career = BASIC_CAREERS[0]!
+    // Salaried, so the sum under test is the pass-through rule rather than the
+    // wheel — what an unsteady trade collects on the way past is payday.test.ts's.
+    const career = SALARIED_CAREER
     const player = fixturePlayer({ spaceId: 'start', career, money: 0 })
     const state = fixtureState({ board, players: [player], phase: 'awaitingSpin' })
 

@@ -192,10 +192,21 @@ const WORK_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 1_800, reason: 'Deposit and first month' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, unscaled: true,
   },
-  setback('hard', EVERY_BOARD, 'work-uniform', 'Uniform Deposit',
-    'Two shirts, a name badge, and a deposit you have a feeling you will never see again.',
-    { type: 'payMoney', amount: 1_500, reason: 'Uniform deposit' },
-    'orange', 'space:rent-due'),
+  /*
+   * A stop rather than an ordinary tile, and only on the harder settings.
+   *
+   * The same argument the Moving Out bill above is written on: a cost five
+   * walkers in six spin straight over is decoration, not a cost. This is the
+   * other half of holding the opening fork even on hard — the payroll lost
+   * below is the weight, and this is the tile that makes sure everybody who
+   * takes this road in a bad year actually feels it.
+   */
+  {
+    id: 'work-uniform', kind: 'stop', title: 'Uniform Deposit',
+    description: 'Two shirts, a name badge, and a deposit you have a feeling you will never see again.',
+    effect: { type: 'payMoney', amount: 1_500, reason: 'Uniform deposit' },
+    tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, appearsFrom: 'hard',
+  },
   {
     id: 'work-3', kind: 'normal', title: 'Overtime Shift',
     description: 'You pick up an extra shift and your feet regret it by nine.',
@@ -212,8 +223,27 @@ const WORK_LANE: readonly SpaceContent[] = [
     'The rent goes in four days late, and the fee is on the doormat before the apology is.',
     { type: 'payMoney', amount: 2_500, reason: 'Late rent penalty' },
     'orange', 'space:rent-due'),
+  /*
+   * The payroll this lane loses first, and the one that keeps the opening fork
+   * a fork on the harder settings.
+   *
+   * A degree is bought up front and repaid over a working life, so the harder
+   * settings charge for it twice: the bill is the same $40,000 whatever the
+   * difficulty, and the borrowing it forces is repaid at rates half again as
+   * steep. Measured, College Lane won 35.8% of games on hard against an
+   * even-fork floor of 40% — enrolling had stopped being a choice and become a
+   * trap. Every correction on the college side moves normal and hard together,
+   * because tuition and graduate pay are the same numbers on both; taking a
+   * payroll off the *other* road is the only lever that lands on hard alone.
+   *
+   * It is also the honest way round. Being paid by the hour with no
+   * qualification behind you is precisely what gets thinner when times are
+   * hard, and a missed payday is the heaviest single change the board can
+   * make — a payday pays for being passed, so losing one costs a whole packet
+   * rather than the fraction of a tile that has to be landed on.
+   */
   payday(EVERY_BOARD, 'work-payday-2', 'Another month, another deposit, and still nobody has asked to see a certificate.', missedPayday(
-    'veryHard',
+    'hard',
     'Hours Cut',
     'The rota goes up on Sunday with your name on half as many lines as last week.',
     1_200,

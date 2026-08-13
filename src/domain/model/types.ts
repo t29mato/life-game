@@ -202,6 +202,17 @@ export type SpaceEffect =
   | { readonly type: 'chooseCareer'; readonly pool: 'graduate' | 'basic' }
   | { readonly type: 'graduate' }
   | { readonly type: 'getMarried' }
+  /**
+   * The joint account, settled by the wheel. Married players only.
+   *
+   * Marriage used to be the last uniformly good thing on the board: you married,
+   * everybody paid you, and nothing about it could ever go wrong. This is the
+   * half of it that keeps happening after the wedding — a partner whose spending
+   * outruns the household in a bad month, two incomes carrying it in a good one.
+   * A single player has nobody to split the bill with and nobody to argue with
+   * about it, so nothing happens to them at all.
+   */
+  | { readonly type: 'household'; readonly reason: string }
   | { readonly type: 'haveChildren'; readonly count: number }
   | { readonly type: 'buyHouse' }
   | { readonly type: 'collectFromEach'; readonly amount: Money; readonly reason: string }

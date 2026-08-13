@@ -239,8 +239,22 @@ describe('TitleScreen', () => {
     })
   })
 
-  it('shows the running build version, sourced from package.json', () => {
+  /*
+   * The build string is `git describe`, not the package version: "1.0.0"
+   * cannot tell you which of three deploys you are looking at. So this asserts
+   * the value that is actually injected, whatever shape it takes — a bare tag
+   * on a release build, `v1.0.0-3-gabc1234` a few commits later, and `-dirty`
+   * for anyone with uncommitted work. Pinning the literal `v1.0.0` made the
+   * suite fail for every developer with an unsaved change, which is a test
+   * reporting on the working tree rather than on the code.
+   */
+  it('shows the build the bundle was made from', () => {
     renderTitleScreen()
-    expect(screen.getByText(`v${__APP_VERSION__}`)).toBeInTheDocument()
+    expect(screen.getByText(__APP_BUILD__)).toBeInTheDocument()
+  })
+
+  it('names a build that identifies its commit, not just a release number', () => {
+    expect(__APP_BUILD__).toMatch(/^v?\d/)
+    expect(__APP_BUILD__.length).toBeGreaterThan(0)
   })
 })

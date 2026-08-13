@@ -16,16 +16,17 @@ import type { Career } from '../../model/types'
  * but it is now told by the *shape of the ladders* rather than by two flat
  * bands of salary, which is a better way to tell it:
  *
- * - **Graduate ladders are short and start high.** Two rungs, entry $46k-$62k,
- *   top $64k-$82k, and the one climb lands seven times in ten. The degree buys
- *   a floor and a nearly certain ceiling: you will never scrape by, and you
- *   will never run anything. A whole graduate life fits in a $36,000 band.
+ * - **Graduate ladders are short and start high.** Two rungs, entry
+ *   $53.9k-$65k, top $62k-$80k, and the one climb lands seven times in ten. The
+ *   degree buys a floor and a nearly certain ceiling: you will never scrape by,
+ *   and you will never run anything. A whole graduate life — every rung of
+ *   every ladder — fits in a $26,100 band.
  * - **Basic ladders are long and start low.** Mostly three rungs, entry
- *   $20k-$52k, top $40k-$115k, and the last climb lands four times in ten. The
- *   bottom is grim, the top beats every graduate job on the board by half
- *   again, and which one you get is the gamble the lane is supposed to be. The
- *   band is $95,500 wide — two and a half times the graduate one, and that
- *   ratio is measured, because it *is* Straight to Work's volatility.
+ *   $24k-$62.7k, top $34k-$148.5k, and the last climb lands three times in ten.
+ *   The bottom is grim, the top beats every graduate job on the board by most
+ *   of half again, and which one you get is the gamble the lane is supposed to
+ *   be. The band is $124,500 wide — nearly five times the graduate one, and
+ *   that ratio is measured, because it *is* Straight to Work's volatility.
  *
  * That is where Straight to Work's volatility now lives. It used to be the
  * width of a single draw; it is the width of a draw *and* how far up it you
@@ -37,7 +38,7 @@ import type { Career } from '../../model/types'
 /**
  * How hard each step up is, in spins.
  *
- * A first promotion lands seven times in ten and a corner office four, which
+ * A first promotion lands seven times in ten and a corner office three, which
  * is the entire statement the design makes about what a ladder is: getting off
  * the bottom is normal, getting to the top is not. Both are written on the
  * rung being *left*, so a ladder's difficulty is read off the ladder.
@@ -475,7 +476,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-surgical-resident',
     title: 'Surgical Resident',
-    salary: 65_000,
+    salary: 63_000,
     raiseStep: 6_200,
     requiresDegree: true,
     icon: 'career:surgeon',
@@ -486,7 +487,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-surgeon',
     title: 'Surgeon',
-    salary: 80_000,
+    salary: 78_000,
     raiseStep: 8_200,
     requiresDegree: true,
     icon: 'career:surgeon',
@@ -495,7 +496,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-junior-associate',
     title: 'Junior Associate',
-    salary: 67_000,
+    salary: 65_000,
     raiseStep: 6_400,
     requiresDegree: true,
     icon: 'career:corporate-lawyer',
@@ -506,7 +507,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-corporate-lawyer',
     title: 'Corporate Lawyer',
-    salary: 82_000,
+    salary: 80_000,
     raiseStep: 8_400,
     requiresDegree: true,
     icon: 'career:corporate-lawyer',
@@ -515,7 +516,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-architectural-assistant',
     title: 'Architectural Assistant',
-    salary: 61_000,
+    salary: 59_000,
     raiseStep: 5_800,
     requiresDegree: true,
     icon: 'career:architect',
@@ -526,7 +527,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-architect',
     title: 'Architect',
-    salary: 72_000,
+    salary: 70_000,
     raiseStep: 7_400,
     requiresDegree: true,
     icon: 'career:architect',
@@ -535,7 +536,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-junior-engineer',
     title: 'Junior Engineer',
-    salary: 63_000,
+    salary: 61_000,
     raiseStep: 6_000,
     requiresDegree: true,
     icon: 'career:software-engineer',
@@ -546,7 +547,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-software-engineer',
     title: 'Software Engineer',
-    salary: 76_000,
+    salary: 74_000,
     raiseStep: 7_800,
     requiresDegree: true,
     icon: 'career:software-engineer',
@@ -555,7 +556,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-junior-designer',
     title: 'Junior Designer',
-    salary: 59_000,
+    salary: 57_000,
     raiseStep: 5_600,
     requiresDegree: true,
     icon: 'career:game-designer',
@@ -566,7 +567,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-game-designer',
     title: 'Game Designer',
-    salary: 68_000,
+    salary: 66_000,
     raiseStep: 7_000,
     requiresDegree: true,
     icon: 'career:game-designer',
@@ -575,7 +576,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-robotics-graduate',
     title: 'Robotics Graduate',
-    salary: 63_000,
+    salary: 61_000,
     raiseStep: 6_000,
     requiresDegree: true,
     icon: 'tile:invention',
@@ -586,7 +587,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-robotics-engineer',
     title: 'Robotics Engineer',
-    salary: 74_000,
+    salary: 72_000,
     raiseStep: 7_600,
     requiresDegree: true,
     icon: 'tile:invention',
@@ -595,7 +596,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-investment-analyst',
     title: 'Investment Analyst',
-    salary: 65_000,
+    salary: 63_000,
     raiseStep: 6_200,
     requiresDegree: true,
     icon: 'finance:trading-floor',
@@ -606,7 +607,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-fund-manager',
     title: 'Fund Manager',
-    salary: 78_000,
+    salary: 76_000,
     raiseStep: 8_000,
     requiresDegree: true,
     icon: 'finance:trading-floor',
@@ -615,7 +616,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-actuarial-trainee',
     title: 'Actuarial Trainee',
-    salary: 61_000,
+    salary: 59_000,
     raiseStep: 5_800,
     requiresDegree: true,
     icon: 'finance:insurance-office',
@@ -626,7 +627,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-insurance-actuary',
     title: 'Insurance Actuary',
-    salary: 70_000,
+    salary: 68_000,
     raiseStep: 7_200,
     requiresDegree: true,
     icon: 'finance:insurance-office',
@@ -635,7 +636,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-research-assistant',
     title: 'Research Assistant',
-    salary: 57_500,
+    salary: 55_500,
     raiseStep: 5_400,
     requiresDegree: true,
     icon: 'career:marine-biologist',
@@ -646,7 +647,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-marine-biologist',
     title: 'Marine Biologist',
-    salary: 64_000,
+    salary: 62_000,
     raiseStep: 6_600,
     requiresDegree: true,
     icon: 'career:marine-biologist',
@@ -655,8 +656,8 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-jobbing-writer',
     title: 'Jobbing Writer',
-    salary: 56_100,
-    payPerPip: 10_200,
+    salary: 53_900,
+    payPerPip: 9_800,
     raiseStep: 5_200,
     requiresDegree: true,
     icon: 'tile:novel',
@@ -667,8 +668,8 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-novelist',
     title: 'Novelist',
-    salary: 66_000,
-    payPerPip: 12_000,
+    salary: 63_800,
+    payPerPip: 11_600,
     raiseStep: 6_800,
     requiresDegree: true,
     icon: 'tile:novel',
@@ -678,7 +679,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-veterinarian',
     title: 'Veterinarian',
-    salary: 69_000,
+    salary: 67_000,
     raiseStep: 8_000,
     requiresDegree: true,
     icon: 'tile:animal-shelter',
@@ -688,7 +689,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-university-professor',
     title: 'University Professor',
-    salary: 67_000,
+    salary: 65_000,
     raiseStep: 7_800,
     requiresDegree: true,
     icon: 'space:cap-and-gown',

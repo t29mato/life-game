@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { Board, Decision, DecisionOption, GameState, Player, Space } from '@domain/model/types'
 import { CASUAL_WAGE_PER_PIP, EARLY_LOAN_REPAYMENT, INSURANCE_PREMIUM } from '@domain/model/constants'
 import { AVERAGE_SPIN } from '@domain/rules/player'
-import { BASIC_CAREERS, GRADUATE_CAREERS } from '@domain/edition/usa'
+import { BASIC_CAREERS, EDITION_USA, GRADUATE_CAREERS } from '@domain/edition/usa'
+import { hiringPoolFor } from '@domain/edition/lookup'
 import { HOUSES } from '@domain/edition/usa'
 import { STOCKS } from '@domain/edition/usa'
 import {
@@ -133,11 +134,29 @@ describe('decideCpuCommand — careers', () => {
 
   it('weighs the raise step, not just the opening salary', () => {
     // Same take-home today; the steeper raise wins over the rest of the board.
-    const flat = BASIC_CAREERS.find((career) => career.id === 'career-pet-groomer')!
-    const steep = BASIC_CAREERS.find((career) => career.id === 'career-delivery-courier')!
+    const flat = BASIC_CAREERS.find((career) => career.id === 'career-grooming-assistant')!
+    const steep = BASIC_CAREERS.find((career) => career.id === 'career-commis-baker')!
     expect(steep.salary).toBeGreaterThan(flat.salary)
     expect(steep.raiseStep).toBeGreaterThan(flat.raiseStep)
     expect(chosen(deciding(decision('career', flat.id, steep.id)))).toBe(steep.id)
+  })
+
+  it('takes the taller ladder when two jobs open on identical terms', () => {
+    /*
+     * The sharpest statement the ladders make, and the one a seat looking a
+     * single rung ahead gets wrong. These two are dealt on the same wage, the
+     * same raise and the same odds of a first promotion — the only difference
+     * is what is above them: a session musician can end up producing records,
+     * a second shooter tops out shooting portraits. Two rungs up is where the
+     * whole difference between the two lives lives.
+     */
+    const short = BASIC_CAREERS.find((career) => career.id === 'career-second-shooter')!
+    const tall = BASIC_CAREERS.find((career) => career.id === 'career-session-musician')!
+    expect(tall.salary).toBe(short.salary)
+    expect(tall.raiseStep).toBe(short.raiseStep)
+    expect(tall.promotionSpin).toBe(short.promotionSpin)
+    expect(chosen(deciding(decision('career', short.id, tall.id)))).toBe(tall.id)
+    expect(chosen(deciding(decision('career', tall.id, short.id)))).toBe(tall.id)
   })
 
   it('takes a job rather than nothing when an unknown id is also on the table', () => {
@@ -630,8 +649,16 @@ describe('decideCpuCommand — pay the wheel decides', () => {
     const paydaysAhead = 6
     const price = priceOf(fair, cpu({ career: null }), paydaysAhead)
 
+    /*
+     * Priced off the rungs a fair can actually deal — the bottom of each ladder —
+     * rather than off the whole pool. Valued against every rung, a first job
+     * would be worth what a salon owner earns, and a computer seat would walk
+     * past the road that leads to one to get to the fair.
+     */
+    const hiring = hiringPoolFor(EDITION_USA, false)
     expect(price).toBeGreaterThan(0)
-    expect(price).toBe((expectedBestOfTwoSalary(BASIC_CAREERS) - CASUAL_WAGE_PER_PIP * AVERAGE_SPIN) * paydaysAhead)
+    expect(price).toBe((expectedBestOfTwoSalary(hiring) - CASUAL_WAGE_PER_PIP * AVERAGE_SPIN) * paydaysAhead)
+    expect(expectedBestOfTwoSalary(hiring)).toBeLessThan(expectedBestOfTwoSalary(BASIC_CAREERS))
   })
 
   it('still weighs an unsteady offer against a steady one on their expected pay', () => {

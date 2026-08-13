@@ -40,11 +40,39 @@ describe('careers catalog', () => {
     }
   })
 
+  /** The rungs a career fair may deal: the ones nothing in the pool points at. */
+  const entryRungs = (pool: readonly Career[]): readonly Career[] => {
+    const pointedAt = new Set(pool.map((career) => career.promotesTo).filter(Boolean))
+    return pool.filter((career) => !pointedAt.has(career.id))
+  }
+
   it('keeps every salary a real, sane living', () => {
     for (const career of [...BASIC_CAREERS, ...GRADUATE_CAREERS]) {
       expect(career.salary).toBeGreaterThanOrEqual(20_000)
-      expect(career.salary).toBeLessThanOrEqual(100_000)
+      expect(career.salary).toBeLessThanOrEqual(150_000)
     }
+  })
+
+  /*
+   * The rewrite's founding complaint: the board used to hand a nineteen-year-old
+   * a salon on their first morning out of school. A fair deals the door in, and
+   * the ceiling below is what says so — no entry rung anywhere near what running
+   * the place pays. It is the one assertion that would catch the old behaviour
+   * coming back, so it is spelled out rather than left to the ladder walk.
+   */
+  it('never hires anybody straight onto a fortune', () => {
+    for (const career of [...entryRungs(BASIC_CAREERS), ...entryRungs(GRADUATE_CAREERS)]) {
+      expect(career.salary).toBeGreaterThanOrEqual(20_000)
+      expect(career.salary).toBeLessThanOrEqual(70_000)
+    }
+  })
+
+  it('pays the top of a ladder what running the place is actually worth', () => {
+    // Climbing has to be visibly worth the spins it costs: the best job on the
+    // board pays multiples of the wage anybody is hired on.
+    const bestEntry = Math.max(...entryRungs(BASIC_CAREERS).map((career) => career.salary))
+    const bestTop = Math.max(...BASIC_CAREERS.map((career) => career.salary))
+    expect(bestTop).toBeGreaterThan(bestEntry * 2)
   })
 
   /*
@@ -58,7 +86,9 @@ describe('careers catalog', () => {
   })
 
   it('keeps the graduate pool narrow: a dependable wage, never a spectacular one', () => {
-    expect(spread(GRADUATE_CAREERS)).toBeLessThan(25_000)
+    // A whole graduate life — bottom rung to top — fits in a band a single
+    // basic ladder climbs through twice over. That band is what the degree buys.
+    expect(spread(GRADUATE_CAREERS)).toBeLessThan(30_000)
     expect(Math.min(...GRADUATE_CAREERS.map((c) => c.salary))).toBeGreaterThanOrEqual(50_000)
   })
 

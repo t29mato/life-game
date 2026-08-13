@@ -87,8 +87,12 @@ export interface EconomyConstants {
   readonly loanRepayment: Readonly<Record<Difficulty, Money>>
   /** Cost of clearing one loan early at the bank. Always the cheaper way out. */
   readonly earlyLoanRepayment: Readonly<Record<Difficulty, Money>>
-  /** Wedding gift each other player hands the newlywed. */
+  /** Wedding gift each other player hands the newlywed, before the band's multiplier. */
   readonly weddingGift: Money
+  /** Whether the proposal lands, and which marriage the wheel handed over. */
+  readonly marriage: MarriageSpec
+  /** What a `household` tile settles for a married player. */
+  readonly household: HouseholdSpec
   /**
    * What a child is worth at the final scoring **on average**.
    *
@@ -174,6 +178,67 @@ export interface EconomyConstants {
 export type EconomyAmountKey = {
   [K in keyof EconomyConstants]: EconomyConstants[K] extends Money ? K : never
 }[keyof EconomyConstants]
+
+/**
+ * One of the marriages an edition can hand out.
+ *
+ * A wedding is a single moment, so what varies about it is a single sum — but
+ * which sum is the whole point. Written as data because what marriage costs and
+ * returns is one of the most local things a country has: the gift customs, who
+ * pays for the reception, whether two incomes is the norm or the exception.
+ */
+export interface MarriageOutcome {
+  /** Highest spin that lands in this band. Bands are written worst-first. */
+  readonly upTo: SpinValue
+  /** One line for the event card, in the edition's own voice. */
+  readonly note: string
+  /** Multiplier on the gift every other player hands over. */
+  readonly giftMultiplier: number
+  /** Paid once by the couple: a reception that ran away, a partner's overdraft. */
+  readonly cost: Money
+  /** Received once: a partner's savings, a second income arriving. */
+  readonly windfall: Money
+}
+
+/**
+ * Whether you marry, and what kind of marriage you got.
+ *
+ * Both are the wheel's business now. Marriage was the last thing on the board
+ * that could only ever be good — you married and everybody paid you — which is
+ * exactly the flaw the degree had before burnout, and children had while they
+ * were worth $10,000. The band a spin lands in decides whether the gifts covered
+ * the reception, whether the partner arrived with savings or with debts, and
+ * whether the whole county turned up.
+ *
+ * The mean stays positive, deliberately and load-bearingly: a marriage that
+ * loses money on average is one nobody sane takes, and children hang off it.
+ */
+export interface MarriageSpec {
+  /** Spin this or better and the proposal lands first time. */
+  readonly proposalSpin: SpinValue
+  /** Under the bar, the wheel is asked once more; this or better is a yes. */
+  readonly secondAskSpin: SpinValue
+  /** What a proposal that had to be asked twice turns into. Its own band. */
+  readonly rescued: MarriageOutcome
+  /** Bands for a proposal that landed first time, worst spin first. */
+  readonly outcomes: readonly MarriageOutcome[]
+}
+
+/**
+ * The joint account, for the tiles that keep asking about it.
+ *
+ * The wedding is one moment; a household is the rest of the game. A `household`
+ * tile spins and settles `(spin - breakEvenSpin) x perPip`, so the bad months
+ * are as real as the good ones and neither is rare. The line sits below the
+ * average spin on purpose — two incomes should be worth having overall — but
+ * only just, because the spread is the point rather than the profit.
+ */
+export interface HouseholdSpec {
+  /** The spin the account breaks even on. Below it, the spending outran it. */
+  readonly breakEvenSpin: SpinValue
+  /** Money per pip either side of that line. */
+  readonly perPip: Money
+}
 
 /** The two pools a career fair can deal from. A degree unlocks the second. */
 export interface CareerPools {
