@@ -314,6 +314,28 @@ const MAIN_STREET_EARLY: readonly SpaceContent[] = [
     description: "You sign a lease on a place that's almost big enough, and the agent's fee is almost bigger.",
     effect: { type: 'payMoney', amount: 2_200, reason: 'Deposit and agency fee' },
   }),
+  /*
+   * A review on the *shared* road, and the whole reason it is not on Fast Track
+   * with the rest of them.
+   *
+   * Reviews are where Straight to Work's volatility physically comes from. The
+   * basic ladders run three rungs from $24,000 to $148,500; a graduate's run two
+   * inside a band a third as wide. So a review multiplies a number that varies
+   * far more for a school-leaver than for a surgeon, and every one of them
+   * widens the gap between a school-leaver's best life and their worst. Stacked
+   * onto one optional lane, that made the property a side effect of choosing
+   * that lane — measured, trimming two tiles off it dropped the work spread from
+   * 219,000 to 173,783 and Straight to Work stopped being the volatile road at
+   * all. On the trunk the same tile cancels out of both fork comparisons, so it
+   * buys the swing without touching either choice: the property becomes
+   * structural instead of incidental.
+   */
+  {
+    id: 'main-early-review', kind: 'normal', title: 'Probation Review',
+    description: 'Six months in, somebody sits down with a form and asks how you think it is going. Spin.',
+    effect: { type: 'promotion', reason: 'The end of probation' },
+    tone: 'orange', icon: 'space:pay-raise-talk', tier: EVERY_BOARD,
+  },
   {
     id: 'main-2', kind: 'normal', title: 'Grocery Run',
     description: 'The cart somehow costs more than you planned. Again.',

@@ -159,12 +159,19 @@ const COLUMN_MIN = 1
  * supposed to be a longer version of. A phone renders that as a smear.
  *
  * Narrowing the row is what turns the extra tiles back into rows: the long
- * board is 31x24 here, taller than it is wide, and each length is squarer than
- * the one below it. `Board.test.tsx` is what actually holds that promise, and
- * it is worth knowing the value is load-bearing rather than arbitrary — a row
- * wide enough to swallow the home-buying fork whole stops adding rows again.
+ * board comes out 29x21 here and each length is squarer than the one below it.
+ * `Board.test.tsx` is what actually holds that promise.
+ *
+ * The value is load-bearing rather than arbitrary, and not monotonic either —
+ * it is worth knowing that before nudging it. A row wide enough to swallow the
+ * home-buying fork whole stops adding rows at all, and a row *too* narrow makes
+ * every wide fork widen the board instead, which is the same failure from the
+ * other side. Adding tiles to the trunk moves where the cursor meets that fork,
+ * so a route change can push the long board back out of shape without touching
+ * this line: when it does, re-measure across a range rather than stepping down
+ * by one, because 19 and 21 are both worse here than 20.
  */
-const COLUMN_MAX = 19
+const COLUMN_MAX = 20
 const ROW_STEP = 3
 
 interface Cursor {
