@@ -1,0 +1,156 @@
+/* ==========================================================================
+   ChunkyButton — a moulded plastic key, the one pressable material in the UI.
+   A gently domed face, a solid lip beneath, and a soft cast shadow. The lip
+   collapses on :active so the key physically steps down. Nothing glows.
+   ========================================================================== */
+
+.button {
+  --lip-height: 4px;
+  --face-light: color-mix(in srgb, var(--btn-bg) 86%, #fff);
+  --face-deep: color-mix(in srgb, var(--btn-bg) 90%, var(--btn-lip));
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-family: var(--font-rounded);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  user-select: none;
+  isolation: isolate;
+  color: var(--btn-ink);
+  background:
+    linear-gradient(
+      180deg,
+      var(--face-light) 0%,
+      var(--btn-bg) 50%,
+      var(--face-deep) 100%
+    );
+  box-shadow:
+    0 var(--lip-height) 0 var(--btn-lip),
+    0 calc(var(--lip-height) + 6px) 12px -4px rgba(92, 70, 34, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transform: translateY(0);
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    filter var(--duration-fast) var(--ease-out);
+}
+
+.button:hover:not(:disabled) {
+  --lip-height: 5px;
+
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+.button:active:not(:disabled) {
+  --lip-height: 0px;
+
+  transform: translateY(4px);
+  filter: brightness(0.97);
+}
+
+.button:focus-visible {
+  outline: 3px solid var(--candy-sky);
+  outline-offset: 3px;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  filter: grayscale(0.45);
+}
+
+.emoji {
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+.fullWidth {
+  display: flex;
+  width: 100%;
+}
+
+/* ---- Sizes -------------------------------------------------------------- */
+.sm {
+  --lip-height: 3px;
+
+  padding: 0.42rem 1rem;
+  font-size: 0.85rem;
+}
+
+.sm:hover:not(:disabled) {
+  --lip-height: 4px;
+}
+
+.sm:active:not(:disabled) {
+  transform: translateY(3px);
+}
+
+.md {
+  padding: 0.8rem 1.6rem;
+  font-size: 1rem;
+}
+
+.lg {
+  --lip-height: 6px;
+
+  padding: 1.05rem 2.2rem;
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+}
+
+.lg:hover:not(:disabled) {
+  --lip-height: 7px;
+}
+
+.lg:active:not(:disabled) {
+  transform: translateY(6px);
+}
+
+/* ---- Variants ------------------------------------------------------------ */
+.primary {
+  --btn-bg: var(--btn-primary);
+  --btn-lip: var(--btn-primary-lip);
+  --btn-ink: var(--btn-primary-ink);
+
+  text-shadow: 0 1px 0 rgba(48, 72, 24, 0.3);
+}
+
+.secondary {
+  --btn-bg: var(--btn-secondary);
+  --btn-lip: var(--btn-secondary-lip);
+  --btn-ink: var(--btn-secondary-ink);
+}
+
+.ghost {
+  --btn-bg: var(--btn-ghost);
+  --btn-lip: var(--btn-ghost-lip);
+  --btn-ink: var(--btn-ghost-ink);
+
+  background: transparent;
+  box-shadow: none;
+}
+
+.ghost:hover:not(:disabled) {
+  transform: translateY(0);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.ghost:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.danger {
+  --btn-bg: var(--btn-danger);
+  --btn-lip: var(--btn-danger-lip);
+  --btn-ink: var(--btn-danger-ink);
+
+  text-shadow: 0 1px 0 rgba(96, 30, 14, 0.3);
+}

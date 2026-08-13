@@ -1,0 +1,136 @@
+/* ==========================================================================
+   TurnHandoff — the "pass the device" beat. The room dims warm and a wide,
+   soft wash of the incoming player's colour spreads across it — readable
+   from across the table before any text is parsed, without turning the
+   screen into a paint bucket. One paper card in the middle carries the pawn.
+   ========================================================================== */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(
+      110% 85% at 50% 30%,
+      color-mix(in srgb, var(--player-base) 55%, transparent) 0%,
+      transparent 75%
+    ),
+    rgba(62, 48, 22, 0.62);
+  animation: backdropIn var(--duration-base, 0.28s) var(--ease-out, ease-out) both;
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(26rem, 100%);
+  padding: 2.1rem 2rem 1.9rem;
+  text-align: center;
+  border-radius: var(--radius-xl);
+  background: var(--surface-grad);
+  box-shadow: var(--elev-3);
+}
+
+.turnLabel {
+  padding: 0.28rem 0.9rem;
+  border-radius: var(--radius-full);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-faint);
+  background: var(--surface-sunken);
+}
+
+/* The player's pawn dome, at hand-piece size: the biggest moulded object in
+   the game and the only saturated thing on the card. */
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 6rem;
+  height: 6rem;
+  margin: 1.2rem 0 0.9rem;
+  border-radius: var(--radius-full);
+  background: radial-gradient(
+    circle at 33% 25%,
+    var(--player-light) 0%,
+    var(--player-base) 48%,
+    var(--player-dark) 100%
+  );
+  box-shadow:
+    0 3px 0 var(--player-dark),
+    inset 0 3px 5px rgba(255, 255, 255, 0.55),
+    inset 0 -8px 12px color-mix(in srgb, var(--player-dark) 45%, transparent),
+    0 10px 20px -6px color-mix(in srgb, var(--player-dark) 55%, transparent);
+  animation: avatarPop 0.5s var(--spring-bouncy, ease-out) 0.08s backwards;
+}
+
+@keyframes avatarPop {
+  from {
+    transform: scale(0.5) rotate(-14deg);
+  }
+  to {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.avatarInitial {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 3px color-mix(in srgb, var(--player-dark) 70%, transparent);
+}
+
+.pass {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.announce {
+  margin: 0.1rem 0 0.4rem;
+}
+
+.name {
+  font-family: var(--font-display, var(--font-rounded));
+  font-size: clamp(1.9rem, 8vw, 2.6rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--player-dark);
+}
+
+.rank {
+  margin-bottom: 1.4rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  background: var(--surface-sunken);
+}
+
+.action {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .avatar {
+    animation: none;
+  }
+}

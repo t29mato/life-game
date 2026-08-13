@@ -1,0 +1,137 @@
+import { describe, expect, it } from 'vitest'
+import { HOUSES } from '@domain/edition/usa'
+import { STOCKS } from '@domain/edition/usa'
+import { fixturePlayer, fixtureState } from '../testing/fixtures'
+import { createFakeRandom } from '../testing/fakes'
+import { endTurn } from './endTurn'
+
+describe('endTurn', () => {
+  it('throws when the phase is not resolved', () => {
+    const state = fixtureState({ phase: 'awaitingSpin' })
+    expect(() => endTurn(state, { random: createFakeRandom() })).toThrow(/resolved/)
+  })
+
+  it('clears lastEvent, lastSpin and movementPath', () => {
+    const players = [fixturePlayer({ id: 'p1' }), fixturePlayer({ id: 'p2' })]
+    const state = fixtureState({
+      players,
+      phase: 'resolved',
+      lastSpin: 5,
+      movementPath: ['x'],
+      lastEvent: {
+        spaceId: 'x',
+        title: 'X',
+        description: '',
+        icon: 'space:payday',
+        tone: 'blue',
+        moneyDelta: 0,
+        lifeTilesGained: [],
+        notes: [],
+      },
+    })
+    const next = endTurn(state, { random: createFakeRandom() })
+    expect(next.lastEvent).toBeNull()
+    expect(next.lastSpin).toBeNull()
+    expect(next.movementPath).toEqual([])
+  })
+
+  it('advances to the next player without incrementing turn mid-round', () => {
+    const players = [fixturePlayer({ id: 'p1' }), fixturePlayer({ id: 'p2' }), fixturePlayer({ id: 'p3' })]
+    const state = fixtureState({ players, currentPlayerIndex: 0, phase: 'resolved', turn: 1 })
+    const next = endTurn(state, { random: createFakeRandom() })
+    expect(next.currentPlayerIndex).toBe(1)
+    expect(next.turn).toBe(1)
+    expect(next.phase).toBe('awaitingSpin')
+  })
+
+  it('wraps around to the first player and increments turn', () => {
+    const players = [fixturePlayer({ id: 'p1' }), fixturePlayer({ id: 'p2' })]
+    const state = fixtureState({ players, currentPlayerIndex: 1, phase: 'resolved', turn: 1 })
+    const next = endTurn(state, { random: createFakeRandom() })
+    expect(next.currentPlayerIndex).toBe(0)
+    expect(next.turn).toBe(2)
+  })
+
+  it('skips retired players when picking the next player', () => {
+    const players = [
+      fixturePlayer({ id: 'p1' }),
+      fixturePlayer({ id: 'p2', isRetired: true, retirementRank: 1 }),
+      fixturePlayer({ id: 'p3' }),
+    ]
+    const state = fixtureState({ players, currentPlayerIndex: 0, phase: 'resolved' })
+    const next = endTurn(state, { random: createFakeRandom() })
+    expect(next.currentPlayerIndex).toBe(2)
+  })
+
+  it('ends the game once every player has retired', () => {
+    const players = [
+      fixturePlayer({ id: 'p1', money: 100_000, isRetired: true, retirementRank: 1 }),
+      fixturePlayer({ id: 'p2', money: 0, isRetired: true, retirementRank: 2 }),
+    ]
+    const state = fixtureState({ players, currentPlayerIndex: 0, phase: 'resolved' })
+    const next = endTurn(state, { random: createFakeRandom() })
+
+    expect(next.phase).toBe('gameOver')
+    expect(next.results).not.toBeNull()
+    expect(next.results!.standings).toHaveLength(2)
+    for (let i = 1; i < next.results!.standings.length; i += 1) {
+      expect(next.results!.standings[i - 1]!.total).toBeGreaterThanOrEqual(next.results!.standings[i]!.total)
+    }
+    expect(next.results!.standings.some((s) => s.playerId === next.results!.winnerId)).toBe(true)
+    // richer player with the earlier retirement rank should come out ahead
+    expect(next.results!.winnerId).toBe('p1')
+  })
+
+  it('rolls house resale within the house resale range via the random port', () => {
+    const house = HOUSES[0]!
+    const players = [
+      fixturePlayer({ id: 'p1', house, isRetired: true, retirementRank: 1 }),
+      fixturePlayer({ id: 'p2', isRetired: true, retirementRank: 2 }),
+    ]
+    const state = fixtureState({ players, currentPlayerIndex: 0, phase: 'resolved' })
+    // Rolled in whole thousands: every other figure in the game is a round
+    // number, and a house that sold for $241,333 read as a glitch. The port is
+    // therefore asked for thousands, and the result scaled back up.
+    const random = createFakeRandom({ ints: [house.resaleRange[0] / 1_000] })
+    const next = endTurn(state, { random })
+    expect(random.calls.ints).toContainEqual({
+      min: house.resaleRange[0] / 1_000,
+      max: house.resaleRange[1] / 1_000,
+    })
+    const seller = next.results!.standings.find((standing) => standing.playerId === 'p1')!
+    expect(seller.houseValue).toBe(house.resaleRange[0])
+    expect(seller.houseValue % 1_000).toBe(0)
+    expect(seller.houseValue).toBeGreaterThanOrEqual(house.resaleRange[0])
+    expect(seller.houseValue).toBeLessThanOrEqual(house.resaleRange[1])
+  })
+
+  it('rolls each held stock inside its payout range via the random port', () => {
+    const stock = STOCKS[0]!
+    const players = [
+      fixturePlayer({ id: 'p1', stocks: [{ stockId: stock.id, shares: 2 }], isRetired: true, retirementRank: 1 }),
+      fixturePlayer({ id: 'p2', isRetired: true, retirementRank: 2 }),
+    ]
+    const state = fixtureState({ players, currentPlayerIndex: 0, phase: 'resolved' })
+    const random = createFakeRandom({ ints: [stock.payoutRange[1] / 1_000] })
+    const next = endTurn(state, { random })
+
+    // Same whole-thousand rule as the house resale.
+    expect(random.calls.ints).toContainEqual({
+      min: stock.payoutRange[0] / 1_000,
+      max: stock.payoutRange[1] / 1_000,
+    })
+    const holder = next.results!.standings.find((standing) => standing.playerId === 'p1')!
+    expect(holder.stockValue).toBe(stock.payoutRange[1] * 2)
+    expect(holder.stockValue % 1_000).toBe(0)
+  })
+
+  it('scores a player holding no shares at zero stock value', () => {
+    const players = [
+      fixturePlayer({ id: 'p1', stocks: [], isRetired: true, retirementRank: 1 }),
+      fixturePlayer({ id: 'p2', isRetired: true, retirementRank: 2 }),
+    ]
+    const state = fixtureState({ players, currentPlayerIndex: 0, phase: 'resolved' })
+    const next = endTurn(state, { random: createFakeRandom() })
+    expect(next.results!.standings.every((standing) => standing.stockValue === 0)).toBe(true)
+  })
+})

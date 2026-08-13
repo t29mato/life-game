@@ -1,0 +1,758 @@
+import type {
+  Board,
+  Career,
+  Decision,
+  DecisionOption,
+  GameState,
+  Hazard,
+  Money,
+  Player,
+  Space,
+  SpaceId,
+} from '@domain/model/types'
+import type { Edition, EconomyConstants } from '@domain/edition/types'
+import { SHARES_PER_PURCHASE } from '@domain/model/constants'
+import { difficultyProfile, earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
+import { editionOf } from '@domain/edition/registry'
+import { findCareer, findHouse, findStock, hiringPoolFor, nextRungOf } from '@domain/edition/lookup'
+import { AVERAGE_SPIN, expectedPayday, isCoveredAgainst, totalShares } from '@domain/rules/player'
+import type { GameCommand } from '../GameStore'
+import {
+  BANK_LOAN_OPTION_ID,
+  BANK_REPAY_OPTION_ID,
+  DECLINE_HOUSE_OPTION_ID,
+  DECLINE_INSURANCE_OPTION_ID,
+  CAREER_STAY_OPTION_ID,
+  DECLINE_STOCK_OPTION_ID,
+  FIRE_RETIRE_OPTION_ID,
+  insuranceKindFromOptionId,
+} from '../usecases/applyEffect'
+
+/**
+ * How long the UI should pretend to think before dispatching, per phase.
+ *
+ * Long enough that a person can read what just happened and see the computer
+ * "decide"; short enough that three CPU seats never feel like a cutscene.
+ */
+export const CPU_THINK_MS: Readonly<Record<'awaitingSpin' | 'awaitingDecision' | 'resolved', number>> = {
+  awaitingSpin: 700,
+  awaitingDecision: 1_100,
+  resolved: 900,
+}
+
+// --- Tuning -----------------------------------------------------------------
+// Every weight below is either a pure ratio, or a sum of money quoted in the
+// edition's own unit — so scores from different decision kinds stay directly
+// comparable and a score of 0 always means "no better than declining".
+
+/**
+ * The unit every money weight in this file is quoted in: a tenth of the cash a
+ * player starts the game with. $1,000 on the USA board.
+ *
+ * These weights used to be raw dollar figures, which is a bug that never
+ * announces itself: on an edition counting in a hundred-times unit, a computer
+ * seat that keeps "$60,000" free is keeping back a rounding error, and one that
+ * flinches below "$25,000" never flinches at all. Nothing throws; the computer
+ * simply plays badly, and only a human watching a whole game would notice.
+ *
+ * A tenth of the starting stake is the denominator because every figure below
+ * was already a whole multiple of it, so the rewrite reproduces the USA
+ * board's numbers exactly rather than approximately — and because dividing by
+ * ten keeps the arithmetic in integers, where `× 0.4` would not.
+ */
+const unitOf = (economy: EconomyConstants): Money => economy.startingMoney / 10
+
+/**
+ * Net cost of a loan: borrow the principal, settle the difficulty's rate.
+ *
+ * This is the one weight here that difficulty moves, and it has to move: on
+ * Very Hard a loan costs $26,000 in interest rather than $5,000, which is more
+ * than most single decisions on the board are worth. Left at the normal rate
+ * the computer would happily borrow its way into a house it can never pay for.
+ */
+const loanCostFor = (state: GameState, edition: Edition): Money =>
+  loanRepaymentFor(state.difficulty, edition) - edition.economy.loanPrincipal
+
+/** Paydays a raise is expected to be collected over, so raises are worth something now. */
+const RAISE_HORIZON = 5
+
+/** Cash a CPU likes to keep free at the start of the board, tapering to nothing at retirement. */
+const CASH_RESERVE_UNITS = 60
+
+/** How dearly the CPU treats a unit of money dug out of that reserve. */
+const RESERVE_WEIGHT = 0.4
+
+/** A share whose floor sits below its price is a gamble; this is how much that scares the CPU. */
+const RISK_AVERSION = 0.35
+
+/** Rough chance of actually landing on any one space still ahead of you. */
+const HAZARD_LANDING_CHANCE = 0.25
+
+/** Below this, a CPU is short of cash and starts flinching at expensive lanes. */
+const RISK_CASH_FLOOR_UNITS = 25
+
+/** How much heavier a loss looks to a CPU that is short of cash. */
+const BROKE_LOSS_WEIGHT = 1.8
+
+/**
+ * How much a shorter lane is trusted to actually win the race home. A lane a
+ * few spaces shorter shifts the odds of retiring earlier; it does not decide
+ * them, and spins matter far more than route length.
+ */
+const RANK_CONFIDENCE = 0.35
+
+/**
+ * What a payday is worth to a player with no job at all: casual shifts, paid
+ * by the wheel. Being out of work is a real income now — meagre, but not the
+ * nothing it used to be — so the computer has to price unemployment, the jobs
+ * that rescue it, and the tiles that cause it against this floor rather than
+ * against zero.
+ */
+const casualPaydayOf = (economy: EconomyConstants): Money => economy.casualWagePerPip * AVERAGE_SPIN
+
+/**
+ * Score for an option whose id names nothing the catalogues know. Low enough
+ * that any real option beats it, finite so that a decision made entirely of
+ * them still gets answered rather than deadlocking the game.
+ */
+const UNKNOWN_OPTION_SCORE = -Number.MAX_SAFE_INTEGER
+
+/**
+ * What a career fair is actually worth per payday.
+ *
+ * A career is an income stream, not a one-off prize. It was priced at a flat
+ * 90,000 for the graduate pool and 35,000 otherwise, when the pools are worth
+ * far more than that *per payday*, a dozen paydays before retirement.
+ * Undervaluing it by that much is why a computer seat would not pay tuition
+ * for a degree it then earned nothing extra from, and why CPU seats lost 23 of
+ * 24 games to opponents who simply always took the first branch offered.
+ *
+ * The pool *mean* is the wrong price too, and wrong in a direction that matters
+ * now that the two pools have different shapes. A fair deals two offers and the
+ * player keeps the better one, so what a fair is worth is the expected maximum
+ * of two draws, which rewards a wide pool far more than a narrow one: the basic
+ * ladder runs $24k-$86k and gains about $11k from the choice, the graduate band
+ * runs $58k-$80k and gains about $4k. Priced at their means instead, College
+ * Lane looked 45% better paid when it is really about 24% better paid, and the
+ * computer opened with it in all 160 games I measured.
+ *
+ * Exact rather than sampled: over all C(n,2) equally likely unordered pairs,
+ * the i-th cheapest salary (0-based) is the larger one in exactly i of them.
+ */
+export const expectedBestOfTwoSalary = (careers: readonly { readonly salary: Money }[]): Money => {
+  const salaries = careers.map((career) => career.salary).sort((a, b) => a - b)
+  if (salaries.length === 0) return 0
+  if (salaries.length === 1) return salaries[0]!
+  const pairs = (salaries.length * (salaries.length - 1)) / 2
+  return salaries.reduce((sum, salary, index) => sum + salary * index, 0) / pairs
+}
+
+/**
+ * What each of an edition's catalogues is worth on average, worked out once
+ * and kept against the edition object itself. These are pure functions of the
+ * content, so caching them costs nothing and saves recomputing a sort for
+ * every one of the eighty-odd spaces a fork is valued over.
+ */
+interface CatalogueAverages {
+  readonly basicFairSalary: Money
+  readonly graduateFairSalary: Money
+  readonly averageTileValue: Money
+}
+
+const AVERAGES = new WeakMap<Edition, CatalogueAverages>()
+
+function averagesOf(edition: Edition): CatalogueAverages {
+  const cached = AVERAGES.get(edition)
+  if (cached) return cached
+  const tiles = edition.lifeTiles
+  const built: CatalogueAverages = {
+    // Bottom rungs only: a fair cannot deal anything else, so pricing it off
+    // the whole pool would value a first job at what a salon owner earns.
+    basicFairSalary: expectedBestOfTwoSalary(hiringPoolFor(edition, false)),
+    graduateFairSalary: expectedBestOfTwoSalary(hiringPoolFor(edition, true)),
+    averageTileValue: tiles.reduce((sum, tile) => sum + tile.value, 0) / Math.max(1, tiles.length),
+  }
+  AVERAGES.set(edition, built)
+  return built
+}
+
+function midpoint(range: readonly [Money, Money]): Money {
+  return (range[0] + range[1]) / 2
+}
+
+/**
+ * What paying `cost` right now really costs this player: the interest on any
+ * loans it forces, plus a nag for eating into the cash reserve. `progress`
+ * runs 0 (just off the start) to 1 (at retirement) and relaxes the reserve as
+ * the game runs out of road to need cash on.
+ */
+function affordabilityPenalty(context: Context, cost: Money): Money {
+  if (cost <= 0) return 0
+  const { player, progress } = context
+  const shortfall = Math.max(0, cost - player.money)
+  const loanCost = Math.ceil(shortfall / context.edition.economy.loanPrincipal) * context.loanCost
+  const reserve = context.cashReserve * (1 - progress)
+  const reserveBreach = Math.max(0, reserve - Math.max(0, player.money - cost))
+  return loanCost + reserveBreach * RESERVE_WEIGHT
+}
+
+// --- Board geometry ---------------------------------------------------------
+
+/**
+ * Steps from every space to the retirement space, by walking the board's edges
+ * backwards. Cheap on boards this size and safe against a cyclic route.
+ */
+function distancesToRetirement(board: Board): ReadonlyMap<SpaceId, number> {
+  const incoming = new Map<SpaceId, SpaceId[]>()
+  for (const space of Object.values(board.spaces)) {
+    for (const nextId of space.next) {
+      const list = incoming.get(nextId)
+      if (list) list.push(space.id)
+      else incoming.set(nextId, [space.id])
+    }
+  }
+
+  const distances = new Map<SpaceId, number>([[board.retirementSpaceId, 0]])
+  let frontier: SpaceId[] = [board.retirementSpaceId]
+  while (frontier.length > 0) {
+    const nextFrontier: SpaceId[] = []
+    for (const id of frontier) {
+      const distance = distances.get(id) ?? 0
+      for (const previous of incoming.get(id) ?? []) {
+        if (distances.has(previous)) continue
+        distances.set(previous, distance + 1)
+        nextFrontier.push(previous)
+      }
+    }
+    frontier = nextFrontier
+  }
+  return distances
+}
+
+/** 0 at the start space, 1 once retirement is reached. */
+function progressOf(state: GameState, player: Player, distances: ReadonlyMap<SpaceId, number>): number {
+  const total = distances.get(state.board.startSpaceId)
+  const remaining = distances.get(player.spaceId)
+  if (total === undefined || remaining === undefined || total === 0) return 0
+  return Math.min(1, Math.max(0, 1 - remaining / total))
+}
+
+/** Every space within `limit` steps of `from`, following the board forwards. */
+function reachableWithin(board: Board, from: SpaceId, limit: number): Set<SpaceId> {
+  const seen = new Set<SpaceId>()
+  let frontier: SpaceId[] = [from]
+  for (let step = 0; step <= limit && frontier.length > 0; step += 1) {
+    const nextFrontier: SpaceId[] = []
+    for (const id of frontier) {
+      if (seen.has(id)) continue
+      seen.add(id)
+      const space = board.spaces[id]
+      if (space) nextFrontier.push(...space.next)
+    }
+    frontier = nextFrontier
+  }
+  return seen
+}
+
+/** Payday spaces still on the road ahead — how many times a salary gets paid. */
+function paydaysAheadOf(board: Board, from: SpaceId): number {
+  let count = 0
+  for (const id of reachableWithin(board, from, Object.keys(board.spaces).length)) {
+    if (board.spaces[id]?.kind === 'payday') count += 1
+  }
+  return count
+}
+
+// --- Valuing a single space -------------------------------------------------
+
+/**
+ * Roughly what landing on `space` is worth to `player`, in dollars. Used only
+ * to compare one lane of a fork against another, so it trades precision for
+ * covering every effect the board can throw. Exported so the pricing of a
+ * single space can be asserted directly rather than inferred from a fork.
+ */
+export function valueOfSpace(space: Space, player: Player, state: GameState, paydaysAhead: number): Money {
+  const effect = space.effect
+  const rivals = state.players.filter((other) => other.id !== player.id && !other.isRetired)
+
+  const edition = editionOf(state)
+  const { economy } = edition
+  const { basicFairSalary, graduateFairSalary, averageTileValue } = averagesOf(edition)
+  const casualPayday = casualPaydayOf(economy)
+  /*
+   * The flat prices below — what a degree is worth, what a house-hunting stop
+   * is worth, what walking into a bank with a debt is worth — are quoted in
+   * units of a tenth of the starting stake rather than in dollars, so they
+   * mean the same thing on a board whose money runs a hundred times larger.
+   */
+  const units = (n: number): Money => unitOf(economy) * n
+
+  switch (effect.type) {
+    case 'gainMoney':
+      return effect.amount
+    case 'payMoney':
+      return effect.hazard && isCoveredAgainst(player, effect.hazard) ? 0 : -effect.amount
+    case 'payday':
+      /*
+       * `expectedPayday` is the salary for any career — including an unsteady
+       * one, whose `salary` *is* its expected packet — and the casual wage over
+       * an average spin for a player between jobs.
+       */
+      return expectedPayday(player, economy)
+    case 'payRaise':
+      return (player.career?.raiseStep ?? 0) * RAISE_HORIZON
+    case 'promotion': {
+      /*
+       * A review is worth the rung above it, discounted by the odds of getting
+       * it, plus the raise that arrives either way. A calling has no rung
+       * above, so it is worth a LIFE tile and the raise — which is exactly
+       * what it hands over.
+       */
+      const career = player.career
+      if (!career) return 0
+      const raise = career.raiseStep * RAISE_HORIZON
+      if (career.isCalling) return averageTileValue + raise
+      const next = nextRungOf(career, edition)
+      if (!next) return raise * 2
+      const odds = (11 - (career.promotionSpin ?? 5)) / 10
+      return odds * Math.max(0, next.salary - career.salary) * paydaysAhead + (1 - odds) * raise
+    }
+    case 'gainLifeTiles':
+      return effect.count * averageTileValue
+    case 'chooseCareer': {
+      // Only worth something to a player with no job to lose, and worth the
+      // salary times every payday still ahead of them.
+      if (player.career) return 0
+      const salary =
+        effect.pool === 'graduate' && player.hasDegree ? graduateFairSalary : basicFairSalary
+      // What the job *adds*: an unemployed player is already earning casual
+      // shifts at every one of those paydays.
+      return (salary - casualPayday) * paydaysAhead
+    }
+    case 'graduate':
+      return player.hasDegree ? 0 : units(40)
+    case 'getMarried':
+      return player.isMarried ? 0 : economy.weddingGift * rivals.length
+    case 'haveChildren':
+      /*
+       * Worth what a child is worth at the final scoring, in full.
+       *
+       * It used to be halved "for the bills children bring", which was double
+       * counting: Family Lane's school fees and childcare are `payPerChild`
+       * tiles on the same lane, and the fork valuation already sums every one
+       * of them. Halving on top of that is why no computer seat had ever
+       * chosen the lane — the bills were charged twice and the child paid
+       * $10,000 once.
+       */
+      return effect.count * economy.childBonus
+    case 'buyHouse':
+    case 'upgradeHouse':
+      return units(5)
+    case 'collectFromEach':
+      return effect.amount * rivals.length
+    case 'payEach':
+      return -effect.amount * rivals.length
+    case 'spinForMoney':
+      return effect.perPip * AVERAGE_SPIN
+    case 'retire':
+      return retirementBonusAhead(state, economy)
+    case 'retireEarly':
+      // An offer you may always decline is worth nothing to walk past. What
+      // taking it is worth is `scoreRetire`, once it is actually on the table.
+      return 0
+    case 'careerChange':
+      /*
+       * An offer you can turn down is worth something small and positive: two
+       * salaries to look at, a signing bonus if either beats what you have,
+       * and no downside. A `compulsory` one is the old coin flip against the
+       * job already held. With no job at all, either kind is the way back.
+       */
+      if (!player.career) return units(30)
+      return effect.compulsory ? -units(5) : units(3)
+    case 'loseCareer':
+      // Being laid off costs the drop from the wage to casual shifts, not the
+      // whole wage: the pay window still pays something on the way out.
+      return Math.min(0, (casualPayday - expectedPayday(player, economy)) * 3)
+    case 'buyStock':
+      return units(4)
+    case 'stockDividend':
+      return effect.perShare * totalShares(player)
+    case 'buyInsurance':
+      return units(4)
+    case 'bank':
+      return player.loans > 0 ? units(2) : 0
+    case 'payPerChild':
+      return -effect.amount * player.children
+    case 'collectPerChild':
+      return effect.amount * player.children
+    case 'swapMoneyWithLeader': {
+      const richest = rivals.reduce<Money>((best, other) => Math.max(best, other.money), 0)
+      return Math.max(0, richest - player.money)
+    }
+    case 'stealLifeTile':
+      return rivals.some((other) => other.lifeTiles.length > 0) ? averageTileValue : 0
+    case 'none':
+      return 0
+    default: {
+      const exhaustive: never = effect
+      throw new Error(`decideCpuCommand: unhandled effect ${JSON.stringify(exhaustive)}`)
+    }
+  }
+}
+
+/** The retirement bonus still up for grabs, halving with each player already home. */
+function retirementBonusAhead(state: GameState, economy: EconomyConstants): Money {
+  const retired = state.players.filter((player) => player.isRetired).length
+  return economy.firstRetirementBonus / 2 ** retired
+}
+
+// --- Scoring each decision kind ---------------------------------------------
+
+interface Context {
+  readonly state: GameState
+  readonly player: Player
+  readonly progress: number
+  readonly distances: ReadonlyMap<SpaceId, number>
+  /** The board's country: where every sum of money below comes from. */
+  readonly edition: Edition
+  /** Interest on one loan at this game's difficulty. */
+  readonly loanCost: Money
+  /** Cash the CPU likes free at the start, in this edition's money. */
+  readonly cashReserve: Money
+  /** Below this the CPU counts itself short of cash, in this edition's money. */
+  readonly riskCashFloor: Money
+  /** What this game's market actually pays for a house and for a share. */
+  readonly resaleScale: number
+  readonly stockScale: number
+}
+
+/**
+ * What holding this rung is worth: the wage, the raises it will collect, and
+ * the rung above it discounted by the odds of ever reaching it.
+ *
+ * The last term is what makes a ladder legible to a computer seat. Two jobs on
+ * the same money are not the same job if one of them has a salon above it and
+ * the other is the top of a two-rung trade, and without this the CPU would
+ * take the flatter one half the time.
+ *
+ * `salary` is the expected packet whether or not the job is steady, so an
+ * unsteady trade and a contract of the same worth are compared on equal terms —
+ * pricing an unsteady job off `payPerPip` would undervalue it more than five
+ * to one.
+ */
+function careerWorth(career: Career, edition: Edition): number {
+  const above = nextRungOf(career, edition)
+  const odds = above ? (11 - (career.promotionSpin ?? 5)) / 10 : 0
+  const climb = above ? odds * Math.max(0, above.salary - career.salary) : 0
+  return career.salary + career.raiseStep * RAISE_HORIZON + climb
+}
+
+function scoreCareer(option: DecisionOption, context: Context): number {
+  const { player, edition } = context
+
+  // Staying is worth exactly the ladder already held, and nothing else.
+  if (option.id === CAREER_STAY_OPTION_ID) {
+    return player.career ? careerWorth(player.career, edition) : UNKNOWN_OPTION_SCORE
+  }
+
+  const career = findCareer(option.id, edition)
+  if (!career) return UNKNOWN_OPTION_SCORE
+  /*
+   * Compared as it would actually be *taken*, raises and all.
+   *
+   * `switchCareer` carries a mover's earned premium into the new job, so an
+   * offer scored at its catalogue figure looks worse than the job being left
+   * by exactly the raises collected so far — and a computer seat that has been
+   * given two raises would then decline every offer on the board for the rest
+   * of the game. Measured: it stayed in 99 seats out of 99 and moved in none.
+   */
+  const base = player.career ? findCareer(player.career.id, edition) : undefined
+  const premium = player.career && base ? Math.max(0, player.career.salary - base.salary) : 0
+  return careerWorth({ ...career, salary: career.salary + premium }, edition)
+}
+
+function scoreHouse(option: DecisionOption, context: Context): number {
+  if (option.id === DECLINE_HOUSE_OPTION_ID) return 0
+  const house = findHouse(option.id, context.edition)
+  if (!house) return UNKNOWN_OPTION_SCORE
+
+  const current = context.player.house
+  // A trade-up only costs the difference, and only gains the difference.
+  const cost = house.price - (current?.price ?? 0)
+  /*
+   * What the market will actually pay, not what the catalogue advertises. On
+   * Very Hard a home fetches around two thirds of its rolled resale, which
+   * turns "buy the dearest thing you can carry" — correct on normal — into a
+   * quick way to lose. The CPU has to be able to see that, or it mortgages
+   * itself for an asset it already knows is worth less than the asking price.
+   */
+  const resale = (range: readonly [Money, Money]): Money => midpoint(range) * context.resaleScale
+  const gain = resale(house.resaleRange) - (current ? resale(current.resaleRange) : 0)
+  return gain - cost - affordabilityPenalty(context, cost)
+}
+
+function scoreStock(option: DecisionOption, context: Context): number {
+  if (option.id === DECLINE_STOCK_OPTION_ID) return 0
+  const stock = findStock(option.id, context.edition)
+  if (!stock) return UNKNOWN_OPTION_SCORE
+
+  const cost = stock.price * SHARES_PER_PURCHASE
+  const expected = midpoint(stock.payoutRange) * context.stockScale * SHARES_PER_PURCHASE
+  const floor = stock.payoutRange[0] * context.stockScale
+  const downside = Math.max(0, stock.price - floor) * SHARES_PER_PURCHASE
+  return expected - cost - downside * RISK_AVERSION - affordabilityPenalty(context, cost)
+}
+
+/** Total of every hazard bill of this kind still reachable from where the CPU stands. */
+function hazardExposureAhead(context: Context, hazard: Hazard): Money {
+  const { state, player } = context
+  let exposure = 0
+  for (const id of reachableWithin(state.board, player.spaceId, Number.MAX_SAFE_INTEGER)) {
+    const effect = state.board.spaces[id]?.effect
+    if (effect?.type === 'payMoney' && effect.hazard === hazard) exposure += effect.amount
+  }
+  return exposure
+}
+
+function scoreInsurance(option: DecisionOption, context: Context): number {
+  if (option.id === DECLINE_INSURANCE_OPTION_ID) return 0
+  const kind = insuranceKindFromOptionId(option.id)
+  if (!kind) return UNKNOWN_OPTION_SCORE
+
+  const premium = context.edition.economy.insurancePremium[kind]
+  // Life insurance is a straight bet on reaching the end, which everyone does.
+  const benefit =
+    kind === 'life'
+      ? context.edition.economy.lifeInsurancePayout
+      : hazardExposureAhead(context, kind === 'home' ? 'fire' : 'accident') * HAZARD_LANDING_CHANCE
+
+  return benefit - premium - affordabilityPenalty(context, premium)
+}
+
+function scoreBank(option: DecisionOption, context: Context): number {
+  const difficulty = context.state.difficulty
+  const early = earlyLoanRepaymentFor(difficulty, context.edition)
+  switch (option.id) {
+    case BANK_REPAY_OPTION_ID:
+      // Clearing a loan now saves the interest; only worth it with cash to spare.
+      return loanRepaymentFor(difficulty, context.edition) - early - affordabilityPenalty(context, early)
+    case BANK_LOAN_OPTION_ID:
+      // Borrowing on purpose only ever costs interest: bills auto-borrow anyway.
+      return -context.loanCost
+    default:
+      return 0
+  }
+}
+
+/**
+ * Whether to stop working for good.
+ *
+ * The whole argument, in one subtraction: the fund on an average spin, plus
+ * the retirement place you jump, minus everything still on the road. The last
+ * term is what makes this a real decision rather than a preference — a player
+ * on a good salary is giving up a great deal by stopping, and a player on a
+ * poor one is giving up very little, so the same tile says different things to
+ * different seats at the same table.
+ */
+function scoreRetire(option: DecisionOption, context: Context): number {
+  if (option.id !== FIRE_RETIRE_OPTION_ID) return 0
+  const { state, player, edition } = context
+  const { economy } = edition
+  const board = state.board
+
+  // The stake is real money out of the wallet; the payout is a wheel.
+  const net = economy.firePayoutPerPip * AVERAGE_SPIN - economy.fireNumber
+  // Finishing one place better is worth the gap between adjacent places, and a
+  // player who stops here is skipping exactly one place's worth of race.
+  const placeGained = retirementBonusAhead(state, economy) / 2
+
+  const paydaysAhead = paydaysAheadOf(board, player.spaceId)
+  let ahead = 0
+  for (const id of reachableWithin(board, player.spaceId, Object.keys(board.spaces).length)) {
+    if (id === player.spaceId) continue
+    const space = board.spaces[id]
+    if (!space) continue
+    const value = valueOfSpace(space, player, state, paydaysAhead)
+    // Paydays pay for being passed, so they are collected in full; everything
+    // else has to be landed on, which happens perhaps once in four.
+    ahead += space.kind === 'payday' ? value : value * HAZARD_LANDING_CHANCE
+  }
+
+  return net + placeGained - ahead
+}
+
+function scoreBranch(option: DecisionOption, context: Context, decision: Decision): number {
+  const { state, player } = context
+  const board = state.board
+  if (!board.spaces[option.id]) return UNKNOWN_OPTION_SCORE
+
+  /*
+   * What is unique to this lane: everything the other lanes do not also reach.
+   *
+   * The horizon has to cover the whole board, not a fixed number of steps.
+   * With a 16-step budget the *shorter* lane saw further down the trunk both
+   * lanes share, so a dozen Main Street tiles — paydays, the wedding — counted
+   * as exclusive to it and dwarfed anything either lane actually offered.
+   * Work Lane scored 66,012 against College Lane's 21,800 almost entirely on
+   * road that belongs to both. Looking all the way to retirement makes the
+   * shared route cancel on both sides, which is the only way the subtraction
+   * below means what it says. Lane length is then priced once, and only once,
+   * by the distance term further down.
+   */
+  const horizon = Object.keys(board.spaces).length
+  const paydaysAhead = paydaysAheadOf(board, option.id)
+  const mine = reachableWithin(board, option.id, horizon)
+  const shared = new Set<SpaceId>()
+  for (const other of decision.options) {
+    if (other.id === option.id || !board.spaces[other.id]) continue
+    for (const id of reachableWithin(board, other.id, horizon)) shared.add(id)
+  }
+
+  /*
+   * A blunt 1.8x on every loss in the lane double-counted being short of cash:
+   * College Lane's $40,000 tuition became a $72,000 objection on a player
+   * holding $10,000, when what the shortfall actually costs is the interest on
+   * the two loans it forces — about $10,000, which `affordabilityPenalty`
+   * already models properly and is what every other decision here uses. The
+   * multiplier is kept, but only for what genuinely cannot be paid for.
+   */
+  const lossWeight = player.money < context.riskCashFloor ? BROKE_LOSS_WEIGHT : 1
+
+  /*
+   * A lane has to be valued against the player it will have *made* of you by
+   * the end of it, not the one standing at the fork. Every space was being
+   * scored against today's state, so College Lane priced its own graduate job
+   * fair as if the walker still had no degree — the fair is worth 90k to a
+   * graduate and 35k to everyone else, and the degree is the very thing the
+   * lane hands out three tiles earlier. The lane could therefore never argue
+   * for itself, and the computer took the same route in all 80 games I
+   * measured, leaving the degree, the graduate careers and Family Lane's
+   * children as content no computer seat ever reached.
+   */
+  const walked: Player = {
+    ...player,
+    hasDegree: player.hasDegree || [...mine].some((id) => board.spaces[id]?.effect.type === 'graduate'),
+  }
+
+  let laneValue = 0
+  let outlay = 0
+  for (const id of mine) {
+    if (shared.has(id)) continue
+    const space = board.spaces[id]
+    if (!space) continue
+    const value = valueOfSpace(space, walked, state, paydaysAhead)
+    if (value < 0) outlay += -value
+    laneValue += value
+  }
+  // What the lane's bills really cost on top of their face value: the interest
+  // on any borrowing they force, plus the nag for spending down the reserve.
+  laneValue -= affordabilityPenalty(context, outlay)
+  if (player.money < context.riskCashFloor) laneValue -= outlay * (lossWeight - 1) * 0.25
+
+  /*
+   * Getting home sooner is worth something, but far less than it looks.
+   * Spreading the whole first-place bonus across the remaining spaces priced
+   * every space saved as if it bought that slice of first place outright, and
+   * the term grew to ~33,000 — several times any lane's actual contents. It
+   * decided every fork on length alone, which is how the computer came to walk
+   * the identical route in all 80 games I measured.
+   *
+   * Two corrections: finishing one place better is worth the *gap* between
+   * adjacent ranks, not the whole bonus; and a shorter lane only shifts the
+   * odds of finishing ahead, it does not settle them, so the gap is damped.
+   */
+  const longest = decision.options.reduce(
+    (worst, other) => Math.max(worst, context.distances.get(other.id) ?? 0),
+    0,
+  )
+  const distance = context.distances.get(option.id) ?? longest
+  const rankGap = retirementBonusAhead(state, context.edition.economy) / 2
+  const route = Math.max(1, context.distances.get(board.startSpaceId) ?? 1)
+  const perSpace = (rankGap * RANK_CONFIDENCE) / route
+  return laneValue + (longest - distance) * perSpace
+}
+
+function scoreOption(option: DecisionOption, decision: Decision, context: Context): number {
+  switch (decision.kind) {
+    case 'branch':
+      return scoreBranch(option, context, decision)
+    case 'career':
+      return scoreCareer(option, context)
+    case 'house':
+      return scoreHouse(option, context)
+    case 'stock':
+      return scoreStock(option, context)
+    case 'insurance':
+      return scoreInsurance(option, context)
+    case 'bank':
+      return scoreBank(option, context)
+    case 'retire':
+      return scoreRetire(option, context)
+    default: {
+      const exhaustive: never = decision.kind
+      throw new Error(`decideCpuCommand: unhandled decision kind ${JSON.stringify(exhaustive)}`)
+    }
+  }
+}
+
+/**
+ * The best of the offered options. Always one of `decision.options` — a CPU
+ * that answered with anything else would freeze the game — and ties fall to the
+ * option offered first, which keeps the whole function deterministic.
+ */
+function pickOption(decision: Decision, context: Context): DecisionOption | null {
+  let best: DecisionOption | null = null
+  let bestScore = -Infinity
+  for (const option of decision.options) {
+    const score = scoreOption(option, decision, context)
+    if (score > bestScore) {
+      best = option
+      bestScore = score
+    }
+  }
+  return best
+}
+
+/**
+ * The command a computer seat issues for the current phase, or null when the
+ * current player is human or nothing is owed. Pure; deterministic.
+ */
+export function decideCpuCommand(state: GameState): GameCommand | null {
+  const player = state.players[state.currentPlayerIndex]
+  // A seat that has just retired is still the current player for one more
+  // `endTurn`, so retirement must not silence the computer.
+  if (!player || !player.isCpu) return null
+
+  switch (state.phase) {
+    case 'awaitingSpin':
+      return { type: 'spin' }
+    case 'resolved':
+      return { type: 'endTurn' }
+    case 'awaitingDecision': {
+      const decision = state.pendingDecision
+      if (!decision || decision.options.length === 0) return null
+      const distances = distancesToRetirement(state.board)
+      const edition = editionOf(state)
+      const profile = difficultyProfile(state.difficulty, edition)
+      const unit = unitOf(edition.economy)
+      const context: Context = {
+        state,
+        player,
+        distances,
+        edition,
+        progress: progressOf(state, player, distances),
+        loanCost: loanCostFor(state, edition),
+        cashReserve: unit * CASH_RESERVE_UNITS,
+        riskCashFloor: unit * RISK_CASH_FLOOR_UNITS,
+        resaleScale: profile.resaleScale,
+        stockScale: profile.stockScale,
+      }
+      const option = pickOption(decision, context)
+      return option ? { type: 'choose', optionId: option.id } : null
+    }
+    default:
+      // `moving` belongs to the animation, `setup` and `gameOver` to the screens.
+      return null
+  }
+}
+

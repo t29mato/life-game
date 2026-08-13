@@ -1,0 +1,616 @@
+/* ==========================================================================
+   The play surface: a pressed-card board with a raised rim, and printed on it
+   an overhead map of the country the journey crosses — hills along the far
+   edge, districts of open ground, a bay at the bottom, and one continuous road
+   winding through the lot with the spaces painted onto it.
+
+   Every colour below is either a design-system token or a pigment of that map.
+   The light is the one this project's art is drawn under throughout: a single
+   source in the upper left, so every lit face points up-left and every shaded
+   one down-right.
+   ========================================================================== */
+
+.frame {
+  --rim-top: color-mix(in srgb, var(--border) 45%, var(--surface));
+  --rim-bottom: color-mix(in srgb, var(--border-strong) 70%, var(--border));
+
+  /* ---- The map's pigments ---------------------------------------------- */
+  --land: #9ccc6c;
+  --land-far: #bcdd97;
+  --land-near: #7fb857;
+
+  --meadow: #b3d87e;
+  --campus: #8ecb5f;
+  --works: #c6bb85;
+  --downtown: #cfc7ab;
+  --suburb: #b6d96d;
+  --towers: #adc3b1;
+  --uplands: #d3ba71;
+  --farmland: #cbd25e;
+  --shore: #e2d199;
+
+  --hill-far: #a8c98f;
+  --hill-far-lit: #c6dfae;
+  --hill-near: #83b56b;
+  --hill-near-lit: #a3cd85;
+
+  --sea: #43bce2;
+  --sea-deep: #1a86bd;
+  --sea-shallow: #7fd8f0;
+  --sand: #f0dfa8;
+  --foam: #ffffff;
+
+  --road-top: #f2c463;
+  --road-edge: #fffdf6;
+  --road-casing: #b3853a;
+
+  --drop: rgba(40, 58, 24, 0.22);
+  --trunk: #8a6134;
+  --leaf: #3d8c45;
+  --leaf-lit: #67b855;
+  --clearing: #8cc45c;
+  --wall: #fdf3e0;
+  --wall-shade: #d8c39c;
+  --roof: #e2664f;
+  --roof-shade: #ad3d29;
+  --bldg: #f4e9d2;
+  --bldg-shade: #c9b691;
+  --bldg-top: #fffbf2;
+  --tower: #d9ecf6;
+  --tower-shade: #9ab9cf;
+  --glass: #3f9ace;
+  --crop: #d8c552;
+  --crop-line: rgba(112, 84, 16, 0.3);
+  --rock: #c1a984;
+  --rock-shade: #937c5b;
+  --hull: #cc4f3e;
+  --sail: #f4e9d4;
+  --sail-lit: #ffffff;
+  --wake: rgba(255, 255, 255, 0.5);
+
+  --tile-drop: rgba(44, 52, 20, 0.24);
+  --tile-drop-soft: rgba(44, 52, 20, 0.17);
+
+  /* A cream card mat around the printed map — the board's own margin, not a
+     picture frame. Its thickness shows as one soft cast shadow on the linen. */
+  position: relative;
+  padding: clamp(8px, 1vw, 14px);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, var(--rim-top), var(--rim-bottom));
+  box-shadow: var(--elev-3);
+}
+
+/* The interior of the card. The map fills it, so the fill here only shows
+   for the instant before the SVG lays out. */
+.surface {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: calc(var(--radius-xl) - 8px);
+  background-color: var(--land);
+  box-shadow: inset 0 2px 5px color-mix(in srgb, var(--ink) 22%, transparent);
+  overscroll-behavior-x: contain;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Below ~720px the board is wider than its column, so it pans instead of
+   shrinking into illegibility. The active player is scrolled into view. */
+@media (max-width: 720px) {
+  .svg {
+    min-width: 700px;
+  }
+}
+
+/* ---- Fitting the board to a cell with a hard height ----------------------
+   Everywhere else the board is sized by its width and grows as tall as its own
+   shape demands. That breaks in exactly one layout: the wide screen, where
+   `.main`'s first grid row is `minmax(0, 1fr)` and the board's cell therefore
+   has a fixed height. A board taller than that cell — and `long` is taller
+   than it is wide — was clipped by `.surface`, with no way to scroll to the
+   rest of it.
+
+   The breakpoint below deliberately mirrors the one in `App.module.css` that
+   creates the constraint. Inside it the drawing is scaled to fit rather than
+   cropped: `preserveAspectRatio="xMidYMid meet"` letterboxes by the width of
+   the rim at worst, and no part of the route can ever be cut off, whatever
+   shape the domain gives the board. `App.module.css` separately caps the
+   board's width so the rim keeps hugging the map — but if that cap were ever
+   wrong, this rule alone still guarantees the whole board is on screen.
+
+   It is scoped rather than global because a phone is the opposite problem:
+   there the column is short and the board pans horizontally at a 700px floor,
+   and fitting to height would shrink it to nothing.                        */
+@media (min-width: 901px) and (min-height: 620px) {
+  .frame {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .surface {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .svg {
+    height: 100%;
+  }
+}
+
+/* ---- The country --------------------------------------------------------
+   Decoration only: it never intercepts a click, and never appears in a
+   screen-reader pass over the board.                                       */
+
+.landscape {
+  pointer-events: none;
+}
+
+.ridgeFace {
+  fill: var(--hill-near);
+}
+
+.ridgeLit {
+  fill: var(--hill-near-lit);
+}
+
+/* The further range is hazier, as distance does to a hill. */
+.ridge[data-depth='0'] .ridgeFace {
+  fill: var(--hill-far);
+}
+
+.ridge[data-depth='0'] .ridgeLit {
+  fill: var(--hill-far-lit);
+}
+
+.district {
+  fill: var(--patch, var(--land));
+  stroke: color-mix(in srgb, var(--patch, var(--land)) 82%, #2f4a1e);
+  stroke-width: 2.5;
+}
+
+.district[data-district='meadow'] {
+  --patch: var(--meadow);
+}
+
+.district[data-district='campus'] {
+  --patch: var(--campus);
+}
+
+.district[data-district='works'] {
+  --patch: var(--works);
+}
+
+.district[data-district='downtown'] {
+  --patch: var(--downtown);
+}
+
+.district[data-district='suburb'] {
+  --patch: var(--suburb);
+}
+
+.district[data-district='towers'] {
+  --patch: var(--towers);
+}
+
+.district[data-district='uplands'] {
+  --patch: var(--uplands);
+}
+
+.district[data-district='farmland'] {
+  --patch: var(--farmland);
+}
+
+.district[data-district='shore'] {
+  --patch: var(--shore);
+}
+
+/* ---- What sits inside a fork's courtyard -------------------------------- */
+
+.pondRim {
+  fill: var(--sand);
+}
+
+.pondWater {
+  fill: var(--sea-deep);
+}
+
+.pondLit {
+  fill: var(--sea-shallow);
+  opacity: 0.75;
+}
+
+.ripple {
+  fill: none;
+  stroke: var(--foam);
+  stroke-width: 2.5;
+  opacity: 0.55;
+}
+
+.clearing {
+  fill: var(--clearing);
+}
+
+/* ---- The bay ------------------------------------------------------------ */
+
+.beach {
+  fill: var(--sand);
+}
+
+.shallow {
+  fill: var(--sea-shallow);
+}
+
+.foam {
+  fill: none;
+  stroke: var(--foam);
+  stroke-width: 4;
+  opacity: 0.7;
+}
+
+/* ---- Everything built or grown on the map ------------------------------- */
+
+.drop {
+  fill: var(--drop);
+}
+
+.trunk {
+  fill: var(--trunk);
+}
+
+.leaf {
+  fill: var(--leaf);
+}
+
+.leafLit {
+  fill: var(--leaf-lit);
+}
+
+.wall {
+  fill: var(--wall);
+}
+
+.wallShade {
+  fill: var(--wall-shade);
+}
+
+.roof {
+  fill: var(--roof);
+}
+
+.roofShade {
+  fill: var(--roof-shade);
+}
+
+.bldg {
+  fill: var(--bldg);
+}
+
+.bldgShade {
+  fill: var(--bldg-shade);
+}
+
+.bldgTop {
+  fill: var(--bldg-top);
+}
+
+.tower {
+  fill: var(--tower);
+}
+
+.towerShade {
+  fill: var(--tower-shade);
+}
+
+.glass {
+  fill: var(--glass);
+  opacity: 0.72;
+}
+
+.crop {
+  fill: var(--crop);
+}
+
+.cropLine {
+  fill: none;
+  stroke: var(--crop-line);
+  stroke-width: 2.5;
+}
+
+.rock {
+  fill: var(--rock);
+}
+
+.rockShade {
+  fill: var(--rock-shade);
+}
+
+.hull {
+  fill: var(--hull);
+}
+
+.sail {
+  fill: var(--sail);
+}
+
+.sailLit {
+  fill: var(--sail-lit);
+}
+
+.wake {
+  fill: var(--wake);
+}
+
+/* ---- The road -----------------------------------------------------------
+   Three complete passes rather than three strokes per strand, so no strand's
+   kerb or edging is ever printed across the tarmac of the one beside it at a
+   fork.                                                                     */
+
+.roadCasing path,
+.roadEdge path,
+.roadTop path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.roadCasing path {
+  stroke: var(--road-casing);
+}
+
+.roadEdge path {
+  stroke: var(--road-edge);
+}
+
+.roadTop path {
+  stroke: var(--road-top);
+}
+
+/* ---- Tile material -------------------------------------------------------
+   A space is a slab of board stock standing on the map, not a print on it: a
+   contact shadow grounds it, a side wall gives it thickness, and the printed
+   face sits on top of both, raised by the slab's own height.
+
+   One shared ambient shadow for the whole layer: 68 separate filter regions is
+   what makes a board like this crawl.                                       */
+
+/* The camera. Its `transform` attribute is written imperatively from motion
+   values, so React never has an opinion about where the board is pointed. */
+.camera {
+  will-change: transform;
+}
+
+.glowLayer,
+.contacts {
+  pointer-events: none;
+}
+
+.tileBases {
+  filter: drop-shadow(0 6px 12px var(--tile-drop-soft));
+}
+
+.pawnLayer {
+  pointer-events: none;
+}
+
+.svg [data-tone='blue'] {
+  --tile-face: var(--tone-blue-bg);
+  --tile-edge: var(--tone-blue-edge);
+  --tile-ink: var(--tone-blue-ink);
+}
+
+.svg [data-tone='orange'] {
+  --tile-face: var(--tone-orange-bg);
+  --tile-edge: var(--tone-orange-edge);
+  --tile-ink: var(--tone-orange-ink);
+}
+
+.svg [data-tone='green'] {
+  --tile-face: var(--tone-green-bg);
+  --tile-edge: var(--tone-green-edge);
+  --tile-ink: var(--tone-green-ink);
+}
+
+.svg [data-tone='pink'] {
+  --tile-face: var(--tone-pink-bg);
+  --tile-edge: var(--tone-pink-edge);
+  --tile-ink: var(--tone-pink-ink);
+}
+
+.svg [data-tone='purple'] {
+  --tile-face: var(--tone-purple-bg);
+  --tile-edge: var(--tone-purple-edge);
+  --tile-ink: var(--tone-purple-ink);
+}
+
+.svg [data-tone='gold'] {
+  --tile-face: var(--tone-gold-bg);
+  --tile-edge: var(--tone-gold-edge);
+  --tile-ink: var(--tone-gold-ink);
+}
+
+.svg [data-tone='slate'] {
+  --tile-face: var(--tone-slate-bg);
+  --tile-edge: var(--tone-slate-edge);
+  --tile-ink: var(--tone-slate-ink);
+}
+
+/* The cut edge of the card, shaded as the one face the overhead light misses. */
+.tileWall {
+  fill: color-mix(in srgb, var(--tile-ink) 46%, var(--tile-edge));
+  stroke: color-mix(in srgb, var(--tile-ink) 62%, var(--tile-edge));
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+/* Payday is cut from gilt board, so its edge reads as a stack of coins even
+   from across the table. */
+[data-accent='payday'] .tileWall {
+  fill: var(--candy-sun-dark);
+  stroke: color-mix(in srgb, var(--candy-sun-dark) 70%, #150d00);
+}
+
+.tileFace {
+  fill: var(--tile-face);
+  stroke: color-mix(in srgb, var(--tile-ink) 24%, var(--tile-edge));
+  stroke-width: 2;
+}
+
+.tileEmboss {
+  fill: none;
+  stroke-width: 2.6;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* ---- Milestones: the five moments the game is actually about -------------
+   Cut from a thicker board and set in a brass bezel, so they stand physically
+   proud of every ordinary space around them.                                */
+
+.bezel {
+  fill: var(--candy-sun);
+}
+
+.bezelWall {
+  fill: var(--candy-sun-dark);
+  stroke: color-mix(in srgb, var(--candy-sun-dark) 68%, #150d00);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+/* ---- Payday: a coin bezel and a glint ------------------------------------ */
+
+.coinRing {
+  fill: none;
+  stroke: var(--candy-sun-dark);
+  stroke-width: 3.4;
+  opacity: 0.8;
+}
+
+.sparkle {
+  fill: var(--candy-sun);
+  stroke: var(--candy-sun-dark);
+  stroke-width: 1.4;
+}
+
+/* ---- Stop: a hazard band you cannot roll past --------------------------- */
+
+.hazardLight {
+  fill: var(--surface);
+}
+
+.hazardDark {
+  fill: var(--candy-coral);
+}
+
+.hazardBand {
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* ---- Printed captions ---------------------------------------------------- */
+
+.caption {
+  pointer-events: none;
+}
+
+.captionPlate {
+  fill: var(--surface);
+  stroke: color-mix(in srgb, var(--tile-ink) 34%, var(--tile-edge));
+  stroke-width: 2;
+}
+
+.captionText {
+  fill: var(--tile-ink);
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+[data-accent='milestone'] .captionPlate {
+  fill: var(--candy-sun);
+  stroke: var(--candy-sun-dark);
+}
+
+[data-accent='milestone'] .captionText {
+  fill: color-mix(in srgb, var(--candy-sun-dark) 58%, #150d00);
+}
+
+/* ---- "You are here" ------------------------------------------------------
+   Two signals, because one is never enough across a whole board: brackets that
+   frame the slab, and a halo behind it that breathes. Between them the current
+   space is findable at a glance from the wide shot.                          */
+
+.here {
+  animation: herePulse 1.6s var(--ease-in-out) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.hereGlow {
+  fill: none;
+  stroke: var(--candy-sun);
+  stroke-width: 10;
+  opacity: 0.4;
+  animation: hereBreathe 1.6s var(--ease-in-out) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.hereBrackets,
+.hereBracketsUnder {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hereBracketsUnder {
+  stroke: color-mix(in srgb, var(--candy-sun-dark) 72%, var(--ink));
+  stroke-width: 9;
+}
+
+.hereBrackets {
+  stroke: var(--candy-sun);
+  stroke-width: 5;
+}
+
+@keyframes herePulse {
+  0%,
+  100% {
+    opacity: 0.82;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes hereBreathe {
+  0%,
+  100% {
+    opacity: 0.22;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .here {
+    animation: none;
+    opacity: 1;
+  }
+
+  /* The halo stays — it is how the space is found — but it stops breathing. */
+  .hereGlow {
+    animation: none;
+    opacity: 0.45;
+  }
+}

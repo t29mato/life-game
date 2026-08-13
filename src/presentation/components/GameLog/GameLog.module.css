@@ -1,0 +1,227 @@
+/* ==========================================================================
+   GameLog — a printed till receipt on warm paper: a stamped turn number in
+   the left column, a thin colour rail and a printer's mark carrying the tone.
+   Paper, not a panel: no outline, one soft cast shadow, a torn bottom edge.
+   ========================================================================== */
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: var(--radius-lg);
+  background: var(--surface-grad);
+  box-shadow: var(--elev-2);
+  overflow: hidden;
+}
+
+/* The torn strip along the bottom edge of the paper. */
+.panel::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--border-strong) 55%, transparent) 0 5px,
+    transparent 5px 11px
+  );
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.9rem 0.5rem;
+  font-size: 0.7rem;
+}
+
+.headingLabel {
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-faint);
+}
+
+.headingRule {
+  flex: 1;
+  height: 0;
+  border-top: 2px dashed color-mix(in srgb, var(--border-strong) 65%, transparent);
+}
+
+.headingCount {
+  padding: 0.1rem 0.45rem 0.14rem;
+  border-radius: var(--radius-full);
+  font-size: 0.66rem;
+  font-weight: 900;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  color: var(--ink-soft);
+  background: var(--surface-sunken);
+}
+
+.list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 0.55rem 0.7rem;
+}
+
+.empty {
+  padding: 0 0.9rem 0.9rem;
+  color: var(--ink-faint);
+  font-size: 0.88rem;
+  font-style: italic;
+}
+
+.entry {
+  --rail: var(--border-strong);
+  --rail-ink: var(--ink-soft);
+
+  display: grid;
+  grid-template-columns: 0.9rem 1.55rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.4rem 0.55rem 0.44rem 0.4rem;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--rail);
+  background: color-mix(in srgb, var(--rail) 6%, transparent);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  animation: enter var(--duration-base) var(--spring-bouncy);
+}
+
+.newest {
+  background: color-mix(in srgb, var(--rail) 12%, transparent);
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.mark {
+  justify-self: center;
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--rail-ink);
+}
+
+.turn {
+  justify-self: stretch;
+  text-align: center;
+  padding: 0.05rem 0.15rem 0.09rem;
+  border-radius: 5px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  color: var(--ink-faint);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.message {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---- Tones --------------------------------------------------------------- */
+
+.info {
+  --rail: var(--candy-sky);
+  --rail-ink: var(--tone-blue-ink);
+}
+
+.moneyIn {
+  --rail: var(--positive);
+  --rail-ink: var(--positive-dark);
+}
+
+.moneyIn .message {
+  color: var(--positive-dark);
+  font-weight: 800;
+}
+
+.moneyOut {
+  --rail: var(--negative);
+  --rail-ink: var(--negative-dark);
+}
+
+.moneyOut .message {
+  color: var(--negative-dark);
+  font-weight: 800;
+}
+
+.event {
+  --rail: var(--candy-grape);
+  --rail-ink: var(--tone-purple-ink);
+}
+
+.milestone {
+  --rail: var(--candy-sun);
+  --rail-ink: var(--tone-gold-ink);
+
+  background: color-mix(in srgb, var(--candy-sun) 14%, transparent);
+}
+
+.milestone .message {
+  color: var(--tone-gold-ink);
+  font-weight: 900;
+}
+
+/* ---- Upset: someone just lost the lead ------------------------------------
+   Layers over whichever tone the entry already carries — a thicker rail, a
+   warm pulse on arrival, and an "Upset" tag so it cannot be scanned past. */
+.upset {
+  --rail: var(--candy-tangerine);
+  --rail-ink: var(--candy-tangerine-dark);
+
+  border-left-width: 5px;
+  background: color-mix(in srgb, var(--candy-tangerine) 14%, transparent);
+  animation:
+    enter var(--duration-base) var(--spring-bouncy),
+    upsetPulse 1.1s var(--ease-out) 1;
+}
+
+.upset .mark {
+  font-size: 0.85rem;
+}
+
+.upset .message {
+  color: var(--candy-tangerine-dark);
+  font-weight: 800;
+}
+
+.upsetTag {
+  display: inline-block;
+  margin-right: 0.4rem;
+  padding: 0.05rem 0.4rem 0.08rem;
+  border-radius: var(--radius-full);
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: var(--candy-tangerine);
+  box-shadow: 0 1px 0 var(--candy-tangerine-dark);
+}
+
+@keyframes upsetPulse {
+  0% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--candy-tangerine) 26%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}

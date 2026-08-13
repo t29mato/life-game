@@ -1,0 +1,442 @@
+/* ==========================================================================
+   EventCard — the card you just landed on, picked up and shown to the table.
+   Printed card stock: a pastel tone band up top with a perforation line, a
+   moulded medallion holding the glyph, and the money delta on an enamelled
+   plate. The room dims warm behind it.
+   ========================================================================== */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(62, 48, 22, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: var(--z-modal);
+  animation: backdropIn var(--duration-base, 0.28s) var(--ease-out, ease-out) both;
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---- The card itself: pressed card stock, printed and die-cut ------------ */
+.card {
+  position: relative;
+  width: min(30rem, 100%);
+  max-height: min(90vh, 44rem);
+  overflow: hidden auto;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  background: var(--surface-grad);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--elev-3);
+}
+
+/* ---- Tone band: the printed top of the card ------------------------------ */
+.band {
+  position: relative;
+  overflow: hidden;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1.25rem 1.15rem;
+  background: var(--card-tone-bg);
+}
+
+/* A perforation line, as if the card were torn from a sheet. */
+.band::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  height: 3px;
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--card-tone-ink) 34%, transparent) 0 1px,
+    transparent 1.4px
+  );
+  background-size: 9px 3px;
+  opacity: 0.75;
+}
+
+/* ---- Medallion: a moulded plastic disc holding the glyph ----------------- */
+.emblem {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.medallion {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 5.4rem;
+  height: 5.4rem;
+  font-size: 2.9rem;
+  line-height: 1;
+  border-radius: var(--radius-full);
+  background: radial-gradient(
+    circle at 32% 26%,
+    #fff 0%,
+    color-mix(in srgb, #fff 78%, var(--card-tone-bg)) 34%,
+    color-mix(in srgb, var(--card-tone-bg) 92%, #fff) 100%
+  );
+  box-shadow:
+    0 2px 0 color-mix(in srgb, var(--card-tone-ink) 30%, transparent),
+    0 8px 16px -6px color-mix(in srgb, var(--card-tone-ink) 30%, transparent),
+    inset 0 2px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -6px 10px color-mix(in srgb, var(--card-tone-ink) 14%, transparent);
+  animation: medallionPop 0.5s var(--spring-bouncy, ease-out) 0.06s backwards;
+}
+
+/* Specular highlight across the dome. */
+.medallion::before {
+  content: '';
+  position: absolute;
+  left: 14%;
+  top: 8%;
+  width: 46%;
+  height: 30%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+@keyframes medallionPop {
+  from {
+    transform: scale(0.5) rotate(-16deg);
+  }
+  to {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* ---- Cut-in: `big` and `milestone` slam in harder ------------------------ */
+
+/* A one-shot bloom of light across the whole card, timed to land just as the
+   spring settles — the "flash" the spec calls for on a cut-in. */
+.flash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 38%,
+    color-mix(in srgb, #fff 92%, var(--card-tone-bg)) 0%,
+    transparent 70%
+  );
+  animation: flashBloom 0.42s var(--ease-out, ease-out) both;
+}
+
+@keyframes flashBloom {
+  0% {
+    opacity: 0;
+  }
+  16% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.cutIn {
+  box-shadow:
+    var(--elev-3),
+    0 0 0 3px color-mix(in srgb, var(--card-tone-edge) 70%, transparent);
+}
+
+/* The icon punches toward the viewer: a harder overshoot than the ordinary
+   pop, plus a quick outward shockring so it reads as an impact. */
+.medallionPunch {
+  animation: medallionPunch 0.5s var(--spring-bouncy, ease-out) 0.02s backwards;
+}
+
+.medallionPunch::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: var(--radius-full);
+  border: 3px solid color-mix(in srgb, var(--card-tone-ink) 55%, transparent);
+  opacity: 0;
+  animation: shockring 0.5s var(--ease-out, ease-out) 0.05s both;
+}
+
+@keyframes medallionPunch {
+  0% {
+    transform: scale(0.3) rotate(-20deg);
+  }
+  62% {
+    transform: scale(1.32) rotate(3deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes shockring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+/* ---- Host narration: a line of commentary, distinct from the space's own
+   description --------------------------------------------------------------- */
+.narration {
+  font-style: italic;
+  font-weight: 700;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  max-width: 24rem;
+  padding: 0.15rem 0 0.15rem 0.6rem;
+  color: var(--card-tone-ink);
+  border-left: 3px solid var(--card-tone-edge);
+  text-align: left;
+  align-self: stretch;
+}
+
+/* ---- Milestone dressing -------------------------------------------------- */
+.rays {
+  position: absolute;
+  width: 19rem;
+  height: 19rem;
+  border-radius: 50%;
+  opacity: 0;
+  background: conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--candy-sun) 45%, transparent) 0deg 8deg,
+    transparent 8deg 30deg
+  );
+  -webkit-mask-image: radial-gradient(circle, transparent 20%, #000 38%, transparent 72%);
+  mask-image: radial-gradient(circle, transparent 20%, #000 38%, transparent 72%);
+  pointer-events: none;
+}
+
+.milestone .rays {
+  opacity: 0.8;
+  animation: raySpin 14s linear infinite;
+}
+
+@keyframes raySpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.milestone .band {
+  background: var(--tone-gold-bg);
+  padding-top: 2.7rem;
+}
+
+.milestone.card {
+  box-shadow:
+    var(--elev-3),
+    0 0 0 3px color-mix(in srgb, var(--candy-sun) 60%, transparent);
+}
+
+.milestoneRibbon {
+  position: absolute;
+  top: 0.85rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 0.24rem 1.1rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #5a4104;
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, #ffe9a3 0%, var(--candy-sun) 70%, var(--candy-sun-dark) 100%);
+  box-shadow:
+    0 2px 0 var(--candy-sun-dark),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* ---- Body ---------------------------------------------------------------- */
+.body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.3rem 1.5rem 1.5rem;
+}
+
+.title {
+  font-family: var(--font-display, var(--font-rounded));
+  font-size: clamp(1.35rem, 5vw, 1.6rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.description {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  max-width: 24rem;
+}
+
+/* ---- Money delta: an enamelled plate you cannot miss --------------------- */
+.deltaPlate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.2rem 0 0.1rem;
+  padding: 0.5rem 1.35rem 0.55rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--plate-light) 0%, var(--plate) 60%, var(--plate-dark) 100%);
+  color: var(--plate-ink);
+  box-shadow:
+    0 3px 0 var(--plate-lip),
+    0 8px 16px -6px color-mix(in srgb, var(--plate-dark) 45%, transparent),
+    inset 0 2px 0 rgba(255, 255, 255, 0.5);
+  animation: platePop 0.42s var(--spring-bouncy, ease-out) 0.18s backwards;
+}
+
+@keyframes platePop {
+  from {
+    transform: scale(0.72);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.deltaArrow {
+  font-size: 1.05rem;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+/*
+ * Compound selector so the plate's own ink wins over `RollingNumber`'s
+ * transient up/down flash — the plate already says which way this went.
+ */
+.deltaPlate .delta {
+  font-size: clamp(1.9rem, 8vw, 2.45rem);
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  color: var(--plate-ink);
+  background-color: transparent;
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--plate-dark) 55%, transparent);
+}
+
+.deltaPositive {
+  --plate-light: color-mix(in srgb, #fff 34%, var(--candy-mint));
+  --plate: var(--candy-mint);
+  --plate-dark: var(--candy-mint-dark);
+  --plate-lip: color-mix(in srgb, #000 22%, var(--candy-mint-dark));
+  --plate-ink: #ffffff;
+}
+
+.deltaNegative {
+  --plate-light: color-mix(in srgb, #fff 34%, var(--candy-coral));
+  --plate: var(--candy-coral);
+  --plate-dark: var(--candy-coral-dark);
+  --plate-lip: color-mix(in srgb, #000 22%, var(--candy-coral-dark));
+  --plate-ink: #ffffff;
+}
+
+.deltaZero {
+  --plate-light: color-mix(in srgb, #fff 30%, var(--tone-slate-edge));
+  --plate: var(--tone-slate-edge);
+  --plate-dark: color-mix(in srgb, var(--tone-slate-ink) 40%, var(--tone-slate-edge));
+  --plate-lip: color-mix(in srgb, var(--tone-slate-ink) 60%, var(--tone-slate-edge));
+  --plate-ink: var(--tone-slate-ink);
+}
+
+/* ---- Life tiles & notes -------------------------------------------------- */
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.tile {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  background: var(--tone-gold-bg);
+  color: var(--tone-gold-ink);
+  border-radius: var(--radius-full);
+  padding: 0.35rem 0.8rem;
+  box-shadow: 0 1px 0 var(--tone-gold-edge);
+}
+
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.note::before {
+  content: '✦ ';
+  color: var(--candy-sun-dark);
+}
+
+.continue {
+  margin-top: 0.55rem;
+  width: 100%;
+  /* Continue paces the whole game — a computer's card sits here until a
+     person presses it. After a polite pause the button breathes, so a table
+     mid-conversation notices the game is waiting on them. */
+  animation: nudge 2.6s var(--ease-in-out) 3.2s infinite;
+}
+
+@keyframes nudge {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .medallion,
+  .medallionPunch,
+  .deltaPlate,
+  .backdrop,
+  .flash,
+  .continue {
+    animation: none;
+  }
+
+  .medallionPunch::after {
+    display: none;
+  }
+
+  .milestone .rays {
+    animation: none;
+  }
+}

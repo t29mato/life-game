@@ -1,0 +1,302 @@
+import { act, render, waitFor } from '@testing-library/react'
+import { createRef } from 'react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { AudioProvider } from '../../hooks/useAudio'
+import { createFakeAudioPort } from '../../dev/fakeAudio'
+import { Pawn, type PawnHandle } from './Pawn'
+
+function mockReducedMotion(matches: boolean): void {
+  window.matchMedia = vi.fn().mockReturnValue({
+    matches,
+    media: '(prefers-reduced-motion: reduce)',
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  })
+}
+
+describe('Pawn', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('renders a car for the given player colour', () => {
+    mockReducedMotion(true)
+    const audio = createFakeAudioPort()
+    const { getByTestId } = render(
+      <AudioProvider audio={audio}>
+        <svg>
+          <Pawn color="red" restPosition={{ x: 0, y: 0 }} />
+        </svg>
+      </AudioProvider>,
+    )
+    expect(getByTestId('pawn')).toHaveAttribute('data-color', 'red')
+  })
+
+  it('hops through every point in the path and fires hop sfx once per landing', async () => {
+    mockReducedMotion(true)
+    const audio = createFakeAudioPort()
+    const ref = createRef<PawnHandle>()
+    render(
+      <AudioProvider audio={audio}>
+        <svg>
+          <Pawn ref={ref} color="blue" restPosition={{ x: 0, y: 0 }} />
+        </svg>
+      </AudioProvider>,
+    )
+
+    const path = [
+      { x: 10, y: 0 },
+      { x: 20, y: 0 },
+      { x: 30, y: 5 },
+    ]
+
+    await act(async () => {
+      await ref.current?.hopThrough(path)
+    })
+
+    expect(audio.sfxLog).toEqual(['hop', 'hop', 'hop'])
+  })
+
+  it('resolves immediately and plays no sfx for an empty path', async () => {
+    mockReducedMotion(true)
+    const audio = createFakeAudioPort()
+    const ref = createRef<PawnHandle>()
+    render(
+      <AudioProvider audio={audio}>
+        <svg>
+          <Pawn ref={ref} color="green" restPosition={{ x: 0, y: 0 }} />
+        </svg>
+      </AudioProvider>,
+    )
+
+    await act(async () => {
+      await ref.current?.hopThrough([])
+    })
+
+    expect(audio.sfxLog).toEqual([])
+  })
+
+  it('shows an active ring only when isActive is true', () => {
+    mockReducedMotion(true)
+    const audio = createFakeAudioPort()
+    const { getByTestId } = render(
+      <AudioProvider audio={audio}>
+        <svg>
+          <Pawn color="purple" restPosition={{ x: 0, y: 0 }} isActive />
+        </svg>
+      </AudioProvider>,
+    )
+    expect(getByTestId('pawn')).toHaveAttribute('data-active', 'true')
+  })
+
+  /**
+   * A move takes the same number of hops however long each one lasts, so a
+   * player who has asked for less motion still gets every landing, every sound
+   * and every state change — only the travel between them is removed.
+   */
+  it('keeps every landing under reduced motion, and loses only the travel', async () => {
+    mockReducedMotion(true)
+    const audio = createFakeAudioPort()
+    const ref = createRef<PawnHandle>()
+    render(
+      <AudioProvider audio={audio}>
+        <svg>
+          <Pawn ref={ref} color="blue" restPosition={{ x: 0, y: 0 }} hopDuration={30} />
+        </svg>
+      </AudioProvider>,
+    )
+
+    const started = Date.now()
+    await act(async () => {
+      await ref.current?.hopThrough([
+        { x: 10, y: 0 },
+        { x: 20, y: 0 },
+      ])
+    })
+
+    // Thirty seconds a hop, honoured, would not have returned by now.
+    expect(Date.now() - started).toBeLessThan(2000)
+    expect(audio.sfxLog).toEqual(['hop', 'hop'])
+  })
+
+  describe('settling into a new bay', () => {
+    /**
+     * Reads the position framer-motion actually wrote for the car's body. A
+     * `translate…` term is dropped entirely from the style when its value is
+     * exactly zero, so a missing axis reads as 0 rather than as unknown.
+     */
+    function position(pawn: HTMLElement): { x: number; y: number } {
+      const style = pawn.querySelector(':scope > g')?.getAttribute('style') ?? ''
+      return {
+        x: Number(/translateX\(([-\d.]+)px\)/.exec(style)?.[1] ?? '0'),
+        y: Number(/translateY\(([-\d.]+)px\)/.exec(style)?.[1] ?? '0'),
+      }
+    }
+
+    /**
+     * A parked car used to be deaf to its own `restPosition` after the first
+     * paint — only `hopThrough` could ever move it — so when a rival's
+     * arrival changed which bay a *stationary* car belonged in, the car
+     * itself never followed and could sit exactly on top of the newcomer.
+     * This is the regression: no hop, no `ref`, just a prop the board
+     * recomputed, and the token still has to end up where it was told.
+     */
+    it('moves to a newly assigned bay even though it never hopped there', async () => {
+      mockReducedMotion(true)
+      const { getByTestId, rerender } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <svg>
+            <Pawn color="blue" restPosition={{ x: 5, y: 8 }} />
+          </svg>
+        </AudioProvider>,
+      )
+      expect(position(getByTestId('pawn'))).toEqual({ x: 5, y: 8 })
+
+      rerender(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <svg>
+            <Pawn color="blue" restPosition={{ x: 40, y: -12 }} />
+          </svg>
+        </AudioProvider>,
+      )
+
+      // The jump itself is immediate under reduced motion, but framer-motion
+      // still flushes a settled motion value to the DOM on its own frame
+      // rather than inside React's commit, so the assertion polls rather
+      // than reading the style back synchronously.
+      await waitFor(() => expect(position(getByTestId('pawn'))).toEqual({ x: 40, y: -12 }))
+    })
+
+    it('settles silently — a bay reassignment is not a move the player made', async () => {
+      mockReducedMotion(true)
+      const audio = createFakeAudioPort()
+      const { getByTestId, rerender } = render(
+        <AudioProvider audio={audio}>
+          <svg>
+            <Pawn color="blue" restPosition={{ x: 0, y: 5 }} />
+          </svg>
+        </AudioProvider>,
+      )
+
+      rerender(
+        <AudioProvider audio={audio}>
+          <svg>
+            <Pawn color="blue" restPosition={{ x: 40, y: -12 }} />
+          </svg>
+        </AudioProvider>,
+      )
+
+      await waitFor(() => expect(position(getByTestId('pawn'))).toEqual({ x: 40, y: -12 }))
+      expect(audio.sfxLog).toEqual([])
+    })
+
+    it('does not settle on the first paint — there is nowhere to move from yet', () => {
+      mockReducedMotion(true)
+      const { getByTestId } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <svg>
+            <Pawn color="blue" restPosition={{ x: 7, y: 3 }} />
+          </svg>
+        </AudioProvider>,
+      )
+
+      expect(position(getByTestId('pawn'))).toEqual({ x: 7, y: 3 })
+    })
+
+    /**
+     * `hopThrough` is the one thing a settle must never fight: it is what the
+     * store waits on to unblock the next turn, so if a reassigned bay could
+     * steal the motion values mid-hop, `onMovementComplete` could resolve
+     * against the wrong position or never settle cleanly at all.
+     */
+    it('never contends with an in-flight hop for the same motion values', async () => {
+      mockReducedMotion(false)
+      const ref = createRef<PawnHandle>()
+      const { getByTestId, rerender } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <svg>
+            <Pawn ref={ref} color="blue" restPosition={{ x: 0, y: 0 }} hopDuration={0.05} />
+          </svg>
+        </AudioProvider>,
+      )
+
+      const hop = act(async () => {
+        await ref.current?.hopThrough([{ x: 100, y: 0 }])
+      })
+
+      // A rival's arrival reassigns this car's bay while it is mid-air — the
+      // hop in progress must still be the one thing driving its position, and
+      // the token must land exactly where the hop sent it once it finishes.
+      rerender(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <svg>
+            <Pawn ref={ref} color="blue" restPosition={{ x: 999, y: 999 }} hopDuration={0.05} />
+          </svg>
+        </AudioProvider>,
+      )
+
+      await hop
+
+      expect(position(getByTestId('pawn'))).toEqual({ x: 100, y: 0 })
+    })
+  })
+
+  describe('passengers', () => {
+    function renderCar(props: { isMarried?: boolean; childCount?: number }): HTMLElement {
+      mockReducedMotion(true)
+      const { getByTestId } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <svg>
+            <Pawn color="blue" restPosition={{ x: 0, y: 0 }} name="Alice" {...props} />
+          </svg>
+        </AudioProvider>,
+      )
+      return getByTestId('pawn')
+    }
+
+    it('exposes an empty car to assistive technology', () => {
+      expect(renderCar({})).toHaveAttribute('aria-label', 'Alice, driving alone')
+    })
+
+    it('exposes a partner once the player is married', () => {
+      expect(renderCar({ isMarried: true })).toHaveAttribute(
+        'aria-label',
+        'Alice, driving with a partner alongside',
+      )
+    })
+
+    it('exposes the children riding along', () => {
+      expect(renderCar({ isMarried: true, childCount: 2 })).toHaveAttribute(
+        'aria-label',
+        'Alice, driving with a partner alongside and 2 children',
+      )
+    })
+
+    it('states the true count even when the back seat is badged', () => {
+      expect(renderCar({ childCount: 6 })).toHaveAttribute(
+        'aria-label',
+        'Alice, driving with 6 children',
+      )
+    })
+
+    it('carries the household as data for anything drawing off it', () => {
+      const car = renderCar({ isMarried: true, childCount: 2 })
+
+      expect(car).toHaveAttribute('data-married', 'true')
+      expect(car).toHaveAttribute('data-children', '2')
+    })
+
+    it('falls back to the door letter when no name was given', () => {
+      mockReducedMotion(true)
+      const { getByTestId } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <svg>
+            <Pawn color="blue" restPosition={{ x: 0, y: 0 }} label="Z" />
+          </svg>
+        </AudioProvider>,
+      )
+
+      expect(getByTestId('pawn')).toHaveAttribute('aria-label', 'Z, driving alone')
+    })
+  })
+})

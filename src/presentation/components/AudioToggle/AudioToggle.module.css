@@ -1,0 +1,133 @@
+/* ==========================================================================
+   AudioToggle — two small rocker switches on paper pills. The track is a
+   sunken slot; switching on slides the knob and inks the slot leaf-green.
+   Quiet by design: these are utilities, not game pieces.
+   ========================================================================== */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.toggle {
+  --lip: 2px;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.32rem 0.7rem 0.32rem 0.34rem;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-family: var(--font-rounded);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  background: var(--surface);
+  box-shadow:
+    0 var(--lip) 0 color-mix(in srgb, var(--border-strong) 80%, transparent),
+    0 calc(var(--lip) + 4px) 10px -4px rgba(92, 70, 34, 0.25);
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.toggle:hover {
+  filter: brightness(1.02);
+}
+
+.toggle:active {
+  --lip: 0px;
+
+  transform: translateY(2px);
+}
+
+.toggle:focus-visible {
+  outline: 3px solid var(--candy-sky);
+  outline-offset: 3px;
+}
+
+/* ---- The slot ------------------------------------------------------------ */
+
+.track {
+  position: relative;
+  flex: none;
+  display: block;
+  width: 2.4rem;
+  height: 1.3rem;
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 1px 3px rgba(92, 70, 34, 0.25);
+  transition: background var(--duration-base) var(--ease-out);
+}
+
+.knob {
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  display: grid;
+  place-items: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: var(--radius-full);
+  font-size: 0.66rem;
+  line-height: 1;
+  color: #6a5a3a;
+  background: radial-gradient(circle at 34% 28%, #fff 0%, #f6f0e2 55%, #cfc2a8 100%);
+  box-shadow:
+    0 1px 2px rgba(92, 70, 34, 0.35),
+    inset 0 -2px 3px rgba(92, 70, 34, 0.14);
+  transform: translate(0, -50%);
+  transition: transform var(--duration-base) var(--spring-bouncy);
+}
+
+/* ---- On ------------------------------------------------------------------ */
+
+.on {
+  color: var(--positive-dark);
+}
+
+.on .track {
+  background: var(--candy-mint);
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--candy-mint-dark) 55%, transparent);
+}
+
+.on .knob {
+  transform: translate(1.1rem, -50%);
+}
+
+.on .state {
+  color: var(--positive-dark);
+}
+
+/* ---- Off ----------------------------------------------------------------- */
+
+.off {
+  color: var(--ink-faint);
+}
+
+.off .knob {
+  filter: grayscale(0.5);
+}
+
+.off .state {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+/* ---- Label --------------------------------------------------------------- */
+
+.label {
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.state {
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

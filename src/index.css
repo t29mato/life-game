@@ -1,0 +1,350 @@
+/* ==========================================================================
+   LIFE JOURNEY — design system
+   One sunny tabletop. The board's printed map — green hills, a blue bay, a
+   gold road — is the reference material; everything around it is quiet, warm,
+   matte paper laid on the same table, in the same daylight. There is exactly
+   one light scheme: the room never goes dark.
+
+   The surround borrows its accents from the map's own pigments — leaf green
+   for "go", road amber for highlights, roof red for costs, sea blue for
+   focus — and otherwise stays out of the way. Colour marks meaning; paper
+   carries everything else.
+
+   Components consume these tokens. They must never redefine palette values
+   locally — see docs/DESIGN.md §3.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Canvas & ink ---------------------------------------------------
+     `--canvas` is the linen tabletop. `--surface` is paper laid on it.
+     Ink is warm espresso — never blue, never purple — so text belongs to
+     the same daylight as the map. */
+  --canvas: #ede3cd;
+  --canvas-soft: #f7efdd;
+  --canvas-deep: #ddcda9;
+  --surface: #fffdf7;
+  --surface-alt: #faf5e9;
+  --surface-sunken: #f0e8d3;
+  --ink: #3c3425;
+  --ink-soft: #6f6450;
+  --ink-faint: #94886b;
+  --border: #e3d8bc;
+  --border-strong: #c9ba96;
+
+  /* ---- Accents ----------------------------------------------------------
+     The historical `--candy-*` names survive, but the values are the map's
+     pigments now: leaf, sea, road, roof. `-dark` is the pressed lip beneath
+     a moulded face. */
+  --candy-coral: #d9573f;
+  --candy-coral-dark: #a03723;
+  --candy-sky: #2492c4;
+  --candy-sky-dark: #16688f;
+  --candy-mint: #57a33e;
+  --candy-mint-dark: #3a7526;
+  --candy-sun: #eeb32b;
+  --candy-sun-dark: #b57e0a;
+  --candy-grape: #8a68c9;
+  --candy-grape-dark: #61439c;
+  --candy-tangerine: #e08a35;
+  --candy-tangerine-dark: #a95f14;
+  --candy-bubblegum: #d96796;
+  --candy-bubblegum-dark: #a83e6b;
+
+  /* ---- Semantic ---------------------------------------------------------- */
+  --positive: var(--candy-mint);
+  --positive-dark: var(--candy-mint-dark);
+  --negative: var(--candy-coral);
+  --negative-dark: var(--candy-coral-dark);
+  --info: var(--candy-sky);
+
+  /* ---- Buttons -------------------------------------------------------
+     Primary is the road-going green of the map's meadows: "go". Secondary
+     is plain paper with a kraft lip. Danger is roof red. */
+  --btn-primary: #4da13c;
+  --btn-primary-lip: #35762a;
+  --btn-primary-ink: #ffffff;
+  --btn-secondary: var(--surface);
+  --btn-secondary-lip: #cfc09c;
+  --btn-secondary-ink: var(--ink);
+  --btn-ghost: transparent;
+  --btn-ghost-lip: transparent;
+  --btn-ghost-ink: var(--ink-soft);
+  --btn-danger: var(--candy-coral);
+  --btn-danger-lip: var(--candy-coral-dark);
+  --btn-danger-ink: #ffffff;
+
+  /* ---- Player colours: light / base / dark triples --------------------
+     The pieces stay saturated — they are the moulded plastic on the table
+     and the one place bright colour is earned. Tuned to sit comfortably on
+     the map's greens and golds. */
+  --player-red-light: #ffb0a4;
+  --player-red: #e8543f;
+  --player-red-dark: #a3301f;
+  --player-blue-light: #9fd4f5;
+  --player-blue: #2f9ad6;
+  --player-blue-dark: #14608c;
+  --player-green-light: #a8e0a0;
+  --player-green: #4fae4a;
+  --player-green-dark: #2b7229;
+  --player-yellow-light: #ffe093;
+  --player-yellow: #efb32a;
+  --player-yellow-dark: #a87407;
+  --player-purple-light: #cdb7ef;
+  --player-purple: #8a63d2;
+  --player-purple-dark: #5b3b96;
+  --player-orange-light: #ffc899;
+  --player-orange: #ec8834;
+  --player-orange-dark: #a5560f;
+
+  /* ---- Space tones ------------------------------------------------------
+     Printed card stock: soft pastel face, deep legible ink, a slightly
+     deeper rim. Softer than the old candy chips so the tiles read as print
+     on the map rather than plastic stuck to it. */
+  --tone-blue-bg: #d8edf7;
+  --tone-blue-ink: #14618c;
+  --tone-blue-edge: #a9d5ea;
+  --tone-orange-bg: #f9e4c8;
+  --tone-orange-ink: #8f5013;
+  --tone-orange-edge: #ecc491;
+  --tone-green-bg: #ddf0d3;
+  --tone-green-ink: #2f6e22;
+  --tone-green-edge: #b4dda2;
+  --tone-pink-bg: #f9dde7;
+  --tone-pink-ink: #a02c58;
+  --tone-pink-edge: #eeb6ca;
+  --tone-purple-bg: #e9e1f5;
+  --tone-purple-ink: #5b3b96;
+  --tone-purple-edge: #cfbfe8;
+  --tone-gold-bg: #f7eac6;
+  --tone-gold-ink: #85610a;
+  --tone-gold-edge: #ecd188;
+  --tone-slate-bg: #e8e7df;
+  --tone-slate-ink: #565243;
+  --tone-slate-edge: #cfccbc;
+
+  /* ---- Radii ------------------------------------------------------------ */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+
+  /* ---- Material ---------------------------------------------------------
+     Paper does not glow and does not wear an outline. A raised thing gets a
+     tight contact shadow, a soft ambient one, and — via the shared bottom
+     hairline — the visible thickness of its card stock. Shadows are warm
+     (brown, never black-blue) because the table is warm. */
+  --sheen: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --elev-1:
+    0 1px 2px rgba(92, 70, 34, 0.1), 0 4px 14px -4px rgba(92, 70, 34, 0.12),
+    inset 0 -1px 0 rgba(92, 70, 34, 0.05);
+  --elev-2:
+    0 2px 3px rgba(92, 70, 34, 0.1), 0 12px 28px -10px rgba(92, 70, 34, 0.2),
+    inset 0 -1px 0 rgba(92, 70, 34, 0.05);
+  --elev-3:
+    0 3px 5px rgba(92, 70, 34, 0.12), 0 24px 56px -16px rgba(92, 70, 34, 0.32),
+    inset 0 -1px 0 rgba(92, 70, 34, 0.05);
+
+  /* Vertical offset of the solid lip under a pressable control. The control
+     translates by the same amount on :active so the lip collapses. */
+  --lip-sm: 3px;
+  --lip-md: 5px;
+
+  /* Paper catches the light along its top edge — a few percent, no more. */
+  --surface-grad: linear-gradient(
+    180deg,
+    #fffefb 0%,
+    var(--surface) 55%,
+    #fdf9ee 100%
+  );
+
+  /* ---- Textures ---------------------------------------------------------
+     Retired to flat layers: the woven-stripe "grain" read as banding, not
+     material. Paper here is matte and smooth; the tokens stay defined for
+     their consumers but contribute nothing visible. */
+  --texture-paper: linear-gradient(0deg, transparent, transparent);
+  --texture-felt: linear-gradient(0deg, transparent, transparent);
+
+  /* ---- Shadows ----------------------------------------------------------
+     Same stacks as `--elev-*` for legacy consumers. */
+  --shadow-sm: var(--elev-1);
+  --shadow-md: var(--elev-2);
+  --shadow-lg: var(--elev-3);
+  --shadow-focus: 0 0 0 4px rgba(36, 146, 196, 0.35);
+  --shadow-pawn:
+    0 2px 2px rgba(92, 70, 34, 0.35), 0 7px 14px -2px rgba(92, 70, 34, 0.28);
+
+  /* ---- Motion tokens ------------------------------------------------------ */
+  --duration-instant: 0.06s;
+  --duration-fast: 0.16s;
+  --duration-base: 0.28s;
+  --duration-slow: 0.5s;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --spring-bouncy: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ---- Z-layers ------------------------------------------------------------ */
+  --z-board: 1;
+  --z-pawn: 5;
+  --z-panel: 10;
+  --z-toast: 40;
+  --z-drawer: 45;
+  --z-modal: 50;
+  --z-confetti: 60;
+
+  /* ---- Type ------------------------------------------------------------- */
+  --font-rounded:
+    ui-rounded, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', system-ui, sans-serif;
+  --font-display:
+    ui-rounded, 'SF Pro Rounded', 'Avenir Next Rounded', 'Hiragino Maru Gothic ProN',
+    system-ui, sans-serif;
+  --tabular: tabular-nums lining-nums;
+
+  font: 16px/1.5 var(--font-rounded);
+  color: var(--ink);
+  background: var(--canvas);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---- Reset ---------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* The table: warm linen, lit gently from above and left — the same light the
+   map is drawn under. One soft pool, no coloured stains, no visible weave. */
+body {
+  min-height: 100svh;
+  background-color: var(--canvas);
+  background-image:
+    radial-gradient(
+      130% 90% at 42% -12%,
+      color-mix(in srgb, var(--canvas-soft) 92%, #ffffff) 0%,
+      rgba(255, 255, 255, 0) 58%
+    ),
+    radial-gradient(
+      120% 100% at 50% 118%,
+      color-mix(in srgb, var(--canvas-deep) 85%, transparent) 0%,
+      rgba(255, 255, 255, 0) 55%
+    );
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-rounded);
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+/* Numbers get a heavy weight + tabular figures everywhere. */
+.tabular-num {
+  font-variant-numeric: var(--tabular);
+  font-weight: 800;
+}
+
+/* ---- Focus ring -------------------------------------------------------- */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 3px solid var(--candy-sky);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---- Scrollbars (webkit) ------------------------------------------------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+}
+
+/* ---- Visually hidden but accessible ------------------------------------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Reduced motion: collapse motion to near-instant, keep information --- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

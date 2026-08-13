@@ -1,0 +1,160 @@
+.screen {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4rem;
+  padding: 1.5rem 1.25rem 3rem;
+  max-width: 46rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ==========================================================================
+   Masthead
+   ========================================================================== */
+.masthead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  width: 100%;
+}
+
+.backRow {
+  align-self: flex-start;
+}
+
+.eyebrow {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.heading {
+  position: relative;
+  padding-bottom: 0.14em;
+  font-family: var(--font-display, var(--font-rounded));
+  font-size: clamp(2rem, 8vw, 3rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  outline: none;
+}
+
+.heading::before {
+  content: none;
+}
+
+.heading::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 0;
+  height: 0.09em;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--candy-sun) 40%, transparent) 0%,
+    var(--candy-sun) 22%,
+    var(--candy-sun) 78%,
+    color-mix(in srgb, var(--candy-sun) 40%, transparent) 100%
+  );
+}
+
+.heading:focus-visible {
+  outline: 3px solid var(--candy-sky);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+/* ==========================================================================
+   History — every release, newest first
+   ========================================================================== */
+.history {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.card {
+  position: relative;
+  padding: 1rem 1.15rem 1.1rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface-grad);
+  box-shadow: var(--elev-1);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+  padding-bottom: 0.55rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px dashed var(--border);
+}
+
+.cardVersion {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.cardDate {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.section + .section {
+  margin-top: 0.75rem;
+}
+
+.sectionLabel {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--ink-faint);
+}
+
+.itemList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.item {
+  position: relative;
+  padding-left: 1.1rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.item::before {
+  content: '';
+  position: absolute;
+  left: 0.15rem;
+  top: 0.55em;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: var(--radius-full);
+  background: var(--candy-sun);
+  box-shadow: 0 1px 0 var(--candy-sun-dark);
+}

@@ -1,0 +1,652 @@
+/* ==========================================================================
+   PlayerPanel — a paper score card, one per seat. The player's colour lives
+   in a moulded pawn dome and a printed spine down the card's left edge —
+   nowhere else. The active seat lifts off the table and its spine thickens;
+   no rings, no glow, no light sweep.
+   ========================================================================== */
+
+.card {
+  /* The card adapts to the width it is actually dealt — ~300px in the
+     desktop rail, ~165px in a phone's two-up grid — not to the viewport,
+     which says nothing about how many cards share the row. */
+  container-type: inline-size;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  overflow: hidden;
+  padding: 0.75rem 0.85rem 0.7rem 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface-grad);
+  box-shadow: var(--elev-1);
+  transition:
+    transform var(--duration-base) var(--spring-bouncy),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+
+/* The colour spine: a printed band down the card's leading edge. */
+.spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 6px;
+  background: linear-gradient(
+    180deg,
+    var(--player-base, var(--candy-sun)) 0%,
+    var(--player-dark, var(--candy-sun-dark)) 100%
+  );
+  transition: width var(--duration-base) var(--ease-out);
+}
+
+/* The live seat: physically raised, spine thickened, shadow tinted by the
+   player's own colour — an object picked up, not a box outlined. */
+.active {
+  transform: translateY(-2px);
+  box-shadow:
+    0 3px 5px color-mix(in srgb, var(--player-dark, #5c4622) 22%, transparent),
+    0 14px 30px -8px color-mix(in srgb, var(--player-dark, #5c4622) 38%, transparent),
+    inset 0 -1px 0 rgba(92, 70, 34, 0.05);
+}
+
+.active .spine {
+  width: 9px;
+}
+
+.retired {
+  filter: saturate(0.4);
+  opacity: 0.85;
+}
+
+/* Hatching over a card that is out of play. */
+.retired::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--ink) 7%, transparent) 0 6px,
+    transparent 6px 15px
+  );
+  pointer-events: none;
+}
+
+/* ---- Header -------------------------------------------------------------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: var(--radius-full);
+  background: radial-gradient(
+    circle at 33% 25%,
+    var(--player-light, var(--candy-sun)) 0%,
+    var(--player-base, var(--candy-sun)) 48%,
+    var(--player-dark, var(--candy-sun-dark)) 100%
+  );
+  box-shadow:
+    0 2px 3px color-mix(in srgb, var(--player-dark, #5c4622) 40%, transparent),
+    inset 0 1px 2px rgba(255, 255, 255, 0.55),
+    inset 0 -4px 6px color-mix(in srgb, var(--player-dark, #5c4622) 35%, transparent);
+}
+
+.avatarInitial {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--player-dark, #4a3a10) 70%, transparent);
+}
+
+.identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.name {
+  font-weight: 900;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.career {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.careerEmoji {
+  flex: none;
+  font-size: 0.9rem;
+}
+
+/* "Now playing", stamped in the player's own colour — the one loud accent
+   a card is allowed. */
+.turnFlag {
+  margin-left: auto;
+  flex: none;
+  padding: 0.2rem 0.55rem 0.24rem;
+  border-radius: var(--radius-full);
+  font-size: 0.6rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #fff;
+  background: var(--player-base, var(--candy-sun));
+  box-shadow: 0 1px 0 var(--player-dark, var(--candy-sun-dark));
+}
+
+.retiredBadge {
+  margin-left: auto;
+  flex: none;
+  padding: 0.2rem 0.55rem 0.24rem;
+  border-radius: var(--radius-full);
+  font-size: 0.64rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tone-gold-ink);
+  background: var(--tone-gold-bg);
+  box-shadow: 0 1px 0 var(--tone-gold-edge);
+}
+
+/* ---- Cash window ----------------------------------------------------------
+   The loudest thing on the card: a big espresso number resting in a shallow
+   sand-paper well. */
+
+.money {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'label label'
+    'cash salary';
+  align-items: baseline;
+  column-gap: 0.5rem;
+  padding: 0.4rem 0.65rem 0.5rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  box-shadow:
+    inset 0 1px 3px rgba(92, 70, 34, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.moneyLabel {
+  grid-area: label;
+  font-size: 0.6rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+}
+
+.money .cash {
+  grid-area: cash;
+  justify-self: start;
+  font-size: clamp(1.5rem, 4.4vw, 1.9rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  margin-left: -0.15em;
+}
+
+.money .debt {
+  color: var(--negative-dark);
+}
+
+.salary {
+  grid-area: salary;
+  justify-self: end;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* ---- Net worth band -------------------------------------------------------
+   Deliberately nothing like the cash well above it. Cash is the wallet, the
+   thing that visibly moves. Net worth is the running score if the game ended
+   now, printed as a flat parchment band with the standing medal riveted to
+   it: smaller, calmer, a different material. A playtester once watched net
+   worth barely move after spending $165,000 on a house and read it as the
+   game miscounting their cash — the separate label and separate material
+   are what stop that misreading. */
+
+.worthStrip {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.24rem 0.6rem 0.28rem 0.28rem;
+  border-radius: var(--radius-full);
+  background: var(--tone-gold-bg);
+  box-shadow: 0 1px 0 var(--tone-gold-edge);
+}
+
+/* The medal well: outgoing and incoming rank overlap in place while
+   `AnimatePresence` cross-fades them — the badge changes, the band does not
+   move. An overtake is the loudest moment in the game; it lands here. */
+.rankSlot {
+  position: relative;
+  flex: none;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--tone-gold-ink) 22%, transparent);
+}
+
+.rankBadge {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 0.1rem;
+  font-size: 0.64rem;
+  font-weight: 900;
+  color: var(--tone-gold-ink);
+}
+
+.worthLabel {
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tone-gold-ink);
+  white-space: nowrap;
+}
+
+.worthStrip .worth {
+  margin-left: auto;
+  font-size: 0.88rem;
+  font-weight: 900;
+  color: var(--tone-gold-ink);
+}
+
+/* Worth and wallet agree, so no second number: the quiet phrasing marks the
+   band as a footnote to the cash headline until it has news of its own. */
+.worthSame {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-style: italic;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--tone-gold-ink) 72%, var(--tone-gold-bg));
+  white-space: nowrap;
+}
+
+/* ---- Milestone chips ------------------------------------------------------
+   Printed pastel stickers, not moulded pills: flat tone, deep ink, a single
+   hairline of thickness. */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  max-width: 100%;
+  padding: 0.2rem 0.5rem 0.24rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--chip-ink, var(--ink-soft));
+  background: var(--chip-bg, var(--surface-sunken));
+  box-shadow: 0 1px 0 var(--chip-edge, var(--border-strong));
+}
+
+.chipIcon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.chipText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tileChip {
+  --chip-bg: var(--tone-gold-bg);
+  --chip-ink: var(--tone-gold-ink);
+  --chip-edge: var(--tone-gold-edge);
+}
+
+.degreeChip {
+  --chip-bg: var(--tone-purple-bg);
+  --chip-ink: var(--tone-purple-ink);
+  --chip-edge: var(--tone-purple-edge);
+}
+
+.familyChip {
+  --chip-bg: var(--tone-pink-bg);
+  --chip-ink: var(--tone-pink-ink);
+  --chip-edge: var(--tone-pink-edge);
+}
+
+.houseChip {
+  --chip-bg: var(--tone-green-bg);
+  --chip-ink: var(--tone-green-ink);
+  --chip-edge: var(--tone-green-edge);
+}
+
+/* A liability, not a loss: amber reads as "keep an eye on this" rather than
+   the red used for an actual money drop. */
+.loanChip {
+  --chip-bg: var(--tone-orange-bg);
+  --chip-ink: var(--tone-orange-ink);
+  --chip-edge: var(--tone-orange-edge);
+}
+
+.stockChip {
+  --chip-bg: var(--tone-blue-bg);
+  --chip-ink: var(--tone-blue-ink);
+  --chip-edge: var(--tone-blue-edge);
+}
+
+.insuranceChip {
+  --chip-bg: var(--tone-slate-bg);
+  --chip-ink: var(--tone-slate-ink);
+  --chip-edge: var(--tone-slate-edge);
+}
+
+/* Second line of a chip, for detail that must stay visible (a debt's true
+   cost) without stretching the chip into an unreadable single line. */
+.chipSub {
+  flex: 1 1 100%;
+  margin-top: -0.12rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  opacity: 0.8;
+}
+
+.loanChip {
+  flex-wrap: wrap;
+  row-gap: 0;
+}
+
+/* ---- Compact: three or four seats sharing one rail ------------------------
+   Density comes from spacing and type scale, never from dropping facts —
+   every chip and every number a roomy card shows is still here. */
+
+.compact {
+  gap: 0.42rem;
+  padding: 0.55rem 0.7rem 0.5rem 0.85rem;
+  border-radius: var(--radius-md);
+}
+
+.compact .header {
+  gap: 0.5rem;
+}
+
+.compact .avatar {
+  width: 2rem;
+  height: 2rem;
+}
+
+.compact .avatarInitial {
+  font-size: 0.88rem;
+}
+
+.compact .name {
+  font-size: 0.92rem;
+}
+
+.compact .career {
+  font-size: 0.74rem;
+}
+
+.compact .money {
+  padding: 0.32rem 0.55rem 0.4rem;
+}
+
+.compact .money .cash {
+  font-size: clamp(1.2rem, 1.6vw, 1.45rem);
+}
+
+.compact .chips {
+  gap: 0.24rem;
+}
+
+.compact .chip {
+  padding: 0.14rem 0.42rem 0.18rem;
+  font-size: 0.68rem;
+}
+
+.compact .worthStrip {
+  padding: 0.18rem 0.5rem 0.22rem 0.22rem;
+}
+
+.compact .worthStrip .worth {
+  font-size: 0.8rem;
+}
+
+/* ---- Dense: four seats under the spinner ----------------------------------
+   The whole rail — spinner, spin button, four cards — has to clear a 900px
+   desktop without scrolling. Same rule as compact: density comes from spacing
+   and type scale, never from dropping facts. Nothing here goes below the
+   card's 0.62rem floor for incidental text, and both money figures keep
+   their labels. */
+
+.dense {
+  gap: 0.25rem;
+  padding: 0.38rem 0.6rem 0.38rem 0.8rem;
+}
+
+.dense .spine {
+  width: 5px;
+}
+
+.dense.active .spine {
+  width: 7px;
+}
+
+.dense .header {
+  gap: 0.45rem;
+}
+
+.dense .avatar {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+.dense .avatarInitial {
+  font-size: 0.76rem;
+}
+
+.dense .name {
+  font-size: 0.86rem;
+  line-height: 1.15;
+}
+
+.dense .career {
+  font-size: 0.7rem;
+  line-height: 1.15;
+}
+
+/* One line instead of a stacked label: [CASH  $10,000       salary]. The
+   label keeps its place and its contrast with the net worth band below —
+   only the vertical stacking goes. */
+.dense .money {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'label cash salary';
+  align-items: baseline;
+  column-gap: 0.45rem;
+  padding: 0.22rem 0.5rem 0.3rem;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.dense .money .cash {
+  font-size: 1.16rem;
+}
+
+.dense .moneyLabel {
+  font-size: 0.58rem;
+}
+
+/* Glued to the cash well as its footer — the vertical gap and the pill's
+   own chrome are what four seats cannot afford. Distinctness survives on
+   the parts that matter: parchment against the well's sunken sand, its own
+   label, its own medal. */
+.dense .worthStrip {
+  gap: 0.32rem;
+  margin-top: -0.25rem;
+  padding: 0.12rem 0.5rem 0.16rem 0.2rem;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.dense .rankSlot {
+  min-width: 1.15rem;
+  height: 1.15rem;
+}
+
+.dense .worthStrip .worth {
+  font-size: 0.78rem;
+}
+
+.dense .chips {
+  gap: 0.2rem;
+}
+
+.dense .chip {
+  padding: 0.1rem 0.36rem 0.14rem;
+  font-size: 0.64rem;
+}
+
+/* ---- Narrow cards: a phone's two-up grid ----------------------------------
+   Under ~215px nothing shares a line safely: the salary printed over the
+   cash digits, the flag squeezed the name to nothing, and the worth number
+   ran off the card edge. Vertical space is the cheap axis on a phone, so
+   rows wrap instead of anything truncating — every fact stays whole. */
+@container (max-width: 214px) {
+  .header {
+    flex-wrap: wrap;
+  }
+
+  .turnFlag,
+  .retiredBadge {
+    margin-left: 0;
+  }
+
+  .money {
+    grid-template-areas:
+      'label label'
+      'cash cash'
+      'salary salary';
+  }
+
+  .money .cash {
+    font-size: 1.35rem;
+  }
+
+  .salary {
+    justify-self: start;
+  }
+
+  .worthStrip {
+    flex-wrap: wrap;
+    row-gap: 0.05rem;
+  }
+
+  .worthLabel {
+    letter-spacing: 0.06em;
+  }
+
+  .worthStrip .worth {
+    font-size: 0.8rem;
+  }
+}
+
+/* Short rooms squeeze the compact card further — four seats must clear the
+   fold on a 720p desktop before anything else on this card matters. */
+@media (max-height: 780px) {
+  .compact {
+    gap: 0.34rem;
+    padding: 0.45rem 0.6rem 0.4rem 0.75rem;
+  }
+
+  .compact .avatar {
+    width: 1.85rem;
+    height: 1.85rem;
+  }
+
+  .compact .money {
+    padding: 0.26rem 0.5rem 0.32rem;
+  }
+
+  .compact .money .cash {
+    font-size: 1.15rem;
+  }
+
+  .compact .chip {
+    font-size: 0.64rem;
+  }
+}
+
+/* Four seats in a short room — a 1280×800 laptop is the common case. Kept
+   after the compact short-room block above so these win on a card carrying
+   both classes. 0.62rem is the floor; past this the rail scrolls rather
+   than the type becoming decoration. */
+@media (max-height: 820px) {
+  .dense {
+    gap: 0.2rem;
+    padding: 0.32rem 0.55rem 0.32rem 0.75rem;
+  }
+
+  .dense .avatar {
+    width: 1.45rem;
+    height: 1.45rem;
+  }
+
+  .dense .avatarInitial {
+    font-size: 0.7rem;
+  }
+
+  .dense .money {
+    padding: 0.16rem 0.45rem 0.22rem;
+  }
+
+  .dense .money .cash {
+    font-size: 1.05rem;
+  }
+
+  .dense .worthStrip {
+    margin-top: -0.2rem;
+    padding: 0.1rem 0.45rem 0.14rem 0.16rem;
+  }
+
+  .dense .rankSlot {
+    min-width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  .dense .worthStrip .worth {
+    font-size: 0.72rem;
+  }
+
+  .dense .chip {
+    font-size: 0.62rem;
+  }
+}

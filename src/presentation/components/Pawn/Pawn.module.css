@@ -1,0 +1,205 @@
+/* A moulded plastic car: dark chassis, glossy body, one specular along the top
+   edge, and peg passengers moulded in a lighter tint of the same plastic. */
+
+.token[data-color='red'] {
+  --pawn-light: var(--player-red-light);
+  --pawn-base: var(--player-red);
+  --pawn-dark: var(--player-red-dark);
+}
+
+.token[data-color='blue'] {
+  --pawn-light: var(--player-blue-light);
+  --pawn-base: var(--player-blue);
+  --pawn-dark: var(--player-blue-dark);
+}
+
+.token[data-color='green'] {
+  --pawn-light: var(--player-green-light);
+  --pawn-base: var(--player-green);
+  --pawn-dark: var(--player-green-dark);
+}
+
+.token[data-color='yellow'] {
+  --pawn-light: var(--player-yellow-light);
+  --pawn-base: var(--player-yellow);
+  --pawn-dark: var(--player-yellow-dark);
+}
+
+.token[data-color='purple'] {
+  --pawn-light: var(--player-purple-light);
+  --pawn-base: var(--player-purple);
+  --pawn-dark: var(--player-purple-dark);
+}
+
+.token[data-color='orange'] {
+  --pawn-light: var(--player-orange-light);
+  --pawn-base: var(--player-orange);
+  --pawn-dark: var(--player-orange-dark);
+}
+
+.token {
+  --pawn-lip: color-mix(in srgb, var(--pawn-dark) 82%, #0b0722);
+}
+
+.pawn {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.shadow {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+
+/* ---- Running gear -------------------------------------------------------- */
+
+.tyre {
+  fill: #241d3f;
+}
+
+.hub {
+  fill: color-mix(in srgb, var(--pawn-light) 72%, #ffffff);
+}
+
+/* ---- Bodywork ------------------------------------------------------------ */
+
+.chassis {
+  fill: var(--pawn-lip);
+}
+
+.body {
+  fill: var(--pawn-base);
+  stroke: var(--pawn-dark);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.bodyShade,
+.glass,
+.gloss,
+.lamp,
+.doorPlate,
+.doorText,
+.badge {
+  pointer-events: none;
+}
+
+.bodyShade {
+  stroke: none;
+}
+
+.glass {
+  fill: #ecf8ff;
+  opacity: 0.82;
+  stroke: var(--pawn-dark);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+
+/* The one specular the room's light leaves along the top of the moulding. */
+.gloss {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  opacity: 0.5;
+}
+
+.lamp {
+  fill: var(--candy-sun);
+  stroke: var(--pawn-dark);
+  stroke-width: 1.1;
+}
+
+/* ---- Passengers ---------------------------------------------------------- */
+
+.peg {
+  pointer-events: none;
+}
+
+.pegBody {
+  fill: color-mix(in srgb, var(--pawn-light) 62%, #fff8ec);
+  stroke: var(--pawn-dark);
+  stroke-width: 1.3;
+}
+
+.pegHead {
+  fill: color-mix(in srgb, var(--pawn-light) 44%, #fffaf2);
+  stroke: var(--pawn-dark);
+  stroke-width: 1.3;
+}
+
+.pegGloss {
+  fill: #ffffff;
+  opacity: 0.75;
+}
+
+/* Past the cap the back seat carries a count instead of more heads. */
+.badgePlate {
+  fill: var(--surface);
+  stroke: var(--pawn-dark);
+  stroke-width: 1.6;
+}
+
+.badgeText {
+  fill: var(--pawn-dark);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-variant-numeric: var(--tabular);
+}
+
+/* ---- Whose car this is --------------------------------------------------- */
+
+.doorPlate {
+  fill: color-mix(in srgb, var(--pawn-dark) 34%, #0b0722);
+  opacity: 0.55;
+}
+
+.doorText {
+  fill: #ffffff;
+  font-family: var(--font-display);
+  font-weight: 900;
+  paint-order: stroke;
+  stroke: color-mix(in srgb, var(--pawn-dark) 80%, #0b0722);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+}
+
+/* Whose turn it is: a bright ring on a dark one, so it holds on any tone. It
+   is an ellipse rather than a circle because it lies on the board beneath the
+   car, and the board is seen from a low angle. */
+.halo,
+.haloUnder {
+  fill: none;
+}
+
+.haloUnder {
+  stroke: color-mix(in srgb, var(--candy-sun-dark) 66%, var(--ink));
+  stroke-width: 6.5;
+}
+
+.halo {
+  stroke: var(--candy-sun);
+  stroke-width: 3;
+  animation: haloPulse 1.8s var(--ease-in-out) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes haloPulse {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.07);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halo {
+    animation: none;
+  }
+}

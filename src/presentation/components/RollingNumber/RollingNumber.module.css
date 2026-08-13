@@ -1,0 +1,80 @@
+.number {
+  position: relative;
+  display: inline-block;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  border-radius: var(--radius-sm);
+  padding: 0 0.15em;
+  transition:
+    background-color var(--duration-slow) var(--ease-out),
+    color var(--duration-slow) var(--ease-out),
+    text-shadow var(--duration-slow) var(--ease-out);
+}
+
+/* Transient direction marker. Absolutely placed so the digits never reflow. */
+.flashUp::after,
+.flashDown::after {
+  position: absolute;
+  right: -0.05em;
+  font-size: 0.5em;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.flashUp {
+  background-color: color-mix(in srgb, var(--positive) 26%, transparent);
+  color: var(--positive-dark);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--positive) 55%, transparent);
+}
+
+.flashUp::after {
+  content: '▲';
+  top: -0.5em;
+  color: var(--positive-dark);
+  animation: liftUp 0.9s var(--ease-out) forwards;
+}
+
+.flashDown {
+  background-color: color-mix(in srgb, var(--negative) 22%, transparent);
+  color: var(--negative-dark);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--negative) 45%, transparent);
+}
+
+.flashDown::after {
+  content: '▼';
+  bottom: -0.5em;
+  color: var(--negative-dark);
+  animation: dropDown 0.9s var(--ease-out) forwards;
+}
+
+@keyframes liftUp {
+  0% {
+    opacity: 0;
+    transform: translateY(0.5em);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-0.6em);
+  }
+}
+
+@keyframes dropDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-0.5em);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(0.6em);
+  }
+}

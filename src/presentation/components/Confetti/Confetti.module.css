@@ -1,0 +1,90 @@
+.field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: var(--z-confetti);
+}
+
+/*
+ * Two nested elements so the motion composes like real physics:
+ * the wrapper carries the parabola (rise, then accelerating fall) plus
+ * sideways drift, the flake inside tumbles on its own two axes.
+ */
+.piece {
+  position: absolute;
+  left: var(--left);
+  top: var(--top);
+  width: var(--w);
+  height: var(--h);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: arc var(--duration) var(--delay) forwards;
+}
+
+.flake {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--color);
+  /* Paper catches the light: a lit edge and a shaded one. */
+  background-image: linear-gradient(
+    150deg,
+    color-mix(in srgb, #fff 42%, var(--color)) 0%,
+    var(--color) 48%,
+    color-mix(in srgb, #000 26%, var(--color)) 100%
+  );
+  transform-origin: 50% 50%;
+  animation: tumble var(--duration) var(--delay) linear forwards;
+}
+
+/* ---- Cuts ---------------------------------------------------------------- */
+.rect {
+  border-radius: 1px;
+}
+
+.strip {
+  border-radius: 999px;
+}
+
+.disc {
+  border-radius: 50%;
+}
+
+.square {
+  border-radius: 2px;
+}
+
+.tri {
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+
+@keyframes arc {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: cubic-bezier(0.12, 0.72, 0.36, 1);
+  }
+  22% {
+    opacity: 1;
+    transform: translate3d(calc(var(--drift) * 0.3), calc(var(--rise) * -1), 0);
+    /* Gravity takes over: accelerate downward from the top of the arc. */
+    animation-timing-function: cubic-bezier(0.55, 0.02, 0.78, 0.62);
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift), var(--fall), 0);
+  }
+}
+
+@keyframes tumble {
+  0% {
+    transform: rotate(var(--tilt)) rotate3d(1, 0, 0, 0deg) rotate3d(0, 1, 0, 0deg);
+  }
+  100% {
+    transform: rotate(var(--tilt)) rotate3d(1, 0, 0, var(--spin-x)) rotate3d(0, 1, 0, var(--spin-y));
+  }
+}

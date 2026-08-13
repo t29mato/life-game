@@ -1,0 +1,572 @@
+/* ==========================================================================
+   The page shell: a linen table with a printed board on it.
+   No boxed header strip — the masthead, the turn marker and the controls sit
+   directly on the table, the way a scorepad and a box lid would. Everything
+   below is one grid: the board owns the left, one paper rail (wheel + seats)
+   stands on the right.
+   ========================================================================== */
+
+.shell {
+  /* Slim on purpose: the board is height-capped on a desktop, so every pixel
+     of chrome removed from the top comes back as board width. */
+  --pad: clamp(10px, 1.4vw, 18px);
+  --stack: clamp(10px, 1.2vw, 16px);
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack);
+  min-height: 100dvh;
+  padding: calc(var(--pad) - 2px) var(--pad) var(--pad);
+}
+
+/* ---- Top bar ------------------------------------------------------------
+   A bare row on the table, not a panel: wordmark left, the turn marker in
+   the middle, quiet controls right. Total height stays under ~56px so the
+   board gets the room. */
+
+.topBar {
+  position: relative;
+  z-index: var(--z-panel);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px clamp(12px, 2vw, 24px);
+  min-height: 44px;
+  padding: 0 2px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-self: start;
+  gap: 9px;
+  min-width: 0;
+}
+
+/* A single moulded die of road-amber plastic — the one piece of chrome the
+   masthead keeps. */
+.emblem {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 32%;
+  line-height: 1;
+  background:
+    radial-gradient(
+      circle at 32% 24%,
+      color-mix(in srgb, var(--candy-sun) 45%, #ffffff) 0%,
+      var(--candy-sun) 60%,
+      var(--candy-sun-dark) 100%
+    );
+  box-shadow:
+    0 2px 0 var(--candy-sun-dark),
+    0 4px 8px -3px rgba(92, 70, 34, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.emblemGlyph {
+  color: #6a4406;
+}
+
+/* Set in plain espresso ink, like the title printed on the board's margin.
+   The two words share one weight and one baseline; "JOURNEY" carries a
+   single amber accent instead of a second colour. */
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 0.38em;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.02rem, 0.9rem + 0.5vw, 1.3rem);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.wordmarkLife {
+  color: var(--ink);
+}
+
+.wordmarkJourney {
+  color: var(--candy-sun-dark);
+}
+
+/* ---- Turn indicator -----------------------------------------------------
+   The one piece of loud state the header keeps: a paper pill carrying the
+   active player's pawn dome and name. Colour appears only in the dome and
+   a thin keel under the pill — meaning, not decoration. */
+
+.turnBadge {
+  display: flex;
+  align-items: center;
+  justify-self: center;
+  gap: 0.55rem;
+  padding: 0.22rem 1.05rem 0.22rem 0.26rem;
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  box-shadow:
+    0 2px 0 color-mix(in srgb, var(--turn-base) 55%, var(--border-strong)),
+    0 5px 14px -5px rgba(92, 70, 34, 0.3);
+  transition: box-shadow var(--duration-base) var(--ease-out);
+}
+
+/* The active pawn, in miniature: moulded plastic, the real material. */
+.turnPip {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: var(--radius-full);
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1;
+  background: radial-gradient(
+    circle at 34% 26%,
+    var(--turn-light) 0%,
+    var(--turn-base) 55%,
+    var(--turn-dark) 100%
+  );
+  box-shadow:
+    0 1px 0 var(--turn-dark),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.turnText {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.turnLabel {
+  font-size: 0.6rem;
+  font-weight: 800;
+  font-variant-numeric: var(--tabular);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.turnPlayer {
+  font-family: var(--font-display);
+  font-size: clamp(0.95rem, 0.85rem + 0.4vw, 1.15rem);
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-self: end;
+  gap: 7px;
+}
+
+/* On a wide screen the five controls fit on one line, and must: at an even
+   1fr they overflowed their column at 1440px and Quit dropped to a second
+   row. The controls column sizes to its contents and the wordmark yields.
+   Narrow screens keep wrapping — forcing one line there overflows the page. */
+@media (min-width: 1000px) {
+  .topBar {
+    grid-template-columns: minmax(0, 1fr) auto minmax(max-content, 1fr);
+  }
+
+  .topActions {
+    flex-wrap: nowrap;
+  }
+}
+
+/* ---- Save slots --------------------------------------------------------- */
+
+/* A game keeps three manual slots plus a rolling autosave, so "Save" opens
+   a small card of slots rather than silently overwriting one. */
+.saveMenuAnchor {
+  position: relative;
+}
+
+.saveMenu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 232px;
+  padding: 10px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elev-3);
+}
+
+.saveSlot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 12px;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  background: var(--surface-alt);
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--border-strong) 70%, transparent);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.saveSlot:hover {
+  transform: translateY(-1px);
+}
+
+.saveSlot:active {
+  box-shadow: none;
+  transform: translateY(2px);
+}
+
+.saveSlotName {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.saveSlotDetail {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.saveHint {
+  margin: 2px 4px 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saveSlot {
+    transition: none;
+  }
+
+  .saveSlot:hover {
+    transform: none;
+  }
+}
+
+/* ---- Layout -------------------------------------------------------------
+   The board owns everything left of the one rail: wheel on top, seats
+   beneath, nothing else permanently on screen — the log is a drawer. */
+.main {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    clamp(258px, 21vw, 312px);
+  grid-template-areas: 'board controls';
+  gap: var(--stack);
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+}
+
+/* The board is seated in the middle of the table, not pinned to its top edge. */
+.boardArea {
+  grid-area: board;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.boardArea > * {
+  width: 100%;
+}
+
+/* ---- The rail: wheel on top, seats beneath -------------------------------- */
+
+.controlRail {
+  grid-area: controls;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--stack) - 4px);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* A shallow paper tray the wheel sits in. It is also this rail's container —
+   `Spinner` watches the width it is given here and folds its wheel and
+   trigger side by side when the column is narrow. See the container query
+   in Spinner.module.css. */
+.spinnerCard {
+  container-type: inline-size;
+  display: flex;
+  flex: none;
+  justify-content: center;
+  padding: clamp(8px, 1vw, 14px);
+  border-radius: var(--radius-xl);
+  background: var(--surface-grad);
+  box-shadow: var(--elev-2);
+}
+
+.playersBlock {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Section labels: small, faint, wide — they name a block without competing
+   with the money inside it. */
+.blockLabel {
+  flex: none;
+  margin: 0;
+  padding-left: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* Every seat stays on screen at once: the stack centres in the height left
+   under the wheel and the cards themselves are dense enough to fit four.
+   `safe` keeps the first card reachable if a very short window does force an
+   overflow — scrolling is the escape hatch, never the design. */
+.players {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: safe center;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 2px 8px;
+}
+
+/* Never let the flex algorithm squeeze a card to fit: a card clips its own
+   overflow (for the retirement hatching), so shrinking silently swallows the
+   chips row — facts vanish with no scrollbar to say so. Cards keep their
+   natural height and the rail scrolls instead, if it ever comes to that. */
+.players > * {
+  flex: none;
+}
+
+/* A short room on a wide desk — the 1280×800 laptop. The rail's chrome
+   slims down so four dense cards still clear the fold; the cards do their
+   own squeezing in PlayerPanel.module.css at the same breakpoint. */
+@media (max-height: 820px) and (min-width: 1000px) {
+  .controlRail {
+    gap: 8px;
+  }
+
+  .spinnerCard {
+    padding: 6px 10px;
+  }
+
+  .playersBlock {
+    gap: 0.22rem;
+  }
+
+  .players {
+    gap: 0.4rem;
+    padding-bottom: 6px;
+  }
+}
+
+/* ---- Log drawer -----------------------------------------------------------
+   The feed is reference material, not a permanent fixture: it slides in over
+   the table's right edge when summoned and gives its space back when not. */
+.logDrawer {
+  position: fixed;
+  top: clamp(56px, 8vh, 88px);
+  right: clamp(10px, 1.4vw, 22px);
+  bottom: clamp(10px, 1.6vh, 22px);
+  z-index: var(--z-drawer, 45);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(400px, calc(100vw - 28px));
+  filter: drop-shadow(0 20px 40px rgba(92, 70, 34, 0.3));
+  animation: drawerIn var(--duration-base) var(--spring-bouncy);
+}
+
+.logDrawerBar {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+}
+
+.logDrawer > :last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+@keyframes drawerIn {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ---- Wide screens ---------------------------------------------------------
+   The table fills the window exactly: masthead row on top, board and rail
+   below, nothing ever scrolling off the bottom. */
+
+@media (min-width: 1000px) and (min-height: 600px) {
+  .shell {
+    height: 100dvh;
+  }
+
+  /* The board's cell has a hard height here — `minmax(0, 1fr)` against a
+     `100dvh` shell — so it is made a size container and the drawing measures
+     the room it has. Deliberately scoped: in the stacked layout below, size
+     containment would collapse the cell to nothing. */
+  .boardArea {
+    container-type: size;
+    min-height: 0;
+  }
+
+  /* Contain, not stretch: the widest the board may be drawn is the width at
+     which its own shape still fits the cell's height. `--board-aspect` is
+     published by `Board` from its projection, so a longer route caps itself
+     without this file knowing the board's shape. Scaling to fit beats a
+     scrollbar — a board game you have to scroll around is a worse board game. */
+  .boardArea > * {
+    width: min(100%, calc(100cqh * var(--board-aspect, 1.5)));
+  }
+}
+
+/* ---- Stacked screens ------------------------------------------------------
+   Below the two-column threshold the table folds: board first, then the
+   spinner, then every player card in a grid. The log drawer becomes a
+   bottom sheet. */
+
+@media (max-width: 999px) {
+  .main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'board'
+      'controls';
+  }
+
+  /* Cap the board so the spinner and the players stay within reach — traded
+     through the board's own aspect so the drawing never distorts. */
+  .boardArea > * {
+    width: min(100%, calc(52vh * var(--board-aspect, 1.5)));
+  }
+
+  /* The rail is a full-width stack here; the wheel keeps a card of its own
+     width so it reads as an instrument, not a banner. Under ~500px of card
+     the container query in Spinner.module.css lays the wheel and its trigger
+     side by side, which is exactly what a phone wants. */
+  .spinnerCard {
+    align-self: center;
+    width: min(100%, 460px);
+  }
+
+  .players {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 236px), 1fr));
+    overflow: visible;
+  }
+}
+
+@media (max-width: 720px) {
+  .topBar {
+    grid-template-columns: 1fr auto;
+  }
+
+  .brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .topActions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  /* On a phone the turn indicator gets its own full-width band directly under
+     the wordmark — it is the thing you look at between every spin, so it
+     outranks the controls. */
+  .turnBadge {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: stretch;
+    justify-content: center;
+  }
+
+  .logDrawer {
+    top: auto;
+    right: 10px;
+    left: 10px;
+    bottom: 10px;
+    width: auto;
+    height: min(62vh, 480px);
+  }
+
+  @keyframes drawerIn {
+    from {
+      opacity: 0;
+      transform: translateY(26px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (max-width: 560px) {
+  .shell {
+    --pad: 10px;
+  }
+
+  /* One thing per row. Sharing a row squeezed the brand's column to nothing
+     and the controls printed straight over the wordmark. */
+  .topBar {
+    grid-template-columns: 1fr;
+  }
+
+  .brand {
+    grid-row: 1;
+    justify-self: center;
+  }
+
+  .topActions {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: center;
+  }
+
+  .turnBadge {
+    grid-row: 3;
+  }
+
+  .players {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 158px), 1fr));
+  }
+}

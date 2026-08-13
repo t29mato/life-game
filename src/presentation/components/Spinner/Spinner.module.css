@@ -1,0 +1,225 @@
+/* ==========================================================================
+   Spinner — an enamelled disc in a moulded bezel with a metal hub.
+   Three stacked layers: the disc rotates, the bezel and its specular
+   highlight stay put, the hub and needle sit on top.
+   ========================================================================== */
+
+.wrap {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.wheelBox {
+  position: relative;
+  width: min(100%, 62vw, 240px);
+  margin-top: 16px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow:
+    0 3px 4px rgba(92, 70, 34, 0.18),
+    0 16px 30px -8px rgba(92, 70, 34, 0.3);
+}
+
+/* While it is this player's turn to spin, a printed amber target ring
+   breathes gently around the wheel — an invitation, not a glow. */
+.wheelBox::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  z-index: 0;
+  border-radius: 50%;
+  border: 3px solid color-mix(in srgb, var(--candy-sun) 70%, transparent);
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-out);
+  pointer-events: none;
+}
+
+.ready::before {
+  opacity: 0.55;
+  animation: halo 2.6s var(--ease-in-out) infinite;
+}
+
+@keyframes halo {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.985);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.015);
+  }
+}
+
+.wheel {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+}
+
+.bezel {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.wedgeLabel {
+  font-family: var(--font-rounded);
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+/* ---- Hub ---------------------------------------------------------------- */
+
+.hub {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  margin: auto;
+  display: grid;
+  place-items: center;
+  width: 31%;
+  height: 31%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 34% 26%,
+    #fff 0%,
+    color-mix(in srgb, var(--surface) 78%, #fff) 30%,
+    var(--surface) 58%,
+    color-mix(in srgb, var(--surface) 74%, var(--ink)) 100%
+  );
+  box-shadow:
+    0 0 0 3px var(--ink),
+    0 0 0 6px color-mix(in srgb, var(--surface) 62%, var(--ink)),
+    inset 0 2px 2px rgba(255, 255, 255, 0.85),
+    inset 0 -5px 9px rgba(92, 70, 34, 0.24),
+    0 6px 12px rgba(92, 70, 34, 0.35);
+  pointer-events: none;
+}
+
+.hubGlyph {
+  color: var(--ink-faint);
+  opacity: 0.75;
+}
+
+.hubValue {
+  font-size: clamp(1.4rem, 6vw, 1.9rem);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: var(--tabular, tabular-nums);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75);
+  animation: hubPunch var(--duration-slow) var(--spring-bouncy);
+}
+
+@keyframes hubPunch {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.4;
+  }
+  60% {
+    transform: scale(1.22);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ---- Needle ------------------------------------------------------------- */
+
+.pointer {
+  position: absolute;
+  z-index: 4;
+  top: -14px;
+  left: 50%;
+  width: 17%;
+  min-width: 34px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.pointerArt {
+  width: 100%;
+  height: auto;
+  transform-origin: 50% 22%;
+  filter: drop-shadow(0 4px 5px rgba(92, 70, 34, 0.4));
+}
+
+.spinning .pointerArt {
+  animation: flick 0.11s var(--ease-in-out) infinite alternate;
+}
+
+@keyframes flick {
+  from {
+    transform: rotate(-5deg);
+  }
+  to {
+    transform: rotate(4deg);
+  }
+}
+
+/* ---- Trigger ------------------------------------------------------------ */
+
+.button {
+  width: 100%;
+  min-width: 10rem;
+  max-width: 16rem;
+}
+
+/* In a narrow card the wheel and its trigger sit side by side — the column
+   layout spent ~70px of scarce height on the gap and button alone. This is
+   keyed to the width the spinner is actually given, not the viewport,
+   because the two narrow homes are nothing alike: the desktop rail (~270px,
+   where every vertical pixel saved goes to the player cards below the
+   wheel) and a phone (where the board above needs the height). The
+   container is `.spinnerCard` in App.module.css. */
+@container (max-width: 500px) {
+  .wrap {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.9rem;
+  }
+
+  .wheelBox {
+    flex: none;
+    width: clamp(112px, 42cqw, 180px);
+    margin-top: 12px;
+  }
+
+  .button {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 13rem;
+  }
+
+  /* The hub is 31% of a much smaller wheel here; the landed number steps
+     down with it rather than pressing against the hub's rim. */
+  .hubValue {
+    font-size: 1.35rem;
+  }
+}
+
+/* A short room with the narrow rail: every pixel the wheel gives up goes
+   straight to the player cards below it, which are the things fighting for
+   the fold on a 1280×800 laptop. */
+@media (max-height: 820px) {
+  @container (max-width: 500px) {
+    .wheelBox {
+      width: clamp(96px, 36cqw, 150px);
+    }
+  }
+}

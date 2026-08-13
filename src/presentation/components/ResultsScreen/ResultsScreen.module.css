@@ -1,0 +1,554 @@
+/* ==========================================================================
+   ResultsScreen — the podium beat. Matte ink headline with the amber stroke,
+   a real three-block podium on a plinth, and the standings as paper rows.
+   The winner earns the game's gold, and nothing else on the page competes.
+   ========================================================================== */
+
+.screen {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6rem;
+  padding: 2.25rem 1.25rem 3rem;
+  max-width: 52rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ==========================================================================
+   Masthead
+   ========================================================================== */
+.masthead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  text-align: center;
+}
+
+.eyebrow {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* Printed ink, one amber stroke — the wordmark's sibling. The extruded
+   candy lettering lived in ::before/::after; both are retired. */
+.heading {
+  position: relative;
+  padding-bottom: 0.14em;
+  font-family: var(--font-display, var(--font-rounded));
+  font-size: clamp(2.4rem, 9vw, 3.6rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  animation: headingDrop 0.62s var(--spring-bouncy, ease-out) backwards;
+}
+
+.heading::before {
+  content: none;
+}
+
+.heading::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 0;
+  height: 0.09em;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--candy-sun) 40%, transparent) 0%,
+    var(--candy-sun) 22%,
+    var(--candy-sun) 78%,
+    color-mix(in srgb, var(--candy-sun) 40%, transparent) 100%
+  );
+}
+
+@keyframes headingDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-26px) scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.subheading {
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* Where this game sits against the hall of records — appears once the
+   winner has landed, so it never upstages the reveal itself. */
+.recordNote {
+  margin-top: 0.15rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--tone-gold-ink);
+  background: var(--tone-gold-bg);
+  box-shadow: 0 1px 0 var(--tone-gold-edge);
+  animation: recordNoteIn 0.5s var(--spring-bouncy, ease-out) backwards;
+}
+
+@keyframes recordNoteIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ==========================================================================
+   The podium: a real object with a plinth, three block heights and lit tops
+   ========================================================================== */
+.stage {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 0.5rem;
+}
+
+.podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 30rem;
+}
+
+/* The floor the blocks stand on: a stained wood batten. */
+.plinth {
+  width: min(34rem, 100%);
+  height: 0.85rem;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: linear-gradient(180deg, #a98d5d 0%, #8a6f42 100%);
+  box-shadow:
+    0 4px 0 #6d5530,
+    0 14px 26px -8px rgba(92, 70, 34, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.podiumSpot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
+  max-width: 9.5rem;
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity var(--duration-base, 0.28s) var(--ease-out),
+    transform var(--duration-slow, 0.5s) var(--spring-bouncy, ease-out);
+}
+
+.podiumRevealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.podiumMedal {
+  font-size: 1.9rem;
+  line-height: 1;
+  filter: drop-shadow(0 3px 3px rgba(92, 70, 34, 0.3));
+  transform: scale(0.3);
+  transition: transform var(--duration-slow, 0.5s) var(--spring-bouncy, ease-out) 0.12s;
+}
+
+.podiumRevealed .podiumMedal {
+  transform: scale(1);
+}
+
+.rank1 .podiumMedal {
+  font-size: 2.6rem;
+}
+
+.podiumName {
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ---- A moulded pawn standing on the block ------------------------------- */
+.podiumPawn {
+  position: relative;
+  width: 1.7rem;
+  height: 2rem;
+  flex: none;
+}
+
+.podiumPawnHead {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  z-index: 1;
+  background: radial-gradient(
+    circle at 34% 27%,
+    #fff 0%,
+    var(--podium-light) 24%,
+    var(--podium-base) 62%,
+    var(--podium-dark) 100%
+  );
+  box-shadow: inset 0 -2px 3px color-mix(in srgb, var(--podium-dark) 70%, transparent);
+}
+
+.podiumPawnBody {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.45rem;
+  height: 1.4rem;
+  border-radius: 46% 46% 32% 32% / 78% 78% 24% 24%;
+  background: linear-gradient(
+    100deg,
+    var(--podium-dark) 0%,
+    var(--podium-base) 32%,
+    var(--podium-light) 48%,
+    var(--podium-base) 66%,
+    var(--podium-dark) 100%
+  );
+  box-shadow:
+    inset 0 2px 0 color-mix(in srgb, #fff 50%, transparent),
+    inset 0 -3px 5px color-mix(in srgb, var(--podium-dark) 75%, transparent);
+}
+
+/* ---- The block itself: a lit top face over a coloured front face --------- */
+.podiumBlock {
+  position: relative;
+  width: 100%;
+  height: var(--block-height, 3.5rem);
+  transform-origin: 50% 100%;
+  transform: scaleY(0.06);
+  transition: transform var(--duration-slow, 0.5s) var(--spring-bouncy, ease-out);
+}
+
+.podiumRevealed .podiumBlock {
+  transform: scaleY(1);
+}
+
+/* Front face. */
+.podiumFace {
+  position: absolute;
+  inset: 0.55rem 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0.2rem;
+  border-radius: 0 0 4px 4px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-shadow: 0 2px 0 color-mix(in srgb, var(--podium-dark) 90%, #000);
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, #000 16%, var(--podium-base)) 0%,
+    var(--podium-base) 26%,
+    color-mix(in srgb, #fff 16%, var(--podium-base)) 46%,
+    var(--podium-base) 68%,
+    color-mix(in srgb, #000 20%, var(--podium-base)) 100%
+  );
+  box-shadow:
+    inset 0 -0.6rem 0.9rem color-mix(in srgb, var(--podium-dark) 75%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--podium-dark) 70%, transparent);
+}
+
+/* Lit top face, drawn as a shallow slab so the block reads as 3D. */
+.podiumTop {
+  position: absolute;
+  left: -1.5%;
+  right: -1.5%;
+  top: 0;
+  height: 0.85rem;
+  border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #fff 55%, var(--podium-light)) 0%,
+    color-mix(in srgb, #fff 18%, var(--podium-base)) 100%
+  );
+  box-shadow:
+    0 2px 0 color-mix(in srgb, var(--podium-dark) 60%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.rank1 {
+  --block-height: 7.5rem;
+}
+
+.rank2 {
+  --block-height: 5.4rem;
+}
+
+.rank3 {
+  --block-height: 3.9rem;
+}
+
+/* The winner's block gets a brass rim once they land — an edge, not a lamp. */
+.rank1.podiumRevealed .podiumFace {
+  box-shadow:
+    inset 0 -0.6rem 0.9rem color-mix(in srgb, var(--podium-dark) 75%, transparent),
+    inset 0 0 0 2px var(--candy-sun);
+}
+
+.rank1.podiumRevealed .podiumPawn {
+  animation: winnerHop 0.75s var(--spring-bouncy, ease-out) 0.3s 2;
+}
+
+@keyframes winnerHop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  38% {
+    transform: translateY(-14px);
+  }
+  62% {
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Standings table
+   ========================================================================== */
+.table {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.6rem minmax(7rem, 10rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 1.1rem;
+  background: var(--surface-grad);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elev-1);
+  opacity: 0;
+  transform: translateX(-18px) scale(0.98);
+  transition:
+    opacity var(--duration-base, 0.28s) var(--ease-out),
+    transform var(--duration-slow, 0.5s) var(--spring-bouncy, ease-out);
+}
+
+/* The colour flag down the leading edge. */
+.row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  background: linear-gradient(180deg, var(--dot-color), var(--dot-dark));
+}
+
+.rowRevealed {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.winnerRow {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--candy-sun) 16%, var(--surface)) 0%,
+    color-mix(in srgb, var(--candy-sun) 8%, var(--surface)) 100%
+  );
+}
+
+.winnerRow.rowRevealed {
+  box-shadow:
+    var(--elev-2),
+    inset 0 0 0 2px color-mix(in srgb, var(--candy-sun) 70%, transparent);
+  animation: winnerPunch 0.55s var(--spring-bouncy, ease-out);
+}
+
+@keyframes winnerPunch {
+  0% {
+    transform: scale(1);
+  }
+  38% {
+    transform: scale(1.045);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.rank {
+  font-weight: 800;
+  font-size: 0.95rem;
+  text-align: center;
+  color: var(--ink-faint);
+  font-variant-numeric: var(--tabular, tabular-nums);
+}
+
+.winnerRow .rank {
+  color: var(--candy-sun-dark);
+}
+
+.rowIdentity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.rowDot {
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: var(--radius-full);
+  flex: none;
+  background: radial-gradient(
+    circle at 32% 28%,
+    #fff 0%,
+    var(--dot-light) 26%,
+    var(--dot-color) 66%,
+    var(--dot-dark) 100%
+  );
+  box-shadow:
+    0 2px 0 var(--dot-dark),
+    inset 0 -2px 3px color-mix(in srgb, var(--dot-dark) 70%, transparent);
+}
+
+.rowName {
+  font-weight: 800;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge {
+  flex: none;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  color: var(--tone-green-ink);
+  background: var(--tone-green-bg);
+  box-shadow: 0 1px 0 var(--tone-green-edge);
+  white-space: nowrap;
+}
+
+.breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.85rem;
+  min-width: 0;
+}
+
+.breakdownItem {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.breakdownLabel {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.breakdownValue {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  font-variant-numeric: var(--tabular, tabular-nums);
+}
+
+/* The loudest number on the screen. */
+.total {
+  justify-self: end;
+  font-size: clamp(1.3rem, 4.5vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  min-width: 6.5rem;
+  text-align: right;
+}
+
+.winnerRow .total {
+  font-size: clamp(1.55rem, 5.5vw, 2.1rem);
+  color: var(--candy-sun-dark);
+}
+
+.playAgain {
+  margin-top: 0.4rem;
+  width: min(20rem, 100%);
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 46rem) {
+  .row {
+    grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+    row-gap: 0.55rem;
+    column-gap: 0.7rem;
+  }
+
+  .breakdown {
+    grid-column: 1 / -1;
+    gap: 0.2rem 0.7rem;
+  }
+
+  .podiumSpot {
+    max-width: none;
+  }
+
+  .podiumName {
+    font-size: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heading,
+  .rank1.podiumRevealed .podiumPawn,
+  .winnerRow.rowRevealed {
+    animation: none;
+  }
+
+  .podiumSpot,
+  .podiumBlock,
+  .podiumMedal,
+  .row {
+    transition: none;
+  }
+}
