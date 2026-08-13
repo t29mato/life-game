@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
@@ -6,19 +7,45 @@ import react from '@vitejs/plugin-react'
 
 const resolve = (path: string) => fileURLToPath(new URL(path, import.meta.url))
 
-/**
- * The on-screen build version is read straight from `package.json` at build
- * time rather than hand-copied into a component — a version that can drift
- * from the package that produced it is worse than showing none at all.
- */
-const { version: appVersion } = JSON.parse(readFileSync(resolve('./package.json'), 'utf-8')) as {
+const { version: packageVersion } = JSON.parse(readFileSync(resolve('./package.json'), 'utf-8')) as {
   version: string
 }
+
+/** The exact commit this bundle was built from, or null when git cannot say. */
+function gitDescribe(): string | null {
+  try {
+    return execFileSync('git', ['describe', '--tags', '--always', '--dirty'], {
+      cwd: resolve('.'),
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The version on screen names the *commit* that produced the bundle, not a
+ * number somebody remembered to bump — `1.0.0` tells you nothing about which
+ * build you are looking at when three deploys share it.
+ *
+ * Resolved in three steps, because the build does not always run where the
+ * repository is. `vercel --prod` uploads the source and builds it remotely,
+ * on a machine with no `.git` at all, so a naive `git describe` at build time
+ * would either fail there or silently print a stale fallback forever. The
+ * deploy therefore passes the locally-resolved value in `APP_VERSION`
+ * (see `npm run deploy`), git is used when building from a working tree, and
+ * the package version is the last resort so a bundle is never unlabelled.
+ */
+const appBuild = process.env.APP_VERSION ?? gitDescribe() ?? `v${packageVersion}`
 
 // https://vite.dev/config/
 export default defineConfig({
   define: {
-    __APP_VERSION__: JSON.stringify(appVersion),
+    // The release the notes are written about…
+    __APP_VERSION__: JSON.stringify(packageVersion),
+    // …and the exact build on screen, which may sit several commits past it.
+    __APP_BUILD__: JSON.stringify(appBuild),
   },
   plugins: [react()],
   resolve: {

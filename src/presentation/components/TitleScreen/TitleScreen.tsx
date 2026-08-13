@@ -210,7 +210,7 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
           1,600px tall — present, but below the fold on every laptop, which is
           the same as absent. They live up here now. */}
       <div className={styles.buildBar}>
-        <span className={styles.versionTag}>v{__APP_VERSION__}</span>
+        <span className={styles.versionTag} title="The exact commit this build came from">{__APP_BUILD__}</span>
         <button type="button" className={styles.notesLink} onClick={() => setShowNotes(true)}>
           What&rsquo;s New
         </button>

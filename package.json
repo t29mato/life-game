@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "coverage": "vitest run --coverage",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "deploy": "APP_VERSION=\"$(git describe --tags --always --dirty)\" vercel --prod --yes --build-env APP_VERSION=\"$(git describe --tags --always --dirty)\""
   },
   "dependencies": {
     "framer-motion": "^13.0.0",

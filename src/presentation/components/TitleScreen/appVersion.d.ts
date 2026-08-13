@@ -5,3 +5,6 @@
  * build time — never a runtime import.
  */
 declare const __APP_VERSION__: string
+
+/** `git describe` of the commit this bundle was built from. */
+declare const __APP_BUILD__: string
