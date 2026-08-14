@@ -534,8 +534,11 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
           {slots.map((slot) => {
             const isAutosave = slot.slot === AUTOSAVE_SLOT
             const title = isAutosave ? 'Autosave' : `Slot ${slot.slot}`
+            // Four slots against five countries: without this, two half-finished
+            // games are the same three names and a turn number.
+            const slotEdition = slot.editionId === null ? null : editionDisplayName(editionFor(slot.editionId))
             const label = slot.occupied
-              ? `Continue ${title}: ${slot.playerNames.join(' and ')}, turn ${slot.turn ?? '?'}, saved ${formatSlotTimestamp(slot.savedAt ?? '')}`
+              ? `Continue ${title}: ${slot.playerNames.join(' and ')}${slotEdition === null ? '' : ` on the ${slotEdition} board`}, turn ${slot.turn ?? '?'}, saved ${formatSlotTimestamp(slot.savedAt ?? '')}`
               : `${title}, empty`
             return (
               <button
@@ -554,7 +557,8 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
                   <>
                     <span className={styles.slotPlayers}>{slot.playerNames.join(' & ')}</span>
                     <span className={styles.slotMeta}>
-                      Turn {slot.turn} · {formatSlotTimestamp(slot.savedAt ?? '')}
+                      {slotEdition === null ? null : `${slotEdition} · `}Turn {slot.turn} ·{' '}
+                      {formatSlotTimestamp(slot.savedAt ?? '')}
                     </span>
                   </>
                 ) : (

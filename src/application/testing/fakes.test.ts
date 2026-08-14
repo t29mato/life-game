@@ -165,7 +165,7 @@ describe('createInMemoryRepository', () => {
 
     expect(slots).toHaveLength(SAVE_SLOT_COUNT)
     expect(slots.map((entry) => entry.slot)).toEqual([0, 1, 2, 3])
-    expect(slots[0]).toEqual({ slot: 0, occupied: false, savedAt: null, playerNames: [], turn: null })
+    expect(slots[0]).toEqual({ slot: 0, occupied: false, savedAt: null, playerNames: [], turn: null, editionId: null })
     expect(slots[2]!.occupied).toBe(true)
     expect(slots[2]!.playerNames).toEqual(['Alex', 'Bo'])
     expect(slots[2]!.turn).toBe(4)

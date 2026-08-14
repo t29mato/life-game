@@ -1,4 +1,4 @@
-import type { GameState } from '@domain/model/types'
+import type { EditionId, GameState } from '@domain/model/types'
 
 export interface GameSnapshot {
   /** Bumped whenever the persisted shape changes; older snapshots are dropped. */
@@ -17,6 +17,16 @@ export interface SaveSlotInfo {
   readonly playerNames: readonly string[]
   /** Turn the save was taken on, or null when the slot is empty. */
   readonly turn: number | null
+  /**
+   * Which country the save was played on, or null when the slot is empty.
+   *
+   * Four slots and five editions means the slot list is the only place a player
+   * can tell a half-finished Japan game from a half-finished France one — the
+   * names and the turn number look identical. A save written before editions
+   * existed carries no id and reads back as `null`, which the UI shows as
+   * nothing at all rather than guessing a flag.
+   */
+  readonly editionId: EditionId | null
 }
 
 /** Slots the UI offers. Slot 0 is reserved for the rolling autosave. */

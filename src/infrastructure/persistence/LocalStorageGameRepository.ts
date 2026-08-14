@@ -58,7 +58,7 @@ function clearEntry(storage: Storage, slot: number): void {
 }
 
 function emptySlotInfo(slot: number): SaveSlotInfo {
-  return { slot, occupied: false, savedAt: null, playerNames: [], turn: null }
+  return { slot, occupied: false, savedAt: null, playerNames: [], turn: null, editionId: null }
 }
 
 /**
@@ -83,8 +83,12 @@ function readSlotInfo(storage: Storage, slot: number): SaveSlotInfo {
       .filter((name): name is string => name !== null)
     const savedAt = typeof parsed.savedAt === 'string' ? parsed.savedAt : null
     const turn = typeof state.turn === 'number' ? state.turn : null
+    // Read as a bare string, not checked against the registry: this function
+    // must not throw, and a save naming an edition that has since been
+    // withdrawn is still a save. `editionFor` already handles the unknown id.
+    const editionId = typeof state.editionId === 'string' ? state.editionId : null
 
-    return { slot, occupied: true, savedAt, playerNames, turn }
+    return { slot, occupied: true, savedAt, playerNames, turn, editionId }
   } catch {
     return emptySlotInfo(slot)
   }

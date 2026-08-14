@@ -10,7 +10,7 @@ import { createFakeAudioPort } from '../../dev/fakeAudio'
 import { TitleScreen, type TitleScreenProps } from './TitleScreen'
 
 function emptySlots(): SaveSlotInfo[] {
-  return [0, 1, 2, 3].map((slot) => ({ slot, occupied: false, savedAt: null, playerNames: [], turn: null }))
+  return [0, 1, 2, 3].map((slot) => ({ slot, occupied: false, savedAt: null, playerNames: [], turn: null, editionId: null }))
 }
 
 function renderTitleScreen(overrides: Partial<TitleScreenProps> = {}) {
@@ -201,10 +201,10 @@ describe('TitleScreen', () => {
     it('does not affect continuing a saved game', async () => {
       const user = userEvent.setup()
       const slots: SaveSlotInfo[] = [
-        { slot: 0, occupied: false, savedAt: null, playerNames: [], turn: null },
-        { slot: 1, occupied: true, savedAt: '2026-08-01T12:00:00.000Z', playerNames: ['Zoe'], turn: 5 },
-        { slot: 2, occupied: false, savedAt: null, playerNames: [], turn: null },
-        { slot: 3, occupied: false, savedAt: null, playerNames: [], turn: null },
+        { slot: 0, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
+        { slot: 1, occupied: true, savedAt: '2026-08-01T12:00:00.000Z', playerNames: ['Zoe'], turn: 5 , editionId: null },
+        { slot: 2, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
+        { slot: 3, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
       ]
       const { onStart, onContinue } = renderTitleScreen({ slots })
       // A save carries its own editionId; the picker must not leak into it.
@@ -226,22 +226,50 @@ describe('TitleScreen', () => {
   describe('save slots', () => {
     it('shows every slot, occupied or not', () => {
       const slots: SaveSlotInfo[] = [
-        { slot: 0, occupied: true, savedAt: '2026-08-01T12:00:00.000Z', playerNames: ['Zoe', 'Sam'], turn: 12 },
-        { slot: 1, occupied: false, savedAt: null, playerNames: [], turn: null },
-        { slot: 2, occupied: false, savedAt: null, playerNames: [], turn: null },
-        { slot: 3, occupied: false, savedAt: null, playerNames: [], turn: null },
+        { slot: 0, occupied: true, savedAt: '2026-08-01T12:00:00.000Z', playerNames: ['Zoe', 'Sam'], turn: 12 , editionId: null },
+        { slot: 1, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
+        { slot: 2, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
+        { slot: 3, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
       ]
       renderTitleScreen({ slots })
       expect(screen.getByText('Zoe & Sam')).toBeInTheDocument()
       expect(screen.getByText(/turn 12/i)).toBeInTheDocument()
     })
 
+    it('says which country a save was played on', () => {
+      registerEdition(EDITION_JAPAN)
+      const slots: SaveSlotInfo[] = [
+        { slot: 0, occupied: true, savedAt: '2026-08-01T12:00:00.000Z', playerNames: ['Zoe'], turn: 12, editionId: 'japan' },
+        { slot: 1, occupied: false, savedAt: null, playerNames: [], turn: null, editionId: null },
+        { slot: 2, occupied: false, savedAt: null, playerNames: [], turn: null, editionId: null },
+        { slot: 3, occupied: false, savedAt: null, playerNames: [], turn: null, editionId: null },
+      ]
+      renderTitleScreen({ slots })
+      const card = screen.getByRole('button', { name: /continue autosave/i })
+      expect(card).toHaveAccessibleName(/on the Japan board/i)
+      expect(card.textContent).toContain('Japan · Turn 12')
+    })
+
+    it('shows a save written before editions existed without inventing a country', () => {
+      const slots: SaveSlotInfo[] = [
+        { slot: 0, occupied: true, savedAt: '2026-08-01T12:00:00.000Z', playerNames: ['Zoe'], turn: 12, editionId: null },
+        { slot: 1, occupied: false, savedAt: null, playerNames: [], turn: null, editionId: null },
+        { slot: 2, occupied: false, savedAt: null, playerNames: [], turn: null, editionId: null },
+        { slot: 3, occupied: false, savedAt: null, playerNames: [], turn: null, editionId: null },
+      ]
+      renderTitleScreen({ slots })
+      const card = screen.getByRole('button', { name: /continue autosave/i })
+      expect(card.textContent).toContain('Turn 12')
+      expect(card.textContent).not.toContain('·  Turn')
+      expect(card).toHaveAccessibleName(/Zoe, turn 12/i)
+    })
+
     it('never lets an empty slot be continued', async () => {
       const slots: SaveSlotInfo[] = [
-        { slot: 0, occupied: false, savedAt: null, playerNames: [], turn: null },
-        { slot: 1, occupied: false, savedAt: null, playerNames: [], turn: null },
-        { slot: 2, occupied: false, savedAt: null, playerNames: [], turn: null },
-        { slot: 3, occupied: false, savedAt: null, playerNames: [], turn: null },
+        { slot: 0, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
+        { slot: 1, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
+        { slot: 2, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
+        { slot: 3, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
       ]
       const { onContinue } = renderTitleScreen({ slots })
       const emptyButton = screen.getByRole('button', { name: /autosave, empty/i })
@@ -252,10 +280,10 @@ describe('TitleScreen', () => {
     it('continues the chosen slot', async () => {
       const user = userEvent.setup()
       const slots: SaveSlotInfo[] = [
-        { slot: 0, occupied: false, savedAt: null, playerNames: [], turn: null },
-        { slot: 1, occupied: true, savedAt: '2026-08-01T12:00:00.000Z', playerNames: ['Zoe'], turn: 5 },
-        { slot: 2, occupied: false, savedAt: null, playerNames: [], turn: null },
-        { slot: 3, occupied: false, savedAt: null, playerNames: [], turn: null },
+        { slot: 0, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
+        { slot: 1, occupied: true, savedAt: '2026-08-01T12:00:00.000Z', playerNames: ['Zoe'], turn: 5 , editionId: null },
+        { slot: 2, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
+        { slot: 3, occupied: false, savedAt: null, playerNames: [], turn: null , editionId: null },
       ]
       const { onContinue } = renderTitleScreen({ slots })
       await user.click(screen.getByRole('button', { name: /continue slot 1/i }))

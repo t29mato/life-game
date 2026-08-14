@@ -333,7 +333,7 @@ describe('createLocalStorageGameRepository', () => {
       const slots = repo.list()
       expect(slots).toHaveLength(SAVE_SLOT_COUNT)
       slots.forEach((info, index) => {
-        expect(info).toEqual({ slot: index, occupied: false, savedAt: null, playerNames: [], turn: null })
+        expect(info).toEqual({ slot: index, occupied: false, savedAt: null, playerNames: [], turn: null, editionId: null })
       })
     })
 
@@ -349,6 +349,34 @@ describe('createLocalStorageGameRepository', () => {
       const info = repo.list()[1]
       expect(info).toMatchObject({ slot: 1, occupied: true, playerNames: ['Ada', 'Grace'], turn: 7 })
       expect(typeof info!.savedAt).toBe('string')
+    })
+
+    it('reports which country the slot was played on', () => {
+      const storage = createMemoryStorage()
+      const repo = createLocalStorageGameRepository(storage)
+      repo.save(1, fixtureState({ editionId: 'japan' }))
+      expect(repo.list()[1]!.editionId).toBe('japan')
+    })
+
+    it('reads an id it has never heard of rather than reporting the slot empty', () => {
+      // A save naming a withdrawn edition is still a save. Resolving the id is
+      // `editionFor`'s job; this function only has to not throw over it.
+      const storage = createMemoryStorage()
+      const repo = createLocalStorageGameRepository(storage)
+      repo.save(1, fixtureState({ editionId: 'atlantis' }))
+      expect(repo.list()[1]).toMatchObject({ occupied: true, editionId: 'atlantis' })
+    })
+
+    it('reports a save written before editions existed as having no country', () => {
+      const storage = createMemoryStorage()
+      const repo = createLocalStorageGameRepository(storage)
+      repo.save(1, fixtureState())
+      const raw: Record<string, unknown> = JSON.parse(storage.getItem(`${SAVE_KEY_PREFIX}1`)!)
+      const state = raw.state as Record<string, unknown>
+      delete state.editionId
+      storage.setItem(`${SAVE_KEY_PREFIX}1`, JSON.stringify(raw))
+
+      expect(repo.list()[1]).toMatchObject({ occupied: true, editionId: null })
     })
 
     it('reports exactly SAVE_SLOT_COUNT entries, occupied or not, in slot order', () => {
@@ -370,7 +398,7 @@ describe('createLocalStorageGameRepository', () => {
       storage.setItem(`${SAVE_KEY_PREFIX}0`, '{not valid json')
       const repo = createLocalStorageGameRepository(storage)
       expect(() => repo.list()).not.toThrow()
-      expect(repo.list()[0]).toEqual({ slot: 0, occupied: false, savedAt: null, playerNames: [], turn: null })
+      expect(repo.list()[0]).toEqual({ slot: 0, occupied: false, savedAt: null, playerNames: [], turn: null, editionId: null })
     })
 
     it('reports foreign data at the key as empty rather than throwing', () => {

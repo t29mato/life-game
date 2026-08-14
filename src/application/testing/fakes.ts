@@ -162,7 +162,7 @@ export function createInMemoryRepository(): GameRepositoryPort {
       return Array.from({ length: SAVE_SLOT_COUNT }, (_unused, slot): SaveSlotInfo => {
         const entry = stored.get(slot)
         if (!entry) {
-          return { slot, occupied: false, savedAt: null, playerNames: [], turn: null }
+          return { slot, occupied: false, savedAt: null, playerNames: [], turn: null, editionId: null }
         }
         return {
           slot,
@@ -170,6 +170,7 @@ export function createInMemoryRepository(): GameRepositoryPort {
           savedAt: entry.savedAt,
           playerNames: entry.state.players.map((player) => player.name),
           turn: entry.state.turn,
+          editionId: entry.state.editionId ?? null,
         }
       })
     },
