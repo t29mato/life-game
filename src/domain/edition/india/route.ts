@@ -43,7 +43,8 @@ const START: SpaceContent = {
  * education loan the family co-signed.
  */
 const COLLEGE_LANE: readonly SpaceContent[] = [
-  flavour(STANDARD_UP, 'in-uni-hostel', 'The Hostel Room', 'Your first room away from home has two beds, one working fan, and a trunk under the bed holding every ambition you packed.', 'blue', 'space:move-in-day', {
+  // EVERY_BOARD, not STANDARD_UP — see usa/route.ts college-1.
+  flavour(EVERY_BOARD, 'in-uni-hostel', 'The Hostel Room', 'Your first room away from home has two beds, one working fan, and a trunk under the bed holding every ambition you packed.', 'blue', 'space:move-in-day', {
     from: 'hard',
     description: 'Your first room away from home has two beds and one working fan — and the warden would like the caution deposit, the mess advance, and a sum called "development fee", which is exactly what it sounds like and is not refundable.',
     effect: { type: 'payMoney', amount: 140_000, reason: 'Deposit, mess advance and development fee' },
@@ -282,13 +283,11 @@ const OFFICE_ROAD_EARLY: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 40_000, reason: 'Gym membership' },
     tone: 'slate', icon: 'space:gym-membership', tier: LONG_ONLY,
   },
-  payday(EVERY_BOARD, 'in-main-payday-1', 'The credit lands at 9:00 on the last working day, and the message tone is the best sound of the month.', missedPayday(
-    'hard',
-    'Payroll Glitch',
-    'The overtime this month is real; the pay for it is described, in an all-hands email, as "being processed".',
-    150_000,
-    'A month worked for free',
-  )),
+  // The only payday in this stretch — see usa/route.ts main-6. Harshening it
+  // zeroed every player's income for this whole run on Hard and Very Hard, so
+  // it stays unconditional rather than joining every other lane's pattern of
+  // harshening one of several paydays and leaving another alone.
+  payday(EVERY_BOARD, 'in-main-payday-1', 'The credit lands at 9:00 on the last working day, and the message tone is the best sound of the month.'),
   {
     id: 'in-main-whatsapp-tip', kind: 'normal', title: 'The WhatsApp Tip',
     description: 'The family group forwards a ticker in a yellow box with eleven rocket emojis. The market is open until three-thirty.',
@@ -776,13 +775,10 @@ const MIDTOWN: readonly SpaceContent[] = [
     effect: { type: 'buyInsurance', kinds: ['home', 'auto', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office', tier: EVERY_BOARD,
   },
-  payday(EVERY_BOARD, 'in-midtown-payday', 'A credit lands the week the booking amount on a flat is due.', missedPayday(
-    'veryHard',
-    'Pay Frozen',
-    'A pay freeze is announced on the very morning the booking amount was supposed to leave.',
-    200_000,
-    'Nothing to draw on this month',
-  )),
+  // The only payday in this stretch too — see in-main-payday-1. Harshening it
+  // zeroed Very Hard's income for the whole run between the marriage fork and
+  // the home-buying fork, so it stays unconditional.
+  payday(EVERY_BOARD, 'in-midtown-payday', 'A credit lands the week the booking amount on a flat is due.'),
   {
     id: 'in-midtown-wiring', kind: 'normal', title: 'The Festival Wiring',
     description: 'The meter board has carried the whole building\'s fairy lights every festival since 1987. This year it files its resignation, in sparks, at two in the morning.',

@@ -43,7 +43,10 @@ const START: SpaceContent = {
  * road out.
  */
 const COLLEGE_LANE: readonly SpaceContent[] = [
-  flavour(STANDARD_UP, 'college-1', 'Move-In Day', 'You haul boxes into a tiny dorm room and call it home.', 'blue', 'space:move-in-day', {
+  // EVERY_BOARD, not STANDARD_UP: this is the fork's first step. Thinned away
+  // on a short board it left the tuition stop as the branch's very first tile
+  // — an instant forced halt, so the roll that chose it never mattered.
+  flavour(EVERY_BOARD, 'college-1', 'Move-In Day', 'You haul boxes into a tiny dorm room and call it home.', 'blue', 'space:move-in-day', {
     from: 'hard',
     description: 'You haul boxes into a tiny dorm room, and the hall asks for a deposit on the way in.',
     effect: { type: 'payMoney', amount: 1_400, reason: 'Dorm deposit' },
@@ -385,13 +388,12 @@ const MAIN_STREET_EARLY: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 400, reason: 'Gym membership' },
     tone: 'slate', icon: 'space:gym-membership', tier: LONG_ONLY,
   },
-  payday(EVERY_BOARD, 'main-6', 'Direct deposit hits — the best notification of the week.', missedPayday(
-    'hard',
-    'Payroll Delayed',
-    'The payroll run fails on a Friday afternoon, and the overdraft desk is delighted to help out.',
-    1_500,
-    'Overdraft while payroll is fixed',
-  )),
+  // The only payday in this stretch — every other lane on the board harshens
+  // one of *several* paydays and leaves another alone, but this run only ever
+  // wrote the one. Harshening it the same way zeroed out every player's
+  // income for this whole stretch on Hard and Very Hard, trunk tile though it
+  // is, so it stays unconditional rather than joining the pattern.
+  payday(EVERY_BOARD, 'main-6', 'Direct deposit hits — the best notification of the week.'),
   {
     id: 'main-stock-tip', kind: 'normal', title: 'Stock Tip',
     description: 'A friend swears by a ticker they read about. The broker is open until six.',
@@ -998,13 +1000,10 @@ const MIDTOWN: readonly SpaceContent[] = [
     effect: { type: 'buyInsurance', kinds: ['home', 'auto', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office', tier: EVERY_BOARD,
   },
-  payday(EVERY_BOARD, 'midtown-payday', 'A deposit lands the week the deposit on a house is due.', missedPayday(
-    'veryHard',
-    'Pay Frozen',
-    'A pay freeze is announced on the very morning the deposit was supposed to land.',
-    2_000,
-    'Nothing to draw on this month',
-  )),
+  // The only payday in this stretch too — see main-6. Harshening it zeroed
+  // Very Hard's income for the entire run between the marriage fork and the
+  // home-buying fork, so it stays unconditional.
+  payday(EVERY_BOARD, 'midtown-payday', 'A deposit lands the week the deposit on a house is due.'),
   {
     id: 'midtown-wiring', kind: 'normal', title: 'Wiring Fault',
     description: 'The survey mentions the fuse box in passing. The fuse box mentions it again at two in the morning, rather louder.',

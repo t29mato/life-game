@@ -43,7 +43,8 @@ const START: SpaceContent = {
  * stop and the loan tile carry the same measured weight as every edition's.
  */
 const UNIVERSITY_LANE: readonly SpaceContent[] = [
-  flavour(STANDARD_UP, 'bo-uni-move-in', 'A Room in the City', 'Your first rented room holds a bed, a hotplate, a poster of the national team, and every ambition you have.', 'blue', 'space:move-in-day', {
+  // EVERY_BOARD, not STANDARD_UP — see usa/route.ts college-1.
+  flavour(EVERY_BOARD, 'bo-uni-move-in', 'A Room in the City', 'Your first rented room holds a bed, a hotplate, a poster of the national team, and every ambition you have.', 'blue', 'space:move-in-day', {
     from: 'hard',
     description: 'Your first rented room holds a bed and a hotplate — and the landlady would like two months up front, plus a reference from somebody she already knows.',
     effect: { type: 'payMoney', amount: 1_400, reason: 'Two months up front' },
@@ -282,13 +283,11 @@ const MARKET_STREET_EARLY: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 400, reason: 'League season' },
     tone: 'slate', icon: 'space:gym-membership', tier: LONG_ONLY,
   },
-  payday(EVERY_BOARD, 'bo-main-payday-1', 'The month\'s money lands, minus nothing for once. The best moment of the week.', missedPayday(
-    'hard',
-    'Payday, Eventually',
-    'A bank holiday, a strike, and a system upgrade conspire in the same week, and the month\'s money arrives when it arrives.',
-    1_500,
-    'Bridging the late month',
-  )),
+  // The only payday in this stretch — see usa/route.ts main-6. Harshening it
+  // zeroed every player's income for this whole run on Hard and Very Hard, so
+  // it stays unconditional rather than joining every other lane's pattern of
+  // harshening one of several paydays and leaving another alone.
+  payday(EVERY_BOARD, 'bo-main-payday-1', 'The month\'s money lands, minus nothing for once. The best moment of the week.'),
   {
     id: 'bo-main-stock-tip', kind: 'normal', title: 'Stock Tip',
     description: 'A cousin swears by a share he read about on the overnight bus. The brokerage is open until six.',
@@ -779,13 +778,10 @@ const MIDTOWN: readonly SpaceContent[] = [
     effect: { type: 'buyInsurance', kinds: ['home', 'auto', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office', tier: EVERY_BOARD,
   },
-  payday(EVERY_BOARD, 'bo-midtown-payday', 'The month\'s money lands the week the deposit on a house is due.', missedPayday(
-    'veryHard',
-    'Pay Frozen',
-    'A pay freeze is announced on the very morning the deposit was supposed to land.',
-    2_000,
-    'Nothing to draw on this month',
-  )),
+  // The only payday in this stretch too — see bo-main-payday-1. Harshening it
+  // zeroed Very Hard's income for the whole run between the marriage fork and
+  // the home-buying fork, so it stays unconditional.
+  payday(EVERY_BOARD, 'bo-midtown-payday', 'The month\'s money lands the week the deposit on a house is due.'),
   {
     id: 'bo-midtown-wiring', kind: 'normal', title: 'Wiring Fault',
     description: 'The house was wired floor by floor, by three different electricians, in three different decades. At two in the morning, the decades disagree.',

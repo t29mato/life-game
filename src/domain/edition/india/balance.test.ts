@@ -189,7 +189,10 @@ describe('the rupee economy stays in a playable band', () => {
   })
 
   it('makes hard a clear step down that is still usually a winning game', () => {
-    // Measured: median ₹4.06 crore, with one seat in sixty finishing bust.
+    // Measured: median ₹3.75 crore, with 8 of 180 seats finishing bust — up
+    // from 1 before the trunk paydays were fixed to never fully cancel (see
+    // difficulty.ts), because that fix quietly made hard less brutal too and
+    // the dials were retuned to compensate.
     expect(median(hard.totals)).toBeLessThan(median(normal.totals) * 0.8)
     expect(median(hard.totals)).toBeGreaterThan(10_000_000)
     expect(bustShare(hard.totals)).toBeGreaterThan(0)
@@ -197,8 +200,9 @@ describe('the rupee economy stays in a playable band', () => {
   })
 
   it('puts very hard on a knife edge: the median finishes near zero', () => {
-    // Measured: median ₹1.43 crore against a ₹1 crore start, 31.7% of seats
-    // underwater — the near-break-even edge the difficulty is tuned to.
+    // Measured: median ₹1.76 crore against a ₹1 crore start, 37.8% of seats
+    // underwater — the near-break-even edge the difficulty is tuned to. (Was
+    // ₹1.43 crore / 31.7% before the trunk-payday fix and retune above.)
     expect(bustShare(veryHard.totals)).toBeGreaterThan(0.3)
     expect(bustShare(veryHard.totals)).toBeLessThan(0.7)
     expect(median(veryHard.totals)).toBeGreaterThan(-20_000_000)

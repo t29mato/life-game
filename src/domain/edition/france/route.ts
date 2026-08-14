@@ -45,7 +45,8 @@ const START: SpaceContent = {
  * and an internship called a "stage" with a stipend called gratitude.
  */
 const GRANDE_ECOLE_LANE: readonly SpaceContent[] = [
-  flavour(STANDARD_UP, 'fr-uni-move-in', 'The Maid\'s Room', 'Nine square metres under the zinc roof, six floors up, no lift: the chambre de bonne is your first address, and every ambition you have fits in it.', 'blue', 'space:move-in-day', {
+  // EVERY_BOARD, not STANDARD_UP — see usa/route.ts college-1.
+  flavour(EVERY_BOARD, 'fr-uni-move-in', 'The Maid\'s Room', 'Nine square metres under the zinc roof, six floors up, no lift: the chambre de bonne is your first address, and every ambition you have fits in it.', 'blue', 'space:move-in-day', {
     from: 'hard',
     description: 'Nine square metres under the zinc roof — and the agency wants a deposit, a guarantor, and a separate fee for having introduced you to the room.',
     effect: { type: 'payMoney', amount: 1_400, reason: 'Deposit and agency fee' },
@@ -286,13 +287,11 @@ const BOULEVARD_EARLY: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 400, reason: 'Gym membership' },
     tone: 'slate', icon: 'space:gym-membership', tier: LONG_ONLY,
   },
-  payday(EVERY_BOARD, 'fr-main-payday-1', 'The transfer lands on the 28th like clockwork — the best notification of the week.', missedPayday(
-    'hard',
-    'Payroll Delayed',
-    'The payroll system is migrated over a long weekend, of which France has many, and the overdraft desk is delighted to bridge the gap.',
-    1_500,
-    'Overdraft while payroll is fixed',
-  )),
+  // The only payday in this stretch — see usa/route.ts main-6. Harshening it
+  // zeroed every player's income for this whole run on Hard and Very Hard, so
+  // it stays unconditional rather than joining every other lane's pattern of
+  // harshening one of several paydays and leaving another alone.
+  payday(EVERY_BOARD, 'fr-main-payday-1', 'The transfer lands on the 28th like clockwork — the best notification of the week.'),
   {
     id: 'fr-main-stock-tip', kind: 'normal', title: 'Stock Tip',
     description: 'A colleague swears by a ticker over the second course of lunch. The market is open until half past five.',
@@ -782,13 +781,10 @@ const MIDTOWN: readonly SpaceContent[] = [
     effect: { type: 'buyInsurance', kinds: ['home', 'auto', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office', tier: EVERY_BOARD,
   },
-  payday(EVERY_BOARD, 'fr-midtown-payday', 'A transfer lands the week the deposit on an apartment is due.', missedPayday(
-    'veryHard',
-    'Pay Frozen',
-    'A pay freeze is announced by all-staff email on the very morning the deposit was supposed to land, with regrets and a graph.',
-    2_000,
-    'Nothing to draw on this month',
-  )),
+  // The only payday in this stretch too — see fr-main-payday-1. Harshening it
+  // zeroed Very Hard's income for the whole run between the marriage fork and
+  // the home-buying fork, so it stays unconditional.
+  payday(EVERY_BOARD, 'fr-midtown-payday', 'A transfer lands the week the deposit on an apartment is due.'),
   {
     id: 'fr-midtown-wiring', kind: 'normal', title: 'Wiring Fault',
     description: 'The building survey mentions the fuse box in passing. The fuse box mentions it again at two in the morning, rather louder.',

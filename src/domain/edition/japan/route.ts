@@ -43,7 +43,8 @@ const START: SpaceContent = {
  * the six-tatami room, and a "scholarship" with excellent branding.
  */
 const UNIVERSITY_LANE: readonly SpaceContent[] = [
-  flavour(STANDARD_UP, 'jp-uni-move-in', 'Six-Tatami Room', 'Your first solo apartment is measured in straw mats. It holds a futon, a rice cooker, and every ambition you have.', 'blue', 'space:move-in-day', {
+  // EVERY_BOARD, not STANDARD_UP — see usa/route.ts college-1.
+  flavour(EVERY_BOARD, 'jp-uni-move-in', 'Six-Tatami Room', 'Your first solo apartment is measured in straw mats. It holds a futon, a rice cooker, and every ambition you have.', 'blue', 'space:move-in-day', {
     from: 'hard',
     description: 'Your first solo apartment is measured in straw mats — and the landlord would like a deposit, plus a separate sum called "gratitude money", which is exactly what it sounds like and is not refundable.',
     effect: { type: 'payMoney', amount: 140_000, reason: 'Deposit and gratitude money' },
@@ -283,13 +284,11 @@ const SALARYMAN_STREET_EARLY: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 40_000, reason: 'Gym membership' },
     tone: 'slate', icon: 'space:gym-membership', tier: LONG_ONLY,
   },
-  payday(EVERY_BOARD, 'jp-main-payday-1', 'The deposit lands at 9:00 on the dot, because of course it does. The best notification of the week.', missedPayday(
-    'hard',
-    'Service Overtime',
-    'The overtime this month is real; the pay for it is described, in a memo, as voluntary.',
-    150_000,
-    'A month worked for free',
-  )),
+  // The only payday in this stretch — see usa/route.ts main-6. Harshening it
+  // zeroed every player's income for this whole run on Hard and Very Hard, so
+  // it stays unconditional rather than joining every other lane's pattern of
+  // harshening one of several paydays and leaving another alone.
+  payday(EVERY_BOARD, 'jp-main-payday-1', 'The deposit lands at 9:00 on the dot, because of course it does. The best notification of the week.'),
   {
     id: 'jp-main-stock-tip', kind: 'normal', title: 'Stock Tip',
     description: 'A colleague opens the trading app under the desk and swears by a ticker. The market is open until three.',
@@ -778,13 +777,10 @@ const MIDTOWN: readonly SpaceContent[] = [
     effect: { type: 'buyInsurance', kinds: ['home', 'auto', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office', tier: EVERY_BOARD,
   },
-  payday(EVERY_BOARD, 'jp-midtown-payday', 'A deposit lands the week the deposit on an apartment is due.', missedPayday(
-    'veryHard',
-    'Pay Frozen',
-    'A pay freeze is announced on the very morning the deposit was supposed to land.',
-    200_000,
-    'Nothing to draw on this month',
-  )),
+  // The only payday in this stretch too — see jp-main-payday-1. Harshening it
+  // zeroed Very Hard's income for the whole run between the marriage fork and
+  // the home-buying fork, so it stays unconditional.
+  payday(EVERY_BOARD, 'jp-midtown-payday', 'A deposit lands the week the deposit on an apartment is due.'),
   {
     id: 'jp-midtown-wiring', kind: 'normal', title: 'Wiring Fault',
     description: 'The building survey mentions the fuse box in passing. The fuse box mentions it again at two in the morning, rather louder.',

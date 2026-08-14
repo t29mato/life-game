@@ -17,8 +17,23 @@ import { EDITION_USA } from '../edition/usa'
  * The second is that the harder settings bite through *frequency* first, because
  * that is what a player at the table actually feels. An edition's route seeds a
  * couple of dozen extra setback tiles from `hard` upwards, turns pieces of pure
- * scenery into real bills, and cancels two paydays on `hard` and two more on
- * `veryHard`. The multipliers below are the trim on top of that.
+ * scenery into real bills, and cancels a payday here and there. The multipliers
+ * below are the trim on top of that.
+ *
+ * One invariant holds everywhere a payday gets cancelled: it is always one of
+ * *several* in that stretch, never the only one. A stretch with a single
+ * payday tile — the trunk between the opening fork and the mid-career fork,
+ * the trunk between the marriage fork and the home-buying fork — leaves that
+ * tile alone at every difficulty, because harshening the sole payday in a
+ * stretch does not make the game harder, it makes an entire life stage pay
+ * nothing at all, which reads as broken rather than difficult. (It was
+ * briefly broken this way, in fact — both of those trunk tiles were wrongly
+ * harshened until it was noticed that a player could go from career fair to
+ * mid-career fork on Very Hard without ever collecting once. That is also why
+ * the multipliers below are stronger than they might otherwise need to be:
+ * closing that gap gave every player back two guaranteed, unscaled paydays,
+ * and the dials were re-measured against that fairer board rather than
+ * against the broken one.)
  *
  * A note on how far these have to reach. Board bills start out as small change
  * beside the payroll — an $800 grocery run against a $60,000 payday — and only
@@ -70,24 +85,25 @@ const SCALES: Readonly<Record<Difficulty, ProfileScales>> = {
   },
   /**
    * A clear step down, but still a game you expect to finish in the black.
-   * Windfalls lose a third, bills gain most of one, the bank wants a third more
-   * back, and a house no longer sells for a tidy profit on what it cost.
+   * Windfalls lose more than half, bills run at four and a half times face
+   * value, the bank wants a third more back, and a house no longer sells for a
+   * tidy profit on what it cost.
    */
   hard: {
-    gainScale: 0.65,
-    lossScale: 2,
+    gainScale: 0.42,
+    lossScale: 4.6,
     resaleScale: 0.75,
     stockScale: 0.78,
   },
   /**
-   * Break-even is the good outcome. The bank wants two and a half times what it
-   * lends, the windfalls are less than half what they were, and a house sells
-   * for barely more than half its worth — so a mortgage taken out to buy one is
-   * a bet, not a savings account.
+   * Break-even is the good outcome. Bills run north of five times face value,
+   * the bank wants two and a half times what it lends, windfalls are down to a
+   * quarter of what they were, and a house sells for barely more than half its
+   * worth — so a mortgage taken out to buy one is a bet, not a savings account.
    */
   veryHard: {
-    gainScale: 0.45,
-    lossScale: 2.6,
+    gainScale: 0.27,
+    lossScale: 5.2,
     resaleScale: 0.55,
     stockScale: 0.6,
   },
