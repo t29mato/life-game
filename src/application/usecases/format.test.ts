@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CurrencySpec } from '@domain/edition/types'
-import { formatAmount, formatMoney } from './format'
+import { formatAmount, formatMoney, loanNote } from './format'
 
 /** A ×100 currency, to prove the symbol and grouping are the edition's. */
 const YEN: CurrencySpec = { symbol: '¥', locale: 'en-US', tileRounding: 10_000, payoutRounding: 100_000 }
@@ -41,5 +41,30 @@ describe('formatAmount', () => {
   it('groups the digits without a symbol, for a sentence that already said what it is', () => {
     expect(formatAmount(310_000)).toBe('310,000')
     expect(formatAmount(31_000_000, YEN)).toBe('31,000,000')
+  })
+})
+
+describe('loanNote', () => {
+  it('says how much was borrowed, not just how many loans', () => {
+    expect(loanNote(1, 20_000, 25_000)).toBe(
+      'Took out 1 loan — $20,000 borrowed, $25,000 due at retirement.',
+    )
+  })
+
+  it('multiplies both sums by the number of loans forced', () => {
+    expect(loanNote(3, 20_000, 25_000)).toBe(
+      'Took out 3 loans — $60,000 borrowed, $75,000 due at retirement.',
+    )
+  })
+
+  it('prices the settlement the caller passes, so a harder game reads harder', () => {
+    // Very Hard settles a loan at $46,000 against the same $20,000 principal.
+    expect(loanNote(1, 20_000, 46_000)).toContain('$46,000 due at retirement')
+  })
+
+  it('counts in the edition currency', () => {
+    expect(loanNote(2, 2_000_000, 2_500_000, YEN)).toBe(
+      'Took out 2 loans — ¥4,000,000 borrowed, ¥5,000,000 due at retirement.',
+    )
   })
 })

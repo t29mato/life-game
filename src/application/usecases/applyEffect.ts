@@ -45,7 +45,7 @@ import {
   setMoney,
   totalShares,
 } from '@domain/rules/player'
-import { formatMoney } from './format'
+import { formatMoney, loanNote } from './format'
 import { appendLog } from './logging'
 import { collectPaydays, describeSpins } from './payday'
 import type { UseCaseDeps } from './types'
@@ -277,6 +277,8 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
   const { marriage, household } = economy
   const money = (amount: Money): string => formatMoney(amount, currency)
   const emphasisOf = (delta: Money): LandingEmphasis => emphasisForMoney(delta, economy)
+  const borrowed = (loansTaken: number): string =>
+    loanNote(loansTaken, economy.loanPrincipal, loanRepaymentFor(state.difficulty, edition), currency)
 
   const effect = space.effect
 
@@ -330,7 +332,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       const delta = updated.money - player.money
       const loansTaken = updated.loans - player.loans
       const notes = [effect.reason]
-      if (loansTaken > 0) notes.push(`Took out ${loansTaken} loan${loansTaken > 1 ? 's' : ''} to cover it.`)
+      if (loansTaken > 0) notes.push(borrowed(loansTaken))
       const emphasis = emphasisOf(delta)
       const narration =
         emphasis === 'big'
@@ -1219,7 +1221,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       const delta = updated.money - player.money
       const loansTaken = updated.loans - player.loans
       const notes = [effect.reason, `${player.children} × ${money(effect.amount)}`]
-      if (loansTaken > 0) notes.push(`Took out ${loansTaken} loan${loansTaken > 1 ? 's' : ''} to cover it.`)
+      if (loansTaken > 0) notes.push(borrowed(loansTaken))
       const event = baseEvent(
         space,
         delta,

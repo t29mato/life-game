@@ -92,6 +92,10 @@ export function PlayerPanel({
   const money = (amount: number): string => formatMoney(amount, currency)
   const totalShares = player.stocks.reduce((sum, holding) => sum + holding.shares, 0)
   const loanPayoff = player.loans * loanRepaymentFor(difficulty, edition)
+  // What the bank actually handed over. The chip has room for one figure and
+  // the retirement cost is the one that decides the game, so the principal
+  // lives in the tooltip — where a player asking "how much did I borrow?" looks.
+  const loanPrincipal = player.loans * economy.loanPrincipal
   const netWorth = estimateNetWorth(player, difficulty, edition)
   const medal = rank === 1 || rank === 2 || rank === 3 ? MEDAL_ICON[rank] : null
 
@@ -261,7 +265,7 @@ export function PlayerPanel({
         {player.loans > 0 ? (
           <span
             className={`${styles.chip} ${styles.loanChip}`}
-            title={`${money(loanPayoff)} owed at retirement`}
+            title={`${money(loanPrincipal)} borrowed · ${money(loanPayoff)} owed at retirement`}
           >
             <span className={styles.chipIcon} aria-hidden="true">
               <GameIcon name="space:interest-payout" size={16} />

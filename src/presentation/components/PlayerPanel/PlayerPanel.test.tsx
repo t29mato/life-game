@@ -138,6 +138,15 @@ describe('PlayerPanel', () => {
     expect(screen.getByText(/at retirement/i)).toBeInTheDocument()
   })
 
+  it('says how much was borrowed, not only what it costs to settle', () => {
+    render(<PlayerPanel player={makePlayer({ loans: 2 })} isActive={false} />)
+    // Two loans at a $20,000 principal: $40,000 arrived, $50,000 goes back.
+    expect(screen.getByText(/2 loans/).closest('[title]')).toHaveAttribute(
+      'title',
+      '$40,000 borrowed · $50,000 owed at retirement',
+    )
+  })
+
   it('marks the active player with aria-current', () => {
     render(<PlayerPanel player={makePlayer()} isActive />)
     expect(screen.getByRole('article')).toHaveAttribute('aria-current', 'true')

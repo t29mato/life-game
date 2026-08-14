@@ -3,7 +3,7 @@ import { SHARES_PER_PURCHASE } from '@domain/model/constants'
 import { planMovementVia } from '@domain/board/movement'
 import { editionOf } from '@domain/edition/registry'
 import { findCareer, findHouse, findStock } from '@domain/edition/lookup'
-import { earlyLoanRepaymentFor } from '@domain/rules/difficulty'
+import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
 import {
   addInsurance,
   buyHouse as buyHouseForPlayer,
@@ -30,7 +30,7 @@ import {
   emphasisForMoney,
   insuranceKindFromOptionId,
 } from './applyEffect'
-import { formatMoney } from './format'
+import { formatMoney, loanNote } from './format'
 import { appendLog } from './logging'
 import { collectPaydays, passedPaydayLine } from './payday'
 import type { UseCaseDeps } from './types'
@@ -242,7 +242,11 @@ function resolveHouse(state: GameState, optionId: string): GameState {
   const notes = previous
     ? [`Traded the ${previous.name} for the ${house.name}.`, `Old home credited back at ${money(previous.price)}.`]
     : [`Bought the ${house.name}!`]
-  if (loansTaken > 0) notes.push(`Took out ${loansTaken} loan${loansTaken > 1 ? 's' : ''} to cover it.`)
+  if (loansTaken > 0) {
+    notes.push(
+      loanNote(loansTaken, economy.loanPrincipal, loanRepaymentFor(state.difficulty, edition), currency),
+    )
+  }
 
   const narration = previous
     ? `Moving up in the world! ${player.name} trades the ${previous.name} for the ${house.name}.`
@@ -294,7 +298,11 @@ function resolveStock(state: GameState, optionId: string): GameState {
     `Bought ${SHARES_PER_PURCHASE} ${shareLabel} of ${stock.name} (${stock.ticker}).`,
     `Each share cashes out between ${money(stock.payoutRange[0])} and ${money(stock.payoutRange[1])} at retirement.`,
   ]
-  if (loansTaken > 0) notes.push(`Took out ${loansTaken} loan${loansTaken > 1 ? 's' : ''} to cover it.`)
+  if (loansTaken > 0) {
+    notes.push(
+      loanNote(loansTaken, economy.loanPrincipal, loanRepaymentFor(state.difficulty, edition), currency),
+    )
+  }
 
   const event = outcomeEvent(
     space,
@@ -346,7 +354,11 @@ function resolveInsurance(state: GameState, optionId: string): GameState {
   const notes = [`Took out a ${kind} policy for ${money(economy.insurancePremium[kind])}.`]
   if (kind === 'life') notes.push('It matures at retirement and pays straight into the final total.')
   else notes.push(`A ${kind === 'home' ? 'house fire' : 'road accident'} now costs you nothing.`)
-  if (loansTaken > 0) notes.push(`Took out ${loansTaken} loan${loansTaken > 1 ? 's' : ''} to cover it.`)
+  if (loansTaken > 0) {
+    notes.push(
+      loanNote(loansTaken, economy.loanPrincipal, loanRepaymentFor(state.difficulty, edition), currency),
+    )
+  }
 
   const event = outcomeEvent(
     space,
