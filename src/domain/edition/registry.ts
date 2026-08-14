@@ -2,6 +2,9 @@ import type { EditionId } from './types'
 import type { Edition } from './types'
 import { EDITION_USA } from './usa'
 import { EDITION_JAPAN } from './japan'
+import { EDITION_FRANCE } from './france'
+import { EDITION_INDIA } from './india'
+import { EDITION_BOLIVIA } from './bolivia'
 
 /**
  * Which edition a game without one is played on.
@@ -12,8 +15,15 @@ import { EDITION_JAPAN } from './japan'
  */
 export const DEFAULT_EDITION_ID: EditionId = EDITION_USA.id
 
+/**
+ * The shelf, in the order the picker offers it: the original game first,
+ * then the rest alphabetically — which is a shelf, not a ranking.
+ */
 const REGISTRY = new Map<EditionId, Edition>([
   [EDITION_USA.id, EDITION_USA],
+  [EDITION_BOLIVIA.id, EDITION_BOLIVIA],
+  [EDITION_FRANCE.id, EDITION_FRANCE],
+  [EDITION_INDIA.id, EDITION_INDIA],
   [EDITION_JAPAN.id, EDITION_JAPAN],
 ])
 

@@ -34,6 +34,12 @@ export const BOLIVIA_CURRENCY: CurrencySpec = {
  * every other, and an edition may change the unit and the country but never
  * the ratios. `bolivia/edition.test.ts` pins this file to the USA economy so
  * it cannot quietly drift.
+ *
+ * One honest caveat: the ~7/$ figure is the long-standing official peg, and
+ * since 2023 the street rate has drifted away from it. The board stands on
+ * the stable numeral identity; the parallel-dollar reality is content, not
+ * arithmetic — the Very Hard "The Dollar Jumps" hardship and the envelope
+ * taped behind the wardrobe are where it lives.
  */
 export const BOLIVIA_ECONOMY: EconomyConstants = {
   startingMoney: 10_000,
