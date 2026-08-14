@@ -17,6 +17,12 @@
   display: flex;
   flex-direction: column;
   gap: var(--stack);
+  /* `min-height`, not `height`: a page scroll is the fallback for whatever
+     combination of window size and content this file does not have an
+     explicit answer for. The two widths that do — mobile below, wide desktop
+     in the "wide screens" block further down — lock this to a hard `height`
+     and `overflow: hidden` instead, because a phone game screen should
+     scroll, never the page around it. */
   min-height: 100dvh;
   padding: calc(var(--pad) - 2px) var(--pad) var(--pad);
 }
@@ -438,6 +444,7 @@
 @media (min-width: 1000px) and (min-height: 600px) {
   .shell {
     height: 100dvh;
+    overflow: hidden;
   }
 
   /* The board's cell has a hard height here — `minmax(0, 1fr)` against a
@@ -462,20 +469,37 @@
 /* ---- Stacked screens ------------------------------------------------------
    Below the two-column threshold the table folds: board first, then the
    spinner, then every player card in a grid. The log drawer becomes a
-   bottom sheet. */
+   bottom sheet.
+
+   The board is the one thing here that stretches AND shrinks. The controls
+   row (`auto`) is sized to whatever the spinner and the player cards
+   actually need; the board row (`minmax(0, 1fr)`) gets whatever is left of
+   the shell's locked height, and — same trick as the desktop branch above,
+   now that the shell has a real height on every width — becomes a size
+   container so the board can measure that leftover room instead of guessing
+   a fraction of the viewport. */
 
 @media (max-width: 999px) {
+  .shell {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
   .main {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
     grid-template-areas:
       'board'
       'controls';
   }
 
-  /* Cap the board so the spinner and the players stay within reach — traded
-     through the board's own aspect so the drawing never distorts. */
+  .boardArea {
+    container-type: size;
+    min-height: 0;
+  }
+
   .boardArea > * {
-    width: min(100%, calc(52vh * var(--board-aspect, 1.5)));
+    width: min(100%, calc(100cqh * var(--board-aspect, 1.5)));
   }
 
   /* The rail is a full-width stack here; the wheel keeps a card of its own
@@ -485,18 +509,41 @@
   .spinnerCard {
     align-self: center;
     width: min(100%, 460px);
+    flex: none;
   }
 
+  .controlRail {
+    flex: none;
+  }
+
+  .playersBlock {
+    flex: none;
+  }
+
+  /* A grid rather than the desktop's vertical stack, so two or three seats
+     read as a row instead of a taller and taller column — a phone has width
+     to spare and height to protect. Still capped by `max-height` with its
+     own scrollbar: the one seam left once the header and the board have
+     both already given up their slack, for the four-player case that would
+     otherwise still overflow. */
   .players {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 236px), 1fr));
-    overflow: visible;
+    max-height: 32vh;
+    overflow-y: auto;
   }
 }
 
+/* One row, always — a phone screen has no height to spend on a second one.
+   The turn indicator is the thing a player actually looks at between spins,
+   so it takes the flexible middle column and truncates its own text before
+   anything wraps; the brand mark and the action buttons shrink to icons
+   instead of giving up their row. */
 @media (max-width: 720px) {
   .topBar {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: 6px;
+    min-height: 40px;
   }
 
   .brand {
@@ -504,19 +551,58 @@
     grid-row: 1;
   }
 
-  .topActions {
+  .turnBadge {
     grid-column: 2;
     grid-row: 1;
+    justify-self: stretch;
+    min-width: 0;
+    padding-right: 0.7rem;
   }
 
-  /* On a phone the turn indicator gets its own full-width band directly under
-     the wordmark — it is the thing you look at between every spin, so it
-     outranks the controls. */
-  .turnBadge {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-self: stretch;
-    justify-content: center;
+  /* `flex: 1` claims the badge's actual free space instead of shrinking to
+     nothing — the flexbox default `min-width: auto` this overrides is what
+     protects text everywhere else, and normally never needs a second
+     thought, but a bare `min-width: 0` here without a `flex-grow` to go with
+     it left the name with no width to grow into and no floor to stop at.
+     `.turnPlayer`'s own `overflow: hidden` + `text-overflow: ellipsis`
+     handles a name too long for what is left. */
+  .turnText {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .topActions {
+    grid-column: 3;
+    grid-row: 1;
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  /* Four controls' worth of padding is the difference between the turn
+     indicator's name showing and not, on the narrowest phones — the icon is
+     the whole button now that its label is hidden, so the padding around it
+     can shrink to match. Targets the real `<button>` element `ChunkyButton`
+     renders; a plain tag selector reaches across the module boundary on
+     purpose, the same way it would in any global stylesheet. */
+  .topActions button {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  /* The label text stays in the DOM — still the button's accessible name —
+     it just no longer takes up room a phone doesn't have. Same technique as
+     `.visually-hidden` in index.css, scoped to this breakpoint instead of
+     applied unconditionally. */
+  .btnLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .logDrawer {
@@ -545,25 +631,17 @@
     --pad: 10px;
   }
 
-  /* One thing per row. Sharing a row squeezed the brand's column to nothing
-     and the controls printed straight over the wordmark. */
-  .topBar {
-    grid-template-columns: 1fr;
+  /* The wordmark text is decorative here — the title screen already said
+     the game's name once — so it is the first thing to go on a narrow
+     phone, freeing the row for the turn indicator and the actions that are
+     actually operated every turn. The emblem alone still marks the header
+     as this app's. */
+  .wordmark {
+    display: none;
   }
 
-  .brand {
-    grid-row: 1;
-    justify-self: center;
-  }
-
-  .topActions {
-    grid-column: 1;
-    grid-row: 2;
-    justify-self: center;
-  }
-
-  .turnBadge {
-    grid-row: 3;
+  .turnLabel {
+    display: none;
   }
 
   .players {

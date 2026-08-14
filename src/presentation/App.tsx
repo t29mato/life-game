@@ -314,7 +314,7 @@ export function App({ store, audio }: AppProps): ReactElement {
               aria-controls="game-log-drawer"
               onClick={() => setLogOpen((open) => !open)}
             >
-              Log
+              <span className={styles.btnLabel}>Log</span>
             </ChunkyButton>
             <div className={styles.saveMenuAnchor}>
               <ChunkyButton
@@ -325,7 +325,7 @@ export function App({ store, audio }: AppProps): ReactElement {
                 aria-haspopup="menu"
                 onClick={() => setSaveMenuOpen((open) => !open)}
               >
-                Save
+                <span className={styles.btnLabel}>Save</span>
               </ChunkyButton>
               {saveMenuOpen && (
                 <div className={styles.saveMenu} role="menu" aria-label="Choose a save slot">
@@ -360,7 +360,7 @@ export function App({ store, audio }: AppProps): ReactElement {
               icon="exit"
               onClick={() => store.dispatch({ type: 'reset' })}
             >
-              Quit
+              <span className={styles.btnLabel}>Quit</span>
             </ChunkyButton>
           </div>
         </header>
