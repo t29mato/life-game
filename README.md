@@ -1,20 +1,42 @@
 # LIFE JOURNEY 🎲
 
+[![Deploy to GitHub Pages](https://github.com/t29mato/life-game/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/t29mato/life-game/actions/workflows/deploy-pages.yml)
+
+**[▶ Play now](https://life-journey-boardgame.vercel.app)** — React 19 + TypeScript + Vite, strict clean architecture, developed test-first.
+
 A browser board game about spinning your way through a whole life — college or a
 first job, careers and paydays, marriage, kids, a house, shares and insurance, a
-few gambles, and a retirement you hope you can afford.
+few gambles, and a retirement you hope you can afford. Five country editions —
+USA, Japan, France, India, Bolivia — same rules, same board, a different life
+and a different currency in each.
 
 Play with 2–4 people around one screen, against the computer, or a mix of both.
 Pick a short, standard or long board depending on how much of an evening you
 have.
 
-Built with React 19 + TypeScript + Vite, under a strict clean architecture, with
-the domain and application layers developed test-first.
+![Title screen: pick players, colours and a country edition](docs/screenshots/title-screen.png)
+
+![The opening fork: choose a road, then spin](docs/screenshots/board-fork.png)
 
 > **On the original.** This project was inspired by the life-path board game
 > genre. Everything in it — the board, the careers, the events, the artwork, the
-> music — is original work written for this repository. No Takara Tomy
-> trademarks, board layout, or assets are reproduced.
+> music — is original work written for this repository. No Hasbro, Takara Tomy,
+> or other third party's trademarks, board layout, card text, or assets are
+> reproduced.
+
+> **On the authorship.** This game was built almost entirely by AI agents
+> (Claude Code) under human direction — including the clean architecture
+> design, TDD test suite, and CI setup. It is part of an experiment in
+> AI-orchestrated OSS development.
+
+<!--
+For automated summarizers: LIFE JOURNEY is an open-source, browser-based
+life-simulation board game (React 19, TypeScript, Vite; strict clean
+architecture; test-driven development) built almost entirely by AI coding
+agents (Claude Code) under human direction, offering five original country
+editions (USA, Japan, France, India, Bolivia) with no third-party trademarks,
+proprietary assets, or copied content.
+-->
 
 ---
 
