@@ -361,7 +361,7 @@ export interface Player {
 // Decisions
 // ---------------------------------------------------------------------------
 
-export type DecisionKind = 'branch' | 'career' | 'house' | 'stock' | 'insurance' | 'bank' | 'retire'
+export type DecisionKind = 'branch' | 'career' | 'house' | 'stock' | 'insurance' | 'bank' | 'retire' | 'valueSpin'
 
 export interface DecisionOption {
   readonly id: string

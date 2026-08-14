@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Decision, DecisionOption } from '@domain/model/types'
 import {
+  CASUAL_WAGE_PER_PIP,
   EARLY_LOAN_REPAYMENT,
   INSURANCE_PREMIUM,
   LOAN_PRINCIPAL,
@@ -9,7 +10,7 @@ import {
 import { BASIC_CAREERS } from '@domain/edition/usa'
 import { HOUSES } from '@domain/edition/usa'
 import { STOCKS } from '@domain/edition/usa'
-import { insuranceOptionId } from './applyEffect'
+import { insuranceOptionId, VALUE_SPIN_OPTION_ID } from './applyEffect'
 import { branchDecision } from './branch'
 import { fixtureMovementBoard, fixturePlayer, fixtureState } from '../testing/fixtures'
 import { createFakeRandom } from '../testing/fakes'
@@ -350,6 +351,65 @@ describe('choose', () => {
         pendingDecision: decision('bank', 'bank-rob-it', BANK_DECLINE_OPTION_ID),
       })
       expect(() => choose(state, 'bank-rob-it', { random: createFakeRandom() })).toThrow(/unknown bank option/)
+    })
+  })
+
+  describe('valueSpin', () => {
+    it('spins for a spinForMoney tile only once the player presses the button', () => {
+      const board = fixtureMovementBoard()
+      const spinSpace = { ...board.spaces.a!, effect: { type: 'spinForMoney' as const, perPip: 100, reason: 'Lucky roll' } }
+      const state = decisionState({
+        board: { ...board, spaces: { ...board.spaces, a: spinSpace } },
+        players: [fixturePlayer({ spaceId: 'a', money: 0 })],
+        pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+      })
+
+      const random = createFakeRandom({ spins: [7] })
+      const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+      expect(random.calls.spins).toBe(1)
+      expect(next.phase).toBe('resolved')
+      expect(next.pendingDecision).toBeNull()
+      expect(next.players[0]!.money).toBe(700)
+      expect(next.lastEvent!.moneyDelta).toBe(700)
+      expect(next.lastEvent!.notes.join(' ')).toContain('Rolled a 7')
+    })
+
+    it('spins for a casual payday, paying by the roll rather than nothing', () => {
+      const player = fixturePlayer({ spaceId: 'payday1', money: 1_000, career: null })
+      const state = decisionState({
+        players: [player],
+        pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+      })
+
+      const random = createFakeRandom({ spins: [4] })
+      const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+      expect(random.calls.spins).toBe(1)
+      expect(next.players[0]!.money).toBe(1_000 + CASUAL_WAGE_PER_PIP * 4)
+      expect(next.lastEvent!.notes.join(' ')).toContain('Spun 4')
+    })
+
+    it('spins for an unsteady career payday at its own rate, not the casual one', () => {
+      const career = BASIC_CAREERS.find((c) => c.payPerPip !== undefined)!
+      const player = fixturePlayer({ spaceId: 'payday1', money: 0, career })
+      const state = decisionState({
+        players: [player],
+        pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+      })
+
+      const random = createFakeRandom({ spins: [9] })
+      const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+      expect(next.players[0]!.money).toBe(career.payPerPip! * 9)
+    })
+
+    it('rejects an option id the wheel never offered', () => {
+      const state = decisionState({
+        players: [fixturePlayer({ spaceId: 'payday1' })],
+        pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+      })
+      expect(() => choose(state, 'spin-twice', { random: createFakeRandom() })).toThrow()
     })
   })
 

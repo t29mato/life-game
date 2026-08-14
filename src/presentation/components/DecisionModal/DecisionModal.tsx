@@ -35,6 +35,7 @@ const KIND_LABEL: Record<Decision['kind'], string> = {
   insurance: 'Insurance office',
   bank: 'The bank',
   retire: 'The number',
+  valueSpin: 'The wheel',
 }
 
 /**

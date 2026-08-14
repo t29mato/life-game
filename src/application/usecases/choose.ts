@@ -11,6 +11,9 @@ import {
   creditPlayer,
   debitPlayer,
   movePlayerTo,
+  paydayKindOf,
+  paydayPayFor,
+  payPlayerSalary,
   repayLoan,
   retirePlayer,
   switchCareer,
@@ -27,6 +30,7 @@ import {
   DECLINE_STOCK_OPTION_ID,
   FIRE_DECLINE_OPTION_ID,
   FIRE_RETIRE_OPTION_ID,
+  VALUE_SPIN_OPTION_ID,
   emphasisForMoney,
   insuranceKindFromOptionId,
 } from './applyEffect'
@@ -452,6 +456,69 @@ function resolveBank(state: GameState, optionId: string): GameState {
 }
 
 /**
+ * The roll a `spinForMoney` tile or an unsteady payday held back until now.
+ *
+ * `applyEffect` named the rate and stopped there — the roll itself waits for
+ * the player to press the one button this decision offers, so the number
+ * that decides their week is one they asked the wheel for rather than one the
+ * game already knew before they saw the card.
+ */
+function resolveValueSpin(state: GameState, optionId: string, deps: UseCaseDeps): GameState {
+  const player = state.players[state.currentPlayerIndex]
+  if (!player) throw new Error('choose: no current player')
+  if (optionId !== VALUE_SPIN_OPTION_ID) throw new Error(`choose: unknown value-spin option "${optionId}"`)
+
+  const edition = editionOf(state)
+  const { economy, currency } = edition
+  const money = (amount: Money): string => formatMoney(amount, currency)
+  const space = currentSpace(state, player)
+  const spinValue = deps.random.spin()
+
+  if (space?.effect.type === 'spinForMoney') {
+    const gain = space.effect.perPip * spinValue
+    const updated = creditPlayer(player, gain)
+    const delta = updated.money - player.money
+    const event = outcomeEvent(
+      space,
+      player,
+      'Spin',
+      delta,
+      [space.effect.reason, `Rolled a ${spinValue} → ${money(gain)}`],
+      emphasisForMoney(delta, economy),
+      `${player.name} spins a ${spinValue} — and that is worth ${money(gain)}!`,
+    )
+    return resolved(
+      state,
+      replacePlayer(state.players, updated),
+      event,
+      `${space.effect.reason} ${player.name} spins a ${spinValue}: ${money(gain)}.`,
+      gain >= 0 ? 'money-in' : 'money-out',
+    )
+  }
+
+  // Otherwise this is a payday — casual or unsteady, the only two kinds that
+  // reach a value-spin decision at all (a flat salary never raises one).
+  const amount = paydayPayFor(player, spinValue, economy)
+  const updated = payPlayerSalary(player, spinValue, economy)
+  const delta = updated.money - player.money
+  const kind = paydayKindOf(player)
+  const notes =
+    kind === 'casual'
+      ? ['Between jobs, so you pick up shifts.', `Spun ${spinValue} → ${money(amount)}`]
+      : [`${player.career?.title ?? 'Your trade'} — no two weeks pay the same.`, `Spun ${spinValue} → ${money(amount)}`]
+  const narration =
+    kind === 'casual'
+      ? `No job, but no wasted week either — ${player.name} picks up shifts and spins ${spinValue} for ${money(amount)}.`
+      : `A ${spinValue} on the wheel, and that is what the week was worth: ${money(amount)} for ${player.name}.`
+  const logMessage =
+    kind === 'casual'
+      ? `${player.name} picks up casual shifts, spinning ${spinValue}: ${money(amount)}.`
+      : `${player.name} collects payday, spinning ${spinValue}: ${money(amount)}.`
+  const event = outcomeEvent(space, player, 'Payday', delta, notes, emphasisForMoney(delta, economy), narration)
+  return resolved(state, replacePlayer(state.players, updated), event, logMessage, 'money-in')
+}
+
+/**
  * Financial independence, taken or refused.
  *
  * Taking it does three things at once and all three are the point: the fund is
@@ -550,6 +617,8 @@ export function choose(state: GameState, optionId: string, deps: UseCaseDeps): G
       return resolveBank(state, optionId)
     case 'retire':
       return resolveRetireEarly(state, optionId, deps)
+    case 'valueSpin':
+      return resolveValueSpin(state, optionId, deps)
     default: {
       const exhaustive: never = state.pendingDecision.kind
       throw new Error(`choose: unhandled decision kind ${JSON.stringify(exhaustive)}`)

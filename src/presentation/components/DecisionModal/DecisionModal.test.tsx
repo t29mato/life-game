@@ -313,4 +313,31 @@ describe('DecisionModal', () => {
     expect(screen.getByText('+$20,000')).toBeInTheDocument()
     expect(screen.getByText('-$22,000')).toBeInTheDocument()
   })
+
+  it('renders a value-spin decision as a single button naming the rate, and presses it like any other option', async () => {
+    const user = userEvent.setup()
+    const decision: Decision = {
+      kind: 'valueSpin',
+      prompt: 'The Crêpe Van Bet',
+      options: [
+        {
+          id: 'value-spin',
+          label: 'Spin',
+          description: 'What the crêpe van took $2,000 a pip you roll, 1 to 10 — higher is always better.',
+          icon: 'space:payday',
+        },
+      ],
+    }
+    const onChoose = vi.fn()
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <DecisionModal decision={decision} board={makeBoard()} onChoose={onChoose} />
+      </AudioProvider>,
+    )
+    expect(screen.getByText('The wheel')).toBeInTheDocument()
+    expect(screen.getByText('The Crêpe Van Bet')).toBeInTheDocument()
+    expect(screen.getByText(/higher is always better/)).toBeInTheDocument()
+    await user.click(screen.getByRole('option', { name: /spin/i }))
+    expect(onChoose).toHaveBeenCalledWith('value-spin')
+  })
 })

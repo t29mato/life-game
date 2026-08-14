@@ -39,6 +39,7 @@ import {
   expectedPayday,
   loseCareer as loseCareerFor,
   marryPlayer,
+  paydayKindOf,
   promoteCareer,
   removeLifeTile,
   retirePlayer,
@@ -47,7 +48,7 @@ import {
 } from '@domain/rules/player'
 import { formatMoney, loanNote } from './format'
 import { appendLog } from './logging'
-import { collectPaydays, describeSpins } from './payday'
+import { collectPaydays } from './payday'
 import type { UseCaseDeps } from './types'
 
 export interface EffectResult {
@@ -73,6 +74,7 @@ const BANK_DECLINE_OPTION_ID = 'bank-walk-on'
 const FIRE_RETIRE_OPTION_ID = 'retire-early-now'
 const FIRE_DECLINE_OPTION_ID = 'retire-early-keep-working'
 const CAREER_STAY_OPTION_ID = 'career-stay-put'
+const VALUE_SPIN_OPTION_ID = 'value-spin'
 
 /** Prefix that turns an `InsuranceKind` into its decision option id, and back. */
 const INSURANCE_OPTION_PREFIX = 'insurance-'
@@ -349,42 +351,42 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
     }
 
     case 'payday': {
+      // A salaried player's packet is a fixed number — nothing to roll for,
+      // so nothing to make a player press a button over. It collects exactly
+      // as it always has.
+      const kind = paydayKindOf(player)
+      if (kind === 'salary') {
+        const collection = collectPaydays(player, 1, deps, economy)
+        const updated = collection.player
+        const delta = updated.money - player.money
+        const event = baseEvent(space, delta, [`Payday! ${money(delta)}`], emphasisOf(delta), `Payday! ${player.name} clocks out ${money(delta)} richer.`)
+        const log = appendLog(state, player.id, `${player.name} collects payday: ${money(delta)}.`, 'money-in')
+        return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
+      }
+
       /*
-       * Nobody ever leaves a payday empty-handed. A salaried player collects
-       * their contract; unsteady work and a player between jobs are paid by
-       * the wheel, so the card shows the spin that produced the packet the way
-       * `spinForMoney` does — otherwise a variable wage just looks like the
-       * game quietly changing its mind about what a job is worth.
+       * Unsteady work and a player between jobs are paid by the wheel — and a
+       * wheel a player never touches is not a wheel, it is a number the game
+       * quietly decided for them. So the roll waits for `resolveValueSpin` in
+       * `choose.ts`, and this card names the rate before anyone commits to it:
+       * the formula is always `rate × the spin`, so higher is always better,
+       * whichever rate applies.
        */
-      const collection = collectPaydays(player, 1, deps, economy)
-      const updated = collection.player
-      const delta = updated.money - player.money
-      const spins = describeSpins(collection.packets)
-
-      const notes: string[] =
-        collection.kind === 'casual'
-          ? ['Between jobs, so you pick up shifts.', `Spun ${spins} → ${money(delta)}`]
-          : collection.kind === 'variable'
-            ? [`${player.career?.title ?? 'Your trade'} — no two weeks pay the same.`, `Spun ${spins} → ${money(delta)}`]
-            : [`Payday! ${money(delta)}`]
-
-      const narration =
-        collection.kind === 'casual'
-          ? `No job, but no wasted week either — ${player.name} picks up shifts and spins ${spins} for ${money(delta)}.`
-          : collection.kind === 'variable'
-            ? `A ${spins} on the wheel, and that is what the week was worth: ${money(delta)} for ${player.name}.`
-            : `Payday! ${player.name} clocks out ${money(delta)} richer.`
-
-      const logMessage =
-        collection.kind === 'casual'
-          ? `${player.name} picks up casual shifts, spinning ${spins}: ${money(delta)}.`
-          : collection.kind === 'variable'
-            ? `${player.name} collects payday, spinning ${spins}: ${money(delta)}.`
-            : `${player.name} collects payday: ${money(delta)}.`
-
-      const event = baseEvent(space, delta, notes, emphasisOf(delta), narration)
-      const log = appendLog(state, player.id, logMessage, 'money-in')
-      return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
+      const rate = kind === 'variable' && player.career?.payPerPip !== undefined
+        ? player.career.payPerPip
+        : economy.casualWagePerPip
+      const description =
+        kind === 'casual'
+          ? `Between jobs, so you pick up shifts. ${money(rate)} a pip you roll, 1 to 10 — higher is always better.`
+          : `${player.career?.title ?? 'Your trade'} — no two weeks pay the same. ${money(rate)} a pip you roll, 1 to 10 — higher is always better.`
+      const decision: Decision = {
+        kind: 'valueSpin',
+        prompt: space.title,
+        options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Spin', description, icon: 'space:payday' }],
+      }
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up to spin for the week's pay.`)
+      const log = appendLog(state, player.id, `${player.name} is up for a payday spin.`, 'event')
+      return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
     case 'payRaise': {
@@ -823,24 +825,25 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
     }
 
     case 'spinForMoney': {
-      const spinValue = deps.random.spin()
-      const gain = effect.perPip * spinValue
-      const updated = creditPlayer(player, gain)
-      const delta = updated.money - player.money
-      const event = baseEvent(
-        space,
-        delta,
-        [effect.reason, `Rolled a ${spinValue} → ${money(gain)}`],
-        emphasisOf(delta),
-        `${player.name} spins a ${spinValue} — and that is worth ${money(gain)}!`,
-      )
-      const log = appendLog(
-        state,
-        player.id,
-        `${effect.reason} ${player.name} spins a ${spinValue}: ${money(gain)}.`,
-        gain >= 0 ? 'money-in' : 'money-out',
-      )
-      return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
+      // Deferred to `resolveValueSpin` in `choose.ts` — see the 'payday' case
+      // above for why. The rate is right there in the description because the
+      // formula is always `perPip × the spin`, so a player deciding whether to
+      // press the button already knows higher is better before they do.
+      const decision: Decision = {
+        kind: 'valueSpin',
+        prompt: space.title,
+        options: [
+          {
+            id: VALUE_SPIN_OPTION_ID,
+            label: 'Spin',
+            description: `${effect.reason} ${money(effect.perPip)} a pip you roll, 1 to 10 — higher is always better.`,
+            icon: 'space:payday',
+          },
+        ],
+      }
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up for the spin.`)
+      const log = appendLog(state, player.id, `${player.name} is up for a spin: ${effect.reason.toLowerCase()}`, 'event')
+      return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
     case 'retire': {
@@ -1423,4 +1426,5 @@ export {
   DECLINE_STOCK_OPTION_ID,
   FIRE_DECLINE_OPTION_ID,
   FIRE_RETIRE_OPTION_ID,
+  VALUE_SPIN_OPTION_ID,
 }

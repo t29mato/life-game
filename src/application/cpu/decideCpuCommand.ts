@@ -793,6 +793,10 @@ function scoreOption(option: DecisionOption, decision: Decision, context: Contex
       return scoreBank(option, context)
     case 'retire':
       return scoreRetire(option, context)
+    case 'valueSpin':
+      // The only option there is — spin. No decision to weigh, so no context
+      // to weigh it against; the computer presses the one button offered.
+      return 0
     default: {
       const exhaustive: never = decision.kind
       throw new Error(`decideCpuCommand: unhandled decision kind ${JSON.stringify(exhaustive)}`)

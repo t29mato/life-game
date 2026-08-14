@@ -92,39 +92,38 @@ describe('applyEffect', () => {
       expect(next.log[0]!.tone).toBe('money-in')
     })
 
-    it('pays casual shifts by the spin when unemployed, never nothing', () => {
+    it('holds a casual payday for the player to spin themselves, touching neither money nor the wheel', () => {
       const player = fixturePlayer({ money: 1_000, career: null })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'payday' } })
-      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom({ spins: [7] }) })
-      expect(next.players[0]!.money).toBe(1_000 + CASUAL_WAGE_PER_PIP * 7)
-      expect(event.moneyDelta).toBe(CASUAL_WAGE_PER_PIP * 7)
-      expect(next.log[0]!.tone).toBe('money-in')
+      const random = createFakeRandom({ spins: [7] })
+      const { state: next } = applyEffect(state, space, { random })
+      expect(next.players[0]!.money).toBe(1_000)
+      expect(random.calls.spins).toBe(0)
+      expect(next.pendingDecision?.kind).toBe('valueSpin')
+      expect(next.pendingDecision?.options).toHaveLength(1)
     })
 
-    it('says the shifts were picked up, and shows the spin that paid for them', () => {
+    it('says the shifts are up for grabs, and quotes the rate before anyone commits to a spin', () => {
       const player = fixturePlayer({ money: 0, career: null })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'payday' } })
-      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom({ spins: [4] }) })
-      expect(event.notes.join(' ')).toContain('pick up shifts')
-      expect(event.notes.join(' ')).toContain('Spun a 4')
-      expect(next.log[0]!.message).toContain('casual shifts')
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      const description = next.pendingDecision?.options[0]?.description ?? ''
+      expect(description).toContain('pick up shifts')
+      expect(description).toContain(`$${CASUAL_WAGE_PER_PIP.toLocaleString('en-US')}`)
+      expect(next.log[0]!.message).toContain('payday spin')
     })
 
-    it('pays an unsteady career by the spin rather than its headline salary', () => {
+    it('holds an unsteady career payday for a spin too, quoting its own per-pip rate rather than casual pay', () => {
       const career = BASIC_CAREERS.find((c) => c.payPerPip !== undefined)!
       const player = fixturePlayer({ money: 0, career })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'payday' } })
-
-      const lean = applyEffect(state, space, { random: createFakeRandom({ spins: [2] }) })
-      const fat = applyEffect(state, space, { random: createFakeRandom({ spins: [9] }) })
-
-      expect(lean.event.moneyDelta).toBe(career.payPerPip! * 2)
-      expect(fat.event.moneyDelta).toBe(career.payPerPip! * 9)
-      expect(fat.event.notes.join(' ')).toContain('Spun a 9')
-      expect(fat.state.log[0]!.message).toContain('spinning a 9')
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      const description = next.pendingDecision?.options[0]?.description ?? ''
+      expect(description).toContain(career.title)
+      expect(description).toContain('no two weeks pay the same')
     })
 
     it('leaves a salaried packet flat, and never spends a spin on it', () => {
@@ -504,13 +503,18 @@ describe('applyEffect', () => {
   })
 
   describe('spinForMoney', () => {
-    it('gains perPip times the spin result', () => {
+    it('holds for the player to spin themselves, quoting the per-pip rate rather than rolling for them', () => {
       const player = fixturePlayer({ money: 0 })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'spinForMoney', perPip: 100, reason: 'Lucky roll' } })
-      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom({ spins: [7] }) })
-      expect(next.players[0]!.money).toBe(700)
-      expect(event.moneyDelta).toBe(700)
+      const random = createFakeRandom({ spins: [7] })
+      const { state: next } = applyEffect(state, space, { random })
+      expect(next.players[0]!.money).toBe(0)
+      expect(random.calls.spins).toBe(0)
+      expect(next.pendingDecision?.kind).toBe('valueSpin')
+      const description = next.pendingDecision?.options[0]?.description ?? ''
+      expect(description).toContain('Lucky roll')
+      expect(description).toContain('$100')
     })
   })
 
@@ -819,7 +823,8 @@ describe('applyEffect', () => {
       const payday = applyEffect(next, fixtureSpace({ effect: { type: 'payday' } }), {
         random: createFakeRandom({ spins: [3] }),
       })
-      expect(payday.event.moneyDelta).toBe(CASUAL_WAGE_PER_PIP * 3)
+      const description = payday.state.pendingDecision?.options[0]?.description ?? ''
+      expect(description).toContain('pick up shifts')
     })
 
     it('is a harmless no-op for a player who has no job to lose', () => {
