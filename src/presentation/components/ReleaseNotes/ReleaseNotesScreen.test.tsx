@@ -1,4 +1,4 @@
-import { render, screen, type RenderResult } from '@testing-library/react'
+import { render, screen, within, type RenderResult } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { AudioProvider } from '../../hooks/useAudio'
@@ -35,9 +35,26 @@ describe('ReleaseNotesScreen', () => {
 
   it('groups changes into new, changed and fixed', () => {
     renderReleaseNotes({ onClose: () => {} })
-    expect(screen.getByText("What's new")).toBeInTheDocument()
-    expect(screen.getByText('Changed')).toBeInTheDocument()
-    expect(screen.getByText('Fixed')).toBeInTheDocument()
+    // Every release repeats these headings, so count rather than expect one:
+    // the assertion is that the grouping exists, not that only one release does.
+    expect(screen.getAllByText("What's new").length).toBe(
+      RELEASE_NOTES.filter((note) => note.whatsNew.length > 0).length,
+    )
+    expect(screen.getAllByText('Changed').length).toBe(
+      RELEASE_NOTES.filter((note) => note.changes.length > 0).length,
+    )
+    expect(screen.getAllByText('Fixed').length).toBe(
+      RELEASE_NOTES.filter((note) => note.fixes.length > 0).length,
+    )
+  })
+
+  it('leaves out a section a release has nothing to put in', () => {
+    // The newest release fixed nothing, and an empty "Fixed" heading reads as
+    // a page that failed to load rather than a release that broke nothing.
+    renderReleaseNotes({ onClose: () => {} })
+    const current = screen.getByText(`Version ${__APP_VERSION__}`).closest('li')
+    expect(current).not.toBeNull()
+    expect(within(current!).queryByText('Fixed')).not.toBeInTheDocument()
   })
 
   it('calls onClose when the back button is clicked', async () => {

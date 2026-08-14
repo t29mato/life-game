@@ -20,6 +20,18 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
+    date: 'August 14, 2026',
+    whatsNew: [
+      'Five countries to play in: the USA, Japan, France, India and Bolivia. Pick one on the title screen — same rules and the same board, but a different life, in that country’s own money.',
+    ],
+    changes: [
+      'Loans now say how much you actually borrowed, alongside what it will cost to settle at retirement. On Very Hard those two numbers are much further apart than you might expect.',
+      'Save slots say which country the game was played in, so a half-finished Japan evening is no longer indistinguishable from a French one.',
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.0.0',
     date: 'August 12, 2026',
     whatsNew: [
       'Play against the computer — any seat can be a person or the computer, so the game works solo.',
