@@ -62,7 +62,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 500, reason: 'A semester by the page' },
   }),
   setback('veryHard', STANDARD_UP, 'bo-uni-laptop', 'Laptop Dies',
-    'The laptop dies mid-sentence, two days before the thesis is due, taking chapter four with it. The replacement is urgent, imported, and priced accordingly.',
+    'The laptop dies mid-sentence, two days before the thesis is due, taking chapter four with it. The replacement has to be imported, so it costs much more.',
     { type: 'payMoney', amount: 3_000, reason: 'Emergency laptop' },
     'blue', 'space:late-night-study'),
   {
@@ -82,7 +82,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
   }),
   {
     id: 'bo-uni-scholarship', kind: 'normal', title: 'The Merit Scholarship',
-    description: 'The faculty\'s excellence scholarship lands on your grades of all grades, and it covers a serious chunk of the years remaining.',
+    description: 'Your grades earn you the faculty\'s top scholarship, and it covers a serious chunk of the years remaining.',
     effect: { type: 'gainMoney', amount: 24_000, reason: 'Merit scholarship' },
     tone: 'blue', icon: 'space:scholarship-win', tier: STANDARD_UP,
   },
@@ -94,7 +94,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
   },
   flavour(STANDARD_UP, 'bo-uni-finals', 'Finals Week', 'Five exams in four days, and the photocopied notes of three different generations spread across one bed.', 'blue', 'space:finals-week', {
     from: 'hard',
-    description: 'Five exams in four days, and a crash course you panic-buy for the one subject whose professor grades like a hailstorm.',
+    description: 'Five exams in four days, and a crash course you panic-buy for the one subject whose professor grades hardest of all.',
     effect: { type: 'payMoney', amount: 1_600, reason: 'The crash course' },
   }),
   {
@@ -111,7 +111,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'bo-uni-exchange', kind: 'normal', title: 'The Exchange Semester',
-    description: 'A semester over the border costs a fortune, rearranges how you see everything, and ruins you permanently for weak coffee.',
+    description: 'A semester over the border costs a fortune, changes how you see everything, and means you can never enjoy weak coffee again.',
     effect: { type: 'payMoney', amount: 4_000, reason: 'Semester abroad' },
     tone: 'blue', icon: 'space:weekend-trip', tier: STANDARD_UP,
   },
@@ -183,7 +183,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'bo-work-grill-bet', kind: 'normal', title: 'The Grill Cart Bet',
-    description: 'Every boliviano you have goes into a second-hand cart, a grill, and a peanut sauce recipe your grandmother priced at one favour — spin to see what the night corner does.',
+    description: 'Every boliviano you have goes into a second-hand cart, a grill, and your grandmother\'s peanut sauce recipe — spin to see what the night crowd thinks of it.',
     effect: { type: 'spinForMoney', perPip: 2_000, reason: 'What the grill cart took' },
     tone: 'orange', icon: 'career:food-truck-owner', tier: STANDARD_UP,
   },
@@ -198,12 +198,12 @@ const WORK_LANE: readonly SpaceContent[] = [
     1_200,
     'A week the roads were closed',
   )),
-  flavour(LONG_ONLY, 'bo-work-licence', 'The Professional Licence', 'A weekend course, one written test, and a driver\'s licence category your boss treats like a knighthood.', 'orange', 'space:new-skills', {
+  flavour(LONG_ONLY, 'bo-work-licence', 'The Professional Licence', 'A weekend course, one written test, and a driver\'s licence category that impresses your boss more than it should.', 'orange', 'space:new-skills', {
     from: 'hard',
-    description: 'A weekend course, one written test, and a licence category your boss treats like a knighthood — with the course fee yours to find.',
+    description: 'A weekend course, one written test, and a licence category that impresses your boss more than it should — with the course fee yours to find.',
     effect: { type: 'payMoney', amount: 800, reason: 'Course fee' },
   }),
-  flavour(STANDARD_UP, 'bo-work-caseras', 'The Regulars', 'You have regulars now — customers who come to you and nobody else, get the little extra on top of every sale, and expect the same forever. This is the local equivalent of a credit rating, and it is better.', 'orange', 'space:steady-hustle'),
+  flavour(STANDARD_UP, 'bo-work-caseras', 'The Regulars', 'You have regulars now — customers who come to you and nobody else, get the little extra on top of every sale, and expect the same forever. That kind of trust is worth more than any paperwork could prove.', 'orange', 'space:steady-hustle'),
   payday(EVERY_BOARD, 'bo-work-payday-3', 'Three months in, and the folded notes have stopped feeling like a surprise.'),
   {
     id: 'bo-work-fiesta-crates', kind: 'normal', title: 'Fiesta Weekend',
@@ -219,7 +219,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'bo-work-fares', kind: 'normal', title: 'The Commute',
-    description: 'Two minibuses and a cable car each way, every day, one small fare at a time. It adds up the way rain does.',
+    description: 'Two minibuses and a cable car each way, every day, one small fare at a time. It adds up fast over a month.',
     effect: { type: 'payMoney', amount: 400, reason: 'A month of fares' },
     tone: 'orange', icon: 'space:car-trouble', tier: LONG_ONLY,
   },
@@ -255,7 +255,7 @@ const MARKET_STREET_EARLY: readonly SpaceContent[] = [
   },
   {
     id: 'bo-main-bank', kind: 'normal', title: 'Bank Visit',
-    description: 'The queue wraps the block twice, moves with geological patience, and the teller asks warmly how the money is treating you.',
+    description: 'The queue wraps the block twice, moves incredibly slowly, and the teller asks warmly how the money is treating you.',
     effect: { type: 'bank' },
     tone: 'slate', icon: 'finance:bank-visit', tier: EVERY_BOARD,
   },
@@ -313,7 +313,7 @@ const MARKET_STREET_EARLY: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:fender-bender', tier: EVERY_BOARD,
   },
   setback('veryHard', EVERY_BOARD, 'bo-main-motorway-pileup', 'Fog on the Motorway',
-    'Fog rolls over the rim of the high city, brake lights bloom, and four vehicles concertina on the toll road. Everyone walks away; the invoices do not.',
+    'Fog rolls over the rim of the high city, brake lights bloom, and four vehicles crush together on the toll road. Everyone walks away; the invoices do not.',
     { type: 'payMoney', amount: 14_000, reason: 'Pileup repairs', hazard: 'accident' },
     'slate', 'space:fender-bender'),
   setback('hard', EVERY_BOARD, 'bo-main-dentist', 'Dentist Bill',
@@ -464,7 +464,7 @@ const MARKET_STREET_LATE: readonly SpaceContent[] = [
   },
   {
     id: 'bo-main-raise-talk', kind: 'normal', title: 'Pay Raise Talk',
-    description: 'You raise the subject sideways, over api, the way it is done — and to your shock the new number arrives before the cups are cleared.',
+    description: 'You raise the subject sideways, over a cup of api — the hot purple-corn drink — the way it is done, and to your shock the new number arrives before the cups are cleared.',
     effect: { type: 'payRaise' },
     tone: 'slate', icon: 'space:pay-raise-talk', tier: STANDARD_UP,
   },
@@ -543,7 +543,7 @@ const MARKET_STREET_LATE: readonly SpaceContent[] = [
     ),
   },
   {
-    id: 'bo-main-pasanaku', kind: 'normal', title: 'Pasanaku Month',
+    id: 'bo-main-pasanaku', kind: 'normal', title: 'The Savings Circle',
     description: 'The savings pool you and the neighbours pay into every month comes round the circle at last — this month, the whole pot is yours.',
     effect: { type: 'collectFromEach', amount: 500, reason: 'The pool comes round to you' },
     tone: 'slate', icon: 'space:poker-night', tier: STANDARD_UP,
@@ -600,12 +600,12 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'bo-family-van-gatepost', kind: 'normal', title: 'The Family Van',
-    description: 'Reversing off the drive with three children adjudicating loudly behind you, into the one gatepost that has never once moved.',
+    description: 'Reversing off the drive with three children arguing loudly in the back seat, into the one gatepost that has never once moved.',
     effect: { type: 'payMoney', amount: 3_200, reason: 'Van bodywork', hazard: 'accident' },
     tone: 'purple', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
   {
-    id: 'bo-family-charango', kind: 'normal', title: 'Charango Lessons',
+    id: 'bo-family-charango', kind: 'normal', title: 'The Little Guitar',
     description: 'The little ten-string guitar is louder than its size suggests, and so is the teacher\'s optimism. There is real promise in there somewhere.',
     effect: { type: 'payMoney', amount: 900, reason: 'Charango lessons' },
     tone: 'purple', icon: 'space:piano-lessons', tier: LONG_ONLY,
@@ -1187,7 +1187,7 @@ const RETIREMENT: SpaceContent = {
 const UNIVERSITY_BRANCH: RouteBranch = {
   identity: {
     name: 'University Lane',
-    summary: 'Five years, an entrance exam, and a thesis defended in front of your whole family in their Sunday best. The bill is the years themselves, paid before you earn a thing — and the title it buys goes in front of your name forever. Dependable, never enormous.',
+    summary: 'Five years, an entrance exam, and a thesis defended in front of your whole family in their best clothes. The bill is the years themselves, paid before you earn a thing — and the title it buys goes in front of your name forever. Dependable, never enormous.',
   },
   spaces: [...UNIVERSITY_LANE, GRAD_FAIR],
 }
@@ -1219,7 +1219,7 @@ const OWN_ACCOUNT_BRANCH: RouteBranch = {
 const FAMILY_BRANCH: RouteBranch = {
   identity: {
     name: 'Family Lane',
-    summary: 'School lists, charango practice, and a house full of noise, with every grown-up child providing at the end. Far fewer paydays, and every bill arrives multiplied.',
+    summary: 'School lists, charango practice, and a house full of noise, with every grown-up child giving something back at the end. Far fewer paydays, and every bill arrives multiplied.',
   },
   spaces: FAMILY_LANE,
 }

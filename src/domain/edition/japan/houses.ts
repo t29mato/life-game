@@ -50,7 +50,7 @@ export const HOUSES: readonly House[] = [
     price: 20_500_000,
     resaleRange: [15_000_000, 28_000_000],
     icon: 'space:apartment-hunt',
-    description: 'An old sake warehouse with beams like ship keels, huge windows, and one magnificently loud kerosene heater.',
+    description: 'An old sake warehouse with huge wooden beams overhead, big windows, and one magnificently loud kerosene heater.',
   },
   {
     id: 'house-jp-two-family-house',

@@ -23,12 +23,11 @@ import {
  * gets to change is everything the player actually reads: which life happens
  * on each tile, and in which words.
  *
- * The voice rule, applied on every tile below: **wit travels; vocabulary does
- * not.** The joke is the situation, described concretely enough to explain
- * itself; a Japanese word appears only where the sentence teaches it in
- * passing, and never in a title. Prefer the wince of recognition to the
- * postcard — the cherry blossoms are here, but the tile is about being sent at
- * dawn to guard the tarp.
+ * The voice rule, applied on every tile below: **short sentences, plain
+ * words, a Japanese word only where the sentence teaches it in passing** (the
+ * tatami, the izakaya, the shaken), and never in a title. The joke is the
+ * situation, not the vocabulary — a reader who is not a native English
+ * speaker should get the punchline as fast as a reader who is.
  */
 
 const START: SpaceContent = {
@@ -46,7 +45,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
   // EVERY_BOARD, not STANDARD_UP — see usa/route.ts college-1.
   flavour(EVERY_BOARD, 'jp-uni-move-in', 'Six-Tatami Room', 'Your first solo apartment is measured in straw mats. It holds a futon, a rice cooker, and every ambition you have.', 'blue', 'space:move-in-day', {
     from: 'hard',
-    description: 'Your first solo apartment is measured in straw mats — and the landlord would like a deposit, plus a separate sum called "gratitude money", which is exactly what it sounds like and is not refundable.',
+    description: 'Your first solo apartment is measured in straw mats — and the landlord wants a deposit, plus a non-refundable payment called "gratitude money" for the privilege of renting to you.',
     effect: { type: 'payMoney', amount: 140_000, reason: 'Deposit and gratitude money' },
   }),
   {
@@ -72,7 +71,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
     tone: 'blue', icon: 'space:campus-job', tier: EVERY_BOARD,
   },
   setback('hard', EVERY_BOARD, 'jp-uni-phone-trap', 'The Phone Contract',
-    'The phone plan you signed at nineteen turns out to contain a cancellation clause written by a poet, and this is the month it rhymes.',
+    'The phone plan you signed at nineteen had a cancellation fee buried in the fine print, and this is the month it catches up with you.',
     { type: 'payMoney', amount: 250_000, reason: 'Contract cancellation fees' },
     'blue', 'finance:bank-visit'),
   flavour(LONG_ONLY, 'jp-uni-circle', 'The Circle', 'You join a university club that is nominally about tennis and actually about drinking parties with a tennis theme.', 'blue', 'space:group-project', {
@@ -99,7 +98,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
   }),
   {
     id: 'jp-uni-internship', kind: 'normal', title: 'Summer Internship',
-    description: 'A summer of fetching tea and photocopies ends with a transport stipend far more generous than the tea deserved.',
+    description: 'A summer of fetching tea and photocopies ends with a transport stipend that pays better than the work did.',
     effect: { type: 'gainMoney', amount: 500_000, reason: 'Internship stipend' },
     tone: 'blue', icon: 'space:new-skills', tier: LONG_ONLY,
   },
@@ -111,7 +110,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'jp-uni-abroad', kind: 'normal', title: 'Study Abroad',
-    description: 'A semester overseas costs a fortune, rearranges how you see everything, and permanently ruins you for quiet trains.',
+    description: 'A semester overseas costs a fortune and changes how you see everything — including how quiet the trains back home suddenly seem.',
     effect: { type: 'payMoney', amount: 400_000, reason: 'Semester abroad' },
     tone: 'blue', icon: 'space:weekend-trip', tier: STANDARD_UP,
   },
@@ -198,9 +197,9 @@ const WORK_LANE: readonly SpaceContent[] = [
     120_000,
     'Half a month of shifts',
   )),
-  flavour(LONG_ONLY, 'jp-work-forklift', 'Forklift Licence', 'A weekend course, one written test, and a licence your boss treats like a knighthood.', 'orange', 'space:new-skills', {
+  flavour(LONG_ONLY, 'jp-work-forklift', 'Forklift Licence', 'A weekend course, one written test, and a licence your boss treats like a huge achievement.', 'orange', 'space:new-skills', {
     from: 'hard',
-    description: 'A weekend course, one written test, and a licence your boss treats like a knighthood — with the course fee yours to find.',
+    description: 'A weekend course, one written test, and a licence your boss treats like a huge achievement — with the course fee yours to find.',
     effect: { type: 'payMoney', amount: 80_000, reason: 'Course fee' },
   }),
   flavour(STANDARD_UP, 'jp-work-reliable', 'Never Once Late', 'You have not missed a shift or a train in two years. The station master nods to you now, which is the local equivalent of a medal.', 'orange', 'space:steady-hustle'),
@@ -219,7 +218,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'jp-work-commuter-pass', kind: 'normal', title: 'Commuter Pass',
-    description: 'The company covers the train; the bus to the train, it emerges, is considered a personal hobby.',
+    description: 'The company covers the train — but the bus that gets you to the station, it turns out, is not covered. That one is on you.',
     effect: { type: 'payMoney', amount: 40_000, reason: 'The uncovered leg of the commute' },
     tone: 'orange', icon: 'space:car-trouble', tier: LONG_ONLY,
   },
@@ -239,18 +238,18 @@ const WORK_LANE: readonly SpaceContent[] = [
 const SALARYMAN_STREET_EARLY: readonly SpaceContent[] = [
   flavour(STANDARD_UP, 'jp-main-apartment', 'Apartment Hunt', 'You sign a lease on a place described as "cosy", with a kitchen in the hallway and a washing machine on the balcony.', 'slate', 'space:apartment-hunt', {
     from: 'hard',
-    description: 'You sign a lease on a place described as "cosy" — and the agent\'s fee, the deposit, the key money and the guarantor fee are itemised beautifully.',
+    description: 'You sign a lease on a place described as "cosy" — and the agent\'s fee, the deposit, the key money and the guarantor fee are all listed out for you, one by one.',
     effect: { type: 'payMoney', amount: 220_000, reason: 'Deposit, key money and agency fee' },
   }),
   {
     id: 'jp-main-probation', kind: 'normal', title: 'Probation Review',
-    description: 'Six months in, somebody sits down opposite you with a form in triplicate and asks how you think it is going. Spin.',
+    description: 'Six months in, somebody sits down opposite you with a form to fill out in three copies and asks how you think it is going. Spin.',
     effect: { type: 'promotion', reason: 'The end of probation' },
     tone: 'orange', icon: 'space:pay-raise-talk', tier: EVERY_BOARD,
   },
   {
     id: 'jp-main-depachika', kind: 'normal', title: 'The Food Hall',
-    description: 'You go down to the department store basement for one thing, hungry, and surface forty minutes later with a beautifully wrapped regret.',
+    description: 'You go down to the department store basement for one thing, hungry, and surface forty minutes later with a beautifully wrapped box of food you never planned to buy.',
     effect: { type: 'payMoney', amount: 80_000, reason: 'The food hall got you' },
     tone: 'slate', icon: 'space:grocery-run', tier: LONG_ONLY,
   },
@@ -314,7 +313,7 @@ const SALARYMAN_STREET_EARLY: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:fender-bender', tier: EVERY_BOARD,
   },
   setback('veryHard', EVERY_BOARD, 'jp-main-pileup', 'Expressway Pileup',
-    'Fog on the expressway, brake lights, and four cars concertinaed on the ramp. Everyone walks away; the invoices do not.',
+    'Fog on the expressway, brake lights, and four cars crushed together on the ramp. Everyone walks away; the invoices do not.',
     { type: 'payMoney', amount: 1_400_000, reason: 'Pileup repairs', hazard: 'accident' },
     'slate', 'space:fender-bender'),
   setback('hard', EVERY_BOARD, 'jp-main-dentist', 'Dentist Bill',
@@ -412,7 +411,7 @@ const COMPANY_LOYALTY_ROAD: readonly SpaceContent[] = [
 const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
   {
     id: 'jp-hopper-move', kind: 'stop', title: 'Name Your Price',
-    description: 'You hand in your notice with the next offer already signed. HR looks at you as though you had cancelled a wedding; the new title arrives with a new number attached.',
+    description: 'You hand in your notice with the next offer already signed. HR looks stunned, as if you had quit on the spot; the new title arrives with a new number attached.',
     effect: { type: 'careerChange', reason: 'You named your price elsewhere', compulsory: true },
     tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
   },
@@ -600,7 +599,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'jp-family-kei-van', kind: 'normal', title: 'The Kei Van',
-    description: 'Reversing the kei van off the drive with three children adjudicating behind you, into the one gatepost that has never once moved.',
+    description: 'Reversing the kei van off the drive with three children arguing in the back seat, into the one gatepost that has never once moved.',
     effect: { type: 'payMoney', amount: 320_000, reason: 'Van bodywork', hazard: 'accident' },
     tone: 'purple', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -716,7 +715,7 @@ const CAREER_TRACK: readonly SpaceContent[] = [
     effect: { type: 'gainMoney', amount: 500_000, reason: 'Year-end bonus' },
     tone: 'orange', icon: 'space:bonus-season', tier: STANDARD_UP,
   },
-  flavour(LONG_ONLY, 'jp-fast-window-seat', 'A Desk With a View', 'You are moved to a desk by the window. In this company that can mean two opposite things, and you check the org chart twice before celebrating.', 'orange', 'space:corner-office', {
+  flavour(LONG_ONLY, 'jp-fast-window-seat', 'A Desk With a View', 'You are moved to a desk by the window — which here can mean a promotion, or a quiet way of being pushed aside. You check the org chart twice before celebrating.', 'orange', 'space:corner-office', {
     from: 'hard',
     description: 'You are moved to a desk by the window — the good kind, this time — and the room that comes with it is yours to furnish.',
     effect: { type: 'payMoney', amount: 180_000, reason: 'Furnishing the office' },
@@ -801,7 +800,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   },
   {
     id: 'jp-midtown-allowance', kind: 'normal', title: 'The Allowance',
-    description: 'The accounts are merged, and your entire salary now arrives in a shared account from which a fixed sum returns to you, titled, in the family ledger, "allowance".',
+    description: 'The accounts are merged. Your whole salary now goes into a shared account, and a fixed sum comes back to you each month — labelled "allowance" in the family ledger.',
     effect: { type: 'household', reason: 'The household ledger, settled up' },
     tone: 'purple', icon: 'finance:bank-visit', tier: EVERY_BOARD,
   },
@@ -873,7 +872,7 @@ const SPECULATION_STREET: readonly SpaceContent[] = [
   },
   {
     id: 'jp-risky-golf', kind: 'normal', title: 'Client Golf',
-    description: 'Eighteen holes, a friendly wager a hole, and the handicap you have been quietly sandbagging all season.',
+    description: 'Eighteen holes, a friendly wager a hole, and the handicap you have quietly kept worse than it really is, all season.',
     effect: { type: 'collectFromEach', amount: 250_000, reason: 'Eighteen friendly wagers' },
     tone: 'pink', icon: 'space:poker-night', tier: EVERY_BOARD,
   },
@@ -918,7 +917,7 @@ const SPECULATION_STREET: readonly SpaceContent[] = [
   payday(EVERY_BOARD, 'jp-risky-payday', 'A pay packet lands while your investments are busy misbehaving.'),
   {
     id: 'jp-risky-margin-call', kind: 'normal', title: 'Margin Call',
-    description: 'The broker rings at seven in the morning, and the politeness of the voice says it all.',
+    description: 'The broker rings at seven in the morning, and you already know from their calm tone that it is bad news.',
     effect: { type: 'payMoney', amount: 400_000, reason: 'Margin call' },
     tone: 'pink', icon: 'space:market-crash', tier: LONG_ONLY,
   },
@@ -1053,7 +1052,7 @@ const STEADY_STREET: readonly SpaceContent[] = [
 const SUNSET_YEARS: readonly SpaceContent[] = [
   {
     id: 'jp-sunset-number', kind: 'stop', title: 'The Twenty-Million Problem',
-    description: 'A government report calculates what a comfortable retirement requires, then apologises for saying so. Your own envelope arithmetic runs a little higher — and the number, unfortunately, does not withdraw itself.',
+    description: 'A government report calculates what a comfortable retirement requires, then apologises for saying so. Your own envelope arithmetic runs a little higher — and the number does not go away on its own.',
     effect: { type: 'retireEarly' },
     tone: 'gold', icon: 'space:retirement-fund', tier: EVERY_BOARD,
   },
@@ -1153,7 +1152,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   },
   {
     id: 'jp-sunset-sit-down', kind: 'normal', title: 'The Sit-Down',
-    description: 'You both go through a year of the household ledger at the kitchen table, and the allowance system is finally audited in both directions. There is a coat to discuss.',
+    description: 'You both go through a year of the household ledger at the kitchen table, and the allowance system is finally audited in both directions. There is an expensive coat one of you bought without asking, and it still needs explaining.',
     effect: { type: 'household', reason: 'The ledger, audited both ways' },
     tone: 'purple', icon: 'space:quiet-savings', tier: LONG_ONLY,
   },
@@ -1226,7 +1225,7 @@ const FAMILY_BRANCH: RouteBranch = {
 const CAREER_BRANCH: RouteBranch = {
   identity: {
     name: 'Career Track',
-    summary: 'The overtime is real and so are the raises, the bonuses and the long table at the end of the room. The life you might have had is itemised separately.',
+    summary: 'The overtime is real and so are the raises, the bonuses and the long table at the end of the room. What you gave up for it is a separate list, and it is long.',
   },
   spaces: CAREER_TRACK,
 }

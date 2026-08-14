@@ -23,11 +23,11 @@ import {
  * gets to change is everything the player actually reads: which life happens
  * on each tile, and in which words.
  *
- * The voice rule, applied on every tile below: **wit travels; vocabulary does
- * not.** The joke is the situation, described concretely enough to explain
- * itself; an Indian word appears only where the sentence teaches it in
- * passing, and never in a title. Prefer the wince of recognition to the
- * postcard — the monsoon is here, but the tile is about the pothole it left.
+ * The voice rule, applied on every tile below: short sentences, plain words,
+ * an Indian word only where the sentence teaches it in passing (the chai,
+ * the EMI, the shagun), and never in a title. The joke is the situation, not
+ * the vocabulary — a reader who is not a native English speaker should get
+ * the punchline as fast as a reader who is.
  */
 
 const START: SpaceContent = {
@@ -44,14 +44,14 @@ const START: SpaceContent = {
  */
 const COLLEGE_LANE: readonly SpaceContent[] = [
   // EVERY_BOARD, not STANDARD_UP — see usa/route.ts college-1.
-  flavour(EVERY_BOARD, 'in-uni-hostel', 'The Hostel Room', 'Your first room away from home has two beds, one working fan, and a trunk under the bed holding every ambition you packed.', 'blue', 'space:move-in-day', {
+  flavour(EVERY_BOARD, 'in-uni-hostel', 'The Hostel Room', 'Your first room away from home has two beds, one working fan, and a trunk under the bed packed with everything you hope to become.', 'blue', 'space:move-in-day', {
     from: 'hard',
-    description: 'Your first room away from home has two beds and one working fan — and the warden would like the caution deposit, the mess advance, and a sum called "development fee", which is exactly what it sounds like and is not refundable.',
+    description: 'Your first room away from home has two beds and one working fan — and the warden wants the caution deposit, the mess advance, and a "development fee" that is really just extra money the college keeps, and does not give back.',
     effect: { type: 'payMoney', amount: 140_000, reason: 'Deposit, mess advance and development fee' },
   }),
   {
     id: 'in-uni-admission', kind: 'stop', title: 'Admission Day',
-    description: 'Two years of coaching classes end in one Sunday morning: an examination hall silent except for a lakh of pencils and one invigilator\'s squeaking shoes. Your rank comes through — and the fees are due at the counter before anyone shows you the library.',
+    description: 'Two years of coaching classes end in one Sunday morning: an examination hall packed with students, silent except for pencils and one invigilator\'s squeaking shoes. Your rank comes through — and the fees are due at the counter before anyone shows you the library.',
     effect: { type: 'payMoney', amount: 0, reason: 'Admission and tuition fees' },
     tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD, unscaled: true,
     amountFrom: 'collegeTuition',
@@ -67,12 +67,12 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     'blue', 'space:late-night-study'),
   {
     id: 'in-uni-tuition-classes', kind: 'normal', title: 'Tuition Classes',
-    description: 'You teach mathematics to school children every evening in a rented room, and the parents pay on the first without fail — an economy older than the college.',
+    description: 'You teach mathematics to school children every evening in a rented room, and the parents pay on the first without fail — this side income has been paying students\' bills for generations.',
     effect: { type: 'gainMoney', amount: 900_000, reason: 'Evening tuition classes' },
     tone: 'blue', icon: 'space:campus-job', tier: EVERY_BOARD,
   },
   setback('hard', EVERY_BOARD, 'in-uni-credit-card', 'The Campus Credit Card',
-    'The credit card a smiling agent issued you at the college gate turns out to contain an interest clause written by a poet, and this is the month it rhymes.',
+    'The credit card a smiling agent signed you up for at the college gate has an interest rate buried in fine print, and this month the fine print finally catches up with you.',
     { type: 'payMoney', amount: 250_000, reason: 'Credit card charges' },
     'blue', 'finance:bank-visit'),
   flavour(LONG_ONLY, 'in-uni-fest', 'The Culture Fest', 'You join the festival committee, which is nominally about organising events and actually about arguing over sponsor banners at two in the morning.', 'blue', 'space:group-project', {
@@ -111,7 +111,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'in-uni-exchange', kind: 'normal', title: 'The Exchange Semester',
-    description: 'A semester abroad costs a fortune, rearranges how you see everything, and permanently ruins you for queues that hold their shape.',
+    description: 'A semester abroad costs a fortune, and changes how you see everything — including how strange it now feels when a queue actually stays in a straight line.',
     effect: { type: 'payMoney', amount: 400_000, reason: 'Exchange semester' },
     tone: 'blue', icon: 'space:weekend-trip', tier: STANDARD_UP,
   },
@@ -131,7 +131,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
 
 const GRAD_FAIR: SpaceContent = {
   id: 'in-campus-placement', kind: 'stop', title: 'Campus Placement',
-  description: 'One week of aptitude tests, group discussions, and a notice board the whole batch refreshes in person. Two offer letters carry your name; pick one.',
+  description: 'One week of aptitude tests, group discussions, and a notice board the whole batch keeps walking past to check. Two offer letters carry your name; pick one.',
   effect: { type: 'chooseCareer', pool: 'graduate' },
   tone: 'gold', icon: 'space:grad-job-fair', tier: EVERY_BOARD,
 }
@@ -197,9 +197,9 @@ const WORK_LANE: readonly SpaceContent[] = [
     120_000,
     'Half a month of shifts',
   )),
-  flavour(LONG_ONLY, 'in-work-heavy-licence', 'The Heavy-Vehicle Licence', 'A weekend course, one road test, and a licence your boss treats like a knighthood.', 'orange', 'space:new-skills', {
+  flavour(LONG_ONLY, 'in-work-heavy-licence', 'The Heavy-Vehicle Licence', 'A weekend course, one road test, and a licence your boss is genuinely impressed by.', 'orange', 'space:new-skills', {
     from: 'hard',
-    description: 'A weekend course, one road test, and a licence your boss treats like a knighthood — with the driving school\'s fee, and the agent who "knows the office", both yours to pay.',
+    description: 'A weekend course, one road test, and a licence your boss is genuinely impressed by — with the driving school\'s fee, and the agent who "knows the office", both yours to pay.',
     effect: { type: 'payMoney', amount: 80_000, reason: 'Course and agent fees' },
   }),
   flavour(STANDARD_UP, 'in-work-never-late', 'Never Once Late', 'You have not missed a shift or the 7:10 local in two years. The chai vendor at the station starts your glass when he sees you on the bridge, which is the local equivalent of a medal.', 'orange', 'space:steady-hustle'),
@@ -249,7 +249,7 @@ const OFFICE_ROAD_EARLY: readonly SpaceContent[] = [
   },
   {
     id: 'in-main-mega-sale', kind: 'normal', title: 'The Mega Sale',
-    description: 'You open the shopping app for one phone cover, at midnight, during the festival sale, and surface forty minutes later with a cart of beautifully discounted regret.',
+    description: 'You open the shopping app for one phone cover, at midnight, during the festival sale, and forty minutes later your cart is full of things you did not need, all heavily discounted.',
     effect: { type: 'payMoney', amount: 80_000, reason: 'The sale got you' },
     tone: 'slate', icon: 'space:grocery-run', tier: LONG_ONLY,
   },
@@ -296,7 +296,7 @@ const OFFICE_ROAD_EARLY: readonly SpaceContent[] = [
   },
   {
     id: 'in-main-pothole', kind: 'normal', title: 'Pothole Season',
-    description: 'The monsoon redesigns the road home nightly, and the scooter\'s suspension files its objection through the garage.',
+    description: 'The monsoon fills the road home with new potholes every night, and the scooter\'s suspension gives out. The garage bill is the scooter\'s way of complaining.',
     effect: { type: 'payMoney', amount: 120_000, reason: 'Suspension and rim repairs' },
     tone: 'slate', icon: 'space:car-trouble', tier: LONG_ONLY,
   },
@@ -308,12 +308,12 @@ const OFFICE_ROAD_EARLY: readonly SpaceContent[] = [
   },
   {
     id: 'in-main-roundabout', kind: 'normal', title: 'The Roundabout Scrape',
-    description: 'A gentle merge at the roundabout, a bus with seniority, and an exchange of horn. The bodyshop\'s estimate arrives on letterhead.',
+    description: 'A gentle merge at the roundabout, a bus that refuses to give way, and an exchange of horn. The bodyshop\'s estimate arrives on letterhead.',
     effect: { type: 'payMoney', amount: 240_000, reason: 'Bodyshop bill', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender', tier: EVERY_BOARD,
   },
   setback('veryHard', EVERY_BOARD, 'in-main-pileup', 'Expressway Pileup',
-    'Winter fog on the expressway, brake lights, and four cars concertinaed at the toll plaza. Everyone walks away; the invoices do not.',
+    'Winter fog on the expressway, brake lights, and four cars crushed together at the toll plaza. Everyone walks away; the invoices do not.',
     { type: 'payMoney', amount: 1_400_000, reason: 'Pileup repairs', hazard: 'accident' },
     'slate', 'space:fender-bender'),
   setback('hard', EVERY_BOARD, 'in-main-root-canal', 'Root Canal',
@@ -322,7 +322,7 @@ const OFFICE_ROAD_EARLY: readonly SpaceContent[] = [
     'slate', 'space:gym-membership'),
   {
     id: 'in-main-basement-pillar', kind: 'normal', title: 'The Basement Pillar',
-    description: 'The society\'s basement parking was designed for smaller cars and larger optimism, and the pillar by your slot has never once moved.',
+    description: 'The society\'s basement parking was built for smaller cars than anyone actually drives, and the pillar by your slot has never once moved.',
     effect: { type: 'payMoney', amount: 260_000, reason: 'Wing mirror and pride', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -378,13 +378,13 @@ const PERMANENT_POST_ROAD: readonly SpaceContent[] = [
   },
   {
     id: 'in-loyal-transfer', kind: 'normal', title: 'The Transfer Order',
-    description: 'Nagpur. The first of next month. The company decided in the last quarter; you found out on Friday. Your flat, your gym and your favourite dosa counter are now souvenirs, and the packers\' truck is yours to pay for.',
+    description: 'Nagpur. The first of next month. The company decided in the last quarter; you found out on Friday. You have to leave your flat, your gym and your favourite dosa counter behind, and the packers\' truck is yours to pay for.',
     effect: { type: 'payMoney', amount: 300_000, reason: 'Relocating for the company' },
     tone: 'orange', icon: 'space:apartment-hunt', tier: STANDARD_UP,
   },
   {
     id: 'in-loyal-fog', kind: 'normal', title: 'December Fog',
-    description: 'Forty minutes each way for nine years, and one December morning the fog hands the same gentle corner to you a moment too late.',
+    description: 'Forty minutes each way for nine years, and one December morning the fog hides the same gentle corner until it is a moment too late to react.',
     effect: { type: 'payMoney', amount: 400_000, reason: 'Commuter write-off', hazard: 'accident' },
     tone: 'orange', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -422,7 +422,7 @@ const SWITCH_ALLEY: readonly SpaceContent[] = [
   },
   {
     id: 'in-switch-gap', kind: 'normal', title: 'The Notice-Period Gap',
-    description: 'Three weeks between handing back one badge and being issued the next — during which the health cover lapses and one small fever bills you at full, unforgiving rack rate.',
+    description: 'Three weeks between handing back one badge and being issued the next — during which the health cover lapses, and one small fever gets billed at the hospital\'s full price, with no discount at all.',
     effect: { type: 'payMoney', amount: 300_000, reason: 'Three weeks between badges' },
     tone: 'orange', icon: 'space:rent-due', tier: STANDARD_UP,
   },
@@ -450,7 +450,7 @@ const SWITCH_ALLEY: readonly SpaceContent[] = [
 const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
   {
     id: 'in-main-appraisal', kind: 'stop', title: 'The Appraisal',
-    description: 'A small meeting room, two managers with your self-review open between them, and a bell curve you are told you sit on. Spin, and hear where.',
+    description: 'A small meeting room, two managers with your self-review open between them, and a rating that ranks you against everyone else on the team. Spin, and hear where you land.',
     effect: { type: 'promotion', reason: 'Your appraisal came round' },
     tone: 'orange', icon: 'space:pay-raise-talk', tier: EVERY_BOARD,
   },
@@ -462,7 +462,7 @@ const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
   },
   {
     id: 'in-main-increment', kind: 'normal', title: 'The Increment Letter',
-    description: 'Your pay rises because the appraisal cycle has completed another orbit. Performance was mentioned once, in a font.',
+    description: 'Your pay rises because another appraisal cycle has finished, not because anyone singled you out. The letter mentions "performance" once, in small print, and moves on.',
     effect: { type: 'payRaise' },
     tone: 'slate', icon: 'space:pay-raise-talk', tier: STANDARD_UP,
   },
@@ -472,7 +472,7 @@ const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
     'slate', 'space:refund-check'),
   {
     id: 'in-main-rolled-off', kind: 'normal', title: 'Rolled Off',
-    description: 'The client project everyone swore would renew in April is, very quietly, not renewed. You sit on the bench until the bench is dissolved.',
+    description: 'The client project everyone swore would renew in April is, very quietly, not renewed. You are put "on the bench" — unassigned, still paid, waiting for a new project — until the company stops waiting too.',
     effect: { type: 'loseCareer', reason: 'Rolled off, then let go' },
     tone: 'orange', icon: 'space:layoff-notice', tier: EVERY_BOARD, appearsFrom: 'hard',
   },
@@ -577,7 +577,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
     tone: 'purple', icon: 'space:family-vacation', tier: LONG_ONLY,
   },
   setback('hard', EVERY_BOARD, 'in-family-admission', 'The School Admission',
-    'The "good school" interviews the parents, not the child. You clear the interview; the fee structure, printed on the back, clears you.',
+    'The "good school" interviews the parents, not the child. You pass the interview — and then the fee structure, printed on the back, empties your bank account.',
     { type: 'payPerChild', amount: 500_000, reason: 'School fees per child' },
     'purple', 'space:nursery-setup'),
   setback('veryHard', STANDARD_UP, 'in-family-coaching', 'Coaching Classes',
@@ -598,7 +598,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'in-family-hatchback', kind: 'normal', title: 'The Family Hatchback',
-    description: 'Reversing out of the society gate with three children adjudicating from the back seat, into the one gatepost that has never once moved.',
+    description: 'Reversing out of the society gate with three children arguing in the back seat, into the one gatepost that has never once moved.',
     effect: { type: 'payMoney', amount: 320_000, reason: 'Hatchback bodywork', hazard: 'accident' },
     tone: 'purple', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -714,7 +714,7 @@ const CAREER_TRACK: readonly SpaceContent[] = [
     effect: { type: 'gainMoney', amount: 500_000, reason: 'Annual bonus' },
     tone: 'orange', icon: 'space:bonus-season', tier: STANDARD_UP,
   },
-  flavour(LONG_ONLY, 'in-fast-cabin', 'The Cabin', 'You are given a cabin. In this company that can mean two opposite things, and you check the org chart twice before celebrating.', 'orange', 'space:corner-office', {
+  flavour(LONG_ONLY, 'in-fast-cabin', 'The Cabin', 'You are given a cabin — but in this company, a cabin can mean you were promoted, or that you were moved somewhere quiet before being let go. You check the org chart twice before celebrating.', 'orange', 'space:corner-office', {
     from: 'hard',
     description: 'You are given a cabin — the good kind, this time — and the sofa, the plant and the second chair for visitors are, by tradition, yours to buy.',
     effect: { type: 'payMoney', amount: 180_000, reason: 'Furnishing the cabin' },
@@ -759,7 +759,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   },
   {
     id: 'in-midtown-team-dinner', kind: 'normal', title: 'The Team Dinner',
-    description: 'The team eats out to celebrate the release. You are senior now, which means the bill drifts up the table on an invisible current and docks, gently, at your plate.',
+    description: 'The team eats out to celebrate the release. You are senior now, which means the bill quietly makes its way down the table and lands at your plate.',
     effect: { type: 'payEach', amount: 80_000, reason: 'The senior seat pays' },
     tone: 'slate', icon: 'space:neighborhood-bbq', tier: STANDARD_UP,
   },
@@ -781,7 +781,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   payday(EVERY_BOARD, 'in-midtown-payday', 'A credit lands the week the booking amount on a flat is due.'),
   {
     id: 'in-midtown-wiring', kind: 'normal', title: 'The Festival Wiring',
-    description: 'The meter board has carried the whole building\'s fairy lights every festival since 1987. This year it files its resignation, in sparks, at two in the morning.',
+    description: 'The meter board has carried the whole building\'s fairy lights every festival since 1987. This year it finally gives out, in sparks, at two in the morning.',
     effect: { type: 'payMoney', amount: 560_000, reason: 'Electrical fire damage', hazard: 'fire' },
     tone: 'slate', icon: 'space:house-fire', tier: STANDARD_UP,
   },
@@ -793,7 +793,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   },
   {
     id: 'in-midtown-presentation', kind: 'normal', title: 'The Big Presentation',
-    description: 'You present to the leadership floor and the room nods in perfect unison. Spin to find out whether unison means the job that runs it.',
+    description: 'You present to the leadership floor and everyone in the room nods along. Spin to find out if the nodding turns into the promotion.',
     effect: { type: 'promotion', reason: 'You won the room' },
     tone: 'orange', icon: 'space:client-win', tier: STANDARD_UP,
   },
@@ -825,7 +825,7 @@ const MIDTOWN: readonly SpaceContent[] = [
     'slate', 'space:house-hunting'),
   {
     id: 'in-midtown-hill-station', kind: 'normal', title: 'The Hill Station Weekend',
-    description: 'A long weekend, one hill station, and the entire city arriving on the same two-lane road, all at triple the price of ordinary rain.',
+    description: 'A long weekend, one hill station, and the entire city arriving on the same two-lane road — and hotel prices that triple the moment the season turns rainy and pleasant.',
     effect: { type: 'payMoney', amount: 70_000, reason: 'Hill station weekend' },
     tone: 'slate', icon: 'space:weekend-trip', tier: LONG_ONLY,
   },
@@ -865,19 +865,19 @@ const DALAL_STREET: readonly SpaceContent[] = [
   },
   {
     id: 'in-risky-bad-tip', kind: 'normal', title: 'The Bad Tip',
-    description: 'The "sure thing" you forwarded to three groups tanks in a week, and you buy the table dinner to make up for having recommended it at volume.',
+    description: 'The "sure thing" you forwarded to three groups tanks in a week, and you buy the table dinner to make up for recommending it to so many people.',
     effect: { type: 'payEach', amount: 200_000, reason: 'The bad stock tip' },
     tone: 'pink', icon: 'space:stock-tip', tier: EVERY_BOARD,
   },
   {
     id: 'in-risky-golf', kind: 'normal', title: 'Client Golf',
-    description: 'Eighteen holes at the members\' club, a friendly wager a hole, and the handicap you have been quietly sandbagging all season.',
+    description: 'Eighteen holes at the members\' club, a friendly wager a hole, and a handicap you have been quietly playing worse than your real skill all season, just for days like this.',
     effect: { type: 'collectFromEach', amount: 250_000, reason: 'Eighteen friendly wagers' },
     tone: 'pink', icon: 'space:poker-night', tier: EVERY_BOARD,
   },
   {
     id: 'in-risky-crash', kind: 'normal', title: 'Market Crash',
-    description: 'The index drops hard and your portfolio winces. Your father mentions, again, the year the whole market learned one broker\'s name.',
+    description: 'The index drops hard and your portfolio takes the hit. Your father mentions, again, the year the whole market learned one broker\'s name.',
     effect: { type: 'payMoney', amount: 900_000, reason: 'Market crash' },
     tone: 'pink', icon: 'space:market-crash', tier: EVERY_BOARD,
   },
@@ -909,14 +909,14 @@ const DALAL_STREET: readonly SpaceContent[] = [
   },
   {
     id: 'in-risky-mega-contest', kind: 'normal', title: 'One More Contest',
-    description: 'The fantasy app\'s mega contest closes at the toss, the "guru" whose team you copy is a lie you believe, and the entry fees are now a line item.',
+    description: 'The fantasy app\'s mega contest closes at the toss. You copy the team picked by an "expert" you do not actually trust, and the entry fees add up all season.',
     effect: { type: 'payMoney', amount: 600_000, reason: 'A season of entry fees' },
     tone: 'pink', icon: 'space:bidding-war', tier: LONG_ONLY,
   },
   payday(EVERY_BOARD, 'in-risky-payday', 'A pay credit lands while your investments are busy misbehaving.'),
   {
     id: 'in-risky-margin-call', kind: 'normal', title: 'Margin Call',
-    description: 'The broker rings at nine-sixteen, one minute after the open, and the politeness of the voice says it all.',
+    description: 'The broker rings at nine-sixteen, one minute after the open. You already know it is bad news, just from his tone.',
     effect: { type: 'payMoney', amount: 400_000, reason: 'Margin call' },
     tone: 'pink', icon: 'space:market-crash', tier: LONG_ONLY,
   },
@@ -1096,7 +1096,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   },
   {
     id: 'in-sunset-swap', kind: 'normal', title: 'The Last Deal',
-    description: 'One final audacious handshake over filter coffee, and the leader watches their fortune fold its hands respectfully and leave with you.',
+    description: 'One final audacious handshake over filter coffee, and the leader\'s fortune leaves the table with you instead.',
     effect: { type: 'swapMoneyWithLeader', reason: 'The eleventh-hour swap' },
     tone: 'slate', icon: 'space:rival-swap', tier: EVERY_BOARD,
   },
@@ -1224,7 +1224,7 @@ const FAMILY_BRANCH: RouteBranch = {
 const CAREER_BRANCH: RouteBranch = {
   identity: {
     name: 'Career Track',
-    summary: 'The hours are real and so are the raises, the bonuses and the cabin at the end of the corridor. The life you might have had is itemised separately.',
+    summary: 'The hours are real and so are the raises, the bonuses and the cabin at the end of the corridor. So is everything else you gave up to get them.',
   },
   spaces: CAREER_TRACK,
 }
