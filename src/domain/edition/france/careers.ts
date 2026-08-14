@@ -65,7 +65,7 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 5_200,
     requiresDegree: false,
     icon: 'career:salon-owner',
-    description: 'Has a chair, a diary that fills three weeks out, and regulars who would follow them across the whole arrondissement.',
+    description: 'Has a chair, a diary that fills three weeks out, and regulars who would follow them anywhere in the city.',
     promotesTo: 'career-fr-salon-owner',
     promotionSpin: TOP_STEP,
   },
@@ -109,7 +109,7 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 8_400,
     requiresDegree: false,
     icon: 'career:pastry-chef',
-    description: 'Wears the tricolore collar of a national best-craftsman title, and still tastes every batch before it goes out.',
+    description: 'Wears the medal of a national best-craftsman award, and still tastes every batch before it goes out.',
   },
   // --- the street kitchen --------------------------------------------------
   {
@@ -574,7 +574,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
     raiseStep: 6_200,
     requiresDegree: true,
     icon: 'finance:trading-floor',
-    description: 'Builds the spreadsheet the whole desk argues over in a tower at the business district, and is right about half of it.',
+    description: 'Builds the spreadsheet the whole desk argues over, from a tower in the business district, and is right about half of it.',
     promotesTo: 'career-fr-fund-manager',
     promotionSpin: FIRST_STEP,
   },
@@ -647,7 +647,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
     raiseStep: 6_800,
     requiresDegree: true,
     icon: 'tile:novel',
-    description: 'Published at last, into the autumn avalanche of six hundred rival novels. The royalties are a wheel, and the prize juries are a weather system.',
+    description: 'Published at last, alongside six hundred other new novels that all come out the same autumn. The royalties depend on the wheel, and so, more or less, does whether anyone notices you at all.',
   },
   // --- callings ------------------------------------------------------------
   {

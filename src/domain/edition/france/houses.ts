@@ -75,7 +75,7 @@ export const HOUSES: readonly House[] = [
     price: 520_000,
     resaleRange: [380_000, 700_000],
     icon: 'space:sunset-ahead',
-    description: 'Glass on three sides, the sea below, and a corniche road up that guests complain about happily.',
+    description: 'Glass on three sides, the sea below, and a steep coastal road up that guests complain about happily.',
   },
   {
     id: 'house-fr-haussmann-top-floor',
