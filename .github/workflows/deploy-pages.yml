@@ -1,0 +1,66 @@
+name: Deploy to GitHub Pages
+
+# Builds the Vite app and publishes it to GitHub Pages. Separate from the
+# Vercel deploy (`npm run deploy`, run manually) — this is the free, always-on
+# home for the public repo, and Vercel stays the fast path for iterating.
+#
+# Requires the repo to be public (or a paid personal plan, for a private
+# repo's Pages), and requires Pages to be switched on once in Settings ->
+# Pages -> Source: GitHub Actions. Until both are true, this workflow will
+# still run and build, but the deploy job will fail with a permissions error.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deploy in flight at a time; a push mid-deploy waits rather
+# than racing the one before it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx tsc -b --noEmit
+
+      - run: npx vitest run
+
+      # GitHub Pages serves a project site under /<repo>/, not the domain
+      # root, so the build needs that base path — passed on the command line
+      # rather than baked into vite.config.ts, which stays root-relative for
+      # the Vercel deploy.
+      - name: Build (GitHub Pages base path)
+        run: |
+          APP_VERSION="$(git describe --tags --always --dirty)" \
+            npx vite build --base=/${{ github.event.repository.name }}/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
