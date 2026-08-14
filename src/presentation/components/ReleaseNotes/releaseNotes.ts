@@ -21,6 +21,17 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
     date: 'August 14, 2026',
+    whatsNew: [
+      'A spin-for-money card now names its rate up front and waits for you to press Spin — instead of the game rolling for you before you saw the tile. Higher is always better, and now you find that out yourself.',
+    ],
+    changes: [
+      'The France edition is rewritten in plainer English, tile by tile — same jokes, same French words explained the same way, far fewer of them wrapped in sentences that needed a second read.',
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.1.1',
+    date: 'August 14, 2026',
     whatsNew: [],
     changes: [
       'Hard and Very Hard are retuned around the fix below — Very Hard should still land as a coin flip, not noticeably softer or harder than before.',
