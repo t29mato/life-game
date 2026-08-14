@@ -49,12 +49,13 @@ describe('ReleaseNotesScreen', () => {
   })
 
   it('leaves out a section a release has nothing to put in', () => {
-    // The newest release fixed nothing, and an empty "Fixed" heading reads as
-    // a page that failed to load rather than a release that broke nothing.
+    // The newest release has nothing new to announce, and an empty "What's
+    // new" heading reads as a page that failed to load rather than a release
+    // that was entirely fixes.
     renderReleaseNotes({ onClose: () => {} })
     const current = screen.getByText(`Version ${__APP_VERSION__}`).closest('li')
     expect(current).not.toBeNull()
-    expect(within(current!).queryByText('Fixed')).not.toBeInTheDocument()
+    expect(within(current!).queryByText("What's new")).not.toBeInTheDocument()
   })
 
   it('calls onClose when the back button is clicked', async () => {

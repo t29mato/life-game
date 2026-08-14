@@ -21,6 +21,18 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
     date: 'August 14, 2026',
+    whatsNew: [],
+    changes: [
+      'Hard and Very Hard are retuned around the fix below — Very Hard should still land as a coin flip, not noticeably softer or harder than before.',
+    ],
+    fixes: [
+      'Fixed a real gap on Hard and Very Hard: the whole stretch between your career fair and your next fork, and again between marriage and buying a house, could pay out nothing at all — every payday in that stretch was a penalty instead. Pay is guaranteed there now.',
+      'On a short game, the opening roll used to do nothing if you chose the degree lane — the pawn always stopped one tile later regardless of the number. Fixed.',
+    ],
+  },
+  {
+    version: 'v1.1.0',
+    date: 'August 14, 2026',
     whatsNew: [
       'Five countries to play in: the USA, Japan, France, India and Bolivia. Pick one on the title screen — same rules and the same board, but a different life, in that country’s own money.',
     ],
