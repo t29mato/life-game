@@ -21,6 +21,15 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
     date: 'August 14, 2026',
+    whatsNew: [],
+    changes: [
+      'Japan, India and Bolivia get the same plain-English pass France got last release — same jokes, same local words explained the same way, far fewer sentences that needed a second read.',
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.2.0',
+    date: 'August 14, 2026',
     whatsNew: [
       'A spin-for-money card now names its rate up front and waits for you to press Spin — instead of the game rolling for you before you saw the tile. Higher is always better, and now you find that out yourself.',
     ],
