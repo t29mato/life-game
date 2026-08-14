@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, type CSSProperties, type KeyboardEvent, type ReactElement } from 'react'
 import type { GameRecord, GameRecordEntry } from '@application/ports/StatsRepositoryPort'
 import { editionFor } from '@domain/edition/registry'
-import { formatMoney, formatOrdinal } from '../../format'
+import { editionDisplayName, formatMoney, formatOrdinal } from '../../format'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { UiIcon, type UiIconName } from '../../icons/ui'
 import styles from './RecordsScreen.module.css'
@@ -118,6 +118,13 @@ export function RecordsScreen({ records, onClose }: RecordsScreenProps): ReactEl
                     <span className={styles.cardWinnerName}>{record.winnerName}</span>
                   </span>
                   <span className={styles.cardMeta}>
+                    {/* Which country the game was played in. A ¥64,000,000
+                        finish and a $310,000 one are different achievements,
+                        and the tag is what keeps neighbouring cards from
+                        reading as one league table. */}
+                    <span className={styles.cardEdition}>
+                      {editionDisplayName(editionFor(record.editionId))}
+                    </span>
                     <span className={styles.cardTurns}>
                       {record.turns} {record.turns === 1 ? 'turn' : 'turns'}
                     </span>

@@ -17,7 +17,7 @@ function renderRecordsScreen(props: RecordsScreenProps): RenderResult {
 function makeRecord(overrides: Partial<GameRecord>): GameRecord {
   return {
     playedAt: overrides.playedAt ?? '2026-08-01T12:00:00.000Z',
-    editionId: 'usa',
+    editionId: overrides.editionId ?? 'usa',
     winnerName: overrides.winnerName ?? 'Alice',
     turns: overrides.turns ?? 24,
     standings: overrides.standings ?? [
@@ -68,6 +68,27 @@ describe('RecordsScreen', () => {
     renderRecordsScreen({ records, onClose: () => {} })
     expect(screen.getByText('2 wins')).toBeInTheDocument()
     expect(screen.getByText('1 win')).toBeInTheDocument()
+  })
+
+  it('quotes each game in the money it was won in, and names the country', () => {
+    // A ¥64,000,000 finish and a $240,000 one are not the same league, and the
+    // hall must not present them as one: each card carries its edition's tag
+    // and formats its totals in that edition's currency.
+    const records = [
+      makeRecord({ playedAt: '2026-08-05T12:00:00.000Z' }),
+      makeRecord({
+        playedAt: '2026-08-01T12:00:00.000Z',
+        editionId: 'japan',
+        winnerName: 'Yuki',
+        standings: [{ name: 'Yuki', color: 'green', total: 64_000_000, rank: 1, isCpu: false }],
+      }),
+    ]
+    renderRecordsScreen({ records, onClose: () => {} })
+
+    expect(screen.getByText('$240,000')).toBeInTheDocument()
+    expect(screen.getByText('¥64,000,000')).toBeInTheDocument()
+    expect(screen.getByText('USA')).toBeInTheDocument()
+    expect(screen.getByText('Japan')).toBeInTheDocument()
   })
 
   it('calls onClose when the back button is clicked', async () => {

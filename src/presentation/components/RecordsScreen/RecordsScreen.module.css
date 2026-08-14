@@ -212,6 +212,20 @@
   color: var(--ink-faint);
 }
 
+/* The country tag: a quiet stamped pill, same material as the autosave tag
+   on the title screen's slot cards. */
+.cardEdition {
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
 .cardTurns {
   font-variant-numeric: var(--tabular, tabular-nums);
 }

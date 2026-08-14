@@ -1,0 +1,673 @@
+import type { Career } from '../../model/types'
+
+/**
+ * France's careers, as ladders — which is where the apprenticeship story lives.
+ *
+ * Every number is the tuned USA ladder at ×1 — same salaries, same raise
+ * steps, same `payPerPip` slots, same two promotion difficulties — because the
+ * shape of the two pools *is* the measured balance of the opening fork, and
+ * the unit did not even need to change on the way to the euro. What is French
+ * here is which trade sits on which rung, and every word of the copy.
+ *
+ * The pools keep their meaning, sharpened by where they are dealt from:
+ * - **Graduate ladders** are the grande-école prize — short, dependable, and
+ *   stamped with a diploma the network never stops recognising. You will
+ *   never scrape by, and you will never run anything.
+ * - **Basic ladders** are the trades — the CAP-and-apprenticeship world,
+ *   long, unvetted, with rungs at both ends. The bottom is grim, the top
+ *   out-earns every diploma at the table, and which one you get is the gamble
+ *   the lane is supposed to be.
+ *
+ * Two per pool are callings: no rung above, and a layoff cannot touch them —
+ * the coach on the village pitch and the market gardener at his Sunday stall
+ * were never on anybody's ladder to begin with.
+ */
+
+/**
+ * How hard each step up is, in spins: the first climb lands seven times in
+ * ten, the last three — getting off the bottom is normal, getting to the top
+ * is not. Same two numbers as every edition, because they are the engine's
+ * statement about ladders, not a country's.
+ */
+const FIRST_STEP = 4 as const
+const TOP_STEP = 8 as const
+
+/**
+ * Trades open from Apprenticeship Day, no degree needed — plus every rung
+ * above.
+ *
+ * The volatile pool, twice over: the draw runs from a dog-grooming table to a
+ * property agency, and the tallest ladders take two reviews nobody is
+ * promised. The `payPerPip` rungs are the trades whose weeks genuinely differ
+ * — a crêpe stand's market crowd, a courier's December, a photographer's
+ * wedding season — and `salary` is exactly `payPerPip × 5.5` so the wage the
+ * panel quotes is what the job really pays over a game.
+ */
+export const BASIC_CAREERS: readonly Career[] = [
+  // --- the salon -----------------------------------------------------------
+  {
+    id: 'career-fr-salon-apprentice',
+    title: 'Salon Apprentice',
+    salary: 29_700,
+    payPerPip: 5_400,
+    raiseStep: 3_100,
+    requiresDegree: false,
+    icon: 'space:new-skills',
+    description: 'Sweeps up, washes hair, and learns that the mid-cut conversation is half the trade.',
+    promotesTo: 'career-fr-stylist',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-stylist',
+    title: 'Stylist',
+    salary: 49_500,
+    payPerPip: 9_000,
+    raiseStep: 5_200,
+    requiresDegree: false,
+    icon: 'career:salon-owner',
+    description: 'Has a chair, a diary that fills three weeks out, and regulars who would follow them across the whole arrondissement.',
+    promotesTo: 'career-fr-salon-owner',
+    promotionSpin: TOP_STEP,
+  },
+  {
+    id: 'career-fr-salon-owner',
+    title: 'Salon Owner',
+    salary: 104_500,
+    payPerPip: 19_000,
+    raiseStep: 10_600,
+    requiresDegree: false,
+    icon: 'career:salon-owner',
+    description: 'Runs the salon on the square where every haircut comes with the neighbourhood\'s entire news cycle.',
+  },
+  // --- the bakery ----------------------------------------------------------
+  {
+    id: 'career-fr-apprentice-baker',
+    title: 'Apprentice Baker',
+    salary: 32_000,
+    raiseStep: 3_400,
+    requiresDegree: false,
+    icon: 'space:new-skills',
+    description: 'In at four, out at noon, and already better at laminating croissant dough than anyone admits out loud.',
+    promotesTo: 'career-fr-village-baker',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-village-baker',
+    title: 'Village Baker',
+    salary: 50_000,
+    raiseStep: 5_200,
+    requiresDegree: false,
+    icon: 'career:pastry-chef',
+    description: 'The queue forms before the shutters go up, and closing for August is announced like a state occasion.',
+    promotesTo: 'career-fr-master-baker',
+    promotionSpin: TOP_STEP,
+  },
+  {
+    id: 'career-fr-master-baker',
+    title: 'Master Baker',
+    salary: 82_000,
+    raiseStep: 8_400,
+    requiresDegree: false,
+    icon: 'career:pastry-chef',
+    description: 'Wears the tricolore collar of a national best-craftsman title, and still tastes every batch before it goes out.',
+  },
+  // --- the street kitchen --------------------------------------------------
+  {
+    id: 'career-fr-commis-chef',
+    title: 'Commis Chef',
+    salary: 55_000,
+    payPerPip: 10_000,
+    raiseStep: 5_600,
+    requiresDegree: false,
+    icon: 'space:overtime-shift',
+    description: 'Six burners, one ticket rail, and a lunch service that decides what the week was worth.',
+    promotesTo: 'career-fr-crepe-stand-owner',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-crepe-stand-owner',
+    title: 'Crêpe Stand Owner',
+    salary: 68_200,
+    payPerPip: 12_400,
+    raiseStep: 7_000,
+    requiresDegree: false,
+    icon: 'career:food-truck-owner',
+    description: 'Parks the griddle at the market entrance and turns Saturday morning into a small festival. The queue is the wheel.',
+    promotesTo: 'career-fr-bistro-owner',
+    promotionSpin: TOP_STEP,
+  },
+  {
+    id: 'career-fr-bistro-owner',
+    title: 'Bistro Owner',
+    salary: 121_000,
+    payPerPip: 22_000,
+    raiseStep: 12_400,
+    requiresDegree: false,
+    icon: 'career:food-truck-owner',
+    description: 'Forty covers, one chalkboard menu, and a lunch sitting the whole street sets its watch by.',
+  },
+  // --- the building site ---------------------------------------------------
+  {
+    id: 'career-fr-site-labourer',
+    title: 'Site Labourer',
+    salary: 48_000,
+    raiseStep: 5_000,
+    requiresDegree: false,
+    icon: 'space:overtime-shift',
+    description: 'Carries, digs, mixes and lifts, and knows where every tool on the site actually is.',
+    promotesTo: 'career-fr-site-supervisor',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-site-supervisor',
+    title: 'Site Supervisor',
+    salary: 64_000,
+    raiseStep: 6_600,
+    requiresDegree: false,
+    icon: 'career:construction-foreman',
+    description: 'Runs the morning briefing, the sign-in sheet, and the standing argument with the scaffolders.',
+    promotesTo: 'career-fr-site-foreman',
+    promotionSpin: TOP_STEP,
+  },
+  {
+    id: 'career-fr-site-foreman',
+    title: 'Site Foreman',
+    salary: 108_000,
+    raiseStep: 11_000,
+    requiresDegree: false,
+    icon: 'career:construction-foreman',
+    description: 'Turns rolled-up drawings into buildings that pass every inspection, and prices the job properly.',
+  },
+  // --- the depot -----------------------------------------------------------
+  {
+    id: 'career-fr-delivery-courier',
+    title: 'Delivery Courier',
+    salary: 31_900,
+    payPerPip: 5_800,
+    raiseStep: 3_300,
+    requiresDegree: false,
+    icon: 'career:delivery-courier',
+    description: 'Zips between cobbles and bus lanes keeping the whole quarter fed and unboxed. December is the wheel.',
+    promotesTo: 'career-fr-depot-dispatcher',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-depot-dispatcher',
+    title: 'Depot Dispatcher',
+    salary: 48_000,
+    raiseStep: 5_000,
+    requiresDegree: false,
+    icon: 'space:overtime-shift',
+    description: 'Off the scooter and onto the board, where every van in the department is a magnet with a name on it.',
+    promotesTo: 'career-fr-distribution-lead',
+    promotionSpin: TOP_STEP,
+  },
+  {
+    id: 'career-fr-distribution-lead',
+    title: 'Distribution Lead',
+    salary: 78_000,
+    raiseStep: 8_000,
+    requiresDegree: false,
+    icon: 'space:overtime-shift',
+    description: 'Moves a hundred thousand parcels a night and still gets home for dinner, which in this country is a professional obligation.',
+  },
+  // --- the workshop --------------------------------------------------------
+  {
+    id: 'career-fr-apprentice-mechanic',
+    title: 'Apprentice Mechanic',
+    salary: 35_000,
+    raiseStep: 3_600,
+    requiresDegree: false,
+    icon: 'space:new-skills',
+    description: 'Three years of holding the torch for the patron, and a growing suspicion the old vans can hear it too.',
+    promotesTo: 'career-fr-scooter-mechanic',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-scooter-mechanic',
+    title: 'Scooter Mechanic',
+    salary: 52_000,
+    raiseStep: 5_400,
+    requiresDegree: false,
+    icon: 'tile:vintage-motorcycle',
+    description: 'Hears what a delivery moped is complaining about before its rider finishes the sentence.',
+    promotesTo: 'career-fr-garage-owner',
+    promotionSpin: TOP_STEP,
+  },
+  {
+    id: 'career-fr-garage-owner',
+    title: 'Garage Owner',
+    salary: 86_000,
+    raiseStep: 8_800,
+    requiresDegree: false,
+    icon: 'tile:vintage-motorcycle',
+    description: 'Four ramps, an inspection-season waiting list, and a wall of photographs of classics that came in on a trailer.',
+  },
+  // --- the studio ----------------------------------------------------------
+  {
+    id: 'career-fr-session-musician',
+    title: 'Session Musician',
+    salary: 26_400,
+    payPerPip: 4_800,
+    raiseStep: 2_800,
+    requiresDegree: false,
+    icon: 'tile:indie-album',
+    description: 'Plays the accordion line the whole country has hummed at weddings without ever seeing the sleeve, and waits on the phone between them.',
+    promotesTo: 'career-fr-touring-player',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-touring-player',
+    title: 'Touring Player',
+    salary: 44_000,
+    payPerPip: 8_000,
+    raiseStep: 4_600,
+    requiresDegree: false,
+    icon: 'tile:indie-album',
+    description: 'A summer of festival stages from the coast to the mountains, one flight case, and a name finally on the poster in small print.',
+    promotesTo: 'career-fr-record-producer',
+    promotionSpin: TOP_STEP,
+  },
+  {
+    id: 'career-fr-record-producer',
+    title: 'Record Producer',
+    salary: 81_400,
+    payPerPip: 14_800,
+    raiseStep: 8_400,
+    requiresDegree: false,
+    icon: 'tile:indie-album',
+    description: 'Sits behind the glass, says "again, but with more melancholy", and is somehow always right.',
+  },
+  // --- the microphone ------------------------------------------------------
+  {
+    id: 'career-fr-radio-runner',
+    title: 'Radio Runner',
+    salary: 37_000,
+    raiseStep: 3_800,
+    requiresDegree: false,
+    icon: 'tile:podcast',
+    description: 'Fetches the espressos, cues the guest, and quietly learns how a whole morning show is built.',
+    promotesTo: 'career-fr-morning-host',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-morning-host',
+    title: 'Morning Radio Host',
+    salary: 57_000,
+    raiseStep: 5_800,
+    requiresDegree: false,
+    icon: 'tile:podcast',
+    description: 'Half the country\'s kitchens have your voice in them at half past seven, and the other half switched over in protest.',
+    promotesTo: 'career-fr-station-owner',
+    promotionSpin: TOP_STEP,
+  },
+  {
+    id: 'career-fr-station-owner',
+    title: 'Station Owner',
+    salary: 97_000,
+    raiseStep: 9_800,
+    requiresDegree: false,
+    icon: 'tile:podcast',
+    description: 'Runs eleven shows, still hosts one of them at dawn, and sells the ad slots for all twelve.',
+  },
+  // --- the camera ----------------------------------------------------------
+  {
+    id: 'career-fr-second-shooter',
+    title: 'Second Shooter',
+    salary: 26_400,
+    payPerPip: 4_800,
+    raiseStep: 2_800,
+    requiresDegree: false,
+    icon: 'space:family-portrait',
+    description: 'Covers the back of the town hall and the exact moment the mayor\'s deputy loses his place in the register.',
+    promotesTo: 'career-fr-wedding-photographer',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-wedding-photographer',
+    title: 'Wedding Photographer',
+    salary: 42_900,
+    payPerPip: 7_800,
+    raiseStep: 4_400,
+    requiresDegree: false,
+    icon: 'space:family-portrait',
+    description: 'June is booked two years out and January is silence — the diary is the wheel, and château season decides the year.',
+  },
+  // --- property ------------------------------------------------------------
+  {
+    id: 'career-fr-lettings-negotiator',
+    title: 'Lettings Negotiator',
+    salary: 62_700,
+    payPerPip: 11_400,
+    raiseStep: 6_600,
+    requiresDegree: false,
+    icon: 'space:apartment-hunt',
+    description: 'Shows eleven flats a Saturday, and remembers which applicant\'s file was missing the guarantor page.',
+    promotesTo: 'career-fr-estate-agent',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-estate-agent',
+    title: 'Estate Agent',
+    salary: 74_250,
+    payPerPip: 13_500,
+    raiseStep: 7_600,
+    requiresDegree: false,
+    icon: 'space:house-hunting',
+    description: 'Sells the kitchen first, the shutters second, and the energy rating never at all.',
+    promotesTo: 'career-fr-agency-owner',
+    promotionSpin: TOP_STEP,
+  },
+  {
+    id: 'career-fr-agency-owner',
+    title: 'Agency Owner',
+    salary: 148_500,
+    payPerPip: 27_000,
+    raiseStep: 15_200,
+    requiresDegree: false,
+    icon: 'space:house-hunting',
+    description: 'Your name is on the boards outside four hundred houses. One good year carries three quiet ones.',
+  },
+  // --- the warehouse -------------------------------------------------------
+  {
+    id: 'career-fr-warehouse-picker',
+    title: 'Warehouse Picker',
+    salary: 39_000,
+    raiseStep: 4_000,
+    requiresDegree: false,
+    icon: 'space:overtime-shift',
+    description: 'Walks eleven miles a shift past the same robot arm, and could find aisle forty in the dark.',
+    promotesTo: 'career-fr-warehouse-lead',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-warehouse-lead',
+    title: 'Warehouse Lead',
+    salary: 56_000,
+    raiseStep: 5_800,
+    requiresDegree: false,
+    icon: 'space:overtime-shift',
+    description: 'Keeps a building the size of four football pitches running on vending-machine coffee and clipboards.',
+  },
+  // --- grooming ------------------------------------------------------------
+  {
+    id: 'career-fr-grooming-assistant',
+    title: 'Grooming Assistant',
+    salary: 24_000,
+    raiseStep: 2_600,
+    requiresDegree: false,
+    icon: 'career:pet-groomer',
+    description: 'Towels, treats, and the nerve to hold still while a very opinionated little dog decides about you.',
+    promotesTo: 'career-fr-dog-groomer',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-dog-groomer',
+    title: 'Dog Groomer',
+    salary: 34_000,
+    raiseStep: 3_600,
+    requiresDegree: false,
+    icon: 'career:pet-groomer',
+    description: 'Gives the café dogs of the whole quarter their monthly trim, and is greeted by name at every terrace.',
+  },
+  // --- callings ------------------------------------------------------------
+  {
+    id: 'career-fr-village-coach',
+    title: 'Village Football Coach',
+    salary: 50_000,
+    raiseStep: 6_400,
+    requiresDegree: false,
+    icon: 'tile:youth-coach',
+    description: 'Runs Saturday drills on the municipal pitch, chalks the lines himself, and remembers every single name. There is no promotion from this and there was never going to be.',
+    isCalling: true,
+  },
+  {
+    id: 'career-fr-market-gardener',
+    title: 'Market Gardener',
+    salary: 58_000,
+    raiseStep: 7_400,
+    requiresDegree: false,
+    icon: 'space:garden-harvest',
+    description: 'Grows the tomatoes the whole Sunday market queues for by eight in the morning, and has turned down the supermarket buyers three times, each more politely than the last.',
+    isCalling: true,
+  },
+]
+
+/**
+ * Careers unlocked only by a degree — the grande-école prize pool.
+ *
+ * Two rungs, a tight entry band, a tight top band, and a first climb that
+ * lands seven times in ten: a graduate almost always ends the game running a
+ * good career and almost never anything bigger. Losing one hurts far more
+ * than losing a trade, because a layoff costs the ladder as well as the wage.
+ *
+ * Dependable extends to how they are paid: the surgeon, the ministry official
+ * and the fund manager are on contracts, and none carry `payPerPip`. The one
+ * exception is the writing ladder, paid in royalties — a diploma cannot make
+ * a novel survive the autumn publishing season.
+ */
+export const GRADUATE_CAREERS: readonly Career[] = [
+  {
+    id: 'career-fr-surgical-resident',
+    title: 'Surgical Resident',
+    salary: 64_000,
+    raiseStep: 6_200,
+    requiresDegree: true,
+    icon: 'career:surgeon',
+    description: 'Six years of nights at the university hospital, held retractors, and being asked what the professor would do next.',
+    promotesTo: 'career-fr-hospital-surgeon',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-hospital-surgeon',
+    title: 'Hospital Surgeon',
+    salary: 79_000,
+    raiseStep: 8_200,
+    requiresDegree: true,
+    icon: 'career:surgeon',
+    description: 'Saves lives with steady hands, an even steadier nerve, and a lunch break defended like national territory.',
+  },
+  {
+    id: 'career-fr-junior-associate',
+    title: 'Junior Associate',
+    salary: 66_000,
+    raiseStep: 6_400,
+    requiresDegree: true,
+    icon: 'career:corporate-lawyer',
+    description: 'Reads nine hundred pages so a partner can read the one paragraph that matters, in an office off the grand boulevards.',
+    promotesTo: 'career-fr-corporate-lawyer',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-corporate-lawyer',
+    title: 'Corporate Lawyer',
+    salary: 81_000,
+    raiseStep: 8_400,
+    requiresDegree: true,
+    icon: 'career:corporate-lawyer',
+    description: 'Wins boardroom battles with a sharp briefcase, a sharper argument, and a two-hour working lunch that closes the deal.',
+  },
+  {
+    id: 'career-fr-architectural-assistant',
+    title: 'Architectural Assistant',
+    salary: 60_000,
+    raiseStep: 5_800,
+    requiresDegree: true,
+    icon: 'career:architect',
+    description: 'Draws the stair detail eleven times for a listed building nobody may touch, and learns more from the eleventh than the first ten.',
+    promotesTo: 'career-fr-architect',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-architect',
+    title: 'Architect',
+    salary: 71_000,
+    raiseStep: 7_400,
+    requiresDegree: true,
+    icon: 'career:architect',
+    description: 'Threads glass and steel between protected façades, and argues with the heritage board as a second full-time job.',
+  },
+  {
+    id: 'career-fr-junior-engineer',
+    title: 'Junior Engineer',
+    salary: 62_000,
+    raiseStep: 6_000,
+    requiresDegree: true,
+    icon: 'career:software-engineer',
+    description: 'Fixes the small bug nobody else wanted, and finds the big one on the way, title stamped by an engineering school.',
+    promotesTo: 'career-fr-software-engineer',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-software-engineer',
+    title: 'Software Engineer',
+    salary: 75_000,
+    raiseStep: 7_800,
+    requiresDegree: true,
+    icon: 'career:software-engineer',
+    description: 'Ships the quiet code that keeps half the trains, the tolls, and one very famous museum\'s ticket queue humming.',
+  },
+  {
+    id: 'career-fr-junior-designer',
+    title: 'Junior Game Designer',
+    salary: 58_000,
+    raiseStep: 5_600,
+    requiresDegree: true,
+    icon: 'career:game-designer',
+    description: 'Balances the tutorial level for four months at the Montpellier studio, then watches strangers get through it without reading a word.',
+    promotesTo: 'career-fr-game-designer',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-game-designer',
+    title: 'Game Designer',
+    salary: 67_000,
+    raiseStep: 7_000,
+    requiresDegree: true,
+    icon: 'career:game-designer',
+    description: 'Builds worlds the whole planet stays up too late exploring, from a studio above a very good bakery.',
+  },
+  {
+    id: 'career-fr-aerospace-graduate',
+    title: 'Aerospace Graduate',
+    salary: 62_000,
+    raiseStep: 6_000,
+    requiresDegree: true,
+    icon: 'tile:invention',
+    description: 'Spends a year in Toulouse teaching a wing rib to weigh forty grams less, and considers it time well spent.',
+    promotesTo: 'career-fr-aerospace-engineer',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-aerospace-engineer',
+    title: 'Aerospace Engineer',
+    salary: 73_000,
+    raiseStep: 7_600,
+    requiresDegree: true,
+    icon: 'tile:invention',
+    description: 'Builds the wings half the world flies on, and points them out from the window seat every single time.',
+  },
+  {
+    id: 'career-fr-investment-analyst',
+    title: 'Investment Analyst',
+    salary: 64_000,
+    raiseStep: 6_200,
+    requiresDegree: true,
+    icon: 'finance:trading-floor',
+    description: 'Builds the spreadsheet the whole desk argues over in a tower at the business district, and is right about half of it.',
+    promotesTo: 'career-fr-fund-manager',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-fund-manager',
+    title: 'Fund Manager',
+    salary: 77_000,
+    raiseStep: 8_000,
+    requiresDegree: true,
+    icon: 'finance:trading-floor',
+    description: 'Moves other people\'s money around a screen with a view of the arch, and is right slightly more often than not.',
+  },
+  {
+    id: 'career-fr-ministry-attache',
+    title: 'Ministry Attaché',
+    salary: 60_000,
+    raiseStep: 5_800,
+    requiresDegree: true,
+    icon: 'space:corner-office',
+    description: 'Passes the entrance examination the whole country calls simply "the concours", and joins the state for life. The state, unlike everyone else on this board, does not do layoffs.',
+    promotesTo: 'career-fr-ministry-section-head',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-ministry-section-head',
+    title: 'Ministry Section Head',
+    salary: 69_000,
+    raiseStep: 7_200,
+    requiresDegree: true,
+    icon: 'space:corner-office',
+    description: 'Drafts the answers a minister reads aloud at seven the next morning, from an office with original mouldings and no heating budget.',
+  },
+  {
+    id: 'career-fr-research-assistant',
+    title: 'Research Assistant',
+    salary: 56_500,
+    raiseStep: 5_400,
+    requiresDegree: true,
+    icon: 'career:marine-biologist',
+    description: 'Counts things in cold Atlantic water for somebody else\'s paper, and loves every minute of it.',
+    promotesTo: 'career-fr-marine-biologist',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-marine-biologist',
+    title: 'Marine Biologist',
+    salary: 63_000,
+    raiseStep: 6_600,
+    requiresDegree: true,
+    icon: 'career:marine-biologist',
+    description: 'Studies the Brittany coast from a research station the tide cuts off twice a day, which suits everyone there fine.',
+  },
+  {
+    id: 'career-fr-jobbing-writer',
+    title: 'Jobbing Writer',
+    salary: 55_000,
+    payPerPip: 10_000,
+    raiseStep: 5_200,
+    requiresDegree: true,
+    icon: 'tile:novel',
+    description: 'Copy, catalogues and one column a fortnight, while the real thing sits in a drawer waiting for September.',
+    promotesTo: 'career-fr-novelist',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-fr-novelist',
+    title: 'Novelist',
+    salary: 64_900,
+    payPerPip: 11_800,
+    raiseStep: 6_800,
+    requiresDegree: true,
+    icon: 'tile:novel',
+    description: 'Published at last, into the autumn avalanche of six hundred rival novels. The royalties are a wheel, and the prize juries are a weather system.',
+  },
+  // --- callings ------------------------------------------------------------
+  {
+    id: 'career-fr-veterinarian',
+    title: 'Veterinarian',
+    salary: 68_000,
+    raiseStep: 8_000,
+    requiresDegree: true,
+    icon: 'tile:animal-shelter',
+    description: 'Talks nervous owners down while quietly setting a very small broken leg. Would not run a chain of these for any money you could name.',
+    isCalling: true,
+  },
+  {
+    id: 'career-fr-university-professor',
+    title: 'University Professor',
+    salary: 66_000,
+    raiseStep: 7_800,
+    requiresDegree: true,
+    icon: 'space:cap-and-gown',
+    description: 'Lectures on Tuesdays, argues with colleagues on Wednesdays, changes minds by Friday, and has turned down the dean\'s office twice.',
+    isCalling: true,
+  },
+]

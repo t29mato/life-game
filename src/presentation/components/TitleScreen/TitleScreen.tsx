@@ -1,9 +1,12 @@
 import { useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import type { IconName } from '@domain/model/icons'
-import type { BoardLength, Difficulty, NewGameConfig, PlayerColor } from '@domain/model/types'
+import type { BoardLength, Difficulty, EditionId, NewGameConfig, PlayerColor } from '@domain/model/types'
 import { DIFFICULTIES } from '@domain/rules/difficulty'
+import type { Edition } from '@domain/edition/types'
+import { allEditions, DEFAULT_EDITION_ID, editionFor } from '@domain/edition/registry'
 import { AUTOSAVE_SLOT, type SaveSlotInfo } from '@application/ports/GameRepositoryPort'
 import type { GameRecord } from '@application/ports/StatsRepositoryPort'
+import { editionDisplayName, formatMoney } from '../../format'
 import { useAudio } from '../../hooks/useAudio'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { AudioToggle } from '../AudioToggle/AudioToggle'
@@ -107,6 +110,39 @@ const DIFFICULTY_COPY: Record<
   },
 }
 
+/**
+ * Editions as the picker offers them: the classic USA game first — it is the
+ * default, and the id every save without one resolves to — then the rest
+ * alphabetically by place name, so the shelf reads the same however the
+ * registry happened to be assembled. Computed per render rather than at module
+ * load because the registry can grow after this module is imported (tests
+ * register variants, and future editions may arrive the same way).
+ */
+function editionOptions(): readonly Edition[] {
+  return [...allEditions()].sort((a, b) => {
+    if (a.id === DEFAULT_EDITION_ID) return b.id === DEFAULT_EDITION_ID ? 0 : -1
+    if (b.id === DEFAULT_EDITION_ID) return 1
+    return editionDisplayName(a).localeCompare(editionDisplayName(b))
+  })
+}
+
+/**
+ * One true sentence about the selected edition, derived from its own data —
+ * never authored copy, so the editions being written in parallel get an honest
+ * line here with no further edit. The three facts a player can size a country
+ * up by before ever playing it: the money it counts in, what they start
+ * holding, and what its careers pay.
+ */
+function editionBlurb(edition: Edition): string {
+  const { currency, economy, careers } = edition
+  const start = formatMoney(economy.startingMoney, currency)
+  const salaries = [...careers.basic, ...careers.graduate].map((career) => career.salary)
+  if (salaries.length === 0) return `Counts in ${currency.symbol} — start with ${start}.`
+  const low = formatMoney(Math.min(...salaries), currency)
+  const high = formatMoney(Math.max(...salaries), currency)
+  return `Counts in ${currency.symbol} — start with ${start}; salaries run ${low} to ${high} a payday.`
+}
+
 interface DraftPlayer {
   readonly name: string
   readonly color: PlayerColor
@@ -138,6 +174,8 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
   const [players, setPlayers] = useState<DraftPlayer[]>(defaultPlayers)
   const [boardLength, setBoardLength] = useState<BoardLength>('standard')
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
+  const [editionId, setEditionId] = useState<EditionId>(DEFAULT_EDITION_ID)
+  const editions = editionOptions()
   const [showRecords, setShowRecords] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
 
@@ -186,6 +224,7 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
       })),
       boardLength,
       difficulty,
+      editionId,
     }
     onStart(config)
   }
@@ -383,6 +422,36 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
           </ChunkyButton>
         </div>
       </section>
+
+      {/* Which country's board the game is played on. Hidden while there is
+          only one edition to name — a picker with one option is a label. */}
+      {editions.length > 1 ? (
+        <section className={styles.editionSection} aria-label="Edition">
+          <div className={styles.setupHeading}>
+            <span className={styles.setupLabel}>Edition</span>
+          </div>
+          <div className={styles.editionGroup} role="group" aria-label="Edition">
+            {editions.map((edition) => (
+              <button
+                key={edition.id}
+                type="button"
+                className={`${styles.editionOption} ${editionId === edition.id ? styles.editionSelected : ''}`}
+                aria-pressed={editionId === edition.id}
+                aria-label={`${editionDisplayName(edition)} edition, counts in ${edition.currency.symbol}`}
+                onClick={() => setEditionId(edition.id)}
+              >
+                <span className={styles.editionLabel} aria-hidden="true">
+                  {editionDisplayName(edition)}
+                </span>
+                <span className={styles.editionHint} aria-hidden="true">
+                  counts in {edition.currency.symbol}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className={styles.editionDetail}>{editionBlurb(editionFor(editionId))}</p>
+        </section>
+      ) : null}
 
       <section className={styles.lengthSection} aria-label="Session length">
         <div className={styles.setupHeading}>

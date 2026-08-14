@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { SaveSlotInfo } from '@application/ports/GameRepositoryPort'
 import type { GameRecord } from '@application/ports/StatsRepositoryPort'
+import { registerEdition } from '@domain/edition/registry'
+import { EDITION_JAPAN } from '@domain/edition/japan'
 import { AudioProvider } from '../../hooks/useAudio'
 import { createFakeAudioPort } from '../../dev/fakeAudio'
 import { TitleScreen, type TitleScreenProps } from './TitleScreen'
@@ -116,6 +118,7 @@ describe('TitleScreen', () => {
       ],
       boardLength: 'long',
       difficulty: 'normal',
+      editionId: 'usa',
     })
   })
 
@@ -146,6 +149,70 @@ describe('TitleScreen', () => {
     // The odds are dramatic — near coin-flip to finish in the black — so the
     // control itself must say so, not a tooltip discovered thirty minutes in.
     expect(screen.getByRole('button', { name: /very hard.*coin flip/i })).toBeInTheDocument()
+  })
+
+  describe('edition picker', () => {
+    it('defaults the edition to the USA game', async () => {
+      const user = userEvent.setup()
+      const { onStart } = renderTitleScreen()
+      await user.click(screen.getByRole('button', { name: /start game/i }))
+      expect(onStart).toHaveBeenCalledWith(expect.objectContaining({ editionId: 'usa' }))
+    })
+
+    it('sends the chosen edition with the start config', async () => {
+      const user = userEvent.setup()
+      const { onStart } = renderTitleScreen()
+      await user.click(screen.getByRole('button', { name: /japan edition/i }))
+      await user.click(screen.getByRole('button', { name: /start game/i }))
+      expect(onStart).toHaveBeenCalledWith(expect.objectContaining({ editionId: 'japan' }))
+    })
+
+    it('offers the USA game first, then the rest of the shelf', () => {
+      renderTitleScreen()
+      const group = screen.getByRole('group', { name: 'Edition' })
+      const labels = within(group)
+        .getAllByRole('button')
+        .map((button) => button.getAttribute('aria-label'))
+      expect(labels[0]).toMatch(/^USA edition/)
+      expect(labels.some((label) => label?.startsWith('Japan edition'))).toBe(true)
+    })
+
+    it('offers a newly registered edition with no further edit', () => {
+      // The France, Bolivia and India editions will arrive through this exact
+      // door; the picker must be reading the registry, not a hard-coded list.
+      registerEdition({
+        ...EDITION_JAPAN,
+        id: 'testland',
+        name: 'LIFE JOURNEY: Testland',
+        currency: { ...EDITION_JAPAN.currency, symbol: '₮' },
+      })
+      renderTitleScreen()
+      expect(screen.getByRole('button', { name: /testland edition, counts in ₮/i })).toBeInTheDocument()
+    })
+
+    it('tells the truth about the selected edition in its own money', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await user.click(screen.getByRole('button', { name: /japan edition/i }))
+      // Derived from the edition's data, so it must quote yen, not dollars.
+      expect(screen.getByText(/counts in ¥ — start with ¥/i)).toBeInTheDocument()
+    })
+
+    it('does not affect continuing a saved game', async () => {
+      const user = userEvent.setup()
+      const slots: SaveSlotInfo[] = [
+        { slot: 0, occupied: false, savedAt: null, playerNames: [], turn: null },
+        { slot: 1, occupied: true, savedAt: '2026-08-01T12:00:00.000Z', playerNames: ['Zoe'], turn: 5 },
+        { slot: 2, occupied: false, savedAt: null, playerNames: [], turn: null },
+        { slot: 3, occupied: false, savedAt: null, playerNames: [], turn: null },
+      ]
+      const { onStart, onContinue } = renderTitleScreen({ slots })
+      // A save carries its own editionId; the picker must not leak into it.
+      await user.click(screen.getByRole('button', { name: /japan edition/i }))
+      await user.click(screen.getByRole('button', { name: /continue slot 1/i }))
+      expect(onContinue).toHaveBeenCalledWith(1)
+      expect(onStart).not.toHaveBeenCalled()
+    })
   })
 
   it('unlocks audio on the first click anywhere on the screen', async () => {

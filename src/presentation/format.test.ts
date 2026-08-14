@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatMoney, formatMoneyDelta, formatOrdinal, formatSalary } from './format'
+import { editionDisplayName, formatMoney, formatMoneyDelta, formatOrdinal, formatSalary } from './format'
 import type { CurrencySpec } from '@domain/edition/types'
 
 /** A ×100 currency, to prove the symbol and grouping are the edition's. */
@@ -120,5 +120,20 @@ describe('every money formatter takes its symbol from the edition', () => {
     expect(formatMoney(1_234)).toBe('$1,234')
     expect(formatMoneyDelta(0)).toBe('$0')
     expect(formatSalary(65_000)).toBe('$65,000 / payday')
+  })
+})
+
+describe('editionDisplayName', () => {
+  it('answers with the place after the colon', () => {
+    expect(editionDisplayName({ id: 'japan', name: 'LIFE JOURNEY: Japan' })).toBe('Japan')
+  })
+
+  it('calls the founding edition by its country, not the box title', () => {
+    expect(editionDisplayName({ id: 'usa', name: 'LIFE JOURNEY' })).toBe('USA')
+  })
+
+  it('shows an unconventional name as written rather than blank', () => {
+    expect(editionDisplayName({ id: 'atlantis', name: 'Atlantis Deluxe' })).toBe('Atlantis Deluxe')
+    expect(editionDisplayName({ id: 'odd', name: 'Trailing colon:' })).toBe('Trailing colon:')
   })
 })

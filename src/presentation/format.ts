@@ -1,4 +1,4 @@
-import type { CurrencySpec } from '@domain/edition/types'
+import type { CurrencySpec, Edition } from '@domain/edition/types'
 import { USA_CURRENCY } from '@domain/edition/usa'
 
 /**
@@ -33,6 +33,22 @@ export function formatMoneyDelta(amount: number, currency: CurrencySpec = USA_CU
 /** `65000` -> `'$65,000 / payday'`. */
 export function formatSalary(amount: number, currency: CurrencySpec = USA_CURRENCY): string {
   return `${formatMoney(amount, currency)} / payday`
+}
+
+/**
+ * The short place-name a picker or a records card calls an edition by.
+ *
+ * Editions name themselves `'LIFE JOURNEY: Japan'` — the box title plus the
+ * place — and a control that repeats the box title once per country says
+ * nothing, so only the part after the colon is shown. The USA edition predates
+ * the convention (its `name` *is* the box title), so it answers to its country
+ * here like everyone else; an edition with no colon in its name is shown as
+ * written, which keeps an unconventionally named one legible rather than blank.
+ */
+export function editionDisplayName(edition: Pick<Edition, 'id' | 'name'>): string {
+  if (edition.id === 'usa') return 'USA'
+  const colon = edition.name.indexOf(':')
+  return colon === -1 ? edition.name : edition.name.slice(colon + 1).trim() || edition.name
 }
 
 /** `1` -> `'1st'`, `11` -> `'11th'`, `22` -> `'22nd'`. */

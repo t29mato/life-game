@@ -17,6 +17,11 @@
   max-width: 46rem;
   margin: 0 auto;
   width: 100%;
+
+  /* Nothing decorative may ever scroll the page sideways. `clip` rather than
+     `hidden` so this does not become a scroll container and change how the
+     absolutely-positioned scenery inside it resolves. */
+  overflow-x: clip;
 }
 
 .screen > *:not(.scenery) {
@@ -33,9 +38,13 @@
   position: absolute;
   top: -6rem;
   bottom: -6rem;
-  left: 50%;
-  width: 100vw;
-  transform: translateX(-50%);
+  /* Spans the screen by its own edges rather than `100vw` centred on itself.
+     `100vw` counts the vertical scrollbar, so on any page tall enough to
+     scroll — which this one is — it is wider than the content box by exactly
+     the scrollbar, and the decoration drags a horizontal scrollbar in with it.
+     Measured at 396px against a 390px viewport before this changed. */
+  left: 0;
+  right: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
@@ -540,6 +549,90 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+/* ==========================================================================
+   Edition — which country's board the evening is played on. A peer of the
+   session-length and difficulty pickers: same card, same rhythm, the same
+   amber stamp on the chosen tile. The grid auto-fits because the shelf is
+   still filling — two columns on a 360px phone, up to five across on a
+   desktop, and a sixth country wraps without anyone editing this file.
+   ========================================================================== */
+.editionSection {
+  position: relative;
+  background: var(--surface-grad);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--elev-2);
+  padding: 1.1rem 1.3rem 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.editionGroup {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.6rem;
+}
+
+.editionOption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.7rem 0.4rem;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--surface-alt);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--border-strong) 60%, transparent);
+  cursor: pointer;
+  transition:
+    transform var(--duration-fast) var(--spring-bouncy, ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.editionOption:hover:not(.editionSelected) {
+  transform: translateY(-1px);
+}
+
+.editionSelected {
+  background: color-mix(in srgb, var(--candy-sun) 22%, var(--surface));
+  box-shadow:
+    inset 0 0 0 2px var(--candy-sun-dark),
+    inset 0 2px 3px rgba(92, 70, 34, 0.12);
+}
+
+.editionOption:focus-visible {
+  outline: 3px solid var(--candy-sky);
+  outline-offset: 2px;
+}
+
+.editionLabel {
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.editionHint {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+
+/* One derived sentence about the selected country, in the difficulty
+   detail's voice. */
+.editionDetail {
+  margin: -0.1rem 0.1rem 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  font-variant-numeric: var(--tabular, tabular-nums);
 }
 
 /* ==========================================================================
