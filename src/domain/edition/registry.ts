@@ -1,6 +1,7 @@
 import type { EditionId } from './types'
 import type { Edition } from './types'
 import { EDITION_USA } from './usa'
+import { EDITION_JAPAN } from './japan'
 
 /**
  * Which edition a game without one is played on.
@@ -11,7 +12,10 @@ import { EDITION_USA } from './usa'
  */
 export const DEFAULT_EDITION_ID: EditionId = EDITION_USA.id
 
-const REGISTRY = new Map<EditionId, Edition>([[EDITION_USA.id, EDITION_USA]])
+const REGISTRY = new Map<EditionId, Edition>([
+  [EDITION_USA.id, EDITION_USA],
+  [EDITION_JAPAN.id, EDITION_JAPAN],
+])
 
 /**
  * Adds an edition to the set a saved game can name.
