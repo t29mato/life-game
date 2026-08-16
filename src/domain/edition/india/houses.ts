@@ -58,7 +58,7 @@ export const HOUSES: readonly House[] = [
     price: 31_000_000,
     resaleRange: [23_000_000, 41_000_000],
     icon: 'house:lakeside-villa',
-    description: 'Red laterite walls, a verandah built for doing nothing well, and a rental listing that pays the year while you are not doing it there.',
+    description: 'Red laterite walls, a verandah built for doing nothing well, and a rental listing that covers the year\'s costs while you are not there.',
   },
   {
     id: 'house-in-city-farmhouse',
@@ -74,7 +74,7 @@ export const HOUSES: readonly House[] = [
     price: 52_000_000,
     resaleRange: [38_000_000, 70_000_000],
     icon: 'space:sunset-ahead',
-    description: 'The eighteenth floor, the whole Arabian Sea, and a monsoon that arrives at your window first. "Sea-facing" is doing all of the pricing.',
+    description: 'The eighteenth floor, the whole Arabian Sea, and a monsoon that arrives at your window first. The words "sea-facing" are the whole reason for the price.',
   },
   {
     id: 'house-in-south-city-penthouse',

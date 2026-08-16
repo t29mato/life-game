@@ -44,7 +44,7 @@ const START: SpaceContent = {
  */
 const COLLEGE_LANE: readonly SpaceContent[] = [
   // EVERY_BOARD, not STANDARD_UP — see usa/route.ts college-1.
-  flavour(EVERY_BOARD, 'in-uni-hostel', 'The Hostel Room', 'Your first room away from home has two beds, one working fan, and a trunk under the bed packed with everything you hope to become.', 'blue', 'space:move-in-day', {
+  flavour(EVERY_BOARD, 'in-uni-hostel', 'The Hostel Room', 'Your first room away from home has two beds, one working fan, and a trunk under the bed packed with everything you own.', 'blue', 'space:move-in-day', {
     from: 'hard',
     description: 'Your first room away from home has two beds and one working fan — and the warden wants the caution deposit, the mess advance, and a "development fee" that is really just extra money the college keeps, and does not give back.',
     effect: { type: 'payMoney', amount: 140_000, reason: 'Deposit, mess advance and development fee' },
@@ -72,10 +72,10 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     tone: 'blue', icon: 'space:campus-job', tier: EVERY_BOARD,
   },
   setback('hard', EVERY_BOARD, 'in-uni-credit-card', 'The Campus Credit Card',
-    'The credit card a smiling agent signed you up for at the college gate has an interest rate buried in fine print, and this month the fine print finally catches up with you.',
+    'The credit card a smiling agent signed you up for at the college gate has a high interest rate hidden in the small print, and this month you finally have to pay it.',
     { type: 'payMoney', amount: 250_000, reason: 'Credit card charges' },
     'blue', 'finance:bank-visit'),
-  flavour(LONG_ONLY, 'in-uni-fest', 'The Culture Fest', 'You join the festival committee, which is nominally about organising events and actually about arguing over sponsor banners at two in the morning.', 'blue', 'space:group-project', {
+  flavour(LONG_ONLY, 'in-uni-fest', 'The Culture Fest', 'You join the festival committee, which is supposed to be about organising events, but is actually about arguing over sponsor banners at two in the morning.', 'blue', 'space:group-project', {
     from: 'hard',
     description: 'You join the festival committee — and when the headline sponsor withdraws a week out, the shortfall is split between exactly the people who volunteered.',
     effect: { type: 'payMoney', amount: 40_000, reason: 'The sponsor shortfall' },
@@ -105,7 +105,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'in-uni-pitch', kind: 'normal', title: 'Demo Day',
-    description: 'You pitch your hostel-room idea at the campus entrepreneurship cell\'s demo day, with two angels in the audience — spin to see who bites.',
+    description: 'You pitch your hostel-room idea at the campus entrepreneurship cell\'s demo day, with two angel investors in the audience — spin to see who says yes.',
     effect: { type: 'spinForMoney', perPip: 40_000, reason: 'Demo day winnings' },
     tone: 'blue', icon: 'space:startup-bet', tier: LONG_ONLY,
   },
@@ -158,7 +158,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   payday(EVERY_BOARD, 'in-work-payday-1', 'A full month on the rolls, and the credit lands while your classmates are still queueing for lecture seats.', missedPayday(
     'veryHard',
     'Salary Next Week',
-    'The accountant says next week with the confidence of a man who has said it before, and the rice tin does not care.',
+    'The accountant says next week, the same thing he said last time, and you still need money for food.',
     90_000,
     'A month of living on nothing',
   )),
@@ -218,7 +218,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'in-work-last-mile', kind: 'normal', title: 'The Last-Mile Auto',
-    description: 'The company covers the train pass; the auto-rickshaw from the station, it emerges, is considered a personal hobby.',
+    description: 'The company covers the train pass. The auto-rickshaw from the station, it turns out, is not covered — that one you pay for yourself.',
     effect: { type: 'payMoney', amount: 40_000, reason: 'The uncovered leg of the commute' },
     tone: 'orange', icon: 'space:car-trouble', tier: LONG_ONLY,
   },
@@ -279,7 +279,7 @@ const OFFICE_ROAD_EARLY: readonly SpaceContent[] = [
   },
   {
     id: 'in-main-gym', kind: 'normal', title: 'Gym Membership',
-    description: 'You commit to the gym above the supermarket on the first of January. You have visited twice; the annual fee visited once, thoroughly.',
+    description: 'You commit to the gym above the supermarket on the first of January. You have visited twice; you paid the annual fee once, in full, on day one.',
     effect: { type: 'payMoney', amount: 40_000, reason: 'Gym membership' },
     tone: 'slate', icon: 'space:gym-membership', tier: LONG_ONLY,
   },
@@ -308,7 +308,7 @@ const OFFICE_ROAD_EARLY: readonly SpaceContent[] = [
   },
   {
     id: 'in-main-roundabout', kind: 'normal', title: 'The Roundabout Scrape',
-    description: 'A gentle merge at the roundabout, a bus that refuses to give way, and an exchange of horn. The bodyshop\'s estimate arrives on letterhead.',
+    description: 'A gentle merge at the roundabout, a bus that refuses to give way, and both of you lean on the horn. The bodyshop\'s estimate arrives on letterhead.',
     effect: { type: 'payMoney', amount: 240_000, reason: 'Bodyshop bill', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender', tier: EVERY_BOARD,
   },
@@ -328,7 +328,7 @@ const OFFICE_ROAD_EARLY: readonly SpaceContent[] = [
   },
   {
     id: 'in-main-pressure-cooker', kind: 'normal', title: 'The Pressure Cooker',
-    description: 'Three whistles is the rule. You answer the doorbell during the second, and the kitchen ceiling learns the colour of dal.',
+    description: 'Three whistles is the rule. You answer the doorbell during the second, and the kitchen ceiling ends up spattered with dal.',
     effect: { type: 'payMoney', amount: 600_000, reason: 'Kitchen fire damage', hazard: 'fire' },
     tone: 'slate', icon: 'space:house-fire', tier: STANDARD_UP,
   },
@@ -428,7 +428,7 @@ const SWITCH_ALLEY: readonly SpaceContent[] = [
   },
   {
     id: 'in-switch-truck', kind: 'normal', title: 'The Packers and Movers',
-    description: 'You follow the truck to the new city in your own car, and learn the exact height of the society\'s gate arch from its decorative ironwork.',
+    description: 'You follow the truck to the new city in your own car, and scrape the roof against the society\'s gate arch — you now know its exact height.',
     effect: { type: 'payMoney', amount: 400_000, reason: 'Truck and arch repairs', hazard: 'accident' },
     tone: 'orange', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -535,9 +535,9 @@ const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
     harsher: missedPayday(
       'veryHard',
       'Variable Pay, Zeroed',
-      'This year\'s variable arrives as a townhall about macroeconomic headwinds.',
+      'This year\'s variable arrives as a townhall about a slowing economy.',
       90_000,
-      'A townhall about headwinds',
+      'A townhall about the slowdown',
     ),
   },
   {
@@ -546,12 +546,12 @@ const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
     effect: { type: 'collectFromEach', amount: 50_000, reason: 'Card party winnings' },
     tone: 'slate', icon: 'space:poker-night', tier: STANDARD_UP,
   },
-  flavour(LONG_ONLY, 'in-main-jewellers', 'The Jeweller\'s Window', 'You linger a little too long at the gold showroom\'s window, and the family, via channels you will never trace, knows by dinner.', 'slate', 'space:ring-shopping'),
+  flavour(LONG_ONLY, 'in-main-jewellers', 'The Jeweller\'s Window', 'You linger a little too long at the gold showroom\'s window, and somehow the whole family knows by dinner.', 'slate', 'space:ring-shopping'),
 ]
 
 const MARRIAGE: SpaceContent = {
   id: 'in-wedding', kind: 'stop', title: 'The Wedding',
-  description: 'Three days, five functions, a white horse, a brass band, and every guest hands over a decorated envelope whose sum ends, by iron custom, in a single extra rupee.',
+  description: 'Three days, five functions, a white horse, a brass band, and every guest hands over a decorated envelope whose sum ends, by strict custom, in a single extra rupee.',
   effect: { type: 'getMarried' },
   tone: 'pink', icon: 'space:wedding-day', tier: EVERY_BOARD,
 }
@@ -697,7 +697,7 @@ const CAREER_TRACK: readonly SpaceContent[] = [
   },
   {
     id: 'in-fast-trading-app', kind: 'normal', title: 'The Trading App',
-    description: 'The bonus is burning a hole in your pocket, and the app has been sending notifications with rocket emojis.',
+    description: 'You are itching to spend the bonus, and the app has been sending notifications with rocket emojis.',
     effect: { type: 'buyStock' },
     tone: 'orange', icon: 'finance:trading-floor', tier: EVERY_BOARD,
   },
@@ -865,19 +865,19 @@ const DALAL_STREET: readonly SpaceContent[] = [
   },
   {
     id: 'in-risky-bad-tip', kind: 'normal', title: 'The Bad Tip',
-    description: 'The "sure thing" you forwarded to three groups tanks in a week, and you buy the table dinner to make up for recommending it to so many people.',
+    description: 'The "sure thing" you forwarded to three groups tanks in a week, and you buy everyone at the table dinner to make up for recommending it to so many people.',
     effect: { type: 'payEach', amount: 200_000, reason: 'The bad stock tip' },
     tone: 'pink', icon: 'space:stock-tip', tier: EVERY_BOARD,
   },
   {
     id: 'in-risky-golf', kind: 'normal', title: 'Client Golf',
-    description: 'Eighteen holes at the members\' club, a friendly wager a hole, and a handicap you have been quietly playing worse than your real skill all season, just for days like this.',
+    description: 'Eighteen holes at the members\' club, a friendly wager on every hole, and you have been quietly playing worse than your real skill all season, just so today\'s win looks innocent.',
     effect: { type: 'collectFromEach', amount: 250_000, reason: 'Eighteen friendly wagers' },
     tone: 'pink', icon: 'space:poker-night', tier: EVERY_BOARD,
   },
   {
     id: 'in-risky-crash', kind: 'normal', title: 'Market Crash',
-    description: 'The index drops hard and your portfolio takes the hit. Your father mentions, again, the year the whole market learned one broker\'s name.',
+    description: 'The index drops hard and your portfolio takes the hit. Your father mentions, again, the year one broker\'s fraud crashed the whole market.',
     effect: { type: 'payMoney', amount: 900_000, reason: 'Market crash' },
     tone: 'pink', icon: 'space:market-crash', tier: EVERY_BOARD,
   },
@@ -903,7 +903,7 @@ const DALAL_STREET: readonly SpaceContent[] = [
   },
   {
     id: 'in-risky-old-sip', kind: 'normal', title: 'The Forgotten SIP',
-    description: 'A mutual fund deduction you set up in your first job and never once looked at has quietly become a sum, and everyone at the table chips in envy.',
+    description: 'A mutual fund deduction you set up in your first job and never once looked at has quietly become a sum, and everyone at the table is openly jealous.',
     effect: { type: 'collectFromEach', amount: 200_000, reason: 'The forgotten investment' },
     tone: 'pink', icon: 'space:surprise-bonus', tier: STANDARD_UP,
   },
@@ -940,7 +940,7 @@ const DALAL_STREET: readonly SpaceContent[] = [
   },
   {
     id: 'in-risky-dividend', kind: 'normal', title: 'Dividend Day',
-    description: 'The speculative end of your portfolio has a very good quarter for once, and you say nothing modest about it.',
+    description: 'The speculative end of your portfolio has a very good quarter for once, and you brag about it to anyone who will listen.',
     effect: { type: 'stockDividend', perShare: 400_000, reason: 'Bumper dividend' },
     tone: 'pink', icon: 'space:dividend-day', tier: STANDARD_UP,
   },
@@ -987,13 +987,13 @@ const STEADY_STREET: readonly SpaceContent[] = [
     'green', 'space:grocery-run'),
   {
     id: 'in-safe-scooter-dominoes', kind: 'normal', title: 'The Scooter Dominoes',
-    description: 'A row of parked scooters outside the market goes down like a card trick, and yours was in the exact middle, and nobody at all saw a thing.',
+    description: 'A row of parked scooters outside the market goes down like dominoes, and yours was in the exact middle, and nobody at all saw a thing.',
     effect: { type: 'payMoney', amount: 300_000, reason: 'Panel and paint', hazard: 'accident' },
     tone: 'green', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
   {
     id: 'in-safe-ledger', kind: 'normal', title: 'The Household Diary',
-    description: 'You keep the household accounts diary faithfully for a whole year, every auto fare and every kilo of onions, and the diary quietly wins.',
+    description: 'You keep the household accounts diary faithfully for a whole year, every auto fare and every kilo of onions, and by year\'s end you have saved more than you expected.',
     effect: { type: 'gainMoney', amount: 100_000, reason: 'The diary balances ahead' },
     tone: 'green', icon: 'space:budget-win', tier: EVERY_BOARD,
   },
@@ -1023,7 +1023,7 @@ const STEADY_STREET: readonly SpaceContent[] = [
   },
   {
     id: 'in-safe-gold-coins', kind: 'normal', title: 'The Gold Coin Drawer',
-    description: 'Every year, on the festival day for buying gold, one small coin went into the locker. Today the jeweller weighs the drawer, and the drawer has been paying attention.',
+    description: 'Every year, on the festival day for buying gold, one small coin went into the locker. Today the jeweller weighs the drawer, and it holds more than you remembered saving.',
     effect: { type: 'gainMoney', amount: 100_000, reason: 'The coins, weighed' },
     tone: 'green', icon: 'space:quiet-savings', tier: EVERY_BOARD,
   },
@@ -1051,7 +1051,7 @@ const STEADY_STREET: readonly SpaceContent[] = [
 const SUNSET_YEARS: readonly SpaceContent[] = [
   {
     id: 'in-sunset-number', kind: 'stop', title: 'The Two-Crore Question',
-    description: 'Every family WhatsApp group has forwarded the calculation of what a comfortable retirement needs, and every forward says two crore. Your own envelope arithmetic runs a little higher — and the number, unfortunately, does not withdraw itself.',
+    description: 'Every family WhatsApp group has forwarded the calculation of what a comfortable retirement needs, and every forward says two crore. Your own quick math runs a little higher — and the number, unfortunately, does not withdraw itself.',
     effect: { type: 'retireEarly' },
     tone: 'gold', icon: 'space:retirement-fund', tier: EVERY_BOARD,
   },
