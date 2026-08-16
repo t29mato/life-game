@@ -385,7 +385,7 @@ const PAYROLL_ROAD: readonly SpaceContent[] = [
   },
   {
     id: 'bo-payroll-icy-curve', kind: 'normal', title: 'The Icy Curve',
-    description: 'Forty minutes over the rim for nine years, and one July morning the same gentle curve at four thousand metres finds you before you find it.',
+    description: 'Forty minutes over the rim for nine years without incident, and one July morning that same gentle curve at four thousand metres is the one that gets you.',
     effect: { type: 'payMoney', amount: 4_000, reason: 'Commuter write-off', hazard: 'accident' },
     tone: 'orange', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -497,7 +497,7 @@ const MARKET_STREET_LATE: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:coupon-clipping', tier: LONG_ONLY,
   },
   setback('hard', LONG_ONLY, 'bo-main-tow-truck', 'The Tow Truck',
-    'Eleven minutes in a no-parking zone that was a parking zone last month, and the municipal tow truck with immaculate timing.',
+    'Eleven minutes in a no-parking zone that was a parking zone last month, and the municipal tow truck arrives at exactly the wrong moment.',
     { type: 'payMoney', amount: 1_200, reason: 'Fine and release fee' },
     'slate', 'space:car-trouble'),
   {
@@ -525,7 +525,7 @@ const MARKET_STREET_LATE: readonly SpaceContent[] = [
   },
   {
     id: 'bo-main-old-deposit', kind: 'normal', title: 'The Returned Deposit',
-    description: 'A deposit you had written off years ago comes back with an apology and, astonishingly, a little interest.',
+    description: 'A deposit you had given up on years ago comes back with an apology and, astonishingly, a little interest.',
     effect: { type: 'gainMoney', amount: 700, reason: 'The deposit returns' },
     tone: 'slate', icon: 'space:refund-check', tier: LONG_ONLY,
   },
@@ -594,7 +594,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'bo-family-parade', kind: 'normal', title: 'The Civic Parade',
-    description: 'Your child is chosen to carry the school banner at the independence parade, and you film every single second of the ninety they are visible.',
+    description: 'Your child is chosen to carry the school banner at the independence parade, and you film all ninety seconds they are visible.',
     effect: { type: 'gainLifeTiles', count: 1 },
     tone: 'purple', icon: 'space:school-play', tier: EVERY_BOARD,
   },
@@ -677,13 +677,13 @@ const CAREER_TRACK: readonly SpaceContent[] = [
   },
   {
     id: 'bo-fast-client-win', kind: 'normal', title: 'Client Win',
-    description: 'You land the account everyone said was impossible, and shake hands at a depth of formality reserved for exactly this occasion.',
+    description: 'You land the account everyone said was impossible, and shake hands far more formally than usual — the way you only do for something this big.',
     effect: { type: 'gainMoney', amount: 3_000, reason: 'Client win bonus' },
     tone: 'orange', icon: 'space:client-win', tier: STANDARD_UP,
   },
   {
     id: 'bo-fast-trade-fair', kind: 'normal', title: 'The Trade Fair Talk',
-    description: 'Your talk at the great lowland trade fair makes the rounds of three industries in a week, and the organisers of the next three fairs would like your calendar.',
+    description: 'Your talk at the great lowland trade fair gets people in three different industries talking within a week, and the organisers of the next three fairs would like your calendar.',
     effect: { type: 'gainMoney', amount: 4_400, reason: 'Speaking fees' },
     tone: 'orange', icon: 'space:conference-talk', tier: STANDARD_UP,
   },
@@ -699,7 +699,7 @@ const CAREER_TRACK: readonly SpaceContent[] = [
   },
   {
     id: 'bo-fast-brokerage', kind: 'normal', title: 'The Brokerage Call',
-    description: 'The bonus is burning a hole in your pocket, and the broker has been leaving voicemails with exclamation marks in them.',
+    description: 'You are itching to spend the bonus, and the broker has been leaving voicemails with exclamation marks in them.',
     effect: { type: 'buyStock' },
     tone: 'orange', icon: 'finance:trading-floor', tier: EVERY_BOARD,
   },
@@ -716,7 +716,7 @@ const CAREER_TRACK: readonly SpaceContent[] = [
     effect: { type: 'gainMoney', amount: 5_000, reason: 'Year-end bonus' },
     tone: 'orange', icon: 'space:bonus-season', tier: STANDARD_UP,
   },
-  flavour(LONG_ONLY, 'bo-fast-corner-office', 'The Corner Office', 'You finally get a door that closes, a window that opens, and a view of the mountain that makes visitors lose their train of thought.', 'orange', 'space:corner-office', {
+  flavour(LONG_ONLY, 'bo-fast-corner-office', 'The Corner Office', 'You finally get a door that closes, a window that opens, and a view of the mountain that leaves visitors staring instead of talking.', 'orange', 'space:corner-office', {
     from: 'hard',
     description: 'You finally get a door that closes and a window that opens — and an empty room behind them that is yours to furnish.',
     effect: { type: 'payMoney', amount: 1_800, reason: 'Furnishing the office' },
@@ -768,7 +768,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   },
   {
     id: 'bo-midtown-heater', kind: 'normal', title: 'The Old Heater',
-    description: 'The high-city night drops below freezing, the ancient electric heater rises to the occasion, and the curtain gets involved. The bedroom needs repainting from the ceiling down.',
+    description: 'The high-city night drops below freezing, the ancient electric heater overheats, and the curtain catches fire. The bedroom needs repainting from the ceiling down.',
     effect: { type: 'payMoney', amount: 5_600, reason: 'Bedroom fire damage', hazard: 'fire' },
     tone: 'slate', icon: 'space:house-fire', tier: STANDARD_UP,
   },
@@ -784,7 +784,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   payday(EVERY_BOARD, 'bo-midtown-payday', 'The month\'s money lands the week the deposit on a house is due.'),
   {
     id: 'bo-midtown-wiring', kind: 'normal', title: 'Wiring Fault',
-    description: 'The house was wired floor by floor, by three different electricians, in three different decades. At two in the morning, the decades disagree.',
+    description: 'The house was wired floor by floor, by three different electricians, in three different decades. At two in the morning, the old wiring finally fails and starts a fire.',
     effect: { type: 'payMoney', amount: 5_600, reason: 'Electrical fire damage', hazard: 'fire' },
     tone: 'slate', icon: 'space:house-fire', tier: STANDARD_UP,
   },
@@ -840,7 +840,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   },
   {
     id: 'bo-midtown-bank', kind: 'normal', title: 'Bank Visit',
-    description: 'The branch manager now greets you by name and waves you past the queue, which earns you looks you can feel between your shoulders.',
+    description: 'The branch manager now greets you by name and waves you past the queue, and the other customers glare at you the whole way.',
     effect: { type: 'bank' },
     tone: 'slate', icon: 'finance:bank-visit', tier: LONG_ONLY,
   },
@@ -880,7 +880,7 @@ const DOLLAR_ROAD: readonly SpaceContent[] = [
   },
   {
     id: 'bo-risky-boom-ends', kind: 'normal', title: 'The Boom Ends',
-    description: 'The commodity your whole position leans on goes out of fashion on three continents in one quarter, and your portfolio winces.',
+    description: 'The commodity your whole portfolio depends on goes out of fashion on three continents in one quarter, and you lose money fast.',
     effect: { type: 'payMoney', amount: 9_000, reason: 'The boom ends' },
     tone: 'pink', icon: 'space:market-crash', tier: EVERY_BOARD,
   },
@@ -889,7 +889,7 @@ const DOLLAR_ROAD: readonly SpaceContent[] = [
     { type: 'payMoney', amount: 16_000, reason: 'The market falls again' },
     'pink', 'space:market-crash'),
   setback('veryHard', LONG_ONLY, 'bo-risky-wipeout', 'Margin Wipeout',
-    'The leveraged position is closed for you at the worst hour of the night, and nobody asks first.',
+    'The bet you made with borrowed money is closed out for you at the worst hour of the night, and nobody asks first.',
     { type: 'payMoney', amount: 20_000, reason: 'Position closed out' },
     'pink', 'space:market-crash'),
   {
@@ -912,7 +912,7 @@ const DOLLAR_ROAD: readonly SpaceContent[] = [
   },
   {
     id: 'bo-risky-customs-auction', kind: 'normal', title: 'The Customs Auction',
-    description: 'Seized goods go under the hammer at the customs yard, sight mostly unseen, and your paddle goes up one crate too many.',
+    description: 'Seized goods are auctioned off at the customs yard, most of them without a proper look first, and you bid on one crate too many.',
     effect: { type: 'payMoney', amount: 6_000, reason: 'Auction overspend' },
     tone: 'pink', icon: 'space:bidding-war', tier: LONG_ONLY,
   },
@@ -977,7 +977,7 @@ const STEADY_STREET: readonly SpaceContent[] = [
     'Wages held over a month',
   )),
   setback('hard', EVERY_BOARD, 'bo-safe-excess', 'Policy Excess',
-    'The careful road has claim forms too, and the small print on yours contains a figure called the excess that turns out to be neither small nor print.',
+    'The careful road has claim forms too, and the fine print on yours hides a fee called the excess — and it is far from small.',
     { type: 'payMoney', amount: 4_000, reason: 'Policy excess' },
     'green', 'finance:insurance-office'),
   setback('veryHard', STANDARD_UP, 'bo-safe-hail', 'Hail on the Roof',
@@ -990,7 +990,7 @@ const STEADY_STREET: readonly SpaceContent[] = [
     'green', 'space:grocery-run'),
   {
     id: 'bo-safe-trolley', kind: 'normal', title: 'Trolley Dent',
-    description: 'A supermarket trolley rolls the full width of the car park, on a slope nobody can find afterwards, to reach your driver\'s door. Every witness was studying the sky.',
+    description: 'A supermarket trolley rolls the full width of the car park, on a slope nobody can find afterwards, to reach your driver\'s door. Every witness suddenly finds the sky fascinating.',
     effect: { type: 'payMoney', amount: 3_000, reason: 'Panel and paint', hazard: 'accident' },
     tone: 'green', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -1071,7 +1071,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:house-fire', tier: EVERY_BOARD,
   },
   setback('veryHard', STANDARD_UP, 'bo-sunset-san-juan', 'The Midwinter Bonfire',
-    'On the coldest night of the year the whole city lights bonfires, as it always has — and this year, the fence was closer than it looked.',
+    'On the coldest night of the year the whole city lights bonfires, as it always has — and this year, the flames reach the fence before anyone notices.',
     { type: 'payMoney', amount: 16_000, reason: 'Bonfire night damage', hazard: 'fire' },
     'slate', 'space:house-fire'),
   setback('hard', EVERY_BOARD, 'bo-sunset-parents', 'Caring for Your Parents',
@@ -1099,8 +1099,8 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   },
   {
     id: 'bo-sunset-swap', kind: 'normal', title: 'Rival Swap',
-    description: 'One final audacious deal over a very long lunch, and the leader watches their fortune shake hands and leave with you.',
-    effect: { type: 'swapMoneyWithLeader', reason: 'The eleventh-hour swap' },
+    description: 'One last bold deal over a very long lunch, and the leader\'s fortune ends up in your pocket instead of theirs.',
+    effect: { type: 'swapMoneyWithLeader', reason: 'The last-minute swap' },
     tone: 'slate', icon: 'space:rival-swap', tier: EVERY_BOARD,
   },
   {
@@ -1154,7 +1154,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   },
   {
     id: 'bo-sunset-sit-down', kind: 'normal', title: 'The Sit-Down',
-    description: 'You both go through a year of the notebook at the kitchen table, and the shared purse is finally audited in both directions. There is a coat to discuss.',
+    description: 'You both go through a year of the notebook at the kitchen table, and the shared purse is finally audited in both directions. One of you bought an expensive coat that neither of you can quite explain.',
     effect: { type: 'household', reason: 'The notebook, audited both ways' },
     tone: 'purple', icon: 'space:quiet-savings', tier: LONG_ONLY,
   },
@@ -1227,7 +1227,7 @@ const FAMILY_BRANCH: RouteBranch = {
 const CAREER_BRANCH: RouteBranch = {
   identity: {
     name: 'Career Track',
-    summary: 'The raises are real, and so are the bonuses, the board seat and the corner office with the mountain view. The life you might have had is itemised separately.',
+    summary: 'The raises are real, and so are the bonuses, the board seat and the corner office with the mountain view. What you gave up for all of it is written down on the other lane.',
   },
   spaces: CAREER_TRACK,
 }
