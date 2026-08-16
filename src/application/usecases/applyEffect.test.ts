@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { LifeTile } from '@domain/model/types'
-import {
-  CASUAL_WAGE_PER_PIP,
-  EARLY_LOAN_REPAYMENT,
-  INSURANCE_PREMIUM,
-  WEDDING_GIFT,
-} from '@domain/model/constants'
+import { CASUAL_WAGE_PER_PIP, EARLY_LOAN_REPAYMENT, INSURANCE_PREMIUM } from '@domain/model/constants'
 import { BASIC_CAREERS, GRADUATE_CAREERS, USA_ECONOMY } from '@domain/edition/usa'
 import { expectedMarriageValue } from '@domain/rules/marriage'
 import { HOUSES } from '@domain/edition/usa'
@@ -72,6 +67,46 @@ describe('applyEffect', () => {
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
       expect(next.players[0]!.money).toBeGreaterThanOrEqual(0)
       expect(next.players[0]!.loans).toBeGreaterThan(0)
+    })
+  })
+
+  describe('promotion', () => {
+    it('holds for the player to spin themselves when there is a real rung to win, quoting the bar', () => {
+      const career = BASIC_CAREERS[0]!
+      const state = fixtureState({ players: [fixturePlayer({ career })] })
+      const random = createFakeRandom({ spins: [10] })
+      const { state: next } = applyEffect(state, fixtureSpace({ effect: { type: 'promotion', reason: 'Review time' } }), {
+        random,
+      })
+
+      expect(random.calls.spins).toBe(0)
+      expect(next.players[0]!.career).toEqual(career)
+      expect(next.pendingDecision?.kind).toBe('valueSpin')
+      const description = next.pendingDecision?.options[0]?.description ?? ''
+      expect(description).toContain(`${career.promotionSpin}`)
+    })
+
+    it('resolves instantly with no career, never touching the wheel', () => {
+      const state = fixtureState({ players: [fixturePlayer({ career: null })] })
+      const random = createFakeRandom()
+      const { state: next } = applyEffect(state, fixtureSpace({ effect: { type: 'promotion', reason: 'Review time' } }), {
+        random,
+      })
+      expect(random.calls.spins).toBe(0)
+      expect(next.pendingDecision).toBeNull()
+    })
+
+    it('resolves instantly at the top of the ladder — a guaranteed double raise, no wheel involved', () => {
+      const topRung = GRADUATE_CAREERS.find((c) => c.promotesTo === undefined && !c.isCalling)!
+      const state = fixtureState({ players: [fixturePlayer({ career: topRung })] })
+      const random = createFakeRandom()
+      const { state: next, event } = applyEffect(state, fixtureSpace({ effect: { type: 'promotion', reason: 'Review time' } }), {
+        random,
+      })
+      expect(random.calls.spins).toBe(0)
+      expect(next.pendingDecision).toBeNull()
+      expect(event.emphasis).toBe('big')
+      expect(next.players[0]!.career?.salary).toBeGreaterThan(topRung.salary)
     })
   })
 
@@ -232,124 +267,25 @@ describe('applyEffect', () => {
   })
 
   describe('getMarried', () => {
-    /** Three guests, one of them retired and therefore not paying for anything. */
-    const weddingParty = () =>
-      fixtureState({
+    const MARRIAGE_SPACE = { effect: { type: 'getMarried' } } as const
+
+    it('holds for the player to spin themselves, touching neither the wheel nor anyone\'s money', () => {
+      const state = fixtureState({
         players: [
           fixturePlayer({ id: 'p1', name: 'Alex', money: 50_000 }),
           fixturePlayer({ id: 'p2', name: 'Bo', money: 50_000 }),
-          fixturePlayer({ id: 'p3', name: 'Cy', money: 50_000, isRetired: true }),
         ],
         currentPlayerIndex: 0,
       })
+      const random = createFakeRandom({ spins: [10] })
+      const { state: next } = applyEffect(state, fixtureSpace(MARRIAGE_SPACE), { random })
 
-    const MARRIAGE_SPACE = { effect: { type: 'getMarried' } } as const
-
-    /*
-     * Marriage is a spread now, not a prize. The wheel decides which marriage,
-     * and the bands run from a partner who arrives with debts to two incomes
-     * and a partner who has been quietly saving. Each band is pinned here,
-     * because "marriage can cost you" is the whole point of the rework and a
-     * silent slide back to pure upside is exactly what these guard.
-     */
-    const BANDS = USA_ECONOMY.marriage
-
-    it('marries on a 3, at a reception that eats most of the gifts', () => {
-      const state = weddingParty()
-      const space = fixtureSpace(MARRIAGE_SPACE)
-      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom({ spins: [3] }) })
-
-      const band = BANDS.outcomes[0]!
-      expect(band.cost).toBeGreaterThan(0)
-      expect(next.players[0]!.isMarried).toBe(true)
-      // One gift in, one reception out. The wedding is the reason this is not
-      // simply a windfall the way it used to be.
-      expect(event.moneyDelta).toBe(WEDDING_GIFT - band.cost)
-      expect(event.moneyDelta).toBeLessThan(WEDDING_GIFT)
-      expect(next.players[0]!.money).toBe(50_000 + WEDDING_GIFT - band.cost)
-      expect(next.players[1]!.money).toBe(50_000 - WEDDING_GIFT) // guest still pays
-      expect(next.players[2]!.money).toBe(50_000) // retired guest is skipped
-    })
-
-    it('gives a mid spin the sensible wedding the gifts do cover', () => {
-      const state = weddingParty()
-      const space = fixtureSpace(MARRIAGE_SPACE)
-      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom({ spins: [6] }) })
-
-      expect(next.players[0]!.isMarried).toBe(true)
-      expect(event.moneyDelta).toBe(WEDDING_GIFT)
-      expect(next.players[0]!.money).toBe(50_000 + WEDDING_GIFT)
-      expect(next.players[1]!.money).toBe(50_000 - WEDDING_GIFT)
-    })
-
-    it('pays a high spin a second income on top of the gifts', () => {
-      const state = weddingParty()
-      const space = fixtureSpace(MARRIAGE_SPACE)
-      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom({ spins: [8] }) })
-
-      const band = BANDS.outcomes[2]!
-      expect(band.windfall).toBeGreaterThan(0)
-      expect(event.moneyDelta).toBe(WEDDING_GIFT + band.windfall)
-      expect(next.players[0]!.money).toBe(50_000 + WEDDING_GIFT + band.windfall)
-    })
-
-    it('turns a perfect spin into the wedding of the year, at gifts and a half', () => {
-      const state = weddingParty()
-      const space = fixtureSpace(MARRIAGE_SPACE)
-      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom({ spins: [10] }) })
-
-      const band = BANDS.outcomes[3]!
-      const grand = Math.round(WEDDING_GIFT * band.giftMultiplier)
-      expect(grand).toBeGreaterThan(WEDDING_GIFT)
-      expect(event.moneyDelta).toBe(grand + band.windfall)
-      expect(next.players[1]!.money).toBe(50_000 - grand)
-    })
-
-    it('asks again after a 1, and a rescued proposal arrives carrying debts', () => {
-      const state = weddingParty()
-      const space = fixtureSpace(MARRIAGE_SPACE)
-      // 1 is under the bar, so the wheel is given a second, kinder chance.
-      const random = createFakeRandom({ spins: [1, 2] })
-      const { state: next, event } = applyEffect(state, space, { random })
-
-      expect(random.calls.spins).toBe(2)
-      expect(next.players[0]!.isMarried).toBe(true)
-      expect(event.moneyDelta).toBe(WEDDING_GIFT - BANDS.rescued.cost)
-      // The worst marriage on the table, and it really does leave you down.
-      expect(event.moneyDelta).toBeLessThan(0)
-      expect(next.log[0]!.message).toContain('worse off')
-      expect(event.notes.join(' ')).toContain('this time, yes')
-    })
-
-    it('keeps marrying worth doing on average, at every table size', () => {
-      /*
-       * The constraint the whole spread is built inside. A marriage that loses
-       * money on average is one nobody sane takes, and children, Family Lane
-       * and the entire family scoring lane hang off reaching this tile.
-       */
-      for (const rivals of [1, 2, 3]) {
-        expect(expectedMarriageValue(USA_ECONOMY, rivals)).toBeGreaterThan(0)
-      }
-      // And a fuller table is a safer bet, because more envelopes change hands.
-      expect(expectedMarriageValue(USA_ECONOMY, 3)).toBeGreaterThan(expectedMarriageValue(USA_ECONOMY, 1))
-    })
-
-    it('leaves the player single on a 1 and then a 1, and pays them a LIFE tile for the year', () => {
-      const state = weddingParty()
-      const space = fixtureSpace(MARRIAGE_SPACE)
-      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom({ spins: [1] }) })
-
+      expect(random.calls.spins).toBe(0)
       expect(next.players[0]!.isMarried).toBe(false)
-      // Nobody pays for a wedding that did not happen.
       expect(next.players[0]!.money).toBe(50_000)
       expect(next.players[1]!.money).toBe(50_000)
-      expect(event.moneyDelta).toBe(0)
-      expect(event.lifeTilesGained).toHaveLength(1)
-      expect(next.players[0]!.lifeTiles).toHaveLength(1)
-      // Staying single must not close Family Lane off — that would make one bad
-      // spin cost the player the whole family side of the board.
-      expect(next.players[0]!.children).toBe(0)
-      expect(event.notes.join(' ')).toContain('still open')
+      expect(next.pendingDecision?.kind).toBe('valueSpin')
+      expect(next.pendingDecision?.options).toHaveLength(1)
     })
 
     it('is a no-op for a player who is already married', () => {
@@ -361,54 +297,38 @@ describe('applyEffect', () => {
       expect(next.players[0]!.money).toBe(50_000)
       expect(event.moneyDelta).toBe(0)
       expect(random.calls.spins).toBe(0)
+      expect(next.pendingDecision).toBeNull()
+    })
+
+    it('keeps marrying worth doing on average, at every table size', () => {
+      /*
+       * The constraint the whole spread is built inside, still true whether
+       * the roll happens here or waits for a press in `choose.ts`. A marriage
+       * that loses money on average is one nobody sane takes, and children,
+       * Family Lane and the entire family scoring lane hang off reaching
+       * this tile.
+       */
+      for (const rivals of [1, 2, 3]) {
+        expect(expectedMarriageValue(USA_ECONOMY, rivals)).toBeGreaterThan(0)
+      }
+      expect(expectedMarriageValue(USA_ECONOMY, 3)).toBeGreaterThan(expectedMarriageValue(USA_ECONOMY, 1))
     })
   })
 
   describe('household', () => {
     const JOINT = { effect: { type: 'household', reason: 'The joint account, settled up' } } as const
-    const { breakEvenSpin, shareOfPayday } = USA_ECONOMY.household
-    /** What one pip either side of the line is worth to this fixture's earner. */
-    const pipFor = (player: { career: { salary: number } | null }) =>
-      (player.career?.salary ?? USA_ECONOMY.casualWagePerPip * 5.5) * shareOfPayday
 
-    it('costs a married player money when the spending outran the account', () => {
-      // This is the thing the board could not say before: being married is why
-      // you are down this month.
+    it('holds for a married player to spin themselves, quoting the break-even line', () => {
       const player = fixturePlayer({ isMarried: true, money: 100_000 })
       const state = fixtureState({ players: [player] })
-      const { state: next, event } = applyEffect(state, fixtureSpace(JOINT), {
-        random: createFakeRandom({ spins: [1] }),
-      })
+      const random = createFakeRandom({ spins: [1] })
+      const { state: next } = applyEffect(state, fixtureSpace(JOINT), { random })
 
-      const expected = Math.round((1 - breakEvenSpin) * pipFor(player))
-      expect(expected).toBeLessThan(0)
-      expect(event.moneyDelta).toBe(expected)
-      expect(next.players[0]!.money).toBe(100_000 + expected)
-      expect(next.log[0]!.tone).toBe('money-out')
-      expect(event.notes.join(' ')).toContain('outran')
-    })
-
-    it('pays a married player when two incomes carried the month', () => {
-      const player = fixturePlayer({ isMarried: true, money: 100_000 })
-      const state = fixtureState({ players: [player] })
-      const { state: next, event } = applyEffect(state, fixtureSpace(JOINT), {
-        random: createFakeRandom({ spins: [10] }),
-      })
-
-      const expected = Math.round((10 - breakEvenSpin) * pipFor(player))
-      expect(expected).toBeGreaterThan(0)
-      expect(event.moneyDelta).toBe(expected)
-      expect(next.players[0]!.money).toBe(100_000 + expected)
-      expect(next.log[0]!.tone).toBe('money-in')
-    })
-
-    it('lands exactly level on the break-even spin', () => {
-      const player = fixturePlayer({ isMarried: true, money: 100_000 })
-      const state = fixtureState({ players: [player] })
-      const { event } = applyEffect(state, fixtureSpace(JOINT), {
-        random: createFakeRandom({ spins: [breakEvenSpin] }),
-      })
-      expect(event.moneyDelta).toBe(0)
+      expect(random.calls.spins).toBe(0)
+      expect(next.players[0]!.money).toBe(100_000)
+      expect(next.pendingDecision?.kind).toBe('valueSpin')
+      const description = next.pendingDecision?.options[0]?.description ?? ''
+      expect(description).toContain(`${USA_ECONOMY.household.breakEvenSpin}`)
     })
 
     it('passes a single player by entirely, without touching the wheel', () => {
@@ -422,16 +342,7 @@ describe('applyEffect', () => {
       expect(event.moneyDelta).toBe(0)
       expect(next.players[0]!.money).toBe(100_000)
       expect(random.calls.spins).toBe(0)
-    })
-
-    it('borrows rather than going below zero on a bad month', () => {
-      const player = fixturePlayer({ isMarried: true, money: 0, loans: 0 })
-      const state = fixtureState({ players: [player] })
-      const { state: next } = applyEffect(state, fixtureSpace(JOINT), {
-        random: createFakeRandom({ spins: [1] }),
-      })
-      expect(next.players[0]!.money).toBeGreaterThanOrEqual(0)
-      expect(next.players[0]!.loans).toBeGreaterThan(0)
+      expect(next.pendingDecision).toBeNull()
     })
   })
 
@@ -588,8 +499,11 @@ describe('applyEffect', () => {
     })
 
     it('marks life milestones as milestones', () => {
+      // getMarried is not here: it defers to a value-spin decision now, and
+      // the neutral card that raises it is deliberately not milestone-weight
+      // — that belongs to the wedding itself, once `choose.ts` resolves it.
       const state = fixtureState({ players: [fixturePlayer({ career: BASIC_CAREERS[0]! })] })
-      for (const effect of [{ type: 'graduate' }, { type: 'getMarried' }, { type: 'retire' }] as const) {
+      for (const effect of [{ type: 'graduate' }, { type: 'retire' }] as const) {
         const { event } = applyEffect(state, fixtureSpace({ effect }), { random: createFakeRandom() })
         expect(event.emphasis, effect.type).toBe('milestone')
       }

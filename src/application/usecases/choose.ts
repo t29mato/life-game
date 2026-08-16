@@ -1,19 +1,25 @@
-import type { GameState, LandingEmphasis, LandingEvent, LogTone, Money, Player, Space } from '@domain/model/types'
+import type { GameState, LandingEmphasis, LandingEvent, LogTone, Money, Player, Space, SpinValue } from '@domain/model/types'
 import { SHARES_PER_PURCHASE } from '@domain/model/constants'
 import { planMovementVia } from '@domain/board/movement'
 import { editionOf } from '@domain/edition/registry'
-import { findCareer, findHouse, findStock } from '@domain/edition/lookup'
+import { findCareer, findHouse, findStock, nextRungOf } from '@domain/edition/lookup'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
+import { marriageBandFor } from '@domain/rules/marriage'
 import {
   addInsurance,
+  addLifeTiles,
+  applyPayRaise,
   buyHouse as buyHouseForPlayer,
   buyShares,
   creditPlayer,
   debitPlayer,
+  expectedPayday,
+  marryPlayer,
   movePlayerTo,
   paydayKindOf,
   paydayPayFor,
   payPlayerSalary,
+  promoteCareer,
   repayLoan,
   retirePlayer,
   switchCareer,
@@ -28,11 +34,14 @@ import {
   DECLINE_HOUSE_OPTION_ID,
   DECLINE_INSURANCE_OPTION_ID,
   DECLINE_STOCK_OPTION_ID,
+  DEFAULT_PROMOTION_SPIN,
+  DOUBLE_PROMOTION_SPIN,
   FIRE_DECLINE_OPTION_ID,
   FIRE_RETIRE_OPTION_ID,
   VALUE_SPIN_OPTION_ID,
   emphasisForMoney,
   insuranceKindFromOptionId,
+  rivalsOf,
 } from './applyEffect'
 import { formatMoney, loanNote } from './format'
 import { appendLog } from './logging'
@@ -455,13 +464,224 @@ function resolveBank(state: GameState, optionId: string): GameState {
   throw new Error(`choose: unknown bank option "${optionId}"`)
 }
 
+/** Promotion review: pass/fail, and a possible second rung, from one press. */
+function resolvePromotionSpin(
+  state: GameState,
+  player: Player,
+  space: Space | undefined,
+  spinValue: SpinValue,
+  edition: ReturnType<typeof editionOf>,
+  money: (amount: Money) => string,
+): GameState {
+  const career = player.career
+  if (!career) throw new Error('choose: promotion spin with no career')
+  const next = nextRungOf(career, edition)
+  if (!next) throw new Error('choose: promotion spin with nobody to promote to')
+  const needed = career.promotionSpin ?? DEFAULT_PROMOTION_SPIN
+
+  if (spinValue < needed) {
+    // Never a dead tile: passed over is still a raise.
+    const raised = applyPayRaise(player)
+    const newSalary = raised.career?.salary ?? career.salary
+    const event = outcomeEvent(
+      space,
+      player,
+      'Review',
+      0,
+      [
+        `Spun a ${spinValue}, and ${needed} was the bar — the ${next.title} job goes to somebody else.`,
+        `A raise anyway: ${money(newSalary)}`,
+      ],
+      'normal',
+      `A ${spinValue}. Not this time, ${player.name} — but they find you a raise on the way out of the room.`,
+    )
+    return resolved(
+      state,
+      replacePlayer(state.players, raised),
+      event,
+      `${player.name} spins a ${spinValue} and is passed over for ${next.title}, taking a rise to ${money(newSalary)}.`,
+      'event',
+    )
+  }
+
+  let promoted = promoteCareer(player, next)
+  const twoAtOnce = spinValue >= DOUBLE_PROMOTION_SPIN ? nextRungOf(next, edition) : undefined
+  if (twoAtOnce) promoted = promoteCareer(promoted, twoAtOnce)
+  const arrived = promoted.career ?? next
+  const notes = [
+    `Spun a ${spinValue} against a bar of ${needed}.`,
+    twoAtOnce
+      ? `Two rungs in one morning: ${career.title} straight to ${arrived.title}.`
+      : `${career.title} no longer — you are a ${arrived.title}.`,
+    `${money(arrived.salary)} every payday.`,
+  ]
+  const event = outcomeEvent(
+    space,
+    player,
+    'Review',
+    0,
+    notes,
+    'milestone',
+    twoAtOnce
+      ? `A ten! They skip a whole rung — ${player.name} is a ${arrived.title}, and the room is not sure what just happened.`
+      : `Promoted! ${player.name} is a ${arrived.title} now, on ${money(arrived.salary)} a payday.`,
+  )
+  return resolved(
+    state,
+    replacePlayer(state.players, promoted),
+    event,
+    `${player.name} spins a ${spinValue} and is promoted to ${arrived.title}: ${money(arrived.salary)} a payday.`,
+    'milestone',
+  )
+}
+
+/** Marriage: whether, then which, both from one press — see `applyEffect`'s 'getMarried' case for why. */
+function resolveMarriageSpin(
+  state: GameState,
+  player: Player,
+  space: Space | undefined,
+  spinValue: SpinValue,
+  deps: UseCaseDeps,
+  edition: ReturnType<typeof editionOf>,
+  money: (amount: Money) => string,
+): GameState {
+  const { economy } = edition
+  const { marriage } = economy
+  const asked = spinValue
+  const askedAgain = asked >= marriage.proposalSpin ? null : deps.random.spin()
+
+  if (askedAgain !== null && askedAgain < marriage.secondAskSpin) {
+    const tiles = deps.random.shuffle(edition.lifeTiles).slice(0, 1)
+    const updated = addLifeTiles(player, tiles)
+    const event: LandingEvent = {
+      ...outcomeEvent(
+        space,
+        player,
+        'Wedding Day',
+        0,
+        [
+          `Spun a ${asked}, then a ${askedAgain} — not this year, and not next year either.`,
+          'Single, and the road ahead is entirely yours: children, Family Lane and every bonus on it are still open.',
+          ...tiles.map((tile) => tile.title),
+        ],
+        'milestone',
+        `A ${asked} and then a ${askedAgain}! No wedding for ${player.name} — so they spend the year on themselves instead, and it makes a far better story.`,
+      ),
+      lifeTilesGained: tiles,
+    }
+    return resolved(
+      state,
+      replacePlayer(state.players, updated),
+      event,
+      `${player.name} spins a ${asked} and a ${askedAgain}: no wedding, but a LIFE tile out of the year.`,
+      'event',
+    )
+  }
+
+  /*
+   * Which marriage, not merely whether. The wheel that decided they said yes
+   * decides what it cost: a rescued proposal arrives with somebody else's
+   * debts, a low first ask is a reception nobody budgeted for, and only the
+   * top of the wheel is the marriage everybody pictures.
+   */
+  const outcome = askedAgain !== null ? marriage.rescued : marriageBandFor(marriage.outcomes, asked)
+  const gift = Math.round(economy.weddingGift * outcome.giftMultiplier)
+  const payers = rivalsOf(state, player)
+
+  let players = state.players
+  let mover = marryPlayer(player)
+  const notes: string[] = [
+    askedAgain !== null
+      ? `Spun a ${asked}, asked again, spun a ${askedAgain} — and this time, yes.`
+      : `Spun a ${asked}.`,
+    outcome.note,
+  ]
+
+  for (const payer of payers) {
+    players = replacePlayer(players, debitPlayer(payer, gift, economy))
+    mover = creditPlayer(mover, gift)
+    notes.push(`${payer.name} pays a ${money(gift)} wedding gift.`)
+  }
+  if (outcome.windfall > 0) {
+    mover = creditPlayer(mover, outcome.windfall)
+    notes.push(`Two incomes: ${money(outcome.windfall)}`)
+  }
+  if (outcome.cost > 0) {
+    mover = debitPlayer(mover, outcome.cost, economy)
+    notes.push(`The bill for it all: ${money(-outcome.cost)}`)
+  }
+  players = replacePlayer(players, mover)
+
+  const delta = mover.money - player.money
+  const narration =
+    delta < 0
+      ? `Married! And already ${money(-delta)} down, ${player.name} — nobody tells you about that part.`
+      : payers.length === 0
+        ? `Wedding bells for ${player.name} — a quiet ceremony, but a very happy one.`
+        : outcome.giftMultiplier > 1
+          ? `The wedding of the year! Everybody at this table is paying for it, ${player.name}.`
+          : `Wedding bells for ${player.name}! Everybody else, hand over those gift envelopes.`
+  const event = outcomeEvent(space, player, 'Wedding Day', delta, notes, 'milestone', narration)
+  return resolved(
+    state,
+    players,
+    event,
+    delta < 0
+      ? `${player.name} gets married, and is ${money(-delta)} worse off for it.`
+      : `${player.name} gets married!`,
+    'milestone',
+  )
+}
+
+/** The joint account, settled up: one spin, one statement. */
+function resolveHouseholdSpin(
+  state: GameState,
+  player: Player,
+  space: Space | undefined,
+  spinValue: SpinValue,
+  edition: ReturnType<typeof editionOf>,
+  money: (amount: Money) => string,
+): GameState {
+  const { economy } = edition
+  const { household } = economy
+  const amount = Math.round(
+    (spinValue - household.breakEvenSpin) * expectedPayday(player, economy) * household.shareOfPayday,
+  )
+  const updated = amount >= 0 ? creditPlayer(player, amount) : debitPlayer(player, -amount, economy)
+  const delta = updated.money - player.money
+
+  const notes =
+    amount < 0
+      ? [`Spun a ${spinValue} — the spending outran the account: ${money(delta)}`]
+      : amount === 0
+        ? [`Spun a ${spinValue} — the account comes out exactly level.`]
+        : [`Spun a ${spinValue} — two incomes carried it: ${money(delta)}`]
+  const narration =
+    amount < 0
+      ? `A ${spinValue}, and your partner has been shopping, ${player.name}. ${money(delta)}.`
+      : amount === 0
+        ? `A ${spinValue}, and the joint account lands exactly where it started. Nobody wins that argument.`
+        : `A ${spinValue}! Two incomes and a good month — ${money(delta)} for ${player.name}.`
+
+  const event = outcomeEvent(space, player, 'The Joint Account', delta, notes, emphasisForMoney(delta, economy), narration)
+  return resolved(
+    state,
+    replacePlayer(state.players, updated),
+    event,
+    amount < 0
+      ? `${player.name}'s joint account takes a hit, spinning a ${spinValue}: ${money(delta)}.`
+      : `${player.name}'s household comes out ahead, spinning a ${spinValue}: ${money(delta)}.`,
+    amount < 0 ? 'money-out' : 'money-in',
+  )
+}
+
 /**
- * The roll a `spinForMoney` tile or an unsteady payday held back until now.
- *
- * `applyEffect` named the rate and stopped there — the roll itself waits for
- * the player to press the one button this decision offers, so the number
- * that decides their week is one they asked the wheel for rather than one the
- * game already knew before they saw the card.
+ * The roll every wheel-decided tile held back until now — a `spinForMoney`
+ * tile, an unsteady payday, a promotion review, a marriage proposal, or the
+ * joint account. `applyEffect` named the stakes and stopped there in every
+ * case; the roll itself waits for the player to press the one button this
+ * decision offers, so the number that decides it is one they asked the wheel
+ * for rather than one the game already knew before they saw the card.
  */
 function resolveValueSpin(state: GameState, optionId: string, deps: UseCaseDeps): GameState {
   const player = state.players[state.currentPlayerIndex]
@@ -494,6 +714,18 @@ function resolveValueSpin(state: GameState, optionId: string, deps: UseCaseDeps)
       `${space.effect.reason} ${player.name} spins a ${spinValue}: ${money(gain)}.`,
       gain >= 0 ? 'money-in' : 'money-out',
     )
+  }
+
+  if (space?.effect.type === 'promotion') {
+    return resolvePromotionSpin(state, player, space, spinValue, edition, money)
+  }
+
+  if (space?.effect.type === 'getMarried') {
+    return resolveMarriageSpin(state, player, space, spinValue, deps, edition, money)
+  }
+
+  if (space?.effect.type === 'household') {
+    return resolveHouseholdSpin(state, player, space, spinValue, edition, money)
   }
 
   // Otherwise this is a payday — casual or unsteady, the only two kinds that

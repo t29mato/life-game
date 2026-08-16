@@ -25,7 +25,6 @@ import {
   seniorityOf,
 } from '@domain/edition/lookup'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
-import { marriageBandFor } from '@domain/rules/marriage'
 import {
   addChildren,
   addLifeTiles,
@@ -36,11 +35,8 @@ import {
   hasCalling,
   hasInsurance,
   isCoveredAgainst,
-  expectedPayday,
   loseCareer as loseCareerFor,
-  marryPlayer,
   paydayKindOf,
-  promoteCareer,
   removeLifeTile,
   retirePlayer,
   setMoney,
@@ -256,7 +252,7 @@ function houseDecisionOptions(
 }
 
 /** The other players still in the game — the only ones an upset can touch. */
-function rivalsOf(state: GameState, player: Player): readonly Player[] {
+export function rivalsOf(state: GameState, player: Player): readonly Player[] {
   return state.players.filter((other) => other.id !== player.id && !other.isRetired)
 }
 
@@ -487,61 +483,30 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         return { state: { ...state, players: replacePlayer(state.players, raised), log, pendingDecision: null }, event }
       }
 
-      const spin = deps.random.spin()
+      /*
+       * Genuine uncertainty from here — deferred to `resolveValueSpin` in
+       * `choose.ts`, same as `spinForMoney` and an unsteady payday, and for
+       * the same reason: the game already knew the number before this card
+       * existed, which is a worse feeling than not knowing at all. The bar to
+       * clear is named up front so pressing Spin is an informed bet, not a
+       * blind one.
+       */
       const needed = career.promotionSpin ?? DEFAULT_PROMOTION_SPIN
-
-      if (spin < needed) {
-        // Never a dead tile: passed over is still a year's raise.
-        const raised = applyPayRaise(player)
-        const newSalary = raised.career?.salary ?? career.salary
-        const event = baseEvent(
-          space,
-          0,
-          [
-            effect.reason,
-            `Spun a ${spin}, and ${needed} was the bar — the ${next.title} job goes to somebody else.`,
-            `A raise anyway: ${money(newSalary)}`,
-          ],
-          'normal',
-          `A ${spin}. Not this time, ${player.name} — but they find you a raise on the way out of the room.`,
-        )
-        const log = appendLog(
-          state,
-          player.id,
-          `${player.name} spins a ${spin} and is passed over for ${next.title}, taking a rise to ${money(newSalary)}.`,
-          'event',
-        )
-        return { state: { ...state, players: replacePlayer(state.players, raised), log, pendingDecision: null }, event }
+      const decision: Decision = {
+        kind: 'valueSpin',
+        prompt: space.title,
+        options: [
+          {
+            id: VALUE_SPIN_OPTION_ID,
+            label: 'Spin',
+            description: `${effect.reason} You need a ${needed} or higher (out of 10) to move up to ${next.title}. Miss it and you still take a raise.`,
+            icon: 'space:pay-raise-talk',
+          },
+        ],
       }
-
-      let promoted = promoteCareer(player, next)
-      const twoAtOnce = spin >= DOUBLE_PROMOTION_SPIN ? nextRungOf(next, edition) : undefined
-      if (twoAtOnce) promoted = promoteCareer(promoted, twoAtOnce)
-      const arrived = promoted.career ?? next
-      const notes = [
-        effect.reason,
-        `Spun a ${spin} against a bar of ${needed}.`,
-        twoAtOnce
-          ? `Two rungs in one morning: ${career.title} straight to ${arrived.title}.`
-          : `${career.title} no longer — you are a ${arrived.title}.`,
-        `${money(arrived.salary)} every payday.`,
-      ]
-      const event = baseEvent(
-        space,
-        0,
-        notes,
-        'milestone',
-        twoAtOnce
-          ? `A ten! They skip a whole rung — ${player.name} is a ${arrived.title}, and the room is not sure what just happened.`
-          : `Promoted! ${player.name} is a ${arrived.title} now, on ${money(arrived.salary)} a payday.`,
-      )
-      const log = appendLog(
-        state,
-        player.id,
-        `${player.name} spins a ${spin} and is promoted to ${arrived.title}: ${money(arrived.salary)} a payday.`,
-        'milestone',
-      )
-      return { state: { ...state, players: replacePlayer(state.players, promoted), log, pendingDecision: null }, event }
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} is up for review.`)
+      const log = appendLog(state, player.id, `${player.name} is up for review: ${next.title} on the line.`, 'event')
+      return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
     case 'gainLifeTiles': {
@@ -605,89 +570,30 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         return { state: { ...state, log, pendingDecision: null }, event }
       }
 
-      // Two asks: the wheel decides, and then it decides again, kindlier.
-      const asked = deps.random.spin()
-      const askedAgain = asked >= marriage.proposalSpin ? null : deps.random.spin()
-
-      if (askedAgain !== null && askedAgain < marriage.secondAskSpin) {
-        const tiles = deps.random.shuffle(edition.lifeTiles).slice(0, 1)
-        const updated = addLifeTiles(player, tiles)
-        const event: LandingEvent = {
-          ...baseEvent(
-            space,
-            0,
-            [
-              `Spun a ${asked}, then a ${askedAgain} — not this year, and not next year either.`,
-              'Single, and the road ahead is entirely yours: children, Family Lane and every bonus on it are still open.',
-              ...tiles.map((tile) => tile.title),
-            ],
-            'milestone',
-            `A ${asked} and then a ${askedAgain}! No wedding for ${player.name} — so they spend the year on themselves instead, and it makes a far better story.`,
-          ),
-          lifeTilesGained: tiles,
-        }
-        const log = appendLog(
-          state,
-          player.id,
-          `${player.name} spins a ${asked} and a ${askedAgain}: no wedding, but a LIFE tile out of the year.`,
-          'event',
-        )
-        return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
-      }
-
       /*
-       * Which marriage, not merely whether. The wheel that decided they said
-       * yes decides what it cost: a rescued proposal arrives with somebody
-       * else's debts, a low first ask is a reception nobody budgeted for, and
-       * only the top of the wheel is the marriage everybody pictures.
+       * Whether, and then which — deferred to `resolveValueSpin` in
+       * `choose.ts`. Two rolls happen behind one press rather than two,
+       * because the second ask only exists to soften a low first one; making
+       * a player press again just to hear the game's own follow-up would be
+       * ceremony, not agency. What the press is actually deciding is real,
+       * so the card says what it takes: at least `marriage.proposalSpin`
+       * and the wedding is on, on whatever terms the number lands on.
        */
-      const outcome = askedAgain !== null ? marriage.rescued : marriageBandFor(marriage.outcomes, asked)
-      const gift = Math.round(economy.weddingGift * outcome.giftMultiplier)
-      const payers = rivalsOf(state, player)
-
-      let players = state.players
-      let mover = marryPlayer(player)
-      const notes: string[] = [
-        askedAgain !== null
-          ? `Spun a ${asked}, asked again, spun a ${askedAgain} — and this time, yes.`
-          : `Spun a ${asked}.`,
-        outcome.note,
-      ]
-
-      for (const payer of payers) {
-        players = replacePlayer(players, debitPlayer(payer, gift, economy))
-        mover = creditPlayer(mover, gift)
-        notes.push(`${payer.name} pays a ${money(gift)} wedding gift.`)
+      const decision: Decision = {
+        kind: 'valueSpin',
+        prompt: space.title,
+        options: [
+          {
+            id: VALUE_SPIN_OPTION_ID,
+            label: 'Spin',
+            description: `Spin — a ${marriage.proposalSpin} or higher (out of 10) and it's a yes outright. Lower gets a kinder second ask before it's a no.`,
+            icon: 'space:wedding-day',
+          },
+        ],
       }
-      if (outcome.windfall > 0) {
-        mover = creditPlayer(mover, outcome.windfall)
-        notes.push(`Two incomes: ${money(outcome.windfall)}`)
-      }
-      if (outcome.cost > 0) {
-        mover = debitPlayer(mover, outcome.cost, economy)
-        notes.push(`The bill for it all: ${money(-outcome.cost)}`)
-      }
-      players = replacePlayer(players, mover)
-
-      const delta = mover.money - player.money
-      const narration =
-        delta < 0
-          ? `Married! And already ${money(-delta)} down, ${player.name} — nobody tells you about that part.`
-          : payers.length === 0
-            ? `Wedding bells for ${player.name} — a quiet ceremony, but a very happy one.`
-            : outcome.giftMultiplier > 1
-              ? `The wedding of the year! Everybody at this table is paying for it, ${player.name}.`
-              : `Wedding bells for ${player.name}! Everybody else, hand over those gift envelopes.`
-      const event = baseEvent(space, delta, notes, 'milestone', narration)
-      const log = appendLog(
-        state,
-        player.id,
-        delta < 0
-          ? `${player.name} gets married, and is ${money(-delta)} worse off for it.`
-          : `${player.name} gets married!`,
-        'milestone',
-      )
-      return { state: { ...state, players, log, pendingDecision: null }, event }
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} takes a knee.`)
+      const log = appendLog(state, player.id, `${player.name} is up for the wheel: will they marry?`, 'event')
+      return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
     case 'household': {
@@ -708,37 +614,27 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         return { state: { ...state, log, pendingDecision: null }, event }
       }
 
-      const spun = deps.random.spin()
-      const amount = Math.round(
-        (spun - household.breakEvenSpin) * expectedPayday(player, economy) * household.shareOfPayday,
-      )
-      const updated =
-        amount >= 0 ? creditPlayer(player, amount) : debitPlayer(player, -amount, economy)
-      const delta = updated.money - player.money
-
-      const notes =
-        amount < 0
-          ? [effect.reason, `Spun a ${spun} — the spending outran the account: ${money(delta)}`]
-          : amount === 0
-            ? [effect.reason, `Spun a ${spun} — the account comes out exactly level.`]
-            : [effect.reason, `Spun a ${spun} — two incomes carried it: ${money(delta)}`]
-      const narration =
-        amount < 0
-          ? `A ${spun}, and your partner has been shopping, ${player.name}. ${money(delta)}.`
-          : amount === 0
-            ? `A ${spun}, and the joint account lands exactly where it started. Nobody wins that argument.`
-            : `A ${spun}! Two incomes and a good month — ${money(delta)} for ${player.name}.`
-
-      const event = baseEvent(space, delta, notes, emphasisOf(delta), narration)
-      const log = appendLog(
-        state,
-        player.id,
-        amount < 0
-          ? `${player.name}'s joint account takes a hit, spinning a ${spun}: ${money(delta)}.`
-          : `${player.name}'s household comes out ahead, spinning a ${spun}: ${money(delta)}.`,
-        amount < 0 ? 'money-out' : 'money-in',
-      )
-      return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
+      /*
+       * Deferred to `resolveValueSpin` in `choose.ts` — same reasoning as
+       * every other wheel-decided tile. Below `household.breakEvenSpin` the
+       * account is down; at or above it, up — so the card says exactly that
+       * rather than a number that means nothing without the formula behind it.
+       */
+      const decision: Decision = {
+        kind: 'valueSpin',
+        prompt: space.title,
+        options: [
+          {
+            id: VALUE_SPIN_OPTION_ID,
+            label: 'Spin',
+            description: `${effect.reason} Below a ${household.breakEvenSpin} and the spending outran the account; at or above it, two incomes carried the month.`,
+            icon: 'finance:bank-visit',
+          },
+        ],
+      }
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} opens the joint statement.`)
+      const log = appendLog(state, player.id, `${player.name} is up for the wheel: how did the joint account do?`, 'event')
+      return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
     case 'haveChildren': {
@@ -1424,6 +1320,8 @@ export {
   DECLINE_HOUSE_OPTION_ID,
   DECLINE_INSURANCE_OPTION_ID,
   DECLINE_STOCK_OPTION_ID,
+  DEFAULT_PROMOTION_SPIN,
+  DOUBLE_PROMOTION_SPIN,
   FIRE_DECLINE_OPTION_ID,
   FIRE_RETIRE_OPTION_ID,
   VALUE_SPIN_OPTION_ID,

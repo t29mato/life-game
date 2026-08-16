@@ -6,8 +6,9 @@ import {
   INSURANCE_PREMIUM,
   LOAN_PRINCIPAL,
   SHARES_PER_PURCHASE,
+  WEDDING_GIFT,
 } from '@domain/model/constants'
-import { BASIC_CAREERS } from '@domain/edition/usa'
+import { BASIC_CAREERS, USA_ECONOMY } from '@domain/edition/usa'
 import { HOUSES } from '@domain/edition/usa'
 import { STOCKS } from '@domain/edition/usa'
 import { insuranceOptionId, VALUE_SPIN_OPTION_ID } from './applyEffect'
@@ -410,6 +411,167 @@ describe('choose', () => {
         pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
       })
       expect(() => choose(state, 'spin-twice', { random: createFakeRandom() })).toThrow()
+    })
+
+    describe('promotion', () => {
+      const board = fixtureMovementBoard()
+      const promoSpace = (reason = 'Review time') => ({
+        ...board.spaces.a!,
+        effect: { type: 'promotion' as const, reason },
+      })
+
+      it('passes the player over but still gives a raise on a spin under the bar', () => {
+        const career = BASIC_CAREERS[0]!
+        const player = fixturePlayer({ spaceId: 'a', career })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: promoSpace() } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const needed = career.promotionSpin ?? 5
+        const random = createFakeRandom({ spins: [(needed - 1) as typeof needed] })
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+        expect(random.calls.spins).toBe(1)
+        expect(next.players[0]!.career?.id).toBe(career.id)
+        expect(next.players[0]!.career?.salary).toBeGreaterThan(career.salary)
+        expect(next.lastEvent!.notes.join(' ')).toContain('goes to somebody else')
+      })
+
+      it('promotes on a spin at or above the bar', () => {
+        const career = BASIC_CAREERS[0]!
+        const player = fixturePlayer({ spaceId: 'a', career })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: promoSpace() } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const random = createFakeRandom({ spins: [career.promotionSpin ?? 5] })
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+        expect(next.players[0]!.career?.id).toBe(career.promotesTo)
+        expect(next.lastEvent!.emphasis).toBe('milestone')
+      })
+
+      it('skips a whole rung on a perfect ten', () => {
+        const career = BASIC_CAREERS[0]!
+        const player = fixturePlayer({ spaceId: 'a', career })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: promoSpace() } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const random = createFakeRandom({ spins: [10] })
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+        const skipped = BASIC_CAREERS.find((c) => c.id === career.promotesTo)!
+        expect(next.players[0]!.career?.id).toBe(skipped.promotesTo)
+        expect(next.lastEvent!.notes.join(' ')).toContain('Two rungs')
+      })
+    })
+
+    describe('getMarried', () => {
+      const board = fixtureMovementBoard()
+      const weddingSpace = { ...board.spaces.a!, effect: { type: 'getMarried' as const } }
+
+      it('marries on a mid spin, gifted by every rival still in the game', () => {
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: weddingSpace } },
+          players: [
+            fixturePlayer({ id: 'p1', spaceId: 'a', money: 50_000 }),
+            fixturePlayer({ id: 'p2', name: 'Bo', money: 50_000 }),
+          ],
+          currentPlayerIndex: 0,
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const random = createFakeRandom({ spins: [6] })
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+        expect(random.calls.spins).toBe(1)
+        expect(next.players[0]!.isMarried).toBe(true)
+        expect(next.players[0]!.money).toBe(50_000 + WEDDING_GIFT)
+        expect(next.players[1]!.money).toBe(50_000 - WEDDING_GIFT)
+        expect(next.lastEvent!.emphasis).toBe('milestone')
+      })
+
+      it('asks a second, kinder time on a low first spin, and can still land a rescued yes', () => {
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: weddingSpace } },
+          players: [
+            fixturePlayer({ id: 'p1', spaceId: 'a', money: 50_000 }),
+            fixturePlayer({ id: 'p2', name: 'Bo', money: 50_000 }),
+          ],
+          currentPlayerIndex: 0,
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        // First spin (1) is under the bar, so a second (2) is drawn automatically.
+        const random = createFakeRandom({ spins: [1, 2] })
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+        expect(random.calls.spins).toBe(2)
+        expect(next.players[0]!.isMarried).toBe(true)
+        expect(next.players[0]!.money).toBe(50_000 + WEDDING_GIFT - USA_ECONOMY.marriage.rescued.cost)
+      })
+
+      it('stays single on two low spins, and pays a LIFE tile instead', () => {
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: weddingSpace } },
+          players: [
+            fixturePlayer({ id: 'p1', spaceId: 'a', money: 50_000 }),
+            fixturePlayer({ id: 'p2', name: 'Bo', money: 50_000 }),
+          ],
+          currentPlayerIndex: 0,
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const random = createFakeRandom({ spins: [1, 1] })
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+        expect(next.players[0]!.isMarried).toBe(false)
+        expect(next.players[0]!.money).toBe(50_000)
+        expect(next.players[0]!.lifeTiles).toHaveLength(1)
+        expect(next.lastEvent!.lifeTilesGained).toHaveLength(1)
+      })
+    })
+
+    describe('household', () => {
+      const board = fixtureMovementBoard()
+      const jointSpace = { ...board.spaces.a!, effect: { type: 'household' as const, reason: 'Settled up' } }
+
+      it('costs a married player money on a low spin', () => {
+        const player = fixturePlayer({ spaceId: 'a', isMarried: true, money: 100_000 })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: jointSpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const random = createFakeRandom({ spins: [1] })
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+        expect(next.players[0]!.money).toBeLessThan(100_000)
+        expect(next.lastEvent!.moneyDelta).toBeLessThan(0)
+      })
+
+      it('pays a married player on a high spin', () => {
+        const player = fixturePlayer({ spaceId: 'a', isMarried: true, money: 100_000 })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: jointSpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const random = createFakeRandom({ spins: [10] })
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+        expect(next.players[0]!.money).toBeGreaterThan(100_000)
+        expect(next.lastEvent!.moneyDelta).toBeGreaterThan(0)
+      })
     })
   })
 
