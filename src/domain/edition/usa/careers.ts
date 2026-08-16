@@ -167,12 +167,12 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 12_400,
     requiresDegree: false,
     icon: 'career:food-truck-owner',
-    description: 'Forty covers, one very good chilli, and a booking line that rings at nine every morning.',
+    description: 'Forty tables a night, one very good chili, and a booking line that rings at nine every morning.',
   },
   // --- the building site ---------------------------------------------------
   {
     id: 'career-site-labourer',
-    title: 'Site Labourer',
+    title: 'Site Laborer',
     salary: 48_000,
     raiseStep: 5_000,
     requiresDegree: false,
@@ -210,7 +210,7 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 3_300,
     requiresDegree: false,
     icon: 'career:delivery-courier',
-    description: 'Zips across town keeping the whole neighbourhood fed and unboxed.',
+    description: 'Zips across town keeping the whole neighborhood fed and unboxed.',
     promotesTo: 'career-depot-dispatcher',
     promotionSpin: FIRST_STEP,
   },
@@ -232,7 +232,7 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 8_000,
     requiresDegree: false,
     icon: 'space:overtime-shift',
-    description: 'Moves a hundred thousand parcels a night and gets home before anyone notices how.',
+    description: 'Moves a hundred thousand packages a night and gets home before anyone notices how.',
   },
   // --- the workshop --------------------------------------------------------
   {
@@ -242,7 +242,7 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 3_600,
     requiresDegree: false,
     icon: 'space:new-skills',
-    description: 'Three years of holding the torch, and a growing suspicion they can hear it too.',
+    description: 'Three years holding the flashlight and handing over tools, and a growing suspicion they can hear engine trouble too.',
     promotesTo: 'career-motorcycle-mechanic',
     promotionSpin: FIRST_STEP,
   },
@@ -287,7 +287,7 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 4_600,
     requiresDegree: false,
     icon: 'tile:indie-album',
-    description: 'Nine countries, one flight case, and a name that is finally on the poster in small print.',
+    description: 'Nine countries, one gear case, and a name that is finally on the poster in small print.',
     promotesTo: 'career-record-producer',
     promotionSpin: TOP_STEP,
   },
@@ -359,13 +359,13 @@ export const BASIC_CAREERS: readonly Career[] = [
   // --- property ------------------------------------------------------------
   {
     id: 'career-lettings-negotiator',
-    title: 'Lettings Negotiator',
+    title: 'Leasing Agent',
     salary: 62_700,
     payPerPip: 11_400,
     raiseStep: 6_600,
     requiresDegree: false,
     icon: 'space:apartment-hunt',
-    description: 'Shows eleven flats a Saturday and remembers which one had the damp.',
+    description: 'Shows eleven apartments every Saturday and remembers which one had a mold problem.',
     promotesTo: 'career-real-estate-agent',
     promotionSpin: FIRST_STEP,
   },
@@ -377,7 +377,7 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 7_600,
     requiresDegree: false,
     icon: 'space:house-hunting',
-    description: 'Sells the kitchen first, the garden second, and the commute never at all.',
+    description: 'Sells the kitchen first, the yard second, and the commute never at all.',
     promotesTo: 'career-agency-owner',
     promotionSpin: TOP_STEP,
   },
@@ -389,7 +389,7 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 15_200,
     requiresDegree: false,
     icon: 'space:house-hunting',
-    description: 'Your name is on the boards outside four hundred houses. One good year carries three quiet ones.',
+    description: 'Your name is on signs outside four hundred houses. One good year carries three quiet ones.',
   },
   // --- the warehouse -------------------------------------------------------
   {
@@ -410,7 +410,7 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 5_800,
     requiresDegree: false,
     icon: 'space:overtime-shift',
-    description: 'Keeps a building the size of four football pitches running on coffee and clipboards.',
+    description: 'Keeps a building the size of four football fields running on coffee and clipboards.',
   },
   // --- grooming ------------------------------------------------------------
   {
@@ -451,7 +451,7 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 7_400,
     requiresDegree: false,
     icon: 'space:garden-harvest',
-    description: 'Grows the tomatoes the whole farmers market queues for by seven in the morning, and has turned down every offer to grow more of them.',
+    description: 'Grows the tomatoes the whole farmers market lines up for by seven in the morning, and has turned down every offer to grow more of them.',
     isCalling: true,
   },
 ]
@@ -655,13 +655,13 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   },
   {
     id: 'career-jobbing-writer',
-    title: 'Jobbing Writer',
+    title: 'Freelance Writer',
     salary: 55_000,
     payPerPip: 10_000,
     raiseStep: 5_200,
     requiresDegree: true,
     icon: 'tile:novel',
-    description: 'Copy, catalogues and one column a fortnight, while the real thing sits in a drawer.',
+    description: 'Copy, catalogs and one column every two weeks, while the real thing sits in a drawer.',
     promotesTo: 'career-novelist',
     promotionSpin: FIRST_STEP,
   },
@@ -683,7 +683,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
     raiseStep: 8_000,
     requiresDegree: true,
     icon: 'tile:animal-shelter',
-    description: 'Talks nervous owners down while quietly setting a very small broken leg. Would not run a chain of these for any money you could name.',
+    description: 'Talks nervous owners down while quietly setting a very small broken leg. Would never run a chain of these, no matter how much money was offered.',
     isCalling: true,
   },
   {

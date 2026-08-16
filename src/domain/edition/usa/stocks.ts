@@ -17,7 +17,7 @@ export const STOCKS: readonly Stock[] = [
     price: 10_000,
     payoutRange: [9_000, 16_000],
     icon: 'stock:noodle-chain',
-    description: 'Forty little shops that sell soup at two in the morning and never miss a rent cheque.',
+    description: 'Forty little shops that sell soup at two in the morning and never miss a rent check.',
   },
   {
     id: 'stock-green-energy',
@@ -53,6 +53,6 @@ export const STOCKS: readonly Stock[] = [
     price: 25_000,
     payoutRange: [3_000, 77_000],
     icon: 'stock:orbital-freight',
-    description: 'Cargo rockets on a shoestring. Either the future of shipping or a very expensive firework.',
+    description: 'Cargo rockets built on a tight budget. Either the future of shipping or a very expensive firework.',
   },
 ]

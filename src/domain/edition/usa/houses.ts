@@ -30,7 +30,7 @@ export const HOUSES: readonly House[] = [
     price: 175_000,
     resaleRange: [130_000, 235_000],
     icon: 'house:suburban-townhouse',
-    description: 'Two floors, a shared fence, and neighbours who wave every morning.',
+    description: 'Two floors, a shared fence, and neighbors who wave every morning.',
   },
   {
     id: 'house-converted-loft',
@@ -78,6 +78,6 @@ export const HOUSES: readonly House[] = [
     price: 660_000,
     resaleRange: [470_000, 890_000],
     icon: 'space:corner-office',
-    description: 'The whole top floor, a private lift, and a city that looks like spilled jewellery at night.',
+    description: 'The whole top floor, a private elevator, and a city that looks like spilled jewelry at night.',
   },
 ]
