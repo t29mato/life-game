@@ -30,7 +30,14 @@ export type SfxName =
 export interface AudioPort {
   /** Browsers block audio until a gesture; call this from a click handler. */
   unlock(): Promise<void>
-  playBgm(track: BgmTrack): void
+  /**
+   * `editionId` only changes anything for the `'board'` track — the title and
+   * results tracks are shared across every edition. An id with no
+   * edition-specific arrangement (USA, or any id an adapter does not
+   * recognise) falls back to the default board track, so passing it is
+   * always safe.
+   */
+  playBgm(track: BgmTrack, editionId?: string): void
   stopBgm(): void
   playSfx(name: SfxName): void
   setMusicEnabled(enabled: boolean): void

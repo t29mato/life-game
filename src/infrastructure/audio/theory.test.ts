@@ -8,6 +8,10 @@ import {
   transpose,
 } from './theory'
 import type { Track, VoiceRole } from './theory'
+import { BOLIVIA_BOARD_TRACK } from './theory.bolivia'
+import { FRANCE_BOARD_TRACK } from './theory.france'
+import { INDIA_BOARD_TRACK } from './theory.india'
+import { JAPAN_BOARD_TRACK } from './theory.japan'
 
 const EPSILON = 0.01
 
@@ -97,6 +101,10 @@ describe('BGM track data', () => {
     ['title', TITLE_TRACK],
     ['board', BOARD_TRACK],
     ['results', RESULTS_TRACK],
+    ['board:japan', JAPAN_BOARD_TRACK],
+    ['board:france', FRANCE_BOARD_TRACK],
+    ['board:india', INDIA_BOARD_TRACK],
+    ['board:bolivia', BOLIVIA_BOARD_TRACK],
   ]
 
   it.each(tracks)('%s has a sane tempo and loop length', (_name, track) => {

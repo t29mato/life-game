@@ -231,6 +231,61 @@ describe('createWebAudioAdapter', () => {
     expect(lastFakeCtx()!.createdGains.length).toBe(gainCountAfterFirstStart)
   })
 
+  it('does not restart "board" when the same edition asks for it again', async () => {
+    installFakeAudioContext()
+    const adapter = createWebAudioAdapter()
+    await adapter.unlock()
+    adapter.playBgm('board', 'japan')
+    const gainCountAfterFirstStart = lastFakeCtx()!.createdGains.length
+    adapter.playBgm('board', 'japan')
+    expect(lastFakeCtx()!.createdGains.length).toBe(gainCountAfterFirstStart)
+  })
+
+  it('restarts "board" when the edition changes, even though the track name did not', async () => {
+    installFakeAudioContext()
+    const adapter = createWebAudioAdapter()
+    await adapter.unlock()
+    adapter.playBgm('board', 'japan')
+    const gainCountAfterFirstStart = lastFakeCtx()!.createdGains.length
+    adapter.playBgm('board', 'france')
+    expect(lastFakeCtx()!.createdGains.length).toBeGreaterThan(gainCountAfterFirstStart)
+  })
+
+  it("schedules a different first bass note for an edition's own board track than the default", async () => {
+    // JAPAN_BOARD_TRACK's bass opens on D2 (~73.4Hz); the default BOARD_TRACK
+    // opens on G2 (~98.0Hz) — different enough that this is a real content
+    // check, not just "some oscillator exists".
+    installFakeAudioContext()
+    const defaultAdapter = createWebAudioAdapter()
+    await defaultAdapter.unlock()
+    defaultAdapter.playBgm('board')
+    const defaultFrequencies = lastFakeCtx()!.createdOscillators.map((osc) => osc.frequency.value)
+
+    installFakeAudioContext()
+    const japanAdapter = createWebAudioAdapter()
+    await japanAdapter.unlock()
+    japanAdapter.playBgm('board', 'japan')
+    const japanFrequencies = lastFakeCtx()!.createdOscillators.map((osc) => osc.frequency.value)
+
+    expect(japanFrequencies).not.toEqual(defaultFrequencies)
+  })
+
+  it('falls back to the default board track for an edition with no arrangement of its own', async () => {
+    installFakeAudioContext()
+    const usaAdapter = createWebAudioAdapter()
+    await usaAdapter.unlock()
+    usaAdapter.playBgm('board', 'usa')
+    const usaFrequencies = lastFakeCtx()!.createdOscillators.map((osc) => osc.frequency.value)
+
+    installFakeAudioContext()
+    const defaultAdapter = createWebAudioAdapter()
+    await defaultAdapter.unlock()
+    defaultAdapter.playBgm('board')
+    const defaultFrequencies = lastFakeCtx()!.createdOscillators.map((osc) => osc.frequency.value)
+
+    expect(usaFrequencies).toEqual(defaultFrequencies)
+  })
+
   it('ramps the outgoing track down to 0 when switching to a new track', async () => {
     installFakeAudioContext()
     const adapter = createWebAudioAdapter()

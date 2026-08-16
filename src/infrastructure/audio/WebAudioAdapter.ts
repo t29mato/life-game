@@ -1,11 +1,33 @@
 import type { AudioPort, BgmTrack, SfxName } from '@application/ports/AudioPort'
 import { BOARD_TRACK, RESULTS_TRACK, TITLE_TRACK, noteToFrequency } from './theory'
 import type { Track, Voice, NoteEvent, Waveform } from './theory'
+import { BOLIVIA_BOARD_TRACK } from './theory.bolivia'
+import { FRANCE_BOARD_TRACK } from './theory.france'
+import { INDIA_BOARD_TRACK } from './theory.india'
+import { JAPAN_BOARD_TRACK } from './theory.japan'
 
 const TRACKS: Record<BgmTrack, Track> = {
   title: TITLE_TRACK,
   board: BOARD_TRACK,
   results: RESULTS_TRACK,
+}
+
+/**
+ * The one track that varies by country. Title and results stay shared —
+ * those are heard for a few seconds each, where `'board'` plays for most of
+ * a session and is where a country's own sound is actually lived in.
+ */
+const EDITION_BOARD_TRACKS: Readonly<Record<string, Track>> = {
+  japan: JAPAN_BOARD_TRACK,
+  france: FRANCE_BOARD_TRACK,
+  india: INDIA_BOARD_TRACK,
+  bolivia: BOLIVIA_BOARD_TRACK,
+}
+
+/** USA (and any id with no arrangement of its own) plays the default `TRACKS[trackName]`. */
+function resolveTrack(trackName: BgmTrack, editionId?: string): Track {
+  if (trackName !== 'board' || !editionId) return TRACKS[trackName]
+  return EDITION_BOARD_TRACKS[editionId] ?? TRACKS[trackName]
 }
 
 /** How long a track cross-fades in/out when switching or stopping. */
@@ -276,6 +298,8 @@ function scheduleVoiceEvent(
 
 interface BgmSession {
   readonly trackName: BgmTrack
+  /** Which edition's arrangement this session is playing — `undefined` for the shared title/results tracks. */
+  readonly editionId: string | undefined
   readonly track: Track
   readonly secondsPerBeat: number
   readonly loopDurationSeconds: number
@@ -618,8 +642,8 @@ export function createWebAudioAdapter(): AudioPort {
     unrefable.unref?.()
   }
 
-  function createSession(trackName: BgmTrack): BgmSession {
-    const track = TRACKS[trackName]
+  function createSession(trackName: BgmTrack, editionId?: string): BgmSession {
+    const track = resolveTrack(trackName, editionId)
     const bus = ctx!.createGain()
     const startAt = ctx!.currentTime
     bus.gain.setValueAtTime(0, startAt)
@@ -628,6 +652,7 @@ export function createWebAudioAdapter(): AudioPort {
     const loopStartTime = startAt + 0.02
     return {
       trackName,
+      editionId,
       track,
       secondsPerBeat: 60 / track.bpm,
       loopDurationSeconds: track.bars * track.beatsPerBar * (60 / track.bpm),
@@ -688,12 +713,12 @@ export function createWebAudioAdapter(): AudioPort {
     }
   }
 
-  function playBgm(trackName: BgmTrack): void {
+  function playBgm(trackName: BgmTrack, editionId?: string): void {
     if (!ctx || !musicGain) return
-    if (currentSession && currentSession.trackName === trackName) return
+    if (currentSession && currentSession.trackName === trackName && currentSession.editionId === editionId) return
 
     const outgoing = currentSession
-    const incoming = createSession(trackName)
+    const incoming = createSession(trackName, editionId)
     currentSession = incoming
 
     if (outgoing) {

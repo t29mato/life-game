@@ -28,7 +28,7 @@ export function createSilentAudioAdapter(): SilentAudioAdapter {
     async unlock() {
       calls.unlock += 1
     },
-    playBgm(track: BgmTrack) {
+    playBgm(track: BgmTrack, _editionId?: string) {
       calls.playBgm.push(track)
     },
     stopBgm() {

@@ -92,8 +92,8 @@ export function App({ store, audio }: AppProps): ReactElement {
   const track = trackForPhase(state.phase)
   useEffect(() => {
     if (!audioUnlocked) return
-    audio.playBgm(track)
-  }, [audioUnlocked, track, audio])
+    audio.playBgm(track, state.editionId)
+  }, [audioUnlocked, track, state.editionId, audio])
 
   /**
    * The wheel and the pawn must not move at the same time. `spin` commits the
