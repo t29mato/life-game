@@ -50,7 +50,7 @@ export const HOUSES: readonly House[] = [
     price: 205_000,
     resaleRange: [150_000, 280_000],
     icon: 'space:apartment-hunt',
-    description: 'Half of a whitewashed colonial house older than the republic, wrapped around a shared courtyard, with balconies the heritage office has opinions about.',
+    description: 'Half of a whitewashed colonial house older than the republic, wrapped around a shared courtyard, with balconies the heritage office keeps trying to regulate.',
   },
   {
     id: 'house-bo-shopfront-house',
@@ -74,7 +74,7 @@ export const HOUSES: readonly House[] = [
     price: 400_000,
     resaleRange: [300_000, 540_000],
     icon: 'house:lavish-estate',
-    description: 'Down in the valley of eternal spring: a walled garden that fruits all year, a long veranda, and a dining table built for very tall stories.',
+    description: 'Down in the valley of eternal spring: a walled garden that fruits all year, a long veranda, and a dining table built for stories that get bigger with every telling.',
   },
   {
     id: 'house-bo-canyon-ridge-house',
@@ -82,7 +82,7 @@ export const HOUSES: readonly House[] = [
     price: 520_000,
     resaleRange: [380_000, 700_000],
     icon: 'space:sunset-ahead',
-    description: 'Glass on three sides in the city\'s deep southern canyon, moon-coloured rock spires below, and a driveway guests complain about happily.',
+    description: 'Glass on three sides in the city\'s deep southern canyon, moon-coloured rock spires below, and a driveway so long every guest jokes about the walk up.',
   },
   {
     id: 'house-bo-cholet-crown',

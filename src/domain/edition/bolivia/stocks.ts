@@ -53,6 +53,6 @@ export const STOCKS: readonly Stock[] = [
     price: 25_000,
     payoutRange: [3_000, 77_000],
     icon: 'stock:orbital-freight',
-    description: 'Half of every future battery is sitting under the salt flat as brine. Either the national champion of the century or the world\'s most scenic evaporation pond.',
+    description: 'Half of every future battery is sitting under the salt flat as brine. Either Bolivia\'s biggest economic success story of the century, or the world\'s most scenic evaporation pond.',
   },
 ]
