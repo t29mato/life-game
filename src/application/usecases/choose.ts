@@ -43,7 +43,7 @@ import {
   insuranceKindFromOptionId,
   rivalsOf,
 } from './applyEffect'
-import { formatMoney, loanNote } from './format'
+import { formatMoney, loanNote, raiseNote, salaryPeriod, salaryRate } from './format'
 import { appendLog } from './logging'
 import { collectPaydays, passedPaydayLine } from './payday'
 import type { UseCaseDeps } from './types'
@@ -169,7 +169,7 @@ function resolveCareer(state: GameState, optionId: string): GameState {
       'Staying Put',
       0,
       [
-        `Still a ${staying.title}, on ${money(staying.salary)} a payday.`,
+        `Still a ${staying.title}, on ${money(salaryRate(staying.salary, currency))} a ${salaryPeriod(currency)}.`,
         'Every rung still above you is still yours to climb.',
       ],
       'normal',
@@ -197,7 +197,10 @@ function resolveCareer(state: GameState, optionId: string): GameState {
    * the one you are on, or one rung shorter. Same money today, a different
    * ceiling. That is a real question and it costs the economy nothing.
    */
-  const notes = [`${player.name} becomes a ${taken.title}!`, `${money(taken.salary)} every payday.`]
+  const notes = [
+    `${player.name} becomes a ${taken.title}!`,
+    `${money(salaryRate(taken.salary, currency))} every ${salaryPeriod(currency)}.`,
+  ]
 
   const narration = previous
     ? `Out with the old! ${player.name} leaves the ${previous.title} life behind to become a ${taken.title}.`
@@ -490,7 +493,9 @@ function resolvePromotionSpin(
       0,
       [
         `Spun a ${spinValue}, and ${needed} was the bar — the ${next.title} job goes to somebody else.`,
-        `A raise anyway: ${money(newSalary)}`,
+        edition.currency.salaryDisplay
+          ? raiseNote(career.salary, newSalary, edition.currency)
+          : `A raise anyway: ${money(newSalary)}`,
       ],
       'normal',
       `A ${spinValue}. Not this time, ${player.name} — but they find you a raise on the way out of the room.`,
@@ -499,7 +504,7 @@ function resolvePromotionSpin(
       state,
       replacePlayer(state.players, raised),
       event,
-      `${player.name} spins a ${spinValue} and is passed over for ${next.title}, taking a rise to ${money(newSalary)}.`,
+      `${player.name} spins a ${spinValue} and is passed over for ${next.title}, taking a rise to ${money(salaryRate(newSalary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
       'event',
     )
   }
@@ -513,7 +518,7 @@ function resolvePromotionSpin(
     twoAtOnce
       ? `Two rungs in one morning: ${career.title} straight to ${arrived.title}.`
       : `${career.title} no longer — you are a ${arrived.title}.`,
-    `${money(arrived.salary)} every payday.`,
+    `${money(salaryRate(arrived.salary, edition.currency))} every ${salaryPeriod(edition.currency)}.`,
   ]
   const event = outcomeEvent(
     space,
@@ -524,13 +529,13 @@ function resolvePromotionSpin(
     'milestone',
     twoAtOnce
       ? `A ten! They skip a whole rung — ${player.name} is a ${arrived.title}, and the room is not sure what just happened.`
-      : `Promoted! ${player.name} is a ${arrived.title} now, on ${money(arrived.salary)} a payday.`,
+      : `Promoted! ${player.name} is a ${arrived.title} now, on ${money(salaryRate(arrived.salary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
   )
   return resolved(
     state,
     replacePlayer(state.players, promoted),
     event,
-    `${player.name} spins a ${spinValue} and is promoted to ${arrived.title}: ${money(arrived.salary)} a payday.`,
+    `${player.name} spins a ${spinValue} and is promoted to ${arrived.title}: ${money(salaryRate(arrived.salary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
     'milestone',
   )
 }

@@ -42,7 +42,7 @@ import {
   setMoney,
   totalShares,
 } from '@domain/rules/player'
-import { formatMoney, loanNote } from './format'
+import { formatMoney, loanNote, paydayReceipt, raiseNote, salaryPeriod, salaryRate } from './format'
 import { appendLog } from './logging'
 import { collectPaydays } from './payday'
 import type { UseCaseDeps } from './types'
@@ -196,7 +196,7 @@ function currentIncomeNote(player: Player, economy: EconomyConstants, currency: 
   if (!player.career) {
     return `You are between jobs, picking up shifts at ${formatMoney(economy.casualWagePerPip, currency)} a pip.`
   }
-  return `You currently earn ${formatMoney(player.career.salary, currency)}/payday as a ${player.career.title}.`
+  return `You currently earn ${formatMoney(salaryRate(player.career.salary, currency), currency)}/${salaryPeriod(currency)} as a ${player.career.title}.`
 }
 
 /**
@@ -223,7 +223,7 @@ function careerDecisionOptions(
       label: career.title,
       description: career.description,
       icon: career.icon,
-      detail: `${formatMoney(career.salary, currency)}/payday${rung}`,
+      detail: `${formatMoney(salaryRate(career.salary, currency), currency)}/${salaryPeriod(currency)}${rung}`,
     }
   })
 }
@@ -355,8 +355,14 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const collection = collectPaydays(player, 1, deps, economy)
         const updated = collection.player
         const delta = updated.money - player.money
-        const event = baseEvent(space, delta, [`Payday! ${money(delta)}`], emphasisOf(delta), `Payday! ${player.name} clocks out ${money(delta)} richer.`)
-        const log = appendLog(state, player.id, `${player.name} collects payday: ${money(delta)}.`, 'money-in')
+        const event = baseEvent(
+          space,
+          delta,
+          [`Payday! ${paydayReceipt(delta, currency)}`],
+          emphasisOf(delta),
+          `Payday! ${player.name} clocks out ${money(delta)} richer.`,
+        )
+        const log = appendLog(state, player.id, `${player.name} collects payday: ${paydayReceipt(delta, currency)}.`, 'money-in')
         return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
       }
 
@@ -402,11 +408,18 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       const event = baseEvent(
         space,
         0,
-        [`Salary raised to ${money(newSalary)}`],
+        [raiseNote(player.career.salary, newSalary, currency)],
         'normal',
         `A raise for ${player.name}! Every payday from here on is worth more.`,
       )
-      const log = appendLog(state, player.id, `${player.name}'s salary is raised to ${money(newSalary)}.`, 'milestone')
+      const log = appendLog(
+        state,
+        player.id,
+        currency.salaryDisplay
+          ? `${player.name}: ${raiseNote(player.career.salary, newSalary, currency)}.`
+          : `${player.name}'s salary is raised to ${money(newSalary)}.`,
+        'milestone',
+      )
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
     }
 
@@ -442,7 +455,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
               effect.reason,
               `There is no rung above ${career.title}, and there was never going to be.`,
               ...tiles.map((tile) => tile.title),
-              `Pay rises to ${money(newSalary)}`,
+              raiseNote(career.salary, newSalary, currency),
             ],
             'milestone',
             `No promotion for ${player.name} — this is the work, and it is the whole point. A LIFE tile and a raise instead!`,
@@ -452,7 +465,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const log = appendLog(
           state,
           player.id,
-          `${player.name} deepens their calling as a ${career.title}: a LIFE tile, and pay of ${money(newSalary)}.`,
+          `${player.name} deepens their calling as a ${career.title}: a LIFE tile, and pay of ${money(salaryRate(newSalary, currency))} a ${salaryPeriod(currency)}.`,
           'milestone',
         )
         return { state: { ...state, players: replacePlayer(state.players, raised), log, pendingDecision: null }, event }
@@ -470,14 +483,14 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          [effect.reason, `Nobody above you to be promoted past.`, `Pay rises to ${money(newSalary)}`],
+          [effect.reason, `Nobody above you to be promoted past.`, raiseNote(career.salary, newSalary, currency)],
           'big',
-          `${player.name} already runs the place — so they simply write themselves a better number. Pay is now ${money(newSalary)}!`,
+          `${player.name} already runs the place — so they simply write themselves a better number. Pay is now ${money(salaryRate(newSalary, currency))} a ${salaryPeriod(currency)}!`,
         )
         const log = appendLog(
           state,
           player.id,
-          `${player.name} is already at the top as a ${career.title}, and takes a rise to ${money(newSalary)}.`,
+          `${player.name} is already at the top as a ${career.title}, and takes a rise to ${money(salaryRate(newSalary, currency))} a ${salaryPeriod(currency)}.`,
           'milestone',
         )
         return { state: { ...state, players: replacePlayer(state.players, raised), log, pendingDecision: null }, event }
@@ -886,7 +899,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
             ? 'This is the work you were made for. Let the recruiters talk to somebody else.'
             : 'Keep the job, the ladder, and every rung still above you.',
           icon: player.career.icon,
-          detail: `${money(player.career.salary)}/payday`,
+          detail: `${money(salaryRate(player.career.salary, currency))}/${salaryPeriod(currency)}`,
         })
       }
 

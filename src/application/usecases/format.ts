@@ -20,6 +20,49 @@ export function formatAmount(amount: Money, currency: CurrencySpec = USA_CURRENC
   return amount.toLocaleString(currency.locale)
 }
 
+/** The period an edition's salary reads by: `'payday'` normally, or `currency.salaryDisplay.unit` where an edition reads salary by its own period instead. */
+export function salaryPeriod(currency: CurrencySpec = USA_CURRENCY): string {
+  return currency.salaryDisplay?.unit ?? 'payday'
+}
+
+/**
+ * A raw salary figure scaled to how its edition actually reads it —
+ * unchanged normally, or divided down and rounded to a whole unit where an
+ * edition reads salary by its own period. Rounded because a career's salary
+ * is not guaranteed to divide evenly (¥10,450,000 / 12 is not a whole yen),
+ * and this is the one place in the engine that ever does that division.
+ */
+export function salaryRate(amount: Money, currency: CurrencySpec = USA_CURRENCY): Money {
+  return currency.salaryDisplay ? Math.round(amount / currency.salaryDisplay.periods) : amount
+}
+
+/**
+ * What a salaried payday actually paid, spelled out the way its edition reads
+ * salary: the lump by itself, or — where an edition reads salary by its own
+ * period — the rate times the period count, equalling the lump, so the
+ * player sees exactly where the number came from rather than a total that
+ * does not match the monthly figure quoted everywhere else.
+ */
+export function paydayReceipt(amount: Money, currency: CurrencySpec = USA_CURRENCY): string {
+  if (!currency.salaryDisplay) return formatMoney(amount, currency)
+  const { unit, periods } = currency.salaryDisplay
+  return `${formatMoney(salaryRate(amount, currency), currency)} × ${periods} ${unit}s = ${formatMoney(amount, currency)}`
+}
+
+/**
+ * A raise, read the way its edition reads salary: "Salary raised to $92,000"
+ * by itself, or — where an edition reads salary by its own period — the
+ * period-sized delta first, since that is the number the player actually
+ * felt: "Monthly pay up ¥20,000 — now ¥370,000 a month".
+ */
+export function raiseNote(previousSalary: Money, newSalary: Money, currency: CurrencySpec = USA_CURRENCY): string {
+  if (!currency.salaryDisplay) return `Salary raised to ${formatMoney(newSalary, currency)}`
+  const { adjective, unit } = currency.salaryDisplay
+  const delta = salaryRate(newSalary, currency) - salaryRate(previousSalary, currency)
+  const rate = salaryRate(newSalary, currency)
+  return `${adjective} pay up ${formatMoney(delta, currency)} — now ${formatMoney(rate, currency)} a ${unit}`
+}
+
 /**
  * The note that reports a forced borrow, with both sums in it.
  *

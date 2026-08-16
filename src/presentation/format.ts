@@ -30,9 +30,19 @@ export function formatMoneyDelta(amount: number, currency: CurrencySpec = USA_CU
   return formatMoney(rounded, currency)
 }
 
-/** `65000` -> `'$65,000 / payday'`. */
+/** The period an edition's salary reads by: `'payday'` normally, or `currency.salaryDisplay.unit` where an edition reads salary by its own period instead. */
+export function salaryPeriod(currency: CurrencySpec = USA_CURRENCY): string {
+  return currency.salaryDisplay?.unit ?? 'payday'
+}
+
+/** A raw salary figure scaled to how its edition actually reads it — unchanged normally, or divided down and rounded to a whole unit where an edition reads salary by its own period. */
+export function salaryRate(amount: number, currency: CurrencySpec = USA_CURRENCY): number {
+  return currency.salaryDisplay ? Math.round(amount / currency.salaryDisplay.periods) : amount
+}
+
+/** `65000` -> `'$65,000 / payday'`, or `4200000` on the Japan board -> `'¥350,000 / month'`. */
 export function formatSalary(amount: number, currency: CurrencySpec = USA_CURRENCY): string {
-  return `${formatMoney(amount, currency)} / payday`
+  return `${formatMoney(salaryRate(amount, currency), currency)} / ${salaryPeriod(currency)}`
 }
 
 /**

@@ -13,6 +13,15 @@ export const JAPAN_CURRENCY: CurrencySpec = {
   locale: 'ja-JP',
   tileRounding: 10_000,
   payoutRounding: 100_000,
+  /**
+   * A Japanese salary is read monthly, not annually — 月収, not 年収 — so the
+   * board should say so. The lump a payday tile hands over is unchanged (still
+   * tuned ×100 against the USA board, still what every balance test measures);
+   * this only tells a player-facing string to divide that lump by 12 and
+   * caption it "a month" before it prints, so a career reads as the real
+   * monthly figure a player in Japan would actually recognise.
+   */
+  salaryDisplay: { unit: 'month', adjective: 'Monthly', periods: 12 },
 }
 
 /**

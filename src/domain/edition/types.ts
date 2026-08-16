@@ -58,6 +58,26 @@ export interface CurrencySpec {
    * reads as a glitch rather than as a market.
    */
   readonly payoutRounding: Money
+  /**
+   * How a career's flat salary reads on screen, independent of the lump sum a
+   * payday tile actually credits.
+   *
+   * Every number the engine adds up — the payday's own credit, the balance
+   * tests, every other economy constant — is still tuned in `career.salary`'s
+   * own unit; a country changes only what a player-facing string does before
+   * it prints that number. Absent, a salary prints as itself, captioned
+   * "payday". Set, it is divided by `periods` and captioned by `unit` instead
+   * — Japan's ¥4,200,000 salary reads as "¥350,000 / month", and the payday
+   * narration spells out the ×12 rather than hiding it.
+   */
+  readonly salaryDisplay?: {
+    /** Noun for one period: `'month'`. Used in "¥350,000 a month". */
+    readonly unit: string
+    /** Adjective form, opening a raise sentence: `'Monthly'` in "Monthly pay up ¥20,000". */
+    readonly adjective: string
+    /** How many of `unit` make up one `career.salary` / one payday's credit. */
+    readonly periods: number
+  }
 }
 
 /**

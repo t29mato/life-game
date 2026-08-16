@@ -76,6 +76,10 @@ describe('the japan economy is the tuned USA economy at ×100', () => {
       locale: 'ja-JP',
       tileRounding: EDITION_USA.currency.tileRounding * FACTOR,
       payoutRounding: EDITION_USA.currency.payoutRounding * FACTOR,
+      // Display-only: a salary still credits and balances in the same ×100
+      // unit as everything else here. This just tells a player-facing string
+      // to caption it "a month" instead of "a payday" — see `formatSalary`.
+      salaryDisplay: { unit: 'month', adjective: 'Monthly', periods: 12 },
     })
   })
 })

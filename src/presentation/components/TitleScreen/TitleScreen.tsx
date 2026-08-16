@@ -6,7 +6,7 @@ import type { Edition } from '@domain/edition/types'
 import { allEditions, DEFAULT_EDITION_ID, editionFor } from '@domain/edition/registry'
 import { AUTOSAVE_SLOT, type SaveSlotInfo } from '@application/ports/GameRepositoryPort'
 import type { GameRecord } from '@application/ports/StatsRepositoryPort'
-import { editionDisplayName, formatMoney } from '../../format'
+import { editionDisplayName, formatMoney, salaryPeriod, salaryRate } from '../../format'
 import { useAudio } from '../../hooks/useAudio'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { AudioToggle } from '../AudioToggle/AudioToggle'
@@ -138,9 +138,9 @@ function editionBlurb(edition: Edition): string {
   const start = formatMoney(economy.startingMoney, currency)
   const salaries = [...careers.basic, ...careers.graduate].map((career) => career.salary)
   if (salaries.length === 0) return `Counts in ${currency.symbol} — start with ${start}.`
-  const low = formatMoney(Math.min(...salaries), currency)
-  const high = formatMoney(Math.max(...salaries), currency)
-  return `Counts in ${currency.symbol} — start with ${start}; salaries run ${low} to ${high} a payday.`
+  const low = formatMoney(salaryRate(Math.min(...salaries), currency), currency)
+  const high = formatMoney(salaryRate(Math.max(...salaries), currency), currency)
+  return `Counts in ${currency.symbol} — start with ${start}; salaries run ${low} to ${high} a ${salaryPeriod(currency)}.`
 }
 
 interface DraftPlayer {

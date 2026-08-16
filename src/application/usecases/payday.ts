@@ -2,7 +2,7 @@ import type { Money, Player, SpinValue } from '@domain/model/types'
 import type { CurrencySpec, EconomyConstants } from '@domain/edition/types'
 import { USA_CURRENCY, USA_ECONOMY } from '@domain/edition/usa'
 import { paydayKindOf, paydayPayFor, payPlayerSalary, type PaydayKind } from '@domain/rules/player'
-import { formatMoney } from './format'
+import { formatMoney, paydayReceipt } from './format'
 import type { UseCaseDeps } from './types'
 
 /**
@@ -79,7 +79,13 @@ export function passedPaydayLine(
 ): string {
   const count = collection.packets.length > 1 ? ` ${collection.packets.length}x` : ''
   const money = formatMoney(collection.total, currency)
-  if (collection.kind === 'salary') return `${playerName} passes payday${count}: ${money}.`
+  if (collection.kind === 'salary') {
+    // The × 12 breakdown only holds for one payday's worth — sweeping past
+    // several in one move multiplies the total, and dividing that by 12 would
+    // quote a monthly rate nobody is actually on.
+    const total = collection.packets.length === 1 ? paydayReceipt(collection.total, currency) : money
+    return `${playerName} passes payday${count}: ${total}.`
+  }
 
   const spins = describeSpins(collection.packets)
   if (collection.kind === 'casual') {
