@@ -172,15 +172,22 @@
    The loudest thing on the card: a big espresso number resting in a shallow
    sand-paper well. */
 
+/* Cash and its pay-rate caption stack rather than share a row: "$10,000" at
+   this font size and a caption as long as "Casual shifts: $900 a pip" or
+   "$74,250 on average" do not reliably both fit one line at any panel width
+   this card is asked to render at — a shared row with a `1fr` cash column
+   let the number's own text overflow its cell and print straight through
+   the caption sitting to its right. Stacking removes the failure mode
+   instead of chasing a width where it stops happening. */
 .money {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr;
   grid-template-areas:
-    'label label'
-    'cash salary';
-  align-items: baseline;
-  column-gap: 0.5rem;
+    'label'
+    'cash'
+    'salary';
+  row-gap: 0.05rem;
   padding: 0.4rem 0.65rem 0.5rem;
   border-radius: var(--radius-md);
   background: var(--surface-sunken);
@@ -214,11 +221,14 @@
 
 .salary {
   grid-area: salary;
-  justify-self: end;
+  justify-self: start;
   font-size: 0.7rem;
   font-weight: 800;
   color: var(--ink-faint);
-  white-space: nowrap;
+  /* Its own row now, so wrapping onto a second line is a safe fallback
+     rather than nowrap's old job of forcing a fit next to the cash figure
+     that caused the overlap in the first place. */
+  white-space: normal;
 }
 
 /* ---- Net worth band -------------------------------------------------------
@@ -485,14 +495,12 @@
   line-height: 1.15;
 }
 
-/* One line instead of a stacked label: [CASH  $10,000       salary]. The
-   label keeps its place and its contrast with the net worth band below —
-   only the vertical stacking goes. */
+/* Still label/cash/salary stacked, same as the default card — a one-line
+   `[CASH  $10,000  salary]` used to live here, but at dense's narrower width
+   it was the tightest fit of any density and the first place the cash
+   figure's own text ran into the caption beside it. Just the padding and
+   corners are dense's own; the layout is inherited. */
 .dense .money {
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas: 'label cash salary';
-  align-items: baseline;
-  column-gap: 0.45rem;
   padding: 0.22rem 0.5rem 0.3rem;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;

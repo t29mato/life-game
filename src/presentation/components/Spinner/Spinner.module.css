@@ -195,7 +195,7 @@
 
   .wheelBox {
     flex: none;
-    width: clamp(112px, 42cqw, 180px);
+    width: clamp(140px, 54cqw, 220px);
     margin-top: 12px;
   }
 
@@ -209,7 +209,7 @@
   /* The hub is 31% of a much smaller wheel here; the landed number steps
      down with it rather than pressing against the hub's rim. */
   .hubValue {
-    font-size: 1.35rem;
+    font-size: 1.6rem;
   }
 }
 
@@ -219,7 +219,7 @@
 @media (max-height: 820px) {
   @container (max-width: 500px) {
     .wheelBox {
-      width: clamp(96px, 36cqw, 150px);
+      width: clamp(120px, 46cqw, 190px);
     }
   }
 }

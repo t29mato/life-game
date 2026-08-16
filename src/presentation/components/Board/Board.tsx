@@ -69,7 +69,7 @@ export interface BoardProps {
  * every car and widens the echelon, so a full stack still fits on one space
  * with every roofline and every passenger in view.
  */
-const PAWN_SCALE: readonly number[] = [0.9, 0.9, 0.72, 0.62, 0.56]
+const PAWN_SCALE: readonly number[] = [0.9, 0.9, 0.86, 0.75, 0.67]
 
 /**
  * The echelon reaches further sideways than it does back, because a car is
@@ -91,8 +91,8 @@ const PAWN_SCALE: readonly number[] = [0.9, 0.9, 0.72, 0.62, 0.56]
  * one that hung off the road entirely would read as misplaced rather than as
  * parked.
  */
-const SLOT_SPREAD_X: readonly number[] = [0, 0, 0.34, 0.39, 0.42]
-const SLOT_SPREAD_Y: readonly number[] = [0, 0, 0.3, 0.35, 0.46]
+const SLOT_SPREAD_X: readonly number[] = [0, 0, 0.4, 0.46, 0.5]
+const SLOT_SPREAD_Y: readonly number[] = [0, 0, 0.35, 0.41, 0.54]
 
 /**
  * Seconds a camera move takes: a considered one between turns, a brisk one that
