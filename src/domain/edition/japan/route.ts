@@ -568,7 +568,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'jp-family-new-baby', kind: 'stop', title: 'New Baby',
     description: 'A tiny new roommate arrives. The ward office sends a nurse, a handbook, and a lump sum that almost covers the hospital.',
-    effect: { type: 'haveChildren', count: 1 },
+    effect: { type: 'haveChildren', count: 1, celebrationPerPip: 40_000 },
     tone: 'purple', icon: 'space:new-baby', tier: EVERY_BOARD,
   },
   {
@@ -612,7 +612,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'jp-family-twins', kind: 'normal', title: 'Twins',
     description: 'The technician goes quiet at the scan, turns the screen around, and holds up two fingers.',
-    effect: { type: 'haveChildren', count: 2 },
+    effect: { type: 'haveChildren', count: 2, celebrationPerPip: 70_000 },
     tone: 'purple', icon: 'space:second-baby', tier: EVERY_BOARD,
   },
   {
@@ -642,7 +642,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'jp-family-third', kind: 'normal', title: 'Another Arrival',
     description: 'The kei van is officially too small, and nobody minds in the slightest.',
-    effect: { type: 'haveChildren', count: 1 },
+    effect: { type: 'haveChildren', count: 1, celebrationPerPip: 40_000 },
     tone: 'purple', icon: 'space:new-baby', tier: LONG_ONLY,
   },
 ]

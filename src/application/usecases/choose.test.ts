@@ -573,6 +573,30 @@ describe('choose', () => {
         expect(next.lastEvent!.moneyDelta).toBeGreaterThan(0)
       })
     })
+
+    describe('haveChildren', () => {
+      const board = fixtureMovementBoard()
+      const babySpace = { ...board.spaces.a!, effect: { type: 'haveChildren' as const, count: 1, celebrationPerPip: 500 } }
+
+      it('spins for the gift envelopes only once the player presses the button', () => {
+        const player = fixturePlayer({ spaceId: 'a', money: 0 })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: babySpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const random = createFakeRandom({ spins: [6] })
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+        expect(random.calls.spins).toBe(1)
+        expect(next.phase).toBe('resolved')
+        expect(next.pendingDecision).toBeNull()
+        expect(next.players[0]!.money).toBe(3_000)
+        expect(next.lastEvent!.moneyDelta).toBe(3_000)
+        expect(next.lastEvent!.notes.join(' ')).toContain('Rolled a 6')
+      })
+    })
   })
 
   describe('event presentation', () => {

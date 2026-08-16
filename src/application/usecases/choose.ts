@@ -728,6 +728,28 @@ function resolveValueSpin(state: GameState, optionId: string, deps: UseCaseDeps)
     return resolveHouseholdSpin(state, player, space, spinValue, edition, money)
   }
 
+  if (space?.effect.type === 'haveChildren') {
+    const gain = space.effect.celebrationPerPip * spinValue
+    const updated = creditPlayer(player, gain)
+    const delta = updated.money - player.money
+    const event = outcomeEvent(
+      space,
+      player,
+      'Gift Envelopes',
+      delta,
+      [`Rolled a ${spinValue} → ${money(gain)}`],
+      emphasisForMoney(delta, economy),
+      `The gift envelopes add up to ${money(gain)} for ${player.name}!`,
+    )
+    return resolved(
+      state,
+      replacePlayer(state.players, updated),
+      event,
+      `${player.name} spins ${spinValue} for the gift envelopes: ${money(gain)}.`,
+      'money-in',
+    )
+  }
+
   // Otherwise this is a payday — casual or unsteady, the only two kinds that
   // reach a value-spin decision at all (a flat salary never raises one).
   const amount = paydayPayFor(player, spinValue, economy)

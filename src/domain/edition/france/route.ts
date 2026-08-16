@@ -571,7 +571,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'fr-family-new-baby', kind: 'stop', title: 'New Baby',
     description: 'A tiny new family member arrives, and the state — which was ready and waiting — opens a file, a benefit, and a vaccination schedule for them.',
-    effect: { type: 'haveChildren', count: 1 },
+    effect: { type: 'haveChildren', count: 1, celebrationPerPip: 400 },
     tone: 'purple', icon: 'space:new-baby', tier: EVERY_BOARD,
   },
   {
@@ -615,7 +615,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'fr-family-twins', kind: 'normal', title: 'Twins',
     description: 'The technician goes quiet at the ultrasound, turns the screen around, and holds up two fingers.',
-    effect: { type: 'haveChildren', count: 2 },
+    effect: { type: 'haveChildren', count: 2, celebrationPerPip: 700 },
     tone: 'purple', icon: 'space:second-baby', tier: EVERY_BOARD,
   },
   {
@@ -645,7 +645,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'fr-family-third', kind: 'normal', title: 'Another Arrival',
     description: 'A third child officially makes you a large family: you get a discount on trains, praise from the state, and a car that is now, everyone agrees, too small.',
-    effect: { type: 'haveChildren', count: 1 },
+    effect: { type: 'haveChildren', count: 1, celebrationPerPip: 400 },
     tone: 'purple', icon: 'space:new-baby', tier: LONG_ONLY,
   },
 ]

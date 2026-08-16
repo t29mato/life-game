@@ -347,13 +347,19 @@ describe('applyEffect', () => {
   })
 
   describe('haveChildren', () => {
-    it('adds children to the player', () => {
+    it('adds children to the player instantly, then holds for the player to spin for the gift envelopes', () => {
       const player = fixturePlayer({ children: 1 })
       const state = fixtureState({ players: [player] })
-      const space = fixtureSpace({ effect: { type: 'haveChildren', count: 2 } })
-      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom() })
+      const space = fixtureSpace({ effect: { type: 'haveChildren', count: 2, celebrationPerPip: 500 } })
+      const random = createFakeRandom({ spins: [7] })
+      const { state: next, event } = applyEffect(state, space, { random })
       expect(next.players[0]!.children).toBe(3)
       expect(event.moneyDelta).toBe(0)
+      expect(random.calls.spins).toBe(0)
+      expect(next.pendingDecision?.kind).toBe('valueSpin')
+      expect(next.pendingDecision?.options).toHaveLength(1)
+      const description = next.pendingDecision?.options[0]?.description ?? ''
+      expect(description).toContain('$500')
     })
   })
 
@@ -470,7 +476,7 @@ describe('applyEffect', () => {
         { type: 'chooseCareer', pool: 'basic' },
         { type: 'graduate' },
         { type: 'getMarried' },
-        { type: 'haveChildren', count: 1 },
+        { type: 'haveChildren', count: 1, celebrationPerPip: 500 },
         { type: 'buyHouse' },
         { type: 'collectFromEach', amount: 100, reason: 'Prize' },
         { type: 'payEach', amount: 100, reason: 'Drinks' },
@@ -526,7 +532,7 @@ describe('applyEffect', () => {
         { type: 'gainLifeTiles', count: 1 },
         { type: 'graduate' },
         { type: 'getMarried' },
-        { type: 'haveChildren', count: 1 },
+        { type: 'haveChildren', count: 1, celebrationPerPip: 500 },
         { type: 'collectFromEach', amount: 100_000, reason: 'Prize' },
         { type: 'payEach', amount: 100_000, reason: 'Drinks' },
         { type: 'spinForMoney', perPip: 100, reason: 'Lucky roll' },

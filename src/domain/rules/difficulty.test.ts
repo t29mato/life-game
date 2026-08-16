@@ -152,7 +152,7 @@ describe('harshenEffect', () => {
       { type: 'buyHouse' },
       { type: 'bank' },
       { type: 'gainLifeTiles', count: 1 },
-      { type: 'haveChildren', count: 1 },
+      { type: 'haveChildren', count: 1, celebrationPerPip: 500 },
     ]
     for (const effect of untouched) {
       expect(harshenEffect(effect, 'veryHard')).toEqual(effect)

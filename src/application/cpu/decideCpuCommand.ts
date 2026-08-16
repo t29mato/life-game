@@ -374,8 +374,12 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
        * of them. Halving on top of that is why no computer seat had ever
        * chosen the lane — the bills were charged twice and the child paid
        * $10,000 once.
+       *
+       * On top of that, same as `spinForMoney`, the gift envelopes are a real
+       * spin at a quoted rate — worth its per-pip price times the average
+       * spin, regardless of whether the computer or a human presses it.
        */
-      return effect.count * expectedChildValue(player, economy)
+      return effect.count * expectedChildValue(player, economy) + effect.celebrationPerPip * AVERAGE_SPIN
     case 'buyHouse':
     case 'upgradeHouse':
       return units(5)

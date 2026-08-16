@@ -235,7 +235,7 @@ describe('every effect the CPU prices scales with the edition', () => {
     { name: 'chooseCareer', space: fixtureSpace({ effect: { type: 'chooseCareer', pool: 'basic' } }) },
     { name: 'graduate', space: fixtureSpace({ effect: { type: 'graduate' } }) },
     { name: 'getMarried', space: fixtureSpace({ effect: { type: 'getMarried' } }) },
-    { name: 'haveChildren', space: fixtureSpace({ effect: { type: 'haveChildren', count: 2 } }) },
+    { name: 'haveChildren', space: fixtureSpace({ effect: { type: 'haveChildren', count: 2, celebrationPerPip: 500 } }) },
     { name: 'buyHouse', space: fixtureSpace({ effect: { type: 'buyHouse' } }) },
     { name: 'upgradeHouse', space: fixtureSpace({ effect: { type: 'upgradeHouse' } }) },
     { name: 'collectFromEach', space: fixtureSpace({ effect: { type: 'collectFromEach', amount: 800, reason: 'Whip-round' } }) },

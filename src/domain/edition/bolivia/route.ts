@@ -569,7 +569,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'bo-family-new-baby', kind: 'stop', title: 'New Baby',
     description: 'A tiny new roommate arrives, and is immediately declared by four separate grandmothers to look exactly like four separate people.',
-    effect: { type: 'haveChildren', count: 1 },
+    effect: { type: 'haveChildren', count: 1, celebrationPerPip: 400 },
     tone: 'purple', icon: 'space:new-baby', tier: EVERY_BOARD,
   },
   {
@@ -613,7 +613,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'bo-family-twins', kind: 'normal', title: 'Twins',
     description: 'The technician goes quiet at the scan, turns the screen around, and holds up two fingers. Four grandmothers begin knitting simultaneously in four districts.',
-    effect: { type: 'haveChildren', count: 2 },
+    effect: { type: 'haveChildren', count: 2, celebrationPerPip: 700 },
     tone: 'purple', icon: 'space:second-baby', tier: EVERY_BOARD,
   },
   {
@@ -643,7 +643,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'bo-family-third', kind: 'normal', title: 'Another Arrival',
     description: 'The van is officially too small, and nobody minds in the slightest.',
-    effect: { type: 'haveChildren', count: 1 },
+    effect: { type: 'haveChildren', count: 1, celebrationPerPip: 400 },
     tone: 'purple', icon: 'space:new-baby', tier: LONG_ONLY,
   },
 ]

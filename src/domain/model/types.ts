@@ -213,7 +213,13 @@ export type SpaceEffect =
    * about it, so nothing happens to them at all.
    */
   | { readonly type: 'household'; readonly reason: string }
-  | { readonly type: 'haveChildren'; readonly count: number }
+  /**
+   * `celebrationPerPip` prices the gift envelopes and congratulations checks
+   * that show up whenever a baby actually arrives — real money, on the same
+   * `rate × the spin` formula every other value-spin tile uses, priced per
+   * tile rather than assumed, exactly like `spinForMoney`'s `perPip`.
+   */
+  | { readonly type: 'haveChildren'; readonly count: number; readonly celebrationPerPip: Money }
   | { readonly type: 'buyHouse' }
   | { readonly type: 'collectFromEach'; readonly amount: Money; readonly reason: string }
   | { readonly type: 'payEach'; readonly amount: Money; readonly reason: string }

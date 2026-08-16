@@ -638,9 +638,28 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
     }
 
     case 'haveChildren': {
+      /*
+       * The arrival itself is certain — a spin has no business deciding
+       * whether a baby shows up — so that part still happens the instant the
+       * pawn lands here, milestone card and all. What waits for a press is
+       * the gift envelopes: real money, same `rate × the spin` formula as
+       * every other value-spin tile, deferred to `resolveValueSpin` in
+       * `choose.ts` for the same reason the rest of them are.
+       */
       const updated = addChildren(player, effect.count)
       const label = effect.count === 1 ? 'child' : 'children'
-      // A new arrival is as much a life milestone as a wedding, and the card should say so.
+      const decision: Decision = {
+        kind: 'valueSpin',
+        prompt: space.title,
+        options: [
+          {
+            id: VALUE_SPIN_OPTION_ID,
+            label: 'Spin',
+            description: `Spin for the gift envelopes — ${money(effect.celebrationPerPip)} a pip you roll, 1 to 10.`,
+            icon: 'space:new-baby',
+          },
+        ],
+      }
       const event = baseEvent(
         space,
         0,
@@ -649,7 +668,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         `Congratulations ${player.name} — the family just got bigger!`,
       )
       const log = appendLog(state, player.id, `${player.name} welcomes ${effect.count} ${label}.`, 'milestone')
-      return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
+      return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: decision }, event }
     }
 
     case 'buyHouse': {
