@@ -375,6 +375,7 @@ export function App({ store, audio }: AppProps): ReactElement {
               movementPath={wheelSettled ? state.movementPath : []}
               onMovementComplete={handleMovementComplete}
               introFlythrough={introPending}
+              editionId={state.editionId}
             />
           </section>
 

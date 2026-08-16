@@ -80,6 +80,99 @@
   box-shadow: var(--elev-3);
 }
 
+/* ---- Per-country map pigments ------------------------------------------
+   Same map, same shapes, same one-light-from-upper-left rendering — only the
+   paint changes. Each edition retints the terrain toward that country's own
+   land and roofline, the way an actual road atlas would: still land, still
+   sea, still a road you can follow, just a different country's daylight.
+   `editionId` is set as `data-edition` on this element (see Board.tsx); with
+   no match (or before the prop is set) the frame keeps the base USA pigments
+   defined above, so nothing here is ever a hard requirement to render. */
+.frame[data-edition='japan'] {
+  --land: #b7d68f;
+  --land-far: #cfe2ab;
+  --land-near: #9ec274;
+  --meadow: #e3c2d3;
+  --campus: #8bc98a;
+  --suburb: #c7d692;
+  --farmland: #d7cf72;
+  --hill-far: #c2d1c5;
+  --hill-far-lit: #e3d2de;
+  --hill-near: #8eaf8f;
+  --hill-near-lit: #cba7bb;
+  --sea: #6fa7c8;
+  --sea-deep: #33678e;
+  --sea-shallow: #a7d2e5;
+  --road-top: #e7b45a;
+  --road-casing: #9b6f38;
+  --roof: #3c4a63;
+  --roof-shade: #232c3d;
+  --crop: #d7c869;
+}
+
+.frame[data-edition='france'] {
+  --land: #a9c98f;
+  --land-far: #c6dcab;
+  --land-near: #8bb46c;
+  --meadow: #ccb7dc;
+  --suburb: #bcccae;
+  --farmland: #d1c368;
+  --hill-far: #b5c1d5;
+  --hill-far-lit: #d2dceb;
+  --hill-near: #7e9aaf;
+  --hill-near-lit: #a7c1d5;
+  --sea: #4a90b8;
+  --sea-deep: #235f82;
+  --sea-shallow: #8ec3dc;
+  --road-top: #ecd9a0;
+  --road-casing: #a99260;
+  --roof: #4a5a70;
+  --roof-shade: #2c3948;
+  --crop: #cdb84a;
+}
+
+.frame[data-edition='india'] {
+  --land: #c8b35a;
+  --land-far: #dcc877;
+  --land-near: #af993f;
+  --meadow: #e8a63f;
+  --suburb: #d6b767;
+  --farmland: #df932e;
+  --hill-far: #d8b382;
+  --hill-far-lit: #efd2a2;
+  --hill-near: #b88951;
+  --hill-near-lit: #d8ab6b;
+  --sea: #2f9ab0;
+  --sea-deep: #146a80;
+  --sea-shallow: #7cd0dd;
+  --road-top: #df8934;
+  --road-casing: #8e4e17;
+  --roof: #b5482a;
+  --roof-shade: #7a2c17;
+  --crop: #dfb72f;
+}
+
+.frame[data-edition='bolivia'] {
+  --land: #c8a069;
+  --land-far: #dbba86;
+  --land-near: #aa8047;
+  --meadow: #ce9a51;
+  --suburb: #c9ab77;
+  --farmland: #d3af53;
+  --hill-far: #caa87d;
+  --hill-far-lit: #e5ca9f;
+  --hill-near: #a57e4b;
+  --hill-near-lit: #c8a56f;
+  --sea: #2ea799;
+  --sea-deep: #147568;
+  --sea-shallow: #7ed7c7;
+  --road-top: #d89949;
+  --road-casing: #8e5b21;
+  --roof: #a4472c;
+  --roof-shade: #6e2c1a;
+  --crop: #c8b13d;
+}
+
 /* The interior of the card. The map fills it, so the fill here only shows
    for the instant before the SVG lays out. */
 .surface {

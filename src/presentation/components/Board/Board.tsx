@@ -57,6 +57,8 @@ export interface BoardProps {
   readonly onMovementComplete: () => void
   /** Sweeps the camera along the route once before the first turn. */
   readonly introFlythrough?: boolean
+  /** Which country's map pigments to paint the terrain in — see `.frame`'s `[data-edition]` overrides. */
+  readonly editionId?: string
 }
 
 /**
@@ -199,6 +201,7 @@ export function Board({
   movementPath,
   onMovementComplete,
   introFlythrough = false,
+  editionId,
 }: BoardProps): ReactElement {
   const rawId = useId()
   const uid = useMemo(() => rawId.replace(/:/g, ''), [rawId])
@@ -543,6 +546,7 @@ export function Board({
   return (
     <div
       className={styles.frame}
+      data-edition={editionId}
       /* The board's own shape, published to whatever is laying it out. A longer
          route is a taller board — `long` is taller than it is wide — so the
          column it sits in cannot assume a landscape card and has to be told.
