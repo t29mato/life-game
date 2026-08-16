@@ -180,7 +180,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'fr-work-sunday', kind: 'normal', title: 'Sunday Rates',
     description: 'You take the Sunday morning shift, which pays extra. The Sunday crowd also tips well — because for them, it is a day off.',
-    effect: { type: 'gainMoney', amount: 1_000, reason: 'Sunday shift pay' },
+    effect: { type: 'none' },
     tone: 'orange', icon: 'space:overtime-shift', tier: STANDARD_UP,
   },
   {
@@ -222,7 +222,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'fr-work-commute', kind: 'normal', title: 'The Commute',
     description: 'Your employer pays half your train pass, by law. Riding a scooter to the station, it turns out, you pay for yourself.',
-    effect: { type: 'payMoney', amount: 400, reason: 'The uncovered leg of the commute' },
+    effect: { type: 'none' },
     tone: 'orange', icon: 'space:car-trouble', tier: LONG_ONLY,
   },
   {
@@ -283,7 +283,7 @@ const BOULEVARD_EARLY: readonly SpaceContent[] = [
   {
     id: 'fr-main-gym', kind: 'normal', title: 'Gym Membership',
     description: 'You sign up for the gym in January, along with everyone else in the country. You are not sure how often you will actually go.',
-    effect: { type: 'payMoney', amount: 400, reason: 'Gym membership' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:gym-membership', tier: LONG_ONLY,
   },
   // The only payday in this stretch — see usa/route.ts main-6. Harshening it
@@ -461,7 +461,7 @@ const BOULEVARD_LATE: readonly SpaceContent[] = [
   {
     id: 'fr-main-subscriptions', kind: 'normal', title: 'Streaming Bill',
     description: 'You are somehow subscribed to six streaming services. One of them exists only to show cycling races.',
-    effect: { type: 'payMoney', amount: 300, reason: 'Streaming subscriptions' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:streaming-bill', tier: LONG_ONLY,
   },
   {
@@ -831,7 +831,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   {
     id: 'fr-midtown-campsite', kind: 'normal', title: 'The Campsite',
     description: 'Three stars, a pool with a slide, a numbered pitch like a parking space — and rain from Friday straight through Sunday.',
-    effect: { type: 'payMoney', amount: 700, reason: 'Camping weekend' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:weekend-trip', tier: LONG_ONLY,
   },
   {
@@ -968,7 +968,7 @@ const PRUDENCE_STREET: readonly SpaceContent[] = [
   {
     id: 'fr-safe-potager', kind: 'normal', title: 'The Kitchen Garden',
     description: 'Your tomatoes and zucchini all ripen at once, saving you a grocery trip and forcing every neighbour to take a bag.',
-    effect: { type: 'gainMoney', amount: 600, reason: 'Kitchen garden harvest' },
+    effect: { type: 'none' },
     tone: 'green', icon: 'space:garden-harvest', tier: LONG_ONLY,
   },
   payday(EVERY_BOARD, 'fr-safe-payday', 'Your pay lands on the 28th, just like it always has.', missedPayday(

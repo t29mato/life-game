@@ -177,7 +177,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'jp-work-overtime', kind: 'normal', title: 'Paid Overtime',
     description: 'You pick up an extra shift, and the overtime actually appears on the slip — a novelty you decide not to mention too loudly.',
-    effect: { type: 'gainMoney', amount: 100_000, reason: 'Overtime pay' },
+    effect: { type: 'none' },
     tone: 'orange', icon: 'space:overtime-shift', tier: STANDARD_UP,
   },
   {
@@ -219,7 +219,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'jp-work-commuter-pass', kind: 'normal', title: 'Commuter Pass',
     description: 'The company covers the train — but the bus that gets you to the station, it turns out, is not covered. That one is on you.',
-    effect: { type: 'payMoney', amount: 40_000, reason: 'The uncovered leg of the commute' },
+    effect: { type: 'none' },
     tone: 'orange', icon: 'space:car-trouble', tier: LONG_ONLY,
   },
   {
@@ -280,7 +280,7 @@ const SALARYMAN_STREET_EARLY: readonly SpaceContent[] = [
   {
     id: 'jp-main-gym', kind: 'normal', title: 'Gym Membership',
     description: 'You commit to the gym by the station. You have visited twice; the membership fee visits monthly.',
-    effect: { type: 'payMoney', amount: 40_000, reason: 'Gym membership' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:gym-membership', tier: LONG_ONLY,
   },
   // The only payday in this stretch — see usa/route.ts main-6. Harshening it
@@ -458,7 +458,7 @@ const SALARYMAN_STREET_LATE: readonly SpaceContent[] = [
   {
     id: 'jp-main-new-year-cards', kind: 'normal', title: 'New Year Cards',
     description: 'You address seventy postcards to people you will also see in person, so that a lottery number printed on each may change nothing.',
-    effect: { type: 'payMoney', amount: 30_000, reason: 'Seventy postcards and stamps' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:streaming-bill', tier: LONG_ONLY,
   },
   {
@@ -827,7 +827,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   {
     id: 'jp-midtown-glamping', kind: 'normal', title: 'Glamping Trip',
     description: 'One tent someone else pitched, four sleeping bags, and rain from Friday to Sunday, all at triple the price of ordinary rain.',
-    effect: { type: 'payMoney', amount: 70_000, reason: 'Glamping weekend' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:weekend-trip', tier: LONG_ONLY,
   },
   {
@@ -964,7 +964,7 @@ const STEADY_STREET: readonly SpaceContent[] = [
   {
     id: 'jp-safe-shiso', kind: 'normal', title: 'Balcony Harvest',
     description: 'The balcony shiso and the goya curtain finally ripen, saving a grocery trip and shading the window.',
-    effect: { type: 'gainMoney', amount: 60_000, reason: 'Balcony harvest' },
+    effect: { type: 'none' },
     tone: 'green', icon: 'space:garden-harvest', tier: LONG_ONLY,
   },
   payday(EVERY_BOARD, 'jp-safe-payday', 'The deposit arrives on the twenty-fifth, as it has every month since you can remember.', missedPayday(

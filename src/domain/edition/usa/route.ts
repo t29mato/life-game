@@ -218,7 +218,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'work-3', kind: 'normal', title: 'Overtime Shift',
     description: 'You pick up an extra shift and your feet regret it by nine.',
-    effect: { type: 'gainMoney', amount: 1_000, reason: 'Overtime pay' },
+    effect: { type: 'none' },
     tone: 'orange', icon: 'space:overtime-shift', tier: STANDARD_UP,
   },
   {
@@ -297,7 +297,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'work-bus-pass', kind: 'normal', title: 'Bus Pass',
     description: 'The commute across town adds up one fare at a time.',
-    effect: { type: 'payMoney', amount: 400, reason: 'Monthly bus pass' },
+    effect: { type: 'none' },
     tone: 'orange', icon: 'space:car-trouble', tier: LONG_ONLY,
   },
   {
@@ -390,7 +390,7 @@ const MAIN_STREET_EARLY: readonly SpaceContent[] = [
   {
     id: 'main-3', kind: 'normal', title: 'Gym Membership',
     description: 'You commit to getting fit. The treadmill remains skeptical.',
-    effect: { type: 'payMoney', amount: 400, reason: 'Gym membership' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:gym-membership', tier: LONG_ONLY,
   },
   // The only payday in this stretch — every other lane on the board harshens
@@ -636,7 +636,7 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
   {
     id: 'main-10', kind: 'normal', title: 'Streaming Bill',
     description: "Somehow you're subscribed to six different services.",
-    effect: { type: 'payMoney', amount: 300, reason: 'Streaming subscriptions' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:streaming-bill', tier: LONG_ONLY,
   },
   {
@@ -1081,7 +1081,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   {
     id: 'midtown-camping', kind: 'normal', title: 'Camping Trip',
     description: 'One tent, four sleeping bags, and rain from Friday to Sunday.',
-    effect: { type: 'payMoney', amount: 700, reason: 'Camping trip' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:weekend-trip', tier: LONG_ONLY,
   },
   {
@@ -1216,7 +1216,7 @@ const SAFE_STREET: readonly SpaceContent[] = [
   {
     id: 'safe-2', kind: 'normal', title: 'Garden Harvest',
     description: 'The backyard tomatoes finally ripen, saving a grocery trip.',
-    effect: { type: 'gainMoney', amount: 600, reason: 'Garden harvest' },
+    effect: { type: 'none' },
     tone: 'green', icon: 'space:garden-harvest', tier: LONG_ONLY,
   },
   payday(EVERY_BOARD, 'safe-payday', 'The deposit arrives on the same day it always has.', missedPayday(

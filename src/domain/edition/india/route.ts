@@ -177,7 +177,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'in-work-overtime', kind: 'normal', title: 'Overtime, Paid',
     description: 'You take the festival-week double shifts, and the overtime actually appears on the slip — a novelty you decide not to mention too loudly.',
-    effect: { type: 'gainMoney', amount: 100_000, reason: 'Overtime pay' },
+    effect: { type: 'none' },
     tone: 'orange', icon: 'space:overtime-shift', tier: STANDARD_UP,
   },
   {
@@ -219,7 +219,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'in-work-last-mile', kind: 'normal', title: 'The Last-Mile Auto',
     description: 'The company covers the train pass. The auto-rickshaw from the station, it turns out, is not covered — that one you pay for yourself.',
-    effect: { type: 'payMoney', amount: 40_000, reason: 'The uncovered leg of the commute' },
+    effect: { type: 'none' },
     tone: 'orange', icon: 'space:car-trouble', tier: LONG_ONLY,
   },
   {
@@ -280,7 +280,7 @@ const OFFICE_ROAD_EARLY: readonly SpaceContent[] = [
   {
     id: 'in-main-gym', kind: 'normal', title: 'Gym Membership',
     description: 'You commit to the gym above the supermarket on the first of January. You have visited twice; you paid the annual fee once, in full, on day one.',
-    effect: { type: 'payMoney', amount: 40_000, reason: 'Gym membership' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:gym-membership', tier: LONG_ONLY,
   },
   // The only payday in this stretch — see usa/route.ts main-6. Harshening it
@@ -457,7 +457,7 @@ const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
   {
     id: 'in-main-festival-couriers', kind: 'normal', title: 'The Festival Couriers',
     description: 'Sweet boxes couriered to relatives in three cities, each chosen to be exactly as generous as the box they will courier to you.',
-    effect: { type: 'payMoney', amount: 30_000, reason: 'Sweets and courier charges' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:streaming-bill', tier: LONG_ONLY,
   },
   {
@@ -826,7 +826,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   {
     id: 'in-midtown-hill-station', kind: 'normal', title: 'The Hill Station Weekend',
     description: 'A long weekend, one hill station, and the entire city arriving on the same two-lane road — and hotel prices that triple the moment the season turns rainy and pleasant.',
-    effect: { type: 'payMoney', amount: 70_000, reason: 'Hill station weekend' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:weekend-trip', tier: LONG_ONLY,
   },
   {
@@ -963,7 +963,7 @@ const STEADY_STREET: readonly SpaceContent[] = [
   {
     id: 'in-safe-kitchen-garden', kind: 'normal', title: 'The Kitchen Garden',
     description: 'The balcony\'s curry leaves, chillies and one heroic tomato plant finally deliver, saving a market trip and settling an argument with the neighbour about soil.',
-    effect: { type: 'gainMoney', amount: 60_000, reason: 'Balcony harvest' },
+    effect: { type: 'none' },
     tone: 'green', icon: 'space:garden-harvest', tier: LONG_ONLY,
   },
   payday(EVERY_BOARD, 'in-safe-payday', 'The credit arrives on the last working day, as it has every month since you can remember.', missedPayday(

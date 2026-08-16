@@ -178,7 +178,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'bo-work-feria-sunday', kind: 'normal', title: 'Feria Sunday',
     description: 'The giant open-air market swells to twice the city on Sundays, and a stall in the right row sells everything it can carry.',
-    effect: { type: 'gainMoney', amount: 1_000, reason: 'Sunday takings' },
+    effect: { type: 'none' },
     tone: 'orange', icon: 'space:overtime-shift', tier: STANDARD_UP,
   },
   {
@@ -220,7 +220,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'bo-work-fares', kind: 'normal', title: 'The Commute',
     description: 'Two minibuses and a cable car each way, every day, one small fare at a time. It adds up fast over a month.',
-    effect: { type: 'payMoney', amount: 400, reason: 'A month of fares' },
+    effect: { type: 'none' },
     tone: 'orange', icon: 'space:car-trouble', tier: LONG_ONLY,
   },
   {
@@ -280,7 +280,7 @@ const MARKET_STREET_EARLY: readonly SpaceContent[] = [
   {
     id: 'bo-main-futsal', kind: 'normal', title: 'The Futsal League',
     description: 'You join the neighbourhood five-a-side league. The registration is modest; the post-match rounds are not.',
-    effect: { type: 'payMoney', amount: 400, reason: 'League season' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:gym-membership', tier: LONG_ONLY,
   },
   // The only payday in this stretch — see usa/route.ts main-6. Harshening it
@@ -459,7 +459,7 @@ const MARKET_STREET_LATE: readonly SpaceContent[] = [
   {
     id: 'bo-main-family-plan', kind: 'normal', title: 'The Family Plan',
     description: 'Somehow you are paying the phone credit, the streaming, and the data top-ups for your entire extended family. Nobody remembers agreeing to this, least of all you.',
-    effect: { type: 'payMoney', amount: 300, reason: 'Everyone\'s top-ups' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:streaming-bill', tier: LONG_ONLY,
   },
   {
@@ -829,7 +829,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   {
     id: 'bo-midtown-salt-flat-trip', kind: 'normal', title: 'The Salt Flat Trip',
     description: 'You finally do the tourist thing in your own country: a jeep, a salt horizon, and forty perspective photographs of the family standing on a dinosaur that is actually a saucepan.',
-    effect: { type: 'payMoney', amount: 700, reason: 'The salt flat weekend' },
+    effect: { type: 'none' },
     tone: 'slate', icon: 'space:weekend-trip', tier: LONG_ONLY,
   },
   {
@@ -966,7 +966,7 @@ const STEADY_STREET: readonly SpaceContent[] = [
   {
     id: 'bo-safe-potato-patch', kind: 'normal', title: 'The Potato Patch',
     description: 'The family plot outside town comes through: a sack of potatoes, a bundle of herbs, and the deep satisfaction of a grocery trip skipped.',
-    effect: { type: 'gainMoney', amount: 600, reason: 'The plot provides' },
+    effect: { type: 'none' },
     tone: 'green', icon: 'space:garden-harvest', tier: LONG_ONLY,
   },
   payday(EVERY_BOARD, 'bo-safe-payday', 'The month\'s money arrives on the day it always has, which is the whole idea.', missedPayday(
