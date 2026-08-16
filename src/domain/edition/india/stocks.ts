@@ -52,6 +52,6 @@ export const STOCKS: readonly Stock[] = [
     price: 2_500_000,
     payoutRange: [300_000, 7_700_000],
     icon: 'stock:orbital-freight',
-    description: 'Small satellites on a shoestring from a launch pad by the sea — either the next national pride or a very expensive Diwali rocket.',
+    description: 'Small satellites on a tiny budget from a launch pad by the sea — either the next national pride or a very expensive Diwali rocket.',
   },
 ]

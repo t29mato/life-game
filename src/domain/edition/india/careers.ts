@@ -148,7 +148,7 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 1_240_000,
     requiresDegree: false,
     icon: 'career:food-truck-owner',
-    description: 'Forty string cots, one uncompromising dal, and every truck driver on the national highway sets his clock by your kitchen.',
+    description: 'Forty string cots, one uncompromising dal, and every truck driver on the national highway knows exactly when your kitchen opens.',
   },
   // --- the building site ---------------------------------------------------
   {
@@ -301,7 +301,7 @@ export const BASIC_CAREERS: readonly Career[] = [
     raiseStep: 580_000,
     requiresDegree: false,
     icon: 'tile:podcast',
-    description: 'Takes dedications from truck drivers and sleepless students at two in the morning, and is a national secret between them.',
+    description: 'Takes dedications from truck drivers and sleepless students at two in the morning, and is loved nationwide without ever being seen.',
     promotesTo: 'career-in-station-director',
     promotionSpin: TOP_STEP,
   },
