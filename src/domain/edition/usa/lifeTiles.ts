@@ -36,6 +36,6 @@ export const LIFE_TILE_DECK: readonly LifeTile[] = [
   { id: 'tile-baked-for-the-whole-town', title: 'Baked for the Whole Town', value: 11_000, icon: 'space:garage-sale' },
   { id: 'tile-taught-a-sold-out-class', title: 'Taught a Sold-Out Class', value: 24_000, icon: 'space:conference-talk' },
   { id: 'tile-hiked-the-long-trail', title: 'Hiked the Long Trail', value: 28_000, icon: 'tile:backpacking' },
-  { id: 'tile-restored-an-old-theatre', title: 'Restored an Old Theatre', value: 65_000, icon: 'tile:mural' },
+  { id: 'tile-restored-an-old-theatre', title: 'Restored an Old Theater', value: 65_000, icon: 'tile:mural' },
   { id: 'tile-named-a-new-beetle', title: 'Named a New Beetle', value: 80_000, icon: 'tile:invention' },
 ]

@@ -24,6 +24,11 @@ import {
  * longest and thinned per board length by their tiers; the trunk is a list of
  * segments at the bottom of the file, and a new fork in the middle of one of
  * these acts is one entry added to that list.
+ *
+ * The voice rule, applied on every tile below: short sentences, plain words,
+ * and any joke stated plainly rather than implied. A reader who is not a
+ * native English speaker should understand a tile on the first read, exactly
+ * as fast as a native speaker would.
  */
 
 const START: SpaceContent = {
@@ -48,12 +53,12 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
   // — an instant forced halt, so the roll that chose it never mattered.
   flavour(EVERY_BOARD, 'college-1', 'Move-In Day', 'You haul boxes into a tiny dorm room and call it home.', 'blue', 'space:move-in-day', {
     from: 'hard',
-    description: 'You haul boxes into a tiny dorm room, and the hall asks for a deposit on the way in.',
+    description: 'You haul boxes into a tiny dorm room, and the dorm office asks for a deposit on the way in.',
     effect: { type: 'payMoney', amount: 1_400, reason: 'Dorm deposit' },
   }),
   {
     id: 'college-2', kind: 'stop', title: 'Tuition Bill',
-    description: "The registrar's office sends a bill that makes your eyes water, and nobody enrols until it is paid.",
+    description: "The registrar's office sends a bill that is shockingly high, and nobody enrolls until it is paid.",
     effect: { type: 'payMoney', amount: 0, reason: 'College tuition' },
     tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD, unscaled: true,
     amountFrom: 'collegeTuition',
@@ -64,12 +69,12 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 500, reason: 'Coffee and printing' },
   }),
   setback('veryHard', STANDARD_UP, 'college-laptop', 'Laptop Dies',
-    'Your laptop gives up two days before the deadline, and the replacement is not the cheap one.',
+    'Your laptop breaks two days before the deadline, and the replacement is not the cheap one.',
     { type: 'payMoney', amount: 3_000, reason: 'Emergency laptop' },
     'blue', 'space:late-night-study'),
   {
     id: 'college-4', kind: 'normal', title: 'Campus Job',
-    description: 'A work-study gig in the library turns into real hours and a genuinely useful cheque.',
+    description: 'A work-study job in the library turns into real hours and a genuinely useful paycheck.',
     effect: { type: 'gainMoney', amount: 9_000, reason: 'Work-study paycheck' },
     tone: 'blue', icon: 'space:campus-job', tier: EVERY_BOARD,
   },
@@ -84,13 +89,13 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
   }),
   {
     id: 'college-6', kind: 'normal', title: 'Scholarship Win',
-    description: 'Your essay wins a scholarship nobody expected, and it covers a serious chunk of the bill.',
+    description: 'Your essay wins a scholarship nobody expected, and it covers a big part of the bill.',
     effect: { type: 'gainMoney', amount: 24_000, reason: 'Scholarship award' },
     tone: 'blue', icon: 'space:scholarship-win', tier: STANDARD_UP,
   },
   {
     id: 'college-ramen', kind: 'normal', title: 'Ramen Weeks',
-    description: 'Dinner is instant noodles for a fortnight and the grocery bill still stings.',
+    description: 'Dinner is instant noodles for two weeks straight, and the grocery bill still stings.',
     effect: { type: 'payMoney', amount: 600, reason: 'Groceries on a student budget' },
     tone: 'blue', icon: 'space:grocery-run', tier: LONG_ONLY,
   },
@@ -101,13 +106,13 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
   }),
   {
     id: 'college-internship', kind: 'normal', title: 'Summer Internship',
-    description: 'A summer of fetching coffee ends with a genuinely generous cheque.',
+    description: 'A summer of fetching coffee ends with a genuinely generous check.',
     effect: { type: 'gainMoney', amount: 5_000, reason: 'Summer internship' },
     tone: 'blue', icon: 'space:new-skills', tier: LONG_ONLY,
   },
   {
     id: 'college-pitch', kind: 'normal', title: 'Pitch Night',
-    description: 'You pitch your dorm-room idea to visiting investors — spin to see who bites.',
+    description: 'You pitch your dorm-room idea to visiting investors — spin to see who invests.',
     effect: { type: 'spinForMoney', perPip: 400, reason: 'Pitch night winnings' },
     tone: 'blue', icon: 'space:startup-bet', tier: LONG_ONLY,
   },
@@ -119,7 +124,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'college-loan', kind: 'normal', title: 'Student Loan',
-    description: 'You sign for the half of it the scholarship never covered, and the repayments start the month the gown goes back.',
+    description: 'You sign for the half of it the scholarship never covered, and the repayments start the month you graduate.',
     effect: { type: 'payMoney', amount: 5_000, reason: 'Student loan repayments' },
     tone: 'blue', icon: 'finance:bank-visit', tier: STANDARD_UP,
   },
@@ -168,7 +173,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     effect: { type: 'gainMoney', amount: 2_000, reason: 'First paycheck' },
     tone: 'orange', icon: 'space:first-paycheck', tier: EVERY_BOARD,
   },
-  payday(EVERY_BOARD, 'work-payday-1', 'A full month on the books, and the deposit lands while your friends are still in halls.', missedPayday(
+  payday(EVERY_BOARD, 'work-payday-1', 'A full month on the books, and the deposit lands while your friends are still in the dorms.', missedPayday(
     'veryHard',
     'Paid in Arrears',
     'Nobody mentioned that the first month is paid a month behind, and the fridge does not care.',
@@ -218,12 +223,12 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'work-truck', kind: 'normal', title: 'Food Truck Bet',
-    description: 'Every dollar you have goes into a second-hand van and a very good chilli — spin to see what the queue does.',
+    description: 'Every dollar you have goes into a used van and a very good chili — spin to see what the line does.',
     effect: { type: 'spinForMoney', perPip: 2_000, reason: 'What the food truck took' },
     tone: 'orange', icon: 'career:food-truck-owner', tier: STANDARD_UP,
   },
   setback('veryHard', STANDARD_UP, 'work-late-rent', 'Late Rent',
-    'The rent goes in four days late, and the fee is on the doormat before the apology is.',
+    'The rent goes in four days late, and the late fee arrives before you can even apologize.',
     { type: 'payMoney', amount: 2_500, reason: 'Late rent penalty' },
     'orange', 'space:rent-due'),
   /*
@@ -248,7 +253,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   payday(EVERY_BOARD, 'work-payday-2', 'Another month, another deposit, and still nobody has asked to see a certificate.', missedPayday(
     'hard',
     'Hours Cut',
-    'The rota goes up on Sunday with your name on half as many lines as last week.',
+    'The schedule goes up on Sunday with your name on half as many shifts as last week.',
     1_200,
     'Half a month of shifts',
   )),
@@ -285,7 +290,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'work-scratch', kind: 'normal', title: 'Scratch Card',
-    description: 'Bought with the change from the sandwich, scratched in the car park — spin for what is under the foil.',
+    description: 'Bought with the change from the sandwich, scratched in the parking lot — spin for what is under the foil.',
     effect: { type: 'spinForMoney', perPip: 1_200, reason: 'Under the foil' },
     tone: 'orange', icon: 'space:lottery-ticket', tier: LONG_ONLY,
   },
@@ -297,7 +302,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'work-shift-lead', kind: 'normal', title: 'Shift Lead',
-    description: 'They are short of somebody to hold the keys and write the rota. Spin: it might as well be you.',
+    description: 'They are short of somebody to hold the keys and write the schedule. Spin: it might as well be you.',
     effect: { type: 'promotion', reason: 'Somebody has to hold the keys' },
     tone: 'orange', icon: 'space:pay-raise-talk', tier: LONG_ONLY,
   },
@@ -347,7 +352,7 @@ const MAIN_STREET_EARLY: readonly SpaceContent[] = [
   },
   {
     id: 'main-bank', kind: 'normal', title: 'Bank Visit',
-    description: 'The manager slides a coffee across the desk and asks how the money is treating you.',
+    description: 'The manager slides a coffee across the desk and asks how things are going with your money.',
     effect: { type: 'bank' },
     tone: 'slate', icon: 'finance:bank-visit', tier: EVERY_BOARD,
   },
@@ -414,12 +419,12 @@ const MAIN_STREET_EARLY: readonly SpaceContent[] = [
   },
   {
     id: 'main-fender-bender', kind: 'normal', title: 'Fender Bender',
-    description: 'Someone taps your bumper in the car park and the quote arrives by email that afternoon.',
+    description: 'Someone taps your bumper in the parking lot and the quote arrives by email that afternoon.',
     effect: { type: 'payMoney', amount: 2_400, reason: 'Bodyshop bill', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender', tier: EVERY_BOARD,
   },
-  setback('veryHard', EVERY_BOARD, 'main-pileup', 'Motorway Pileup',
-    'Fog, brake lights, and four cars concertinaed on the slip road. Everyone walks away; the invoices do not.',
+  setback('veryHard', EVERY_BOARD, 'main-pileup', 'Highway Pileup',
+    'Fog, brake lights, and four cars crushed together on the highway on-ramp. Everyone walks away; the bills do not.',
     { type: 'payMoney', amount: 14_000, reason: 'Pileup repairs', hazard: 'accident' },
     'slate', 'space:fender-bender'),
   setback('hard', EVERY_BOARD, 'main-dentist', 'Dentist Bill',
@@ -436,14 +441,14 @@ const MAIN_STREET_EARLY: readonly SpaceContent[] = [
      * after the game has finished. There are a dozen on the standard route
      * now, and an insured player watches roughly two of them bounce.
      */
-    id: 'main-prang', kind: 'normal', title: 'Car Park Prang',
-    description: 'Somebody reverses into your door in the multi-storey and leaves a note that reads, in full, "sorry".',
+    id: 'main-prang', kind: 'normal', title: 'Parking Lot Prang',
+    description: 'Somebody reverses into your door in the parking garage and leaves a note that reads, in full, "sorry".',
     effect: { type: 'payMoney', amount: 2_600, reason: 'Door and wing repairs', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
   {
     id: 'main-grease-fire', kind: 'normal', title: 'Grease Fire',
-    description: 'A pan of oil, one distracted minute, and a kitchen ceiling the exact colour of strong tea.',
+    description: 'A pan of oil, one distracted minute, and a kitchen ceiling the exact color of strong tea.',
     effect: { type: 'payMoney', amount: 6_000, reason: 'Kitchen fire damage', hazard: 'fire' },
     tone: 'slate', icon: 'space:house-fire', tier: STANDARD_UP,
   },
@@ -516,7 +521,7 @@ const COMPANY_ROAD: readonly SpaceContent[] = [
      * not between one salary packet and none.
      */
     id: 'ladder-bonus', kind: 'payday', title: 'Profit Share',
-    description: 'The firm has a good year and hands every badge a share of it — a whole extra pay packet, and nobody had to ask.',
+    description: 'The firm has a good year and gives everyone a share of it — a whole extra paycheck, and nobody had to ask.',
     effect: { type: 'payday' },
     tone: 'green', icon: 'space:bonus-season', tier: STANDARD_UP,
   },
@@ -528,7 +533,7 @@ const COMPANY_ROAD: readonly SpaceContent[] = [
   },
   {
     id: 'ladder-black-ice', kind: 'normal', title: 'Black Ice',
-    description: 'Forty minutes each way for nine years, and one January morning the roundabout finds you before you find it.',
+    description: 'Forty minutes each way for nine years, and one January morning the traffic circle finds you before you find it.',
     effect: { type: 'payMoney', amount: 4_000, reason: 'Commuter write-off', hazard: 'accident' },
     tone: 'orange', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -540,7 +545,7 @@ const COMPANY_ROAD: readonly SpaceContent[] = [
   },
   {
     id: 'ladder-collection', kind: 'normal', title: 'The Collection',
-    description: 'You start the envelope going round for somebody\'s leaving present, which makes the shortfall at the end of it yours.',
+    description: 'You start the envelope for somebody\'s farewell gift, and when it does not collect enough, you make up the difference.',
     effect: { type: 'payEach', amount: 600, reason: 'Making up the collection' },
     tone: 'orange', icon: 'space:surprise-bonus', tier: LONG_ONLY,
   },
@@ -576,7 +581,7 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
   },
   {
     id: 'hopper-bonus', kind: 'payday', title: 'Signing Bonus',
-    description: 'The new firm buys you out of your notice period, and the cheque lands like a whole extra pay packet.',
+    description: 'The new firm buys you out of your notice period, and the check lands like a whole extra paycheck.',
     effect: { type: 'payday' },
     tone: 'green', icon: 'space:bonus-season', tier: STANDARD_UP,
   },
@@ -588,7 +593,7 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
   },
   {
     id: 'hopper-van', kind: 'normal', title: 'Moving Van',
-    description: 'You drive the hire van to the new city yourself, and learn its exact height from the car park barrier.',
+    description: 'You drive the rental van to the new city yourself, and learn its exact height from the parking garage gate.',
     effect: { type: 'payMoney', amount: 4_000, reason: 'Van and barrier repairs', hazard: 'accident' },
     tone: 'orange', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -599,7 +604,7 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
     tone: 'orange', icon: 'space:startup-bet', tier: LONG_ONLY,
   },
   {
-    id: 'hopper-leaving-do', kind: 'normal', title: 'Leaving Do',
+    id: 'hopper-leaving-do', kind: 'normal', title: 'Farewell Party',
     description: 'Your third leaving party of the decade. The card is enormous, the collection is generous, and nobody quite remembers your job title.',
     effect: { type: 'collectFromEach', amount: 700, reason: 'The leaving collection' },
     tone: 'orange', icon: 'space:poker-night', tier: LONG_ONLY,
@@ -649,7 +654,7 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
     // for the same reason: two ways to lose the job, one hall of booths to fix
     // it, and neither of them more than a tile away from the fix.
     id: 'main-hours-cut', kind: 'normal', title: 'Contract Ends',
-    description: 'The contract everyone swore blind would be renewed is, very quietly, not renewed.',
+    description: 'The contract everyone was sure would be renewed is, very quietly, not renewed.',
     effect: { type: 'loseCareer', reason: 'Contract not renewed' },
     tone: 'orange', icon: 'space:layoff-notice', tier: EVERY_BOARD, appearsFrom: 'hard',
   },
@@ -679,7 +684,7 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:coupon-clipping', tier: LONG_ONLY,
   },
   setback('hard', LONG_ONLY, 'main-parking', 'Parking Ticket',
-    'Eleven minutes over, one warden with excellent timing, and a yellow envelope under the wiper.',
+    'Eleven minutes over, one parking officer with excellent timing, and a yellow ticket under the windshield wiper.',
     { type: 'payMoney', amount: 1_200, reason: 'Parking fine' },
     'slate', 'space:car-trouble'),
   {
@@ -719,13 +724,13 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
   },
   {
     id: 'main-bonus', kind: 'payday', title: 'Spot Bonus',
-    description: 'Someone upstairs notices the weekend you saved, and says thank you with a whole extra pay packet.',
+    description: 'Someone upstairs notices the weekend you saved, and says thank you with a whole extra paycheck.',
     effect: { type: 'payday' },
     tone: 'green', icon: 'space:surprise-bonus', tier: LONG_ONLY,
     harsher: missedPayday(
       'veryHard',
       'Thanks, Verbally',
-      'Someone upstairs notices the weekend you saved and says thank you very warmly indeed, in an email, to everyone.',
+      'Someone upstairs notices the weekend you saved and thanks you warmly — in one email, sent to everyone.',
       900,
       'Thanked in writing',
     ),
@@ -736,7 +741,7 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
     effect: { type: 'collectFromEach', amount: 500, reason: 'Poker night winnings' },
     tone: 'slate', icon: 'space:poker-night', tier: STANDARD_UP,
   },
-  flavour(LONG_ONLY, 'main-14', 'Ring Shopping', 'You linger a little too long at the jewelry counter window.', 'slate', 'space:ring-shopping'),
+  flavour(LONG_ONLY, 'main-14', 'Ring Shopping', 'You spend a little too long looking in the jewelry counter window.', 'slate', 'space:ring-shopping'),
 ]
 
 const MARRIAGE: SpaceContent = {
@@ -787,7 +792,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'family-minivan', kind: 'normal', title: 'The Minivan',
-    description: 'Reversing off the drive with three children arguing behind you, into the one gatepost that has never once moved.',
+    description: 'Reversing off the driveway with three children arguing behind you, into the one gatepost that has never once moved.',
     effect: { type: 'payMoney', amount: 3_200, reason: 'Minivan bodywork', hazard: 'accident' },
     tone: 'purple', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -818,7 +823,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'family-benefit', kind: 'normal', title: 'Child Benefit',
-    description: 'A quiet government cheque arrives for every small person in the house.',
+    description: 'A quiet government check arrives for every small person in the house.',
     effect: { type: 'collectPerChild', amount: 1_500, reason: 'Child benefit per child' },
     tone: 'purple', icon: 'space:child-benefit', tier: STANDARD_UP,
   },
@@ -858,14 +863,14 @@ const FAST_TRACK: readonly SpaceContent[] = [
   payday(EVERY_BOARD, 'fast-3', 'Overtime finally shows up on the pay stub.'),
   {
     id: 'fast-headhunted', kind: 'normal', title: 'Headhunted',
-    description: 'A recruiter calls your mobile during a meeting with two offers and no patience.',
+    description: 'A recruiter calls your cell phone during a meeting with two offers and no patience.',
     effect: { type: 'careerChange', reason: 'Headhunted for something new' },
     tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
   },
   {
-    id: 'fast-hire-car', kind: 'normal', title: 'Hire Car',
-    description: 'A strange city, an unfamiliar side of the car, and a bollard that had been standing there all morning.',
-    effect: { type: 'payMoney', amount: 3_200, reason: 'Hire car excess', hazard: 'accident' },
+    id: 'fast-hire-car', kind: 'normal', title: 'Rental Car',
+    description: 'A strange city, a rental car you don\'t know well, and a concrete post that had been standing there all morning.',
+    effect: { type: 'payMoney', amount: 3_200, reason: 'Rental car deductible', hazard: 'accident' },
     tone: 'orange', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
   {
@@ -888,37 +893,37 @@ const FAST_TRACK: readonly SpaceContent[] = [
      * you the job above yours.
      */
     id: 'fast-5', kind: 'normal', title: 'Conference Talk',
-    description: 'Your talk goes round the whole industry in a week, and the organisers of the next three would like to book you.',
+    description: 'Your talk goes round the whole industry in a week, and the organizers of the next three would like to book you.',
     effect: { type: 'gainMoney', amount: 4_400, reason: 'Speaking fees' },
     tone: 'orange', icon: 'space:conference-talk', tier: STANDARD_UP,
   },
   setback('hard', EVERY_BOARD, 'fast-burnout', 'Burnout Leave',
-    'Six weeks signed off, and the pay packet is a great deal lighter by the time you walk back in.',
+    'Six weeks signed off, and the paycheck is a great deal lighter by the time you walk back in.',
     { type: 'payMoney', amount: 12_000, reason: 'Unpaid leave' },
     'orange', 'space:steady-hustle'),
   {
     id: 'fast-restructure', kind: 'normal', title: 'Restructure',
-    description: 'The org chart is redrawn overnight and your name turns up in a different box entirely.',
+    description: 'The company reorganizes overnight, and your name turns up in a different job entirely.',
     // Nobody asked, which is what a reorganisation is.
-    effect: { type: 'careerChange', reason: 'Reorganised into a new role', compulsory: true },
+    effect: { type: 'careerChange', reason: 'Reorganized into a new role', compulsory: true },
     tone: 'orange', icon: 'space:career-fair-return', tier: EVERY_BOARD, appearsFrom: 'veryHard',
   },
   {
     id: 'fast-trading-floor', kind: 'normal', title: 'Trading Floor',
-    description: 'Your bonus is burning a hole in your pocket and the floor is still shouting.',
+    description: 'You are eager to spend your bonus, and the trading floor is still shouting.',
     effect: { type: 'buyStock' },
     tone: 'orange', icon: 'finance:trading-floor', tier: EVERY_BOARD,
   },
   payday(EVERY_BOARD, 'fast-6', 'Another two weeks down, another deposit in.', missedPayday(
     'hard',
     'Bonus Clawback',
-    "Last year's bonus is reassessed by somebody in another building, and reassessed downwards.",
+    "Last year's bonus is reviewed by somebody in another building, and the new number is lower.",
     6_000,
     'Bonus clawed back',
   )),
   {
     id: 'fast-7', kind: 'normal', title: 'Bonus Season',
-    description: 'The year-end bonus is bigger than expected. Cue happy dance.',
+    description: 'The year-end bonus is bigger than expected, and you celebrate.',
     effect: { type: 'gainMoney', amount: 5_000, reason: 'Year-end bonus' },
     tone: 'orange', icon: 'space:bonus-season', tier: STANDARD_UP,
   },
@@ -929,7 +934,7 @@ const FAST_TRACK: readonly SpaceContent[] = [
   }),
   {
     id: 'fast-board-seat', kind: 'normal', title: 'Board Seat',
-    description: 'There is a chair going at the long table. Spin to find out whose name ends up on it.',
+    description: 'There is an open chair at the long table. Spin to find out whose name ends up on it.',
     effect: { type: 'promotion', reason: 'A chair at the long table' },
     tone: 'orange', icon: 'space:corner-office', tier: STANDARD_UP,
   },
@@ -978,7 +983,7 @@ const MIDTOWN: readonly SpaceContent[] = [
   },
   {
     id: 'midtown-dividend', kind: 'normal', title: 'Dividend Day',
-    description: 'Every share you hold quietly posts a cheque through the letterbox.',
+    description: 'Every share you hold quietly posts a check through the mailbox.',
     effect: { type: 'stockDividend', perShare: 3_000, reason: 'Quarterly dividend' },
     tone: 'slate', icon: 'space:dividend-day', tier: STANDARD_UP,
   },
@@ -989,7 +994,7 @@ const MIDTOWN: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:neighborhood-bbq', tier: STANDARD_UP,
   },
   {
-    id: 'midtown-dryer-fire', kind: 'normal', title: 'Tumble Dryer',
+    id: 'midtown-dryer-fire', kind: 'normal', title: 'Dryer Fire',
     description: 'Nobody has emptied the lint filter in four years, and the utility room is the first to hear about it.',
     effect: { type: 'payMoney', amount: 5_600, reason: 'Utility room fire damage', hazard: 'fire' },
     tone: 'slate', icon: 'space:house-fire', tier: STANDARD_UP,
@@ -1006,13 +1011,13 @@ const MIDTOWN: readonly SpaceContent[] = [
   payday(EVERY_BOARD, 'midtown-payday', 'A deposit lands the week the deposit on a house is due.'),
   {
     id: 'midtown-wiring', kind: 'normal', title: 'Wiring Fault',
-    description: 'The survey mentions the fuse box in passing. The fuse box mentions it again at two in the morning, rather louder.',
+    description: 'The inspection report mentions the fuse box in passing. The fuse box mentions it again at two in the morning, much louder this time.',
     effect: { type: 'payMoney', amount: 5_600, reason: 'Electrical fire damage', hazard: 'fire' },
     tone: 'slate', icon: 'space:house-fire', tier: STANDARD_UP,
   },
   {
-    id: 'midtown-deer', kind: 'normal', title: 'Deer on the Lane',
-    description: 'It steps out of the hedge at dusk, considers you carefully, and walks away. The bonnet does not walk away.',
+    id: 'midtown-deer', kind: 'normal', title: 'Deer in the Road',
+    description: 'It steps out of the hedge at dusk, considers you carefully, and walks away. The hood of your car does not walk away.',
     effect: { type: 'payMoney', amount: 3_600, reason: 'Front end rebuilt', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -1069,8 +1074,8 @@ const MIDTOWN: readonly SpaceContent[] = [
     'The rate moves the wrong way on a Thursday morning, and every monthly figure moves with it.',
     { type: 'payMoney', amount: 14_000, reason: 'Rates go the wrong way' },
     'slate', 'space:market-crash'),
-  setback('hard', LONG_ONLY, 'midtown-survey', 'Survey Report',
-    'The surveyor finds damp, a cracked lintel, and one paragraph you have to read three times.',
+  setback('hard', LONG_ONLY, 'midtown-survey', 'Inspection Report',
+    'The home inspector finds damp, a cracked support beam, and one paragraph you have to read three times.',
     { type: 'payMoney', amount: 8_000, reason: 'Survey and repairs' },
     'slate', 'space:house-hunting'),
   {
@@ -1114,13 +1119,13 @@ const RISKY_ROAD: readonly SpaceContent[] = [
   },
   {
     id: 'risky-2', kind: 'normal', title: 'Bad Stock Tip',
-    description: "Your 'sure thing' tanks in a week and you buy the table dinner to make up for it.",
+    description: "Your 'sure thing' loses most of its value in a week, and you buy the table dinner to make up for it.",
     effect: { type: 'payEach', amount: 2_000, reason: 'Bad stock tip' },
     tone: 'pink', icon: 'space:stock-tip', tier: EVERY_BOARD,
   },
   {
     id: 'risky-3', kind: 'normal', title: 'Poker Night',
-    description: 'Lady luck sits at your table all night long.',
+    description: 'Luck stays on your side at the table all night long.',
     effect: { type: 'collectFromEach', amount: 2_500, reason: 'Poker winnings' },
     tone: 'pink', icon: 'space:poker-night', tier: EVERY_BOARD,
   },
@@ -1140,8 +1145,8 @@ const RISKY_ROAD: readonly SpaceContent[] = [
     'pink', 'space:market-crash'),
   {
     id: 'risky-kerb', kind: 'normal', title: 'One Careful Week',
-    description: 'You buy the car you promised yourself at seventeen, and introduce it to a kerb before the plates arrive.',
-    effect: { type: 'payMoney', amount: 5_000, reason: 'Alloys, arch and pride', hazard: 'accident' },
+    description: 'You buy the car you promised yourself at seventeen, and introduce it to a curb before the plates arrive.',
+    effect: { type: 'payMoney', amount: 5_000, reason: 'Wheels, fender and pride', hazard: 'accident' },
     tone: 'pink', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
   {
@@ -1152,7 +1157,7 @@ const RISKY_ROAD: readonly SpaceContent[] = [
   },
   {
     id: 'risky-7', kind: 'normal', title: 'Surprise Bonus',
-    description: 'An old investment finally pays off, and everyone chips in envy.',
+    description: 'An old investment finally pays off, and everyone else is jealous.',
     effect: { type: 'collectFromEach', amount: 2_000, reason: 'Surprise windfall' },
     tone: 'pink', icon: 'space:surprise-bonus', tier: STANDARD_UP,
   },
@@ -1165,7 +1170,7 @@ const RISKY_ROAD: readonly SpaceContent[] = [
   payday(EVERY_BOARD, 'risky-payday', 'A paycheck lands while your investments are busy misbehaving.'),
   {
     id: 'risky-margin-call', kind: 'normal', title: 'Margin Call',
-    description: 'The broker rings at seven in the morning, and the tone of voice says it all.',
+    description: 'The broker calls at seven in the morning, and the tone of voice already tells you it is bad news.',
     effect: { type: 'payMoney', amount: 4_000, reason: 'Margin call' },
     tone: 'pink', icon: 'space:market-crash', tier: LONG_ONLY,
   },
@@ -1183,7 +1188,7 @@ const RISKY_ROAD: readonly SpaceContent[] = [
   },
   {
     id: 'risky-angel', kind: 'normal', title: 'Angel Investing',
-    description: 'Three cheques into three garages — spin to find out which one grew up.',
+    description: 'Three checks into three garages — spin to find out which one grew up.',
     effect: { type: 'spinForMoney', perPip: 1_500, reason: 'Angel investment return' },
     tone: 'pink', icon: 'space:startup-bet', tier: LONG_ONLY,
   },
@@ -1221,12 +1226,12 @@ const SAFE_STREET: readonly SpaceContent[] = [
     1_000,
     'Wages held over a month',
   )),
-  setback('hard', EVERY_BOARD, 'safe-excess', 'Policy Excess',
-    'Even the careful road has a claim form on it, and the excess is always yours to cover.',
-    { type: 'payMoney', amount: 4_000, reason: 'Policy excess' },
+  setback('hard', EVERY_BOARD, 'safe-excess', 'Policy Deductible',
+    'Even the careful road has a claim form on it, and the deductible is always yours to cover.',
+    { type: 'payMoney', amount: 4_000, reason: 'Policy deductible' },
     'green', 'finance:insurance-office'),
   setback('veryHard', STANDARD_UP, 'safe-roof', 'Roof Repairs',
-    'Three slates come off in the night, and the man with the ladder is booked until Thursday.',
+    'Three roof shingles come off in the night, and the man with the ladder is booked until Thursday.',
     { type: 'payMoney', amount: 9_000, reason: 'Roof repairs' },
     'green', 'space:house-hunting'),
   setback('hard', LONG_ONLY, 'safe-fridge', 'Fridge Gives Up',
@@ -1234,8 +1239,8 @@ const SAFE_STREET: readonly SpaceContent[] = [
     { type: 'payMoney', amount: 3_000, reason: 'A new fridge' },
     'green', 'space:grocery-run'),
   {
-    id: 'safe-trolley', kind: 'normal', title: 'Trolley Dent',
-    description: 'A runaway trolley crosses the entire car park to find your door, and nobody at all saw a thing.',
+    id: 'safe-trolley', kind: 'normal', title: 'Cart Dent',
+    description: 'A runaway shopping cart crosses the entire parking lot to find your door, and nobody at all saw a thing.',
     effect: { type: 'payMoney', amount: 3_000, reason: 'Panel and paint', hazard: 'accident' },
     tone: 'green', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -1278,7 +1283,7 @@ const SAFE_STREET: readonly SpaceContent[] = [
   payday(EVERY_BOARD, 'safe-payday-2', 'Another deposit, another quiet week. This is the whole idea.'),
   {
     id: 'safe-dividend', kind: 'normal', title: 'Dividend Day',
-    description: 'The steady half of your portfolio posts its steady little cheque.',
+    description: 'The steady half of your portfolio posts its steady little check.',
     effect: { type: 'stockDividend', perShare: 2_500, reason: 'Quarterly dividend' },
     tone: 'green', icon: 'space:dividend-day', tier: EVERY_BOARD,
   },
@@ -1290,8 +1295,8 @@ const SAFE_STREET: readonly SpaceContent[] = [
   },
   flavour(LONG_ONLY, 'safe-party', 'Garden Party', 'Bunting, folding chairs, and a raffle nobody expected to enjoy this much.', 'green', 'space:neighborhood-bbq', {
     from: 'hard',
-    description: 'Bunting, folding chairs, a raffle, and a marquee somebody had to put a deposit down on.',
-    effect: { type: 'payMoney', amount: 700, reason: 'The marquee deposit' },
+    description: 'Bunting, folding chairs, a raffle, and a tent somebody had to put a deposit down on.',
+    effect: { type: 'payMoney', amount: 700, reason: 'The tent deposit' },
   }),
 ]
 
@@ -1333,11 +1338,11 @@ const SUNSET_STRIP: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:house-fire', tier: EVERY_BOARD,
   },
   setback('veryHard', STANDARD_UP, 'sunset-chimney', 'Chimney Fire',
-    'A jackdaw nest, a cold night, and a chimney breast that has to come out and go back in again.',
+    'A bird\'s nest, a cold night, and a chimney that has to come out and go back in again.',
     { type: 'payMoney', amount: 16_000, reason: 'Chimney fire damage', hazard: 'fire' },
     'slate', 'space:house-fire'),
   setback('hard', EVERY_BOARD, 'sunset-care', 'Care Costs',
-    'Somebody you love needs looking after, and you would not dream of counting the cost. The invoice counts it anyway.',
+    'Somebody you love needs care, and you would never put a price on it. The invoice does anyway.',
     { type: 'payMoney', amount: 20_000, reason: 'Caring for family' },
     'slate', 'space:family-portrait'),
   {
@@ -1347,8 +1352,8 @@ const SUNSET_STRIP: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:house-fire', tier: STANDARD_UP,
   },
   {
-    id: 'sunset-bollard', kind: 'normal', title: 'The New Bollard',
-    description: 'The supermarket puts a bollard where no bollard has ever been, and you introduce yourself to it twice in one month.',
+    id: 'sunset-bollard', kind: 'normal', title: 'The New Post',
+    description: 'The supermarket puts a concrete post where no post has ever been, and you introduce yourself to it twice in one month.',
     effect: { type: 'payMoney', amount: 3_800, reason: 'Rear bumper, again', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender', tier: STANDARD_UP,
   },
@@ -1397,14 +1402,14 @@ const SUNSET_STRIP: readonly SpaceContent[] = [
   payday(EVERY_BOARD, 'sunset-payday-2', 'You have lost count, but the deposit has not.'),
   {
     id: 'sunset-farewell', kind: 'normal', title: 'Farewell Tour',
-    description: 'Everyone insists on throwing you a leaving do, and everyone insists on paying.',
+    description: 'Everyone insists on throwing you a farewell party, and everyone insists on paying.',
     effect: { type: 'collectFromEach', amount: 3_000, reason: 'Leaving gifts' },
     tone: 'slate', icon: 'space:surprise-bonus', tier: STANDARD_UP,
   },
   {
-    id: 'sunset-fete', kind: 'normal', title: 'Village Fete',
-    description: 'You run the tombola, and the takings are far better than anybody predicted.',
-    effect: { type: 'gainMoney', amount: 1_100, reason: 'Tombola takings' },
+    id: 'sunset-fete', kind: 'normal', title: 'Town Fair',
+    description: 'You run the raffle, and the money is far better than anybody predicted.',
+    effect: { type: 'gainMoney', amount: 1_100, reason: 'Raffle earnings' },
     tone: 'green', icon: 'space:garage-sale', tier: LONG_ONLY,
   },
   {
@@ -1428,7 +1433,7 @@ const SUNSET_STRIP: readonly SpaceContent[] = [
   {
     id: 'sunset-last-spin', kind: 'normal', title: 'Last Big Spin',
     description: 'One final roll of the dice on the way out the door — spin for the payout.',
-    effect: { type: 'spinForMoney', perPip: 3_500, reason: 'One last punt' },
+    effect: { type: 'spinForMoney', perPip: 3_500, reason: 'One last bet' },
     tone: 'slate', icon: 'space:lottery-ticket', tier: STANDARD_UP,
   },
   setback('veryHard', EVERY_BOARD, 'sunset-tax', 'Final Tax Bill',
@@ -1507,7 +1512,7 @@ const FAMILY_BRANCH: RouteBranch = {
 const FAST_BRANCH: RouteBranch = {
   identity: {
     name: 'Fast Track',
-    summary: 'Paydays, raises and the corner office, earned at the desk on the evenings and weekends. The life you might have had is itemised separately.',
+    summary: 'Paydays, raises and the corner office, earned at the desk on the evenings and weekends. The personal life you gave up for it is the real cost.',
   },
   spaces: FAST_TRACK,
 }
