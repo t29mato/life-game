@@ -29,7 +29,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # `fetch-depth: 0` — the default shallow checkout has no tag history at
+      # all, so `git describe --tags` below can never find one and silently
+      # falls back to a bare commit hash. That bare hash still *usually*
+      # passes TitleScreen.test.tsx's `__APP_BUILD__` shape check purely by
+      # chance (a hex SHA has roughly even odds of starting with a digit) —
+      # which is exactly how this went unnoticed until a run finally drew a
+      # hash starting with a letter.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-node@v4
         with:
