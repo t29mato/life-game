@@ -20,6 +20,18 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
+    date: 'August 19, 2026',
+    whatsNew: [
+      "Career choice is on the wheel now. Job fairs, headhunters, Job-Hopper Alley, and every other career tile put two named jobs on the table and spin for which one you get, instead of you just picking whichever pays more. The card names both jobs and the split — 1-5 for one, 6-10 for the other — before you press Spin. Where the tile allows it, you can still turn both down and keep the job you already have.",
+      "College tuition is a spin too. Instead of one flat bill, the wheel decides what you owe — a bad spin costs more than the old flat rate, a great one can mean a full ride, and the card spells out every band before you spin.",
+    ],
+    changes: [
+      "The desktop spin wheel is bigger again, and turns more slowly, so the numbers are easier to follow as they go by.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.3.3',
     date: 'August 18, 2026',
     whatsNew: [],
     changes: [
