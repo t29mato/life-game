@@ -49,13 +49,13 @@ describe('ReleaseNotesScreen', () => {
   })
 
   it('leaves out a section a release has nothing to put in', () => {
-    // The newest release fixed nothing this time, and an empty "Fixed"
-    // heading reads as a page that failed to load rather than a release
-    // that was entirely new features and rewrites.
+    // v1.2.1 was a rewrite-only release with nothing new to announce, and an
+    // empty "What's new" heading reads as a page that failed to load rather
+    // than a release that was entirely rewritten copy.
     renderReleaseNotes({ onClose: () => {} })
-    const current = screen.getByText(`Version ${__APP_VERSION__}`).closest('li')
-    expect(current).not.toBeNull()
-    expect(within(current!).queryByText('Fixed')).not.toBeInTheDocument()
+    const v121 = screen.getByText('Version v1.2.1').closest('li')
+    expect(v121).not.toBeNull()
+    expect(within(v121!).queryByText("What's new")).not.toBeInTheDocument()
   })
 
   it('calls onClose when the back button is clicked', async () => {

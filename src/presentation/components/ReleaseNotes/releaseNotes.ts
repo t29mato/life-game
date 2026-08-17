@@ -20,6 +20,24 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
+    date: 'August 17, 2026',
+    whatsNew: [
+      "Every country now looks and sounds like itself. The board's own map repaints toward that country's colours and rooftops — Japan's blossom pink and indigo tile roofs, France's lavender fields and slate mansards, India's marigold land and terracotta, Bolivia's altiplano ochre and a turquoise lake — and the music under the board changes with it too: an original tune written for each country instead of one loop everywhere.",
+      'A new baby now gets its own spin. Land on New Baby, Twins, or Another Arrival and press Spin for the gift envelopes, same as any other spin-for-money tile — higher is always better.',
+    ],
+    changes: [
+      "Wedding proposals, promotions, and the household joint-account tile now wait for you to press Spin too, the same way payday cards already did — the game no longer rolls before you've seen what's on the tile.",
+      "The spin wheel is bigger on a desktop screen, and every player's token on the board is larger too, so it's easier to see who's standing where at a glance.",
+      'The USA edition got the same plain-English pass the other four editions already had — American spelling and terms throughout, so nothing reads like a translation.',
+      "Japan's salary numbers now read the way a real paycheque does — a monthly figure, not the whole year at once — and every payday or raise spells out the arithmetic (¥350,000 × 12 months = ¥4,200,000) so the total is never a mystery.",
+      "Trimmed a handful of the board's smallest forced money events down to pure flavour text — a few more spaces where nothing happens but the scene, for a slightly lighter pace.",
+    ],
+    fixes: [
+      "Fixed a right-side profile panel where a long salary figure could print over the top of the cash total instead of staying in its own row.",
+    ],
+  },
+  {
+    version: 'v1.2.1',
     date: 'August 14, 2026',
     whatsNew: [],
     changes: [
