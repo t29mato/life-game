@@ -8,7 +8,7 @@ import { DecisionModal } from './DecisionModal'
 
 function makeDecision(): Decision {
   return {
-    kind: 'career',
+    kind: 'house',
     prompt: 'Choose your career',
     options: [
       { id: 'a', label: 'Chef', description: 'Cook amazing food.', icon: 'space:payday', detail: '$40,000' },

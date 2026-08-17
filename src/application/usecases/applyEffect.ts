@@ -217,32 +217,18 @@ function currentIncomeNote(player: Player, economy: EconomyConstants, currency: 
 }
 
 /**
- * The offers, with the ladder each one sits on written on the front of it.
- *
- * "Rung 2 of 4" is the whole reason a career choice is interesting now: two
- * jobs on the same money are not the same job when one of them has a salon
- * above it and the other is the top of a two-rung trade. A player who cannot
- * see the height is being asked to guess.
+ * One offer, named in full for a spin's pre-roll description: title, salary,
+ * and the ladder it sits on. "Rung 2 of 4" is the whole reason a career
+ * spin is interesting rather than a coin flip in the dark — two jobs on the
+ * same money are not the same job when one of them has a salon above it and
+ * the other is the top of a two-rung trade, and a player who cannot see the
+ * height is being asked to gamble blind rather than to gamble informed.
  */
-function careerDecisionOptions(
-  careers: readonly Career[],
-  currency: CurrencySpec,
-  edition: Edition,
-): readonly DecisionOption[] {
-  return careers.map((career) => {
-    const ladder = ladderPositionOf(career.id, edition)
-    const rung =
-      career.isCalling || !ladder || ladder.height === 1
-        ? ' · no ladder'
-        : ` · rung ${ladder.rung} of ${ladder.height}`
-    return {
-      id: career.id,
-      label: career.title,
-      description: career.description,
-      icon: career.icon,
-      detail: `${formatMoney(salaryRate(career.salary, currency), currency)}/${salaryPeriod(currency)}${rung}`,
-    }
-  })
+function careerOfferSummary(career: Career, currency: CurrencySpec, edition: Edition): string {
+  const ladder = ladderPositionOf(career.id, edition)
+  const rung =
+    career.isCalling || !ladder || ladder.height === 1 ? '' : `, rung ${ladder.rung} of ${ladder.height}`
+  return `${career.title} (${formatMoney(salaryRate(career.salary, currency), currency)}/${salaryPeriod(currency)}${rung})`
 }
 
 function houseDecisionOptions(
@@ -587,16 +573,32 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
     case 'chooseCareer': {
       // Bottom rungs only. Nobody walks out of a job fair running a salon.
       const pool = hiringPoolFor(edition, effect.pool === 'graduate' && player.hasDegree)
-      const offered = deps.random.shuffle(pool).slice(0, 2)
+      const [first, second] = deps.random.shuffle(pool).slice(0, 2) as [Career, Career]
+
+      /*
+       * Which offer lands is deferred to `resolveValueSpin` in `choose.ts`,
+       * same as every other value-spin tile — 1-5 for the first offer, 6-10
+       * for the second, both named up front so the press means something.
+       * `offeredCareerIds` carries the pair across, since the space's own
+       * `effect` is static route data and cannot hold a per-instance draw.
+       */
       const decision: Decision = {
-        kind: 'career',
+        kind: 'valueSpin',
         prompt: player.career
           ? `Choose your career path. ${currentIncomeNote(player, economy, currency)}`
           : 'Choose your career path',
-        options: careerDecisionOptions(offered, currency, edition),
+        options: [
+          {
+            id: VALUE_SPIN_OPTION_ID,
+            label: 'Spin',
+            description: `Spin 1 to 10 to see who hires you — 1-5: ${careerOfferSummary(first, currency, edition)}. 6-10: ${careerOfferSummary(second, currency, edition)}.`,
+            icon: space.icon,
+          },
+        ],
+        offeredCareerIds: [first.id, second.id],
       }
-      const event = baseEvent(space, 0, [], 'normal', `Two offers on the table. Choose wisely, ${player.name}!`)
-      const log = appendLog(state, player.id, `${player.name} is offered a choice of career.`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', `Two offers on the table — spin to see which one is yours, ${player.name}!`)
+      const log = appendLog(state, player.id, `${player.name} spins for a career.`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -902,10 +904,10 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       const here = player.career ? ladderPositionOf(player.career.id, edition) : undefined
       const seniority = seniorityOf(player, edition)
       const pool = hiringPoolFor(edition, player.hasDegree).filter((entry) => entry.id !== here?.entry.id)
-      const offered = deps.random
+      const [first, second] = deps.random
         .shuffle(pool)
         .slice(0, 2)
-        .map((entry) => rungFor(entry, seniority, edition))
+        .map((entry) => rungFor(entry, seniority, edition)) as [Career, Career]
 
       /*
        * Staying put is an answer, and on most of these tiles it is the right
@@ -933,7 +935,10 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
        * free look at two jobs, and Company Road would never be worth taking.
        */
       const mayStay = player.career !== null && effect.compulsory !== true
-      const options = [...careerDecisionOptions(offered, currency, edition)]
+      const spinDescription = `Spin 1 to 10 to see which one you take — 1-5: ${careerOfferSummary(first, currency, edition)}. 6-10: ${careerOfferSummary(second, currency, edition)}.`
+      const options: DecisionOption[] = [
+        { id: VALUE_SPIN_OPTION_ID, label: 'Spin', description: spinDescription, icon: space.icon },
+      ]
       if (mayStay && player.career) {
         options.push({
           id: CAREER_STAY_OPTION_ID,
@@ -947,11 +952,12 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       }
 
       const decision: Decision = {
-        kind: 'career',
+        kind: 'valueSpin',
         prompt: mayStay
           ? `Two other trades would take you at the level you are on. ${currentIncomeNote(player, economy, currency)}`
           : `Your job is changing — pick your next one. ${currentIncomeNote(player, economy, currency)}`,
         options,
+        offeredCareerIds: [first.id, second.id],
       }
       const event = baseEvent(
         space,

@@ -52,7 +52,7 @@ describe('settle', () => {
     const next = settle(state, { random: createFakeRandom() })
 
     expect(next.phase).toBe('awaitingDecision')
-    expect(next.pendingDecision!.kind).toBe('career')
+    expect(next.pendingDecision!.kind).toBe('valueSpin')
     expect(next.lastEvent).toBeNull()
   })
 

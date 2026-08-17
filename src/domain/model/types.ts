@@ -378,7 +378,7 @@ export interface Player {
 // Decisions
 // ---------------------------------------------------------------------------
 
-export type DecisionKind = 'branch' | 'career' | 'house' | 'stock' | 'insurance' | 'bank' | 'retire' | 'valueSpin'
+export type DecisionKind = 'branch' | 'house' | 'stock' | 'insurance' | 'bank' | 'retire' | 'valueSpin'
 
 export interface DecisionOption {
   readonly id: string
@@ -393,6 +393,17 @@ export interface Decision {
   readonly kind: DecisionKind
   readonly prompt: string
   readonly options: readonly DecisionOption[]
+  /**
+   * Which two careers a `chooseCareer`/`careerChange` spin is landing between
+   * — drawn once, when the decision is raised, from a pool that is reshuffled
+   * every time a player reaches one of these tiles. A `valueSpin` resolver
+   * has no other way to recover that draw: the space's own `effect` is
+   * static route data, the same every time the tile is landed on, so the
+   * random pair has to travel on the decision instance itself rather than
+   * being re-derived (which would mean drawing from the pool a second time,
+   * against a random source that has since moved on).
+   */
+  readonly offeredCareerIds?: readonly [string, string]
 }
 
 // ---------------------------------------------------------------------------

@@ -140,24 +140,17 @@ const UNKNOWN_OPTION_SCORE = -Number.MAX_SAFE_INTEGER
  * for a degree it then earned nothing extra from, and why CPU seats lost 23 of
  * 24 games to opponents who simply always took the first branch offered.
  *
- * The pool *mean* is the wrong price too, and wrong in a direction that matters
- * now that the two pools have different shapes. A fair deals two offers and the
- * player keeps the better one, so what a fair is worth is the expected maximum
- * of two draws, which rewards a wide pool far more than a narrow one: the basic
- * ladder runs $24k-$86k and gains about $11k from the choice, the graduate band
- * runs $58k-$80k and gains about $4k. Priced at their means instead, College
- * Lane looked 45% better paid when it is really about 24% better paid, and the
- * computer opened with it in all 160 games I measured.
- *
- * Exact rather than sampled: over all C(n,2) equally likely unordered pairs,
- * the i-th cheapest salary (0-based) is the larger one in exactly i of them.
+ * This used to price the *expected maximum* of two draws, back when a fair
+ * dealt two offers and the player kept the better one. Now the wheel decides
+ * which of the two you take — a uniform coin flip between them — and by
+ * symmetry the expected value of a uniform-random pick between two
+ * uniformly-drawn-without-replacement pool members is just the pool's own
+ * mean. So the plain average is the correct price again, not an
+ * approximation of it.
  */
-export const expectedBestOfTwoSalary = (careers: readonly { readonly salary: Money }[]): Money => {
-  const salaries = careers.map((career) => career.salary).sort((a, b) => a - b)
-  if (salaries.length === 0) return 0
-  if (salaries.length === 1) return salaries[0]!
-  const pairs = (salaries.length * (salaries.length - 1)) / 2
-  return salaries.reduce((sum, salary, index) => sum + salary * index, 0) / pairs
+export const meanFairSalary = (careers: readonly { readonly salary: Money }[]): Money => {
+  if (careers.length === 0) return 0
+  return careers.reduce((sum, career) => sum + career.salary, 0) / careers.length
 }
 
 /**
@@ -181,8 +174,8 @@ function averagesOf(edition: Edition): CatalogueAverages {
   const built: CatalogueAverages = {
     // Bottom rungs only: a fair cannot deal anything else, so pricing it off
     // the whole pool would value a first job at what a salon owner earns.
-    basicFairSalary: expectedBestOfTwoSalary(hiringPoolFor(edition, false)),
-    graduateFairSalary: expectedBestOfTwoSalary(hiringPoolFor(edition, true)),
+    basicFairSalary: meanFairSalary(hiringPoolFor(edition, false)),
+    graduateFairSalary: meanFairSalary(hiringPoolFor(edition, true)),
     averageTileValue: tiles.reduce((sum, tile) => sum + tile.value, 0) / Math.max(1, tiles.length),
   }
   AVERAGES.set(edition, built)
@@ -406,10 +399,11 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
       return 0
     case 'careerChange':
       /*
-       * An offer you can turn down is worth something small and positive: two
-       * salaries to look at, a signing bonus if either beats what you have,
-       * and no downside. A `compulsory` one is the old coin flip against the
-       * job already held. With no job at all, either kind is the way back.
+       * An offer you can turn down is worth something small and positive: a
+       * spin between two trades, with staying costing nothing if neither
+       * beats what you have. A `compulsory` one is the old coin flip against
+       * the job already held — no stay option, so no floor under a bad spin.
+       * With no job at all, either kind is the way back.
        */
       if (!player.career) return units(30)
       return effect.compulsory ? -units(5) : units(3)
@@ -512,7 +506,14 @@ function careerWorth(career: Career, edition: Edition): number {
   return career.salary + career.raiseStep * RAISE_HORIZON + climb
 }
 
-function scoreCareer(option: DecisionOption, context: Context): number {
+/**
+ * Stay vs Spin, for a career decision the wheel now decides rather than the
+ * player picking whichever offer pays more. Staying scores exactly as it
+ * always has — the ladder already held. Spin scores the *mean* of what each
+ * offered career is worth, since the wheel deals a coin flip between the two
+ * named in `decision.offeredCareerIds`, never a pick of the better one.
+ */
+function scoreCareerSpin(option: DecisionOption, decision: Decision, context: Context): number {
   const { player, edition } = context
 
   // Staying is worth exactly the ladder already held, and nothing else.
@@ -520,8 +521,7 @@ function scoreCareer(option: DecisionOption, context: Context): number {
     return player.career ? careerWorth(player.career, edition) : UNKNOWN_OPTION_SCORE
   }
 
-  const career = findCareer(option.id, edition)
-  if (!career) return UNKNOWN_OPTION_SCORE
+  const offeredIds = decision.offeredCareerIds ?? []
   /*
    * Compared as it would actually be *taken*, raises and all.
    *
@@ -533,7 +533,12 @@ function scoreCareer(option: DecisionOption, context: Context): number {
    */
   const base = player.career ? findCareer(player.career.id, edition) : undefined
   const premium = player.career && base ? Math.max(0, player.career.salary - base.salary) : 0
-  return careerWorth({ ...career, salary: career.salary + premium }, edition)
+  const worths = offeredIds
+    .map((id) => findCareer(id, edition))
+    .filter((career): career is Career => career !== undefined)
+    .map((career) => careerWorth({ ...career, salary: career.salary + premium }, edition))
+  if (worths.length === 0) return UNKNOWN_OPTION_SCORE
+  return worths.reduce((sum, worth) => sum + worth, 0) / worths.length
 }
 
 function scoreHouse(option: DecisionOption, context: Context): number {
@@ -794,8 +799,6 @@ function scoreOption(option: DecisionOption, decision: Decision, context: Contex
   switch (decision.kind) {
     case 'branch':
       return scoreBranch(option, context, decision)
-    case 'career':
-      return scoreCareer(option, context)
     case 'house':
       return scoreHouse(option, context)
     case 'stock':
@@ -807,9 +810,13 @@ function scoreOption(option: DecisionOption, decision: Decision, context: Contex
     case 'retire':
       return scoreRetire(option, context)
     case 'valueSpin':
-      // The only option there is — spin. No decision to weigh, so no context
-      // to weigh it against; the computer presses the one button offered.
-      return 0
+      /*
+       * Every value-spin decision but one offers exactly one button — Spin —
+       * and there is nothing to weigh, so the computer presses it. The
+       * exception is a career spin, which also offers Stay: two live
+       * options, scored against each other below.
+       */
+      return decision.offeredCareerIds ? scoreCareerSpin(option, decision, context) : 0
     default: {
       const exhaustive: never = decision.kind
       throw new Error(`decideCpuCommand: unhandled decision kind ${JSON.stringify(exhaustive)}`)

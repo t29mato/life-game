@@ -19,6 +19,7 @@ import {
   BANK_DECLINE_OPTION_ID,
   BANK_LOAN_OPTION_ID,
   BANK_REPAY_OPTION_ID,
+  CAREER_STAY_OPTION_ID,
   choose,
   DECLINE_HOUSE_OPTION_ID,
   DECLINE_INSURANCE_OPTION_ID,
@@ -110,24 +111,52 @@ describe('choose', () => {
   })
 
   describe('career', () => {
-    it('sets the chosen career and resolves the turn', () => {
-      const career = BASIC_CAREERS[0]!
+    it('spins for one of the two offered careers and resolves the turn', () => {
+      const first = BASIC_CAREERS[0]!
+      const second = BASIC_CAREERS[1]!
       const player = fixturePlayer({ spaceId: 'a', career: null })
       const state = decisionState({
         players: [player],
         pendingDecision: {
-          kind: 'career',
+          kind: 'valueSpin',
           prompt: 'Choose your career path',
-          options: [{ id: career.id, label: career.title, description: career.description, icon: 'space:payday'}],
+          options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Spin', description: '', icon: 'space:payday' }],
+          offeredCareerIds: [first.id, second.id],
         },
       })
 
-      const next = choose(state, career.id, { random: createFakeRandom() })
+      const low = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [3] }) })
+      expect(low.players[0]!.career).toEqual(first)
+      expect(low.phase).toBe('resolved')
+      expect(low.pendingDecision).toBeNull()
+      expect(low.lastEvent).not.toBeNull()
 
+      const high = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [8] }) })
+      expect(high.players[0]!.career).toEqual(second)
+    })
+
+    it('lets a player with a career decline the spin and stay put', () => {
+      const staying = BASIC_CAREERS[2]!
+      const first = BASIC_CAREERS[0]!
+      const second = BASIC_CAREERS[1]!
+      const player = fixturePlayer({ spaceId: 'a', career: staying })
+      const state = decisionState({
+        players: [player],
+        pendingDecision: {
+          kind: 'valueSpin',
+          prompt: 'Two other trades would take you at the level you are on.',
+          options: [
+            { id: VALUE_SPIN_OPTION_ID, label: 'Spin', description: '', icon: 'space:payday' },
+            { id: CAREER_STAY_OPTION_ID, label: 'Stay', description: '', icon: 'space:payday' },
+          ],
+          offeredCareerIds: [first.id, second.id],
+        },
+      })
+
+      const next = choose(state, CAREER_STAY_OPTION_ID, { random: createFakeRandom() })
+
+      expect(next.players[0]!.career).toEqual(staying)
       expect(next.phase).toBe('resolved')
-      expect(next.pendingDecision).toBeNull()
-      expect(next.players[0]!.career).toEqual(career)
-      expect(next.lastEvent).not.toBeNull()
     })
   })
 
@@ -645,7 +674,6 @@ describe('choose', () => {
     it('narrates every resolved decision and marks a new career as a milestone', () => {
       const career = BASIC_CAREERS[0]!
       const cases: Array<{ decision: Decision; optionId: string }> = [
-        { decision: decision('career', career.id), optionId: career.id },
         { decision: decision('house', HOUSES[0]!.id, DECLINE_HOUSE_OPTION_ID), optionId: HOUSES[0]!.id },
         { decision: decision('house', HOUSES[0]!.id, DECLINE_HOUSE_OPTION_ID), optionId: DECLINE_HOUSE_OPTION_ID },
         { decision: decision('stock', STOCKS[0]!.id, DECLINE_STOCK_OPTION_ID), optionId: STOCKS[0]!.id },
@@ -675,9 +703,16 @@ describe('choose', () => {
 
       const careerState = decisionState({
         players: [fixturePlayer({ spaceId: 'a' })],
-        pendingDecision: decision('career', career.id),
+        pendingDecision: {
+          kind: 'valueSpin',
+          prompt: 'Choose your career path',
+          options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Spin', description: '', icon: 'space:payday' }],
+          offeredCareerIds: [career.id, BASIC_CAREERS[1]!.id],
+        },
       })
-      expect(choose(careerState, career.id, { random: createFakeRandom() }).lastEvent!.emphasis).toBe('milestone')
+      expect(
+        choose(careerState, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [3] }) }).lastEvent!.emphasis,
+      ).toBe('milestone')
     })
   })
 })

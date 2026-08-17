@@ -1,4 +1,5 @@
 import type { GameState, LandingEmphasis, LandingEvent, LogTone, Money, Player, Space, SpinValue } from '@domain/model/types'
+import type { CurrencySpec } from '@domain/edition/types'
 import { SHARES_PER_PURCHASE } from '@domain/model/constants'
 import { planMovementVia } from '@domain/board/movement'
 import { editionOf } from '@domain/edition/registry'
@@ -149,38 +150,54 @@ function resolveBranch(state: GameState, optionId: string, deps: UseCaseDeps): G
   }
 }
 
-function resolveCareer(state: GameState, optionId: string): GameState {
-  const player = state.players[state.currentPlayerIndex]
-  if (!player) throw new Error('choose: no current player')
-  const edition = editionOf(state)
-  const { currency } = edition
-  const money = (amount: Money): string => formatMoney(amount, currency)
-  const space = currentSpace(state, player)
+/**
+ * Staying put. Nothing changes, and nothing is supposed to: the value of
+ * this answer is the ladder the player keeps, which they already have. The
+ * only decline in a value-spin decision, and the only one that never turns
+ * the wheel — same as every other decline in the game.
+ */
+function resolveCareerStay(
+  state: GameState,
+  player: Player,
+  space: Space | undefined,
+  currency: CurrencySpec,
+  money: (amount: Money) => string,
+): GameState {
+  const staying = player.career
+  if (!staying) throw new Error('choose: nothing to stay in')
+  const event = outcomeEvent(
+    space,
+    player,
+    'Staying Put',
+    0,
+    [
+      `Still a ${staying.title}, on ${money(salaryRate(staying.salary, currency))} a ${salaryPeriod(currency)}.`,
+      'Every rung still above you is still yours to climb.',
+    ],
+    'normal',
+    `${player.name} turns them both down. They like it here, and there is further to go yet.`,
+  )
+  return resolved(state, state.players, event, `${player.name} stays a ${staying.title}.`, 'info')
+}
 
-  /*
-   * Staying put. Nothing changes, and nothing is supposed to: the value of
-   * this answer is the ladder the player keeps, which they already have.
-   */
-  if (optionId === CAREER_STAY_OPTION_ID) {
-    const staying = player.career
-    if (!staying) throw new Error('choose: nothing to stay in')
-    const event = outcomeEvent(
-      space,
-      player,
-      'Staying Put',
-      0,
-      [
-        `Still a ${staying.title}, on ${money(salaryRate(staying.salary, currency))} a ${salaryPeriod(currency)}.`,
-        'Every rung still above you is still yours to climb.',
-      ],
-      'normal',
-      `${player.name} turns them both down. They like it here, and there is further to go yet.`,
-    )
-    return resolved(state, state.players, event, `${player.name} stays a ${staying.title}.`, 'info')
-  }
-
-  const career = findCareer(optionId, edition)
-  if (!career) throw new Error(`choose: unknown career option "${optionId}"`)
+/**
+ * Which of the two offers `applyEffect` dealt — 1-5 for the first,
+ * 6-10 for the second, both read off `offeredCareerIds` since the space's
+ * own `effect` is static route data and cannot hold a per-instance draw.
+ */
+function resolveCareerSpin(
+  state: GameState,
+  player: Player,
+  space: Space | undefined,
+  spinValue: SpinValue,
+  edition: ReturnType<typeof editionOf>,
+  money: (amount: Money) => string,
+): GameState {
+  const offeredIds = state.pendingDecision?.offeredCareerIds
+  if (!offeredIds) throw new Error('choose: career spin with no offers on the table')
+  const pickedId = spinValue <= 5 ? offeredIds[0] : offeredIds[1]
+  const career = findCareer(pickedId, edition)
+  if (!career) throw new Error(`choose: unknown career option "${pickedId}"`)
 
   const previous = player.career
   // Raises follow the player, not the job title they happened to earn them in.
@@ -199,20 +216,21 @@ function resolveCareer(state: GameState, optionId: string): GameState {
    * ceiling. That is a real question and it costs the economy nothing.
    */
   const notes = [
+    `Spun a ${spinValue}.`,
     `${player.name} becomes a ${taken.title}!`,
-    `${money(salaryRate(taken.salary, currency))} every ${salaryPeriod(currency)}.`,
+    `${money(salaryRate(taken.salary, edition.currency))} every ${salaryPeriod(edition.currency)}.`,
   ]
 
   const narration = previous
-    ? `Out with the old! ${player.name} leaves the ${previous.title} life behind to become a ${taken.title}.`
-    : `${player.name} is hired as a ${taken.title} — the paydays start counting now!`
+    ? `A ${spinValue}! Out with the old — ${player.name} leaves the ${previous.title} life behind to become a ${taken.title}.`
+    : `A ${spinValue}! ${player.name} is hired as a ${taken.title} — the paydays start counting now!`
   const event = outcomeEvent(space, player, 'New Career', 0, notes, 'milestone', narration)
 
   return resolved(
     state,
     replacePlayer(state.players, updated),
     event,
-    `${player.name} chooses to become a ${taken.title}.`,
+    `${player.name} spins a ${spinValue} and becomes a ${taken.title}.`,
     'milestone',
   )
 }
@@ -724,13 +742,28 @@ function resolveHouseholdSpin(
 function resolveValueSpin(state: GameState, optionId: string, deps: UseCaseDeps): GameState {
   const player = state.players[state.currentPlayerIndex]
   if (!player) throw new Error('choose: no current player')
-  if (optionId !== VALUE_SPIN_OPTION_ID) throw new Error(`choose: unknown value-spin option "${optionId}"`)
 
   const edition = editionOf(state)
   const { economy, currency } = edition
   const money = (amount: Money): string => formatMoney(amount, currency)
   const space = currentSpace(state, player)
+
+  // Staying put is the one decline a value-spin decision can offer, and it
+  // never touches the wheel — same as every other decline in the game.
+  if (optionId === CAREER_STAY_OPTION_ID) {
+    return resolveCareerStay(state, player, space, currency, money)
+  }
+
+  if (optionId !== VALUE_SPIN_OPTION_ID) throw new Error(`choose: unknown value-spin option "${optionId}"`)
+
   const spinValue = deps.random.spin()
+
+  // A career spin is identified by the offers it carries, not by the space's
+  // own effect — a decision built for a test, or dealt from a tile whose
+  // effect the board no longer holds, still resolves correctly this way.
+  if (state.pendingDecision?.offeredCareerIds) {
+    return resolveCareerSpin(state, player, space, spinValue, edition, money)
+  }
 
   if (space?.effect.type === 'spinForMoney') {
     const gain = space.effect.perPip * spinValue
@@ -901,8 +934,6 @@ export function choose(state: GameState, optionId: string, deps: UseCaseDeps): G
   switch (state.pendingDecision.kind) {
     case 'branch':
       return resolveBranch(state, optionId, deps)
-    case 'career':
-      return resolveCareer(state, optionId)
     case 'house':
       return resolveHouse(state, optionId)
     case 'stock':

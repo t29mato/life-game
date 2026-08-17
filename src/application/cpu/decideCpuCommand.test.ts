@@ -10,13 +10,15 @@ import {
   BANK_DECLINE_OPTION_ID,
   BANK_LOAN_OPTION_ID,
   BANK_REPAY_OPTION_ID,
+  CAREER_STAY_OPTION_ID,
   DECLINE_HOUSE_OPTION_ID,
   DECLINE_INSURANCE_OPTION_ID,
   DECLINE_STOCK_OPTION_ID,
+  VALUE_SPIN_OPTION_ID,
   insuranceOptionId,
 } from '../usecases/applyEffect'
 import { fixtureBoard, fixtureMovementBoard, fixturePlayer, fixtureSpace, fixtureState } from '../testing/fixtures'
-import { CPU_THINK_MS, decideCpuCommand, expectedBestOfTwoSalary, valueOfSpace } from './decideCpuCommand'
+import { CPU_THINK_MS, decideCpuCommand, meanFairSalary, valueOfSpace } from './decideCpuCommand'
 
 function cpu(overrides: Partial<Player> = {}): Player {
   return fixturePlayer({ id: 'cpu', name: 'Botly', isCpu: true, spaceId: 'a', ...overrides })
@@ -28,6 +30,12 @@ function options(...ids: string[]): DecisionOption[] {
 
 function decision(kind: Decision['kind'], ...ids: string[]): Decision {
   return { kind, prompt: 'Pick one', options: options(...ids) }
+}
+
+/** A career fair or career-change tile, wheel-decided: Spin, and Stay if `mayStay`. */
+function careerSpinDecision(offeredCareerIds: readonly [string, string], mayStay = false): Decision {
+  const spinOptions = options(VALUE_SPIN_OPTION_ID, ...(mayStay ? [CAREER_STAY_OPTION_ID] : []))
+  return { kind: 'valueSpin', prompt: 'Pick one', options: spinOptions, offeredCareerIds }
 }
 
 /** A state parked in `awaitingDecision` with a computer seat to move. */
@@ -119,49 +127,53 @@ describe('decideCpuCommand — phases', () => {
   })
 
   it('stays quiet rather than inventing an answer when a decision has no options', () => {
-    const state = deciding({ kind: 'career', prompt: 'Pick one', options: [] })
+    const state = deciding({ kind: 'valueSpin', prompt: 'Pick one', options: [] })
     expect(decideCpuCommand(state)).toBeNull()
   })
 })
 
 describe('decideCpuCommand — careers', () => {
-  it('takes the better-paying job', () => {
+  it('spins for a career fair — the only button on the card', () => {
     const poor = BASIC_CAREERS.reduce((a, b) => (b.salary < a.salary ? b : a))
     const rich = GRADUATE_CAREERS.reduce((a, b) => (b.salary > a.salary ? b : a))
-    expect(chosen(deciding(decision('career', poor.id, rich.id)))).toBe(rich.id)
-    expect(chosen(deciding(decision('career', rich.id, poor.id)))).toBe(rich.id)
+    expect(chosen(deciding(careerSpinDecision([poor.id, rich.id])))).toBe(VALUE_SPIN_OPTION_ID)
   })
 
-  it('weighs the raise step, not just the opening salary', () => {
-    // Same take-home today; the steeper raise wins over the rest of the board.
-    const flat = BASIC_CAREERS.find((career) => career.id === 'career-grooming-assistant')!
-    const steep = BASIC_CAREERS.find((career) => career.id === 'career-commis-baker')!
-    expect(steep.salary).toBeGreaterThan(flat.salary)
-    expect(steep.raiseStep).toBeGreaterThan(flat.raiseStep)
-    expect(chosen(deciding(decision('career', flat.id, steep.id)))).toBe(steep.id)
+  it('spins away from a job worth less than the offered pair averages', () => {
+    const poor = BASIC_CAREERS.find((career) => career.id === 'career-grooming-assistant')!
+    const rich = GRADUATE_CAREERS.reduce((a, b) => (b.salary > a.salary ? b : a))
+    const state = deciding(
+      careerSpinDecision([poor.id, rich.id], true),
+      cpu({ career: poor, hasDegree: true }),
+    )
+    expect(chosen(state)).toBe(VALUE_SPIN_OPTION_ID)
   })
 
-  it('takes the taller ladder when two jobs open on identical terms', () => {
-    /*
-     * The sharpest statement the ladders make, and the one a seat looking a
-     * single rung ahead gets wrong. These two are dealt on the same wage, the
-     * same raise and the same odds of a first promotion — the only difference
-     * is what is above them: a session musician can end up producing records,
-     * a second shooter tops out shooting portraits. Two rungs up is where the
-     * whole difference between the two lives lives.
-     */
-    const short = BASIC_CAREERS.find((career) => career.id === 'career-second-shooter')!
-    const tall = BASIC_CAREERS.find((career) => career.id === 'career-session-musician')!
-    expect(tall.salary).toBe(short.salary)
-    expect(tall.raiseStep).toBe(short.raiseStep)
-    expect(tall.promotionSpin).toBe(short.promotionSpin)
-    expect(chosen(deciding(decision('career', short.id, tall.id)))).toBe(tall.id)
-    expect(chosen(deciding(decision('career', tall.id, short.id)))).toBe(tall.id)
+  it('stays in a job worth more than the offered pair averages', () => {
+    const held = GRADUATE_CAREERS.reduce((a, b) => (b.salary > a.salary ? b : a))
+    const poorA = BASIC_CAREERS[0]!
+    const poorB = BASIC_CAREERS[1]!
+    const state = deciding(
+      careerSpinDecision([poorA.id, poorB.id], true),
+      cpu({ career: held, hasDegree: true }),
+    )
+    expect(chosen(state)).toBe(CAREER_STAY_OPTION_ID)
   })
 
-  it('takes a job rather than nothing when an unknown id is also on the table', () => {
+  it('has nothing to stay in and nothing to do but spin when it has no career at all', () => {
+    const [a, b] = BASIC_CAREERS
+    // mayStay is false whenever the player has no career to hold onto, same
+    // as applyEffect's chooseCareer and any careerChange dealt to a player
+    // between jobs — there is no decline to model, so no CAREER_STAY_OPTION_ID
+    // is ever offered here.
+    const state = deciding(careerSpinDecision([a!.id, b!.id]), cpu({ career: null }))
+    expect(chosen(state)).toBe(VALUE_SPIN_OPTION_ID)
+  })
+
+  it('spins rather than freezing when an offered id is unknown to the catalogue', () => {
     const career = BASIC_CAREERS[0]!
-    expect(chosen(deciding(decision('career', 'career-not-real', career.id)))).toBe(career.id)
+    const state = deciding(careerSpinDecision(['career-not-real', career.id], true), cpu({ career }))
+    expect(chosen(state)).toBe(VALUE_SPIN_OPTION_ID)
   })
 })
 
@@ -454,33 +466,22 @@ describe('decideCpuCommand — branches', () => {
   })
 
   /*
-   * A career fair deals two cards and lets you keep the better one, so the pool
-   * *average* is the wrong price for it — and wrongest exactly where it matters
-   * most. The basic pool runs from $24k to $86k and the graduate pool from $58k
-   * to $80k, so best-of-two lifts the school-leaver's expected wage far more
-   * than the graduate's, and pricing both at their means is most of why a
-   * computer seat took College Lane in all 160 openings I measured.
+   * The wheel deals a coin flip between two offers now, not a pick of the
+   * better one — so the pool's own mean is the right price for a fair, priced
+   * off the rungs a fair can actually deal (the bottom of each ladder), not
+   * the whole catalogue including every promotion sitting above it.
    */
-  it('prices a career fair at the better of the two offers, not the pool average', () => {
+  it('prices a career fair at the mean of the rungs it can actually deal', () => {
     const board = laneBoard(
       { type: 'chooseCareer', pool: 'basic' },
       { type: 'chooseCareer', pool: 'graduate' },
     )
-    // Same wide pool on both sides: what matters is only that the fair is worth
-    // more than the mean wage it would pay, because the CPU gets to choose.
-    const meanBasic = BASIC_CAREERS.reduce((sum, c) => sum + c.salary, 0) / BASIC_CAREERS.length
-    const bestBasic = expectedBestOfTwoSalary(BASIC_CAREERS)
-    expect(bestBasic).toBeGreaterThan(meanBasic)
-
-    // And a wide pool gains more from the choice than a narrow one does.
-    const graduateLift =
-      expectedBestOfTwoSalary(GRADUATE_CAREERS) -
-      GRADUATE_CAREERS.reduce((sum, c) => sum + c.salary, 0) / GRADUATE_CAREERS.length
-    expect(bestBasic - meanBasic).toBeGreaterThan(graduateLift)
-
     // A jobless CPU still walks towards the hall that hires it.
     const jobless = forkState(board, cpu({ career: null, money: 100_000 }))
     expect(chosen(jobless)).toBe('payingLane')
+
+    const meanBasic = BASIC_CAREERS.reduce((sum, c) => sum + c.salary, 0) / BASIC_CAREERS.length
+    expect(meanFairSalary(hiringPoolFor(EDITION_USA, false))).toBeLessThan(meanBasic)
   })
 
   it('falls back safely when a branch names a space the board does not hold', () => {
@@ -500,8 +501,8 @@ describe('decideCpuCommand — branches', () => {
 describe('decideCpuCommand — never freezes the game', () => {
   const everyDecision: Decision[] = [
     decision('branch', 'stopBranch', 'longBranch'),
-    decision('career', ...BASIC_CAREERS.map((career) => career.id)),
-    decision('career', ...GRADUATE_CAREERS.map((career) => career.id)),
+    careerSpinDecision([BASIC_CAREERS[0]!.id, BASIC_CAREERS[1]!.id], true),
+    careerSpinDecision([GRADUATE_CAREERS[0]!.id, GRADUATE_CAREERS[1]!.id], true),
     decision('house', ...HOUSES.map((house) => house.id), DECLINE_HOUSE_OPTION_ID),
     decision('stock', ...STOCKS.map((stock) => stock.id), DECLINE_STOCK_OPTION_ID),
     decision(
@@ -513,7 +514,7 @@ describe('decideCpuCommand — never freezes the game', () => {
     ),
     decision('bank', BANK_LOAN_OPTION_ID, BANK_REPAY_OPTION_ID, BANK_DECLINE_OPTION_ID),
     // Single-option decisions: a forced career change offers no way out.
-    decision('career', BASIC_CAREERS[0]!.id),
+    careerSpinDecision([BASIC_CAREERS[0]!.id, BASIC_CAREERS[1]!.id], false),
     decision('bank', BANK_DECLINE_OPTION_ID),
   ]
 
@@ -657,18 +658,23 @@ describe('decideCpuCommand — pay the wheel decides', () => {
      */
     const hiring = hiringPoolFor(EDITION_USA, false)
     expect(price).toBeGreaterThan(0)
-    expect(price).toBe((expectedBestOfTwoSalary(hiring) - CASUAL_WAGE_PER_PIP * AVERAGE_SPIN) * paydaysAhead)
-    expect(expectedBestOfTwoSalary(hiring)).toBeLessThan(expectedBestOfTwoSalary(BASIC_CAREERS))
+    expect(price).toBe((meanFairSalary(hiring) - CASUAL_WAGE_PER_PIP * AVERAGE_SPIN) * paydaysAhead)
+    expect(meanFairSalary(hiring)).toBeLessThan(
+      BASIC_CAREERS.reduce((sum, c) => sum + c.salary, 0) / BASIC_CAREERS.length,
+    )
   })
 
-  it('still weighs an unsteady offer against a steady one on their expected pay', () => {
+  it('still weighs an unsteady offer against a steady one on its expected pay, not its pip rate', () => {
     // The unsteady job pays more on an average week, and that is the whole
-    // comparison — its pip rate is about a fifth of the figure and would lose
-    // to every contract on the board if the computer read that instead.
+    // comparison — its pip rate is about a fifth of the figure and would not
+    // be enough to make spinning worth it over staying, if the computer read
+    // that instead.
     const steady = BASIC_CAREERS.find((c) => c.id === 'career-pastry-chef')!
     const unsteady = BASIC_CAREERS.find((c) => c.id === 'career-salon-owner')!
     expect(unsteady.payPerPip!).toBeLessThan(steady.salary)
     expect(unsteady.salary).toBeGreaterThan(steady.salary)
-    expect(chosen(deciding(decision('career', steady.id, unsteady.id)))).toBe(unsteady.id)
+
+    const state = deciding(careerSpinDecision([steady.id, unsteady.id], true), cpu({ career: steady }))
+    expect(chosen(state)).toBe(VALUE_SPIN_OPTION_ID)
   })
 })

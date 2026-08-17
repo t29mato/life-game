@@ -211,17 +211,19 @@ describe('applyEffect', () => {
   })
 
   describe('chooseCareer', () => {
-    it('offers two options from the basic pool', () => {
+    it('spins between two options from the basic pool', () => {
       const player = fixturePlayer({ hasDegree: false })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'chooseCareer', pool: 'basic' } })
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
       expect(next.pendingDecision).not.toBeNull()
-      expect(next.pendingDecision!.kind).toBe('career')
-      expect(next.pendingDecision!.options).toHaveLength(2)
+      expect(next.pendingDecision!.kind).toBe('valueSpin')
+      expect(next.pendingDecision!.options).toHaveLength(1)
+      const offeredIds = next.pendingDecision!.offeredCareerIds!
+      expect(offeredIds).toHaveLength(2)
       const basicIds = new Set(BASIC_CAREERS.map((c) => c.id))
-      for (const option of next.pendingDecision!.options) {
-        expect(basicIds.has(option.id)).toBe(true)
+      for (const id of offeredIds) {
+        expect(basicIds.has(id)).toBe(true)
       }
     })
 
@@ -231,8 +233,8 @@ describe('applyEffect', () => {
       const space = fixtureSpace({ effect: { type: 'chooseCareer', pool: 'graduate' } })
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
       const graduateIds = new Set(GRADUATE_CAREERS.map((c) => c.id))
-      for (const option of next.pendingDecision!.options) {
-        expect(graduateIds.has(option.id)).toBe(true)
+      for (const id of next.pendingDecision!.offeredCareerIds!) {
+        expect(graduateIds.has(id)).toBe(true)
       }
     })
 
@@ -242,8 +244,8 @@ describe('applyEffect', () => {
       const space = fixtureSpace({ effect: { type: 'chooseCareer', pool: 'graduate' } })
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
       const basicIds = new Set(BASIC_CAREERS.map((c) => c.id))
-      for (const option of next.pendingDecision!.options) {
-        expect(basicIds.has(option.id)).toBe(true)
+      for (const id of next.pendingDecision!.offeredCareerIds!) {
+        expect(basicIds.has(id)).toBe(true)
       }
     })
 
@@ -682,7 +684,7 @@ describe('applyEffect', () => {
   // -------------------------------------------------------------------------
 
   describe('careerChange', () => {
-    it('offers two other trades and, third, the job the player already has', () => {
+    it('offers a spin between two other trades, and a way to stay in the job already held', () => {
       // A career is a ladder. Marching somebody off one they have climbed is a
       // deletion of the arc they were playing for, so staying is an answer.
       const current = BASIC_CAREERS[0]!
@@ -691,14 +693,15 @@ describe('applyEffect', () => {
       const space = fixtureSpace({ effect: { type: 'careerChange', reason: 'Headhunted!' } })
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
 
-      expect(next.pendingDecision!.kind).toBe('career')
-      expect(next.pendingDecision!.options).toHaveLength(3)
+      expect(next.pendingDecision!.kind).toBe('valueSpin')
+      expect(next.pendingDecision!.options).toHaveLength(2)
 
       const careerIds = new Set(BASIC_CAREERS.map((career) => career.id))
-      const [first, second, stay] = next.pendingDecision!.options
-      expect(careerIds.has(first!.id)).toBe(true)
-      expect(careerIds.has(second!.id)).toBe(true)
-      expect(stay!.id).toBe(CAREER_STAY_OPTION_ID)
+      const [first, second] = next.pendingDecision!.offeredCareerIds!
+      expect(careerIds.has(first!)).toBe(true)
+      expect(careerIds.has(second!)).toBe(true)
+      const stay = next.pendingDecision!.options.find((option) => option.id === CAREER_STAY_OPTION_ID)
+      expect(stay).toBeDefined()
       expect(stay!.label).toContain(current.title)
     })
 
@@ -710,7 +713,7 @@ describe('applyEffect', () => {
       })
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
 
-      expect(next.pendingDecision!.options).toHaveLength(2)
+      expect(next.pendingDecision!.options).toHaveLength(1)
       expect(next.pendingDecision!.options.map((option) => option.id)).not.toContain(CAREER_STAY_OPTION_ID)
     })
 
@@ -719,7 +722,7 @@ describe('applyEffect', () => {
       const space = fixtureSpace({ effect: { type: 'careerChange', reason: 'Career fair!' } })
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
 
-      expect(next.pendingDecision!.options).toHaveLength(2)
+      expect(next.pendingDecision!.options).toHaveLength(1)
       expect(next.pendingDecision!.options.map((option) => option.id)).not.toContain(CAREER_STAY_OPTION_ID)
     })
 
@@ -728,7 +731,7 @@ describe('applyEffect', () => {
         const state = fixtureState({ players: [fixturePlayer({ career: current })] })
         const space = fixtureSpace({ effect: { type: 'careerChange', reason: 'Headhunted!' } })
         const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
-        expect(next.pendingDecision!.options.map((option) => option.id)).not.toContain(current.id)
+        expect(next.pendingDecision!.offeredCareerIds).not.toContain(current.id)
       }
     })
 
@@ -737,8 +740,8 @@ describe('applyEffect', () => {
       const space = fixtureSpace({ effect: { type: 'careerChange', reason: 'Headhunted!' } })
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
       const graduateIds = new Set(GRADUATE_CAREERS.map((career) => career.id))
-      for (const option of next.pendingDecision!.options) {
-        expect(graduateIds.has(option.id)).toBe(true)
+      for (const id of next.pendingDecision!.offeredCareerIds!) {
+        expect(graduateIds.has(id)).toBe(true)
       }
     })
 

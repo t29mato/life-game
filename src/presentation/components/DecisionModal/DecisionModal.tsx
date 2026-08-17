@@ -29,7 +29,6 @@ export interface DecisionModalProps {
 
 const KIND_LABEL: Record<Decision['kind'], string> = {
   branch: 'Fork in the road',
-  career: 'Career choice',
   house: 'House hunting',
   stock: 'Trading floor',
   insurance: 'Insurance office',
