@@ -240,6 +240,15 @@ export function slabMetrics(projection: BoardProjection, accent: SpaceAccent): S
  * The short word printed on the board beside a space, or `null` for the many
  * ordinary spaces that carry only their illustration. Kept to a single short
  * word wherever possible: at board scale anything longer stops being readable.
+ *
+ * Reserved for one-off story beats a player only ever passes once or twice a
+ * game — graduating, marrying, a birth, a new house, retiring, the single
+ * starting tile. A `kind` that repeats dozens of times across the board
+ * (`stop`, `payday`) does not get one: `stop` already prints its own
+ * hazard-stripe band and `payday` its own coin-ring glow, both drawn directly
+ * on the tile, so a caption there was only ever repeating what the tile
+ * already said — clutter, not information. What actually happens when a
+ * player lands or passes through is still announced in the event log.
  */
 export function spaceCaption(space: Space): string | null {
   switch (space.effect.type) {
@@ -257,8 +266,6 @@ export function spaceCaption(space: Space): string | null {
       break
   }
   if (space.kind === 'start') return 'START'
-  if (space.kind === 'payday') return 'PAYDAY'
-  if (space.kind === 'stop') return 'STOP'
   return null
 }
 

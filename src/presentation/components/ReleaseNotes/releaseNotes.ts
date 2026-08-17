@@ -22,6 +22,15 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
     version: __APP_VERSION__,
     date: 'August 18, 2026',
     whatsNew: [],
+    changes: [
+      "Cleared the floating STOP and PAYDAY labels off the board — every stop still gets its own red-striped band and every payday its own gold ring and sparkle, so the tile itself already says what it is. Fewer bubbles, same board, easier to read at a glance.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.3.1',
+    date: 'August 18, 2026',
+    whatsNew: [],
     changes: [],
     fixes: [
       "Fixed a bad one from the last release: on a phone, the board could render far taller than the space it was given and print straight through the spin wheel and the player cards below it, breaking the whole screen. It now always stays sized to fit above them, like it's meant to.",
