@@ -27,17 +27,40 @@ export const USA_CURRENCY: CurrencySpec = {
 export const USA_ECONOMY: EconomyConstants = {
   startingMoney: 10_000,
   /**
-   * Tuition, and the reason it is no longer $40,000.
+   * Tuition, and the reason it is a spin now rather than a flat $52,000.
    *
-   * The degree got more valuable when careers became ladders — a graduate is
-   * dealt a rung nobody else can reach — and it got more valuable again when
-   * marriage started paying out on a wheel, because the money that swings on
-   * that wheel scales with what you earn. Both of those pushed College Lane
-   * from an even fork to winning 56% of standard games. The bill is what the
-   * lane costs, so the bill is what had to answer for it: measured, not
-   * guessed, and $52,000 is where the fork comes back to even.
+   * $52,000 is where the College Lane / Straight to Work fork came back to
+   * even — measured, not guessed (see the git history for the full
+   * derivation) — so that figure stays the *mean* of the four bands below,
+   * not a number free to move. What changes is that a player no longer knows
+   * their bill until they press Spin: a 4-7 pays the old flat rate exactly, a
+   * 1-3 pays for it and then some, and an 8 or better turns into the
+   * scholarship story every college-lane player secretly wants to tell.
    */
-  collegeTuition: 52_000,
+  tuition: {
+    outcomes: [
+      {
+        upTo: 3,
+        note: 'The financial aid letter arrives a semester late, and by then the gap is yours to cover.',
+        cost: 90_000,
+      },
+      {
+        upTo: 7,
+        note: 'Tuition comes in right where the brochure said it would.',
+        cost: 52_000,
+      },
+      {
+        upTo: 9,
+        note: 'A department scholarship covers more of the bill than you were counting on.',
+        cost: 21_000,
+      },
+      {
+        upTo: 10,
+        note: "Full ride. The dean's office calls to congratulate you, which has never once happened to anyone you know.",
+        cost: 0,
+      },
+    ],
+  },
   loanPrincipal: 20_000,
   /**
    * Normal is the game exactly as it has always played; the harder rates are

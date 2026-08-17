@@ -92,8 +92,8 @@ export interface CurrencySpec {
 export interface EconomyConstants {
   /** Cash every player starts with. */
   readonly startingMoney: Money
-  /** Tuition charged for taking the college branch at the start. */
-  readonly collegeTuition: Money
+  /** What the tuition bill actually settles for, decided by the wheel. */
+  readonly tuition: TuitionSpec
   /** Principal received per loan taken. */
   readonly loanPrincipal: Money
   /**
@@ -198,6 +198,40 @@ export interface EconomyConstants {
 export type EconomyAmountKey = {
   [K in keyof EconomyConstants]: EconomyConstants[K] extends Money ? K : never
 }[keyof EconomyConstants]
+
+/**
+ * One band of what the tuition bill can settle for.
+ *
+ * Same shape marriage's bands use, minus the gift multiplier — a tuition bill
+ * has no rivals chipping in for it, only a cost, and the best band prices that
+ * cost at zero rather than needing a separate "declined" case.
+ */
+export interface TuitionOutcome {
+  /** Highest spin that lands in this band. Bands are written worst-first. */
+  readonly upTo: SpinValue
+  /** One line for the event card, in the edition's own voice. */
+  readonly note: string
+  /** What the bill comes to. Zero for a full ride. */
+  readonly cost: Money
+}
+
+/**
+ * What a spin on the tuition bill can turn into.
+ *
+ * Tuition was the one one-time charge on the board still priced as a
+ * certainty — marriage and the household account both already answer to the
+ * wheel. Bands are written worst-first and named by the highest spin they
+ * cover; `expectedTuitionCost` in `src/domain/rules/tuition.ts` is the number
+ * a computer seat prices the college fork by, and the one that has to stay
+ * close to the old flat figure — tuition being a fixed, predictable cost is
+ * part of what closed the College Lane / Straight to Work imbalance
+ * documented in `gameBalance.test.ts`, so real variance is fine here but the
+ * *mean* is not free to drift.
+ */
+export interface TuitionSpec {
+  /** Bands for the tuition spin, worst-first. */
+  readonly outcomes: readonly TuitionOutcome[]
+}
 
 /**
  * One of the marriages an edition can hand out.

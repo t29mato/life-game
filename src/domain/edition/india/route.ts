@@ -52,9 +52,8 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
   {
     id: 'in-uni-admission', kind: 'stop', title: 'Admission Day',
     description: 'Two years of coaching classes end in one Sunday morning: an examination hall packed with students, silent except for pencils and one invigilator\'s squeaking shoes. Your rank comes through — and the fees are due at the counter before anyone shows you the library.',
-    effect: { type: 'payMoney', amount: 0, reason: 'Admission and tuition fees' },
-    tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD, unscaled: true,
-    amountFrom: 'collegeTuition',
+    effect: { type: 'tuition', reason: 'Admission and tuition fees' },
+    tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD,
   },
   flavour(LONG_ONLY, 'in-uni-night-study', 'Exam-Week Nights', 'Cutting chai at midnight, three highlighters, and a photocopied set of last year\'s toppers\' notes you swear you will finish before the exam does.', 'blue', 'space:late-night-study', {
     from: 'hard',

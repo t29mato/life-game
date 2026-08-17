@@ -231,6 +231,7 @@ describe('every effect the CPU prices scales with the edition', () => {
     { name: 'payMoney', space: fixtureSpace({ effect: { type: 'payMoney', amount: 2_000, reason: 'Bill' } }) },
     { name: 'payday', space: fixtureSpace({ kind: 'payday', effect: { type: 'payday' } }) },
     { name: 'payRaise', space: fixtureSpace({ effect: { type: 'payRaise' } }) },
+    { name: 'tuition', space: fixtureSpace({ effect: { type: 'tuition', reason: 'College tuition' } }) },
     { name: 'gainLifeTiles', space: fixtureSpace({ effect: { type: 'gainLifeTiles', count: 2 } }) },
     { name: 'chooseCareer', space: fixtureSpace({ effect: { type: 'chooseCareer', pool: 'basic' } }) },
     { name: 'graduate', space: fixtureSpace({ effect: { type: 'graduate' } }) },

@@ -26,7 +26,6 @@ describe('the india economy is the tuned USA economy at ×100', () => {
 
   it('scales every flat sum', () => {
     expect(india.startingMoney).toBe(usa.startingMoney * FACTOR)
-    expect(india.collegeTuition).toBe(usa.collegeTuition * FACTOR)
     expect(india.loanPrincipal).toBe(usa.loanPrincipal * FACTOR)
     expect(india.weddingGift).toBe(usa.weddingGift * FACTOR)
     expect(india.firstRetirementBonus).toBe(usa.firstRetirementBonus * FACTOR)
@@ -52,6 +51,15 @@ describe('the india economy is the tuned USA economy at ×100', () => {
     expect(india.childOutcome.perPipOfPayday).toBe(usa.childOutcome.perPipOfPayday)
     expect(india.childOutcome.starSpin).toBe(usa.childOutcome.starSpin)
     expect(india.childOutcome.starPayout).toBe(usa.childOutcome.starPayout * FACTOR)
+  })
+
+  it('spins the tuition bill on the same bands, at ×100 the stakes, in its own words', () => {
+    expect(india.tuition.outcomes).toHaveLength(usa.tuition.outcomes.length)
+    for (const [ind, us] of india.tuition.outcomes.map((band, i) => [band, usa.tuition.outcomes[i]!] as const)) {
+      expect(ind.upTo).toBe(us.upTo)
+      expect(ind.cost).toBe(us.cost * FACTOR)
+      expect(ind.note).not.toBe(us.note)
+    }
   })
 
   it('marries on the same wheel, at ×100 the stakes, in its own words', () => {

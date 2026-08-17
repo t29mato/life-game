@@ -25,7 +25,6 @@ describe('the japan economy is the tuned USA economy at ×100', () => {
 
   it('scales every flat sum', () => {
     expect(japan.startingMoney).toBe(usa.startingMoney * FACTOR)
-    expect(japan.collegeTuition).toBe(usa.collegeTuition * FACTOR)
     expect(japan.loanPrincipal).toBe(usa.loanPrincipal * FACTOR)
     expect(japan.weddingGift).toBe(usa.weddingGift * FACTOR)
     expect(japan.firstRetirementBonus).toBe(usa.firstRetirementBonus * FACTOR)
@@ -51,6 +50,15 @@ describe('the japan economy is the tuned USA economy at ×100', () => {
     expect(japan.childOutcome.perPipOfPayday).toBe(usa.childOutcome.perPipOfPayday)
     expect(japan.childOutcome.starSpin).toBe(usa.childOutcome.starSpin)
     expect(japan.childOutcome.starPayout).toBe(usa.childOutcome.starPayout * FACTOR)
+  })
+
+  it('spins the tuition bill on the same bands, at ×100 the stakes, in its own words', () => {
+    expect(japan.tuition.outcomes).toHaveLength(usa.tuition.outcomes.length)
+    for (const [jp, us] of japan.tuition.outcomes.map((band, i) => [band, usa.tuition.outcomes[i]!] as const)) {
+      expect(jp.upTo).toBe(us.upTo)
+      expect(jp.cost).toBe(us.cost * FACTOR)
+      expect(jp.note).not.toBe(us.note)
+    }
   })
 
   it('marries on the same wheel, at ×100 the stakes, in its own words', () => {

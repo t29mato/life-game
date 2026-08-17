@@ -21,9 +21,6 @@ import { USA_ECONOMY } from '../edition/usa/economy'
 /** Cash every player starts with. */
 export const STARTING_MONEY: Money = USA_ECONOMY.startingMoney
 
-/** Tuition charged for taking the college branch at the start. */
-export const COLLEGE_TUITION: Money = USA_ECONOMY.collegeTuition
-
 /** Principal received per loan taken. */
 export const LOAN_PRINCIPAL: Money = USA_ECONOMY.loanPrincipal
 

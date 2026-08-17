@@ -37,11 +37,34 @@ export const INDIA_ECONOMY: EconomyConstants = {
   startingMoney: 1_000_000,
   /**
    * Two years of coaching classes, the entrance-exam attempts, and four years
-   * of a private engineering or medical seat — and the same measured number as
-   * the USA board's: the opening fork was balanced at this figure, so this
-   * figure is what the degree costs here too.
+   * of a private engineering or medical seat — a spin now, not a flat bill.
+   * ₹5,200,000 stays the *mean* of the four bands below, the same measured
+   * number the opening fork was balanced at.
    */
-  collegeTuition: 5_200_000,
+  tuition: {
+    outcomes: [
+      {
+        upTo: 3,
+        note: 'The management-quota seat costs what the prospectus never printed, and a refresher year of coaching gets added on top.',
+        cost: 9_000_000,
+      },
+      {
+        upTo: 7,
+        note: 'Coaching, entrance attempts and the seat itself come to exactly what was budgeted.',
+        cost: 5_200_000,
+      },
+      {
+        upTo: 9,
+        note: 'A merit-cum-means scholarship covers more of the four years than you expected.',
+        cost: 2_100_000,
+      },
+      {
+        upTo: 10,
+        note: 'An AIR good enough for a full fee waiver — the kind of result relatives never stop mentioning.',
+        cost: 0,
+      },
+    ],
+  },
   loanPrincipal: 2_000_000,
   loanRepayment: {
     normal: 2_500_000,

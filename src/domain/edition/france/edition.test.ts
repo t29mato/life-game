@@ -29,7 +29,6 @@ describe('the france economy is the tuned USA economy at ×1', () => {
 
   it('keeps every flat sum', () => {
     expect(france.startingMoney).toBe(usa.startingMoney * FACTOR)
-    expect(france.collegeTuition).toBe(usa.collegeTuition * FACTOR)
     expect(france.loanPrincipal).toBe(usa.loanPrincipal * FACTOR)
     expect(france.weddingGift).toBe(usa.weddingGift * FACTOR)
     expect(france.firstRetirementBonus).toBe(usa.firstRetirementBonus * FACTOR)
@@ -55,6 +54,15 @@ describe('the france economy is the tuned USA economy at ×1', () => {
     expect(france.childOutcome.perPipOfPayday).toBe(usa.childOutcome.perPipOfPayday)
     expect(france.childOutcome.starSpin).toBe(usa.childOutcome.starSpin)
     expect(france.childOutcome.starPayout).toBe(usa.childOutcome.starPayout * FACTOR)
+  })
+
+  it('spins the tuition bill on the same bands, at the same stakes, in its own words', () => {
+    expect(france.tuition.outcomes).toHaveLength(usa.tuition.outcomes.length)
+    for (const [fr, us] of france.tuition.outcomes.map((band, i) => [band, usa.tuition.outcomes[i]!] as const)) {
+      expect(fr.upTo).toBe(us.upTo)
+      expect(fr.cost).toBe(us.cost * FACTOR)
+      expect(fr.note).not.toBe(us.note)
+    }
   })
 
   it('marries on the same wheel, at the same stakes, in its own words', () => {

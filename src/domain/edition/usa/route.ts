@@ -59,9 +59,8 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
   {
     id: 'college-2', kind: 'stop', title: 'Tuition Bill',
     description: "The registrar's office sends a bill that is shockingly high, and nobody enrolls until it is paid.",
-    effect: { type: 'payMoney', amount: 0, reason: 'College tuition' },
-    tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD, unscaled: true,
-    amountFrom: 'collegeTuition',
+    effect: { type: 'tuition', reason: 'College tuition' },
+    tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD,
   },
   flavour(LONG_ONLY, 'college-3', 'Late-Night Study', "Coffee, highlighters, and a textbook you swear you'll finish.", 'blue', 'space:late-night-study', {
     from: 'hard',

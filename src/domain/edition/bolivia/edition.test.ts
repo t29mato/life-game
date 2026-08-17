@@ -29,7 +29,6 @@ describe('the bolivia economy is the tuned USA economy at ×1', () => {
 
   it('carries every flat sum unchanged', () => {
     expect(bolivia.startingMoney).toBe(usa.startingMoney * FACTOR)
-    expect(bolivia.collegeTuition).toBe(usa.collegeTuition * FACTOR)
     expect(bolivia.loanPrincipal).toBe(usa.loanPrincipal * FACTOR)
     expect(bolivia.weddingGift).toBe(usa.weddingGift * FACTOR)
     expect(bolivia.firstRetirementBonus).toBe(usa.firstRetirementBonus * FACTOR)
@@ -55,6 +54,15 @@ describe('the bolivia economy is the tuned USA economy at ×1', () => {
     expect(bolivia.childOutcome.perPipOfPayday).toBe(usa.childOutcome.perPipOfPayday)
     expect(bolivia.childOutcome.starSpin).toBe(usa.childOutcome.starSpin)
     expect(bolivia.childOutcome.starPayout).toBe(usa.childOutcome.starPayout * FACTOR)
+  })
+
+  it('spins the tuition bill on the same bands, at the same stakes, in its own words', () => {
+    expect(bolivia.tuition.outcomes).toHaveLength(usa.tuition.outcomes.length)
+    for (const [bo, us] of bolivia.tuition.outcomes.map((band, i) => [band, usa.tuition.outcomes[i]!] as const)) {
+      expect(bo.upTo).toBe(us.upTo)
+      expect(bo.cost).toBe(us.cost * FACTOR)
+      expect(bo.note).not.toBe(us.note)
+    }
   })
 
   it('marries on the same wheel, at the same stakes, in its own words', () => {

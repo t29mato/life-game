@@ -597,6 +597,48 @@ describe('choose', () => {
         expect(next.lastEvent!.notes.join(' ')).toContain('Rolled a 6')
       })
     })
+
+    describe('tuition', () => {
+      const board = fixtureMovementBoard()
+      const billSpace = { ...board.spaces.a!, effect: { type: 'tuition' as const, reason: 'College tuition' } }
+
+      it('spins for the bill only once the player presses the button, landing in the worst band', () => {
+        const player = fixturePlayer({ spaceId: 'a', money: 100_000 })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: billSpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const random = createFakeRandom({ spins: [1] })
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+        expect(random.calls.spins).toBe(1)
+        expect(next.phase).toBe('resolved')
+        expect(next.pendingDecision).toBeNull()
+        const worstBand = USA_ECONOMY.tuition.outcomes[0]!
+        expect(next.players[0]!.money).toBe(100_000 - worstBand.cost)
+        expect(next.lastEvent!.moneyDelta).toBe(-worstBand.cost)
+      })
+
+      it('charges nothing on a spin that lands in the free band', () => {
+        const player = fixturePlayer({ spaceId: 'a', money: 100_000 })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: billSpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const bestBand = USA_ECONOMY.tuition.outcomes[USA_ECONOMY.tuition.outcomes.length - 1]!
+        expect(bestBand.cost).toBe(0)
+        const random = createFakeRandom({ spins: [bestBand.upTo] })
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
+
+        expect(next.players[0]!.money).toBe(100_000)
+        expect(next.lastEvent!.moneyDelta).toBe(0)
+        expect(next.lastEvent!.notes.join(' ')).toContain('full ride')
+      })
+    })
   })
 
   describe('event presentation', () => {

@@ -53,9 +53,8 @@ const GRANDE_ECOLE_LANE: readonly SpaceContent[] = [
   {
     id: 'fr-uni-fees', kind: 'stop', title: 'The School Fees',
     description: 'Two free years of studying paid off: you passed the entrance exam. But the school itself is not free, and the bill is due before you even see the library.',
-    effect: { type: 'payMoney', amount: 0, reason: 'Grande école fees' },
-    tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD, unscaled: true,
-    amountFrom: 'collegeTuition',
+    effect: { type: 'tuition', reason: 'Grande école fees' },
+    tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD,
   },
   flavour(LONG_ONLY, 'fr-uni-library', 'Library Marathon', 'The library closes at ten. Your exam is at eight tomorrow morning. Between now and then: you, three highlighters, and one vending machine.', 'blue', 'space:late-night-study', {
     from: 'hard',

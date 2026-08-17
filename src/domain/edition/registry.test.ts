@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import {
   CASUAL_WAGE_PER_PIP,
-  COLLEGE_TUITION,
   EARLY_LOAN_REPAYMENT,
   FIRST_RETIREMENT_BONUS,
   INSURANCE_PREMIUM,
@@ -14,6 +13,7 @@ import {
 } from '../model/constants'
 import type { Career, Player } from '../model/types'
 import { childReturnFor, expectedChildValue } from '../rules/children'
+import { expectedTuitionCost } from '../rules/tuition'
 import { hiringPoolFor } from './lookup'
 
 /** A player whose only interesting property is what a payday is worth to them. */
@@ -61,7 +61,6 @@ describe('the USA edition is the game that was already here', () => {
   it('exports exactly the constants the codebase already named', () => {
     const { economy } = EDITION_USA
     expect(STARTING_MONEY).toBe(economy.startingMoney)
-    expect(COLLEGE_TUITION).toBe(economy.collegeTuition)
     expect(LOAN_PRINCIPAL).toBe(economy.loanPrincipal)
     expect(LOAN_REPAYMENT).toBe(economy.loanRepayment.normal)
     expect(EARLY_LOAN_REPAYMENT).toBe(economy.earlyLoanRepayment.normal)
@@ -78,7 +77,6 @@ describe('the USA edition is the game that was already here', () => {
     // them moves every one of those measurements underneath it.
     expect(EDITION_USA.economy).toMatchObject({
       startingMoney: 10_000,
-      collegeTuition: 52_000,
       loanPrincipal: 20_000,
       loanRepayment: { normal: 25_000, hard: 38_000, veryHard: 50_000 },
       earlyLoanRepayment: { normal: 22_000, hard: 28_000, veryHard: 34_000 },
@@ -89,6 +87,14 @@ describe('the USA edition is the game that was already here', () => {
       lifeInsurancePayout: 100_000,
       bigMoney: 50_000,
     })
+  })
+
+  it('keeps the tuition spin priced at the figure the fork was tuned against', () => {
+    // Tuition moved from a flat $52,000 to four spin bands, but $52,000 is
+    // still the number the College Lane / Straight to Work fork was measured
+    // and balanced against — real variance was the point, the mean drifting
+    // away from that figure was never supposed to be a side effect of it.
+    expect(expectedTuitionCost(EDITION_USA.economy.tuition)).toBe(52_000)
   })
 
   /*

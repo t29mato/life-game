@@ -52,9 +52,8 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
   {
     id: 'bo-uni-entrance', kind: 'stop', title: 'The Entrance Exam',
     description: 'One Monday morning, three thousand hopefuls, one gymnasium of desks. You pass — and then come five years of fees, photocopies, materials and city rent, due before anyone shows you the library.',
-    effect: { type: 'payMoney', amount: 0, reason: 'Five years of a degree' },
-    tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD, unscaled: true,
-    amountFrom: 'collegeTuition',
+    effect: { type: 'tuition', reason: 'Five years of a degree' },
+    tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD,
   },
   flavour(LONG_ONLY, 'bo-uni-photocopies', 'The Photocopy Shop', 'Nobody buys the textbook. There is a shop by the gate that has photocopied it for thirty years, and a hot corn drink at dawn to read it over.', 'blue', 'space:late-night-study', {
     from: 'hard',

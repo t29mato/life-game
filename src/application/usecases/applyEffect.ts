@@ -14,7 +14,7 @@ import type {
   Stock,
 } from '@domain/model/types'
 import type { IconName } from '@domain/model/icons'
-import type { CurrencySpec, EconomyConstants, Edition } from '@domain/edition/types'
+import type { CurrencySpec, EconomyConstants, Edition, TuitionSpec } from '@domain/edition/types'
 import { USA_ECONOMY } from '@domain/edition/usa'
 import { editionOf } from '@domain/edition/registry'
 import {
@@ -185,6 +185,23 @@ function baseEvent(
     emphasis,
     narration,
   }
+}
+
+/**
+ * Every band of the tuition wheel, spelled out before anyone presses Spin —
+ * "1-3: $90,000, 4-7: $52,000, 8-9: $21,000, 10: full ride" — built fresh
+ * from whatever bands the edition actually defines, so a country that ever
+ * ships a different number of them still reads correctly.
+ */
+function tuitionBandsNote(tuition: TuitionSpec, currency: CurrencySpec): string {
+  const money = (amount: Money): string => formatMoney(amount, currency)
+  let previousUpTo = 0
+  const bands = tuition.outcomes.map((band) => {
+    const range = band.upTo === previousUpTo + 1 ? `${band.upTo}` : `${previousUpTo + 1}-${band.upTo}`
+    previousUpTo = band.upTo
+    return `${range}: ${band.cost === 0 ? 'full ride' : money(band.cost)}`
+  })
+  return `Spin 1 to 10 to find out what you owe — ${bands.join(', ')}.`
 }
 
 /**
@@ -421,6 +438,32 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         'milestone',
       )
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
+    }
+
+    case 'tuition': {
+      /*
+       * Deferred to `resolveValueSpin` in `choose.ts`, same as every other
+       * wheel-decided tile — but named in full before anyone presses Spin,
+       * not just the bar to clear: a tuition bill is the single largest
+       * charge on the board, and "spin and find out" without the bands in
+       * front of you first is a worse version of the surprise-fee bill this
+       * tile already is in real life.
+       */
+      const decision: Decision = {
+        kind: 'valueSpin',
+        prompt: space.title,
+        options: [
+          {
+            id: VALUE_SPIN_OPTION_ID,
+            label: 'Spin',
+            description: `${effect.reason}. ${tuitionBandsNote(economy.tuition, currency)}`,
+            icon: 'space:tuition-bill',
+          },
+        ],
+      }
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} opens the tuition bill.`)
+      const log = appendLog(state, player.id, `${player.name} is up for the wheel: what does tuition come to?`, 'event')
+      return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
     case 'promotion': {

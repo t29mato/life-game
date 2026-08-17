@@ -5,6 +5,7 @@ import { editionOf } from '@domain/edition/registry'
 import { findCareer, findHouse, findStock, nextRungOf } from '@domain/edition/lookup'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
 import { marriageBandFor } from '@domain/rules/marriage'
+import { tuitionBandFor } from '@domain/rules/tuition'
 import {
   addInsurance,
   addLifeTiles,
@@ -467,6 +468,38 @@ function resolveBank(state: GameState, optionId: string): GameState {
   throw new Error(`choose: unknown bank option "${optionId}"`)
 }
 
+/** The tuition bill: one spin, one band, from the edition's own `tuition.outcomes`. */
+function resolveTuitionSpin(
+  state: GameState,
+  player: Player,
+  space: Space | undefined,
+  spinValue: SpinValue,
+  edition: ReturnType<typeof editionOf>,
+  money: (amount: Money) => string,
+): GameState {
+  const { economy } = edition
+  const band = tuitionBandFor(economy.tuition.outcomes, spinValue)
+  const updated = band.cost > 0 ? debitPlayer(player, band.cost, economy) : player
+  const delta = updated.money - player.money
+
+  const notes = [
+    `Spun a ${spinValue} — ${band.note}`,
+    band.cost > 0 ? `Tuition: ${money(band.cost)}` : 'No tuition due — a full ride.',
+  ]
+  const narration = `A ${spinValue} for ${player.name}. ${band.note}${
+    band.cost > 0 ? ` Tuition comes to ${money(band.cost)}.` : ' Tuition is waived entirely.'
+  }`
+
+  const event = outcomeEvent(space, player, 'Tuition Bill', delta, notes, emphasisForMoney(delta, economy), narration)
+  return resolved(
+    state,
+    replacePlayer(state.players, updated),
+    event,
+    `${player.name} spins a ${spinValue} for tuition: ${band.cost > 0 ? money(band.cost) : 'a full ride'}.`,
+    band.cost > 0 ? 'money-out' : 'event',
+  )
+}
+
 /** Promotion review: pass/fail, and a possible second rung, from one press. */
 function resolvePromotionSpin(
   state: GameState,
@@ -719,6 +752,10 @@ function resolveValueSpin(state: GameState, optionId: string, deps: UseCaseDeps)
       `${space.effect.reason} ${player.name} spins a ${spinValue}: ${money(gain)}.`,
       gain >= 0 ? 'money-in' : 'money-out',
     )
+  }
+
+  if (space?.effect.type === 'tuition') {
+    return resolveTuitionSpin(state, player, space, spinValue, edition, money)
   }
 
   if (space?.effect.type === 'promotion') {

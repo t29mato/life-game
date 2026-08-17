@@ -40,11 +40,35 @@ export const JAPAN_CURRENCY: CurrencySpec = {
 export const JAPAN_ECONOMY: EconomyConstants = {
   startingMoney: 1_000_000,
   /**
-   * Four years of national-university tuition plus the entrance fees, and the
-   * same measured number as the USA board's: the opening fork was balanced at
-   * this figure, so this figure is what a degree costs here too.
+   * Four years of national-university tuition plus the entrance fees — a
+   * spin now, not a flat bill, same as the USA board. ¥5,200,000 is still the
+   * *mean* of the four bands below, because it's the same measured number the
+   * opening fork was balanced at.
    */
-  collegeTuition: 5_200_000,
+  tuition: {
+    outcomes: [
+      {
+        upTo: 3,
+        note: 'The scholarship application gets lost in a stack of paperwork, and a second year of cram school gets added on top of the bill.',
+        cost: 9_000_000,
+      },
+      {
+        upTo: 7,
+        note: "Tuition and entrance fees come to exactly what the university's brochure promised.",
+        cost: 5_200_000,
+      },
+      {
+        upTo: 9,
+        note: 'A prefectural scholarship covers more of the four years than you budgeted for.',
+        cost: 2_100_000,
+      },
+      {
+        upTo: 10,
+        note: 'A full tuition waiver — the kind of transcript a family frames.',
+        cost: 0,
+      },
+    ],
+  },
   loanPrincipal: 2_000_000,
   loanRepayment: {
     normal: 2_500_000,

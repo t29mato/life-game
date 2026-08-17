@@ -47,10 +47,34 @@ export const BOLIVIA_ECONOMY: EconomyConstants = {
    * Public university credits are famously cheap; the *years* are not. Five
    * years of a Bolivian degree — the entrance-exam academy, the photocopies,
    * the materials, the living, the thesis and its defence — is what this
-   * figure buys, and it is the same measured number the opening fork was
-   * balanced at on every board.
+   * spin settles now instead of a flat bill. Bs52,000 stays the *mean* of the
+   * four bands below, the same measured number the opening fork was balanced
+   * at on every board.
    */
-  collegeTuition: 52_000,
+  tuition: {
+    outcomes: [
+      {
+        upTo: 3,
+        note: 'The entrance-exam academy takes a second attempt to actually work, and the extra year of materials and living costs lands on top.',
+        cost: 90_000,
+      },
+      {
+        upTo: 7,
+        note: 'Five years of academy, photocopies, materials and the thesis defence come to exactly what was budgeted.',
+        cost: 52_000,
+      },
+      {
+        upTo: 9,
+        note: 'A public-university beca covers more of the five years than you expected.',
+        cost: 21_000,
+      },
+      {
+        upTo: 10,
+        note: 'Beca completa — the whole five years, waived, and the family throws the party anyway.',
+        cost: 0,
+      },
+    ],
+  },
   loanPrincipal: 20_000,
   loanRepayment: {
     normal: 25_000,

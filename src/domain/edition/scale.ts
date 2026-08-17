@@ -1,5 +1,5 @@
 import type { Board, Career, Difficulty, House, LifeTile, Money, Space, SpaceEffect, Stock } from '../model/types'
-import type { CurrencySpec, EconomyConstants, Edition, EditionId, MarriageOutcome } from './types'
+import type { CurrencySpec, EconomyConstants, Edition, EditionId, MarriageOutcome, TuitionOutcome } from './types'
 
 /**
  * Builds an edition whose every sum of money is `factor` times another's.
@@ -51,6 +51,11 @@ const scaleMarriageOutcome = (outcome: MarriageOutcome, factor: number): Marriag
   windfall: outcome.windfall * factor,
 })
 
+const scaleTuitionOutcome = (outcome: TuitionOutcome, factor: number): TuitionOutcome => ({
+  ...outcome,
+  cost: outcome.cost * factor,
+})
+
 const scaleByDifficulty = (
   byDifficulty: Readonly<Record<Difficulty, Money>>,
   factor: number,
@@ -62,7 +67,7 @@ const scaleByDifficulty = (
 
 const scaleEconomy = (economy: EconomyConstants, factor: number): EconomyConstants => ({
   startingMoney: economy.startingMoney * factor,
-  collegeTuition: economy.collegeTuition * factor,
+  tuition: { outcomes: economy.tuition.outcomes.map((band) => scaleTuitionOutcome(band, factor)) },
   loanPrincipal: economy.loanPrincipal * factor,
   loanRepayment: scaleByDifficulty(economy.loanRepayment, factor),
   earlyLoanRepayment: scaleByDifficulty(economy.earlyLoanRepayment, factor),

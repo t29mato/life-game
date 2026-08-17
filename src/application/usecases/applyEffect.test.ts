@@ -7,6 +7,7 @@ import { HOUSES } from '@domain/edition/usa'
 import { STOCKS } from '@domain/edition/usa'
 import { fixturePlayer, fixtureSpace, fixtureState } from '../testing/fixtures'
 import { createFakeRandom } from '../testing/fakes'
+import { formatMoney } from './format'
 import {
   applyEffect,
   BANK_DECLINE_OPTION_ID,
@@ -346,6 +347,25 @@ describe('applyEffect', () => {
     })
   })
 
+  describe('tuition', () => {
+    const BILL = { effect: { type: 'tuition', reason: 'College tuition' } } as const
+
+    it('holds for the player to spin themselves, naming every band before they do', () => {
+      const player = fixturePlayer({ money: 100_000 })
+      const state = fixtureState({ players: [player] })
+      const random = createFakeRandom({ spins: [1] })
+      const { state: next } = applyEffect(state, fixtureSpace(BILL), { random })
+
+      expect(random.calls.spins).toBe(0)
+      expect(next.players[0]!.money).toBe(100_000)
+      expect(next.pendingDecision?.kind).toBe('valueSpin')
+      const description = next.pendingDecision?.options[0]?.description ?? ''
+      for (const band of USA_ECONOMY.tuition.outcomes) {
+        expect(description).toContain(band.cost === 0 ? 'full ride' : formatMoney(band.cost))
+      }
+    })
+  })
+
   describe('haveChildren', () => {
     it('adds children to the player instantly, then holds for the player to spin for the gift envelopes', () => {
       const player = fixturePlayer({ children: 1 })
@@ -472,6 +492,7 @@ describe('applyEffect', () => {
         { type: 'payMoney', amount: 60_000, reason: 'House fire', hazard: 'fire' },
         { type: 'payday' },
         { type: 'payRaise' },
+        { type: 'tuition', reason: 'College tuition' },
         { type: 'gainLifeTiles', count: 1 },
         { type: 'chooseCareer', pool: 'basic' },
         { type: 'graduate' },
@@ -529,6 +550,7 @@ describe('applyEffect', () => {
         { type: 'payMoney', amount: 90_000, reason: 'Toll' },
         { type: 'payday' },
         { type: 'payRaise' },
+        { type: 'tuition', reason: 'College tuition' },
         { type: 'gainLifeTiles', count: 1 },
         { type: 'graduate' },
         { type: 'getMarried' },

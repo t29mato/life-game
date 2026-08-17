@@ -51,9 +51,8 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
   {
     id: 'jp-uni-tuition', kind: 'stop', title: 'Entrance Fees',
     description: 'One February morning decides four years: an examination hall silent except for six hundred pencils and one person coughing. You pass — and the fees are due before anyone shows you the library.',
-    effect: { type: 'payMoney', amount: 0, reason: 'University entrance and tuition' },
-    tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD, unscaled: true,
-    amountFrom: 'collegeTuition',
+    effect: { type: 'tuition', reason: 'University entrance and tuition' },
+    tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD,
   },
   flavour(LONG_ONLY, 'jp-uni-cramming', 'Late-Night Cramming', 'Vending-machine coffee, three highlighters, and a textbook you swear you will finish before the exam does.', 'blue', 'space:late-night-study', {
     from: 'hard',

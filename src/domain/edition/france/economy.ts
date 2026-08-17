@@ -33,10 +33,34 @@ export const FRANCE_ECONOMY: EconomyConstants = {
   /**
    * The prépa years are free — the Republic pays for the cramming — and then
    * the grande école at the end of them sends an invoice the Republic does
-   * not subsidise. €52,000 is a real business-school figure and, more to the
-   * point, the same measured number the opening fork was balanced at.
+   * not subsidise. A spin now, not a flat bill: €52,000 stays the *mean* of
+   * the four bands below, the same measured number the opening fork was
+   * balanced at.
    */
-  collegeTuition: 52_000,
+  tuition: {
+    outcomes: [
+      {
+        upTo: 3,
+        note: "The invoice arrives with a surprise frais de dossier nobody mentioned at the open day, and it isn't small.",
+        cost: 90_000,
+      },
+      {
+        upTo: 7,
+        note: 'The invoice from the grande école is exactly what the brochure quoted.',
+        cost: 52_000,
+      },
+      {
+        upTo: 9,
+        note: 'A means-tested bourse covers more of the invoice than you expected.',
+        cost: 21_000,
+      },
+      {
+        upTo: 10,
+        note: "Exonération totale — the grande école waives the whole thing, and your parents don't quite believe it.",
+        cost: 0,
+      },
+    ],
+  },
   loanPrincipal: 20_000,
   loanRepayment: {
     normal: 25_000,

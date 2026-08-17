@@ -188,6 +188,17 @@ export type SpaceEffect =
   | { readonly type: 'payday' }
   | { readonly type: 'payRaise' }
   /**
+   * The tuition bill — a spin now, not a flat charge. Every other one-time
+   * charge on the board that used to be a fixed sum has already gone this
+   * way (marriage, the household account); tuition was the one still priced
+   * like a certainty despite being the single largest bill in the game, and
+   * a fixed cost is a strange thing for the college fork's whole gamble to
+   * hinge on. The bands themselves live in `EconomyConstants.tuition`, same
+   * as `getMarried` and `household` read their own sums from the edition
+   * rather than carrying one on the tile.
+   */
+  | { readonly type: 'tuition'; readonly reason: string }
+  /**
    * A review: spin, and climb a rung if the wheel says so.
    *
    * Distinct from `payRaise` because they are different promises. A raise is

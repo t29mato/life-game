@@ -25,6 +25,7 @@ import {
 import { AVERAGE_SPIN, expectedPayday, isCoveredAgainst, totalShares } from '@domain/rules/player'
 import { expectedChildValue } from '@domain/rules/children'
 import { expectedMarriageValue } from '@domain/rules/marriage'
+import { expectedTuitionCost } from '@domain/rules/tuition'
 import type { GameCommand } from '../GameStore'
 import {
   BANK_LOAN_OPTION_ID,
@@ -313,6 +314,14 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
       return expectedPayday(player, economy)
     case 'payRaise':
       return (player.career?.raiseStep ?? 0) * RAISE_HORIZON
+    case 'tuition':
+      /*
+       * A spin now, not a flat bill — but `expectedTuitionCost` is built to
+       * average back to the same figure the flat bill used to be, so a
+       * computer seat's read on the College Lane fork does not move just
+       * because the bill itself got more interesting.
+       */
+      return -expectedTuitionCost(economy.tuition)
     case 'promotion': {
       /*
        * A review is worth the rung above it, discounted by the odds of getting
