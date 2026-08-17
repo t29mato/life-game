@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Analytics } from '@vercel/analytics/react'
 
 import { createGameStore } from '@application/createGameStore'
 import { createWebAudioAdapter } from '@infrastructure/audio/WebAudioAdapter'
@@ -31,5 +32,10 @@ if (!container) {
 createRoot(container).render(
   <StrictMode>
     <App store={store} audio={audio} />
+    {/* Loads /_vercel/insights/script.js, which only exists on a Vercel
+        deployment — on GitHub Pages (or any other host) the request 404s and
+        the library logs one console line and does nothing further. No env
+        check needed to keep this Vercel-only. */}
+    <Analytics />
   </StrictMode>,
 )

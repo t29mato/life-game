@@ -18,11 +18,15 @@ have.
 
 ![The opening fork: choose a road, then spin](docs/screenshots/board-fork.png)
 
-> **On the original.** This project was inspired by the life-path board game
-> genre. Everything in it — the board, the careers, the events, the artwork, the
-> music — is original work written for this repository. No Hasbro, Takara Tomy,
-> or other third party's trademarks, board layout, card text, or assets are
-> reproduced.
+> **On the original.** This project exists because its author grew up playing
+> Takara Tomy's 人生ゲーム (Jinsei Game, "The Game of Life") in Japan and wanted
+> a way to share that experience with friends abroad who had never seen a
+> board of it — the pacing and the shape of a life-path board owe something to
+> that game, and to 桃太郎電鉄 (Momotetsu) as well. Everything actually in this
+> repository — the board, the careers, the events, the artwork, the music — is
+> original work written from scratch for this project. No Hasbro, Takara Tomy,
+> Konami, or other third party's trademarks, board layout, card text, or
+> assets are reproduced.
 
 > **On the authorship.** This game was built almost entirely by AI agents
 > (Claude Code) under human direction — including the clean architecture

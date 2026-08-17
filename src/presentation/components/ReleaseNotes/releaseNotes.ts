@@ -23,6 +23,15 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
     date: 'August 18, 2026',
     whatsNew: [],
     changes: [
+      'Added anonymous visit analytics on the main site, to help understand how the game gets played. No personal data, nothing that touches your saves or your game.',
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.3.2',
+    date: 'August 18, 2026',
+    whatsNew: [],
+    changes: [
       "Cleared the floating STOP and PAYDAY labels off the board — every stop still gets its own red-striped band and every payday its own gold ring and sparkle, so the tile itself already says what it is. Fewer bubbles, same board, easier to read at a glance.",
     ],
     fixes: [],
