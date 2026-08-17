@@ -20,6 +20,15 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
+    date: 'August 18, 2026',
+    whatsNew: [],
+    changes: [],
+    fixes: [
+      "Fixed a bad one from the last release: on a phone, the board could render far taller than the space it was given and print straight through the spin wheel and the player cards below it, breaking the whole screen. It now always stays sized to fit above them, like it's meant to.",
+    ],
+  },
+  {
+    version: 'v1.3.0',
     date: 'August 17, 2026',
     whatsNew: [
       "Every country now looks and sounds like itself. The board's own map repaints toward that country's colours and rooftops — Japan's blossom pink and indigo tile roofs, France's lavender fields and slate mansards, India's marigold land and terracotta, Bolivia's altiplano ochre and a turquoise lake — and the music under the board changes with it too: an original tune written for each country instead of one loop everywhere.",

@@ -191,14 +191,6 @@
   height: auto;
 }
 
-/* Below ~720px the board is wider than its column, so it pans instead of
-   shrinking into illegibility. The active player is scrolled into view. */
-@media (max-width: 720px) {
-  .svg {
-    min-width: 700px;
-  }
-}
-
 /* ---- Fitting the board to a cell with a hard height ----------------------
    Everywhere else the board is sized by its width and grows as tall as its own
    shape demands. That breaks in exactly one layout: the wide screen, where
@@ -215,9 +207,11 @@
    board's width so the rim keeps hugging the map — but if that cap were ever
    wrong, this rule alone still guarantees the whole board is on screen.
 
-   It is scoped rather than global because a phone is the opposite problem:
-   there the column is short and the board pans horizontally at a 700px floor,
-   and fitting to height would shrink it to nothing.                        */
+   It is scoped rather than global because a phone is a different layout
+   entirely: `App.module.css`'s stacked-screens breakpoint (`max-width: 999px`)
+   already turns `.boardArea` into a size container and fits the board to
+   whatever height is actually left over there — this rule only needs to cover
+   the wide-but-short case that breakpoint doesn't.                          */
 @media (min-width: 901px) and (min-height: 620px) {
   .frame {
     display: flex;

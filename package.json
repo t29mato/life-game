@@ -1,7 +1,7 @@
 {
   "name": "life-game",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.3.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
     "test:ui": "vitest --ui",
     "coverage": "vitest run --coverage",
     "typecheck": "tsc -b --noEmit",
+    "test:e2e": "playwright test",
     "deploy": "APP_VERSION=\"$(git describe --tags --always --dirty)\" vercel --prod --yes --build-env APP_VERSION=\"$(git describe --tags --always --dirty)\""
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.3",
