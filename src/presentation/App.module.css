@@ -282,7 +282,7 @@
   display: grid;
   grid-template-columns:
     minmax(0, 1fr)
-    clamp(258px, 21vw, 312px);
+    clamp(280px, 24vw, 360px);
   grid-template-areas: 'board controls';
   gap: var(--stack);
   align-items: stretch;

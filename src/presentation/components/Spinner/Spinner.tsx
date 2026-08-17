@@ -77,8 +77,8 @@ export function Spinner({
   onSpin,
   onSpinComplete,
   autoSpinToken = 0,
-  spinDuration = 1.5,
-  settleDuration = 0.35,
+  spinDuration = 2.2,
+  settleDuration = 0.5,
 }: SpinnerProps): ReactElement {
   const audio = useAudio()
   const reduceMotion = usePrefersReducedMotion()
