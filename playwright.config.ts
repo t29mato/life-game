@@ -33,9 +33,13 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
   },
+  // `devices['iPhone ...']` defaults to WebKit (it's modelling real Safari),
+  // but this suite is checking CSS layout math, not a browser engine — pinned
+  // to chromium on every project so only one browser ever needs installing,
+  // in CI or locally.
   projects: [
-    { name: 'iphone-se', use: { ...devices['iPhone SE'] } },
-    { name: 'iphone-12', use: { ...devices['iPhone 12'] } },
+    { name: 'iphone-se', use: { ...devices['iPhone SE'], defaultBrowserType: 'chromium' } },
+    { name: 'iphone-12', use: { ...devices['iPhone 12'], defaultBrowserType: 'chromium' } },
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
   ],
 })
