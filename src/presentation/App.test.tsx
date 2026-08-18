@@ -148,12 +148,12 @@ describe('App play loop', () => {
  * wheel in the rail stayed disabled throughout and never turned. It should
  * now hand the actual wheel to the player instead.
  */
-describe('a single-option value spin', () => {
-  function withPendingValueSpin(options: GameState['pendingDecision']): GameState {
-    const store = startedGame()
-    return { ...store.getState(), phase: 'awaitingDecision', pendingDecision: options }
-  }
+function withPendingValueSpin(options: GameState['pendingDecision']): GameState {
+  const store = startedGame()
+  return { ...store.getState(), phase: 'awaitingDecision', pendingDecision: options }
+}
 
+describe('a single-option value spin', () => {
   it('skips the decision-list card and hands the real wheel to the player', () => {
     const state = withPendingValueSpin({
       kind: 'valueSpin',
@@ -197,6 +197,62 @@ describe('a single-option value spin', () => {
     // The wheel stays disabled — pressing Spin is a choice made inside the
     // card, same as every other decision, not a direct press on the wheel.
     expect(screen.getByRole('button', { name: /^spin$/i })).toBeDisabled()
+  })
+})
+
+/*
+ * The wheel sits in the rail, a long mouse trip from wherever a player's
+ * cursor actually is on a wide desktop screen — the owner asked for a way to
+ * press it without reaching all the way over there every time.
+ */
+describe('spinning from the keyboard', () => {
+  it('presses the wheel on Space when nothing else has focus', () => {
+    const store = startedGame()
+    // Whichever phase the fresh game opens on, drive it to `awaitingSpin`.
+    while (store.getState().phase !== 'awaitingSpin') {
+      const state = store.getState()
+      if (state.phase === 'awaitingDecision') {
+        store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
+      } else break
+    }
+    const stub = createStubStore(store.getState())
+    render(<App store={stub} audio={createFakeAudioPort()} />)
+    expect(document.body).toHaveFocus()
+
+    fireEvent.keyDown(window, { key: ' ' })
+
+    expect(stub.commands).toContainEqual({ type: 'spin' })
+  })
+
+  it('does nothing when some other control already has focus, so it never double-fires', () => {
+    const store = startedGame()
+    while (store.getState().phase !== 'awaitingSpin') {
+      const state = store.getState()
+      if (state.phase === 'awaitingDecision') {
+        store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
+      } else break
+    }
+    const stub = createStubStore(store.getState())
+    render(<App store={stub} audio={createFakeAudioPort()} />)
+
+    screen.getByRole('button', { name: /^spin$/i }).focus()
+    fireEvent.keyDown(window, { key: ' ' })
+
+    expect(stub.commands).not.toContainEqual({ type: 'spin' })
+  })
+
+  it('presses a single-option value spin on Space too', () => {
+    const state = withPendingValueSpin({
+      kind: 'valueSpin',
+      prompt: 'Tuition Bill',
+      options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Spin', description: 'Spin for the bill.', icon: 'space:payday' }],
+    })
+    const stub = createStubStore(state)
+    render(<App store={stub} audio={createFakeAudioPort()} />)
+
+    fireEvent.keyDown(window, { key: ' ' })
+
+    expect(stub.commands).toContainEqual({ type: 'choose', optionId: VALUE_SPIN_OPTION_ID })
   })
 })
 

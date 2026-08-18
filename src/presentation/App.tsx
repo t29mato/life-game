@@ -251,6 +251,38 @@ export function App({ store, audio }: AppProps): ReactElement {
     return () => window.clearTimeout(timer)
   }, [state, activePlayer, wheelSettled, handoffVisible, store, cpuActingPhases, singleSpinDecision])
 
+  /*
+   * The wheel sits in the rail on the far side of a wide desktop screen from
+   * wherever a player's cursor actually is — the owner asked for a way to
+   * spin without a long mouse trip every time. Space presses the wheel from
+   * anywhere on the page. It backs off the moment focus is already on some
+   * other control, so it can never double-fire alongside that control's own
+   * native Enter/Space handling (the wheel's own button included) and never
+   * eats a Space a player meant for typing.
+   */
+  const spinReady = (state.phase === 'awaitingSpin' || singleSpinDecision) && !handoffVisible && !activePlayer?.isCpu
+  useEffect(() => {
+    if (!spinReady) return
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== ' ') return
+      const active = document.activeElement
+      const focusedControl =
+        active instanceof HTMLElement &&
+        (active.tagName === 'BUTTON' ||
+          active.tagName === 'INPUT' ||
+          active.tagName === 'TEXTAREA' ||
+          active.tagName === 'SELECT' ||
+          active.tagName === 'A' ||
+          active.isContentEditable)
+      if (focusedControl) return
+      event.preventDefault()
+      if (singleSpinDecision) handleValueSpin()
+      else handleSpin()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [spinReady, singleSpinDecision, handleValueSpin, handleSpin])
+
   // --- game log drawer ---------------------------------------------------
   // The scrolling feed is rarely needed mid-turn, so it stays off screen and
   // its space belongs to the board; a header control summons it as a drawer.
