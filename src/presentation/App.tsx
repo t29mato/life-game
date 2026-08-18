@@ -110,6 +110,23 @@ export function App({ store, audio }: AppProps): ReactElement {
   const handleSpinComplete = useCallback(() => setWheelSettled(true), [])
 
   /*
+   * A value-spin decision (tuition, career choice…) commits its result to
+   * `state.players` the instant it is dispatched — same tick as `lastSpin`,
+   * long before the wheel has visibly finished turning. `lastEvent` already
+   * waits for `wheelSettled` so the result *card* can't spoil itself; the
+   * player list was the other half of that promise nobody kept — a debited
+   * balance or a new job title would show up in the rail while the wheel
+   * was still spinning towards the number that was supposed to decide it.
+   * This freezes what the rail shows to whatever was true when the wheel
+   * was last settled, and only lets it catch up once `onSpinComplete` says
+   * the wheel actually agrees.
+   */
+  const [displayedPlayers, setDisplayedPlayers] = useState(state.players)
+  useEffect(() => {
+    if (wheelSettled) setDisplayedPlayers(state.players)
+  }, [wheelSettled, state.players])
+
+  /*
    * A value-spin decision with nothing to weigh — the tuition bill, a
    * promotion review, a marriage proposal — is really just "press Spin",
    * same as the ordinary move roll. Routing it through the same wheel the
@@ -220,8 +237,8 @@ export function App({ store, audio }: AppProps): ReactElement {
   // loans at a steeper rate, so leaving difficulty out can rank two players
   // holding different numbers of loans in the wrong order.
   const standings = useMemo(
-    () => rankPlayers(state.players, state.difficulty),
-    [state.players, state.difficulty],
+    () => rankPlayers(displayedPlayers, state.difficulty),
+    [displayedPlayers, state.difficulty],
   )
 
   // --- computer seats ----------------------------------------------------
@@ -259,6 +276,16 @@ export function App({ store, audio }: AppProps): ReactElement {
    * other control, so it can never double-fire alongside that control's own
    * native Enter/Space handling (the wheel's own button included) and never
    * eats a Space a player meant for typing.
+   *
+   * Routed through `autoSpinToken` — the same trigger the computer seat
+   * uses — rather than calling `handleSpin`/`handleValueSpin` directly.
+   * Those are the *store* side of a press; the wheel's own `handleSpin`
+   * (inside `Spinner`) is what actually arms the animation before calling
+   * them. Calling them straight from here skipped that arming step
+   * entirely: the store still committed the roll, but the wheel had never
+   * been told to expect a result, so it never animated, never reported
+   * back, and sat disabled for the rest of the game. `autoSpinToken` goes
+   * through the real button-press path, so it can't skip that step again.
    */
   const spinReady = (state.phase === 'awaitingSpin' || singleSpinDecision) && !handoffVisible && !activePlayer?.isCpu
   useEffect(() => {
@@ -276,12 +303,11 @@ export function App({ store, audio }: AppProps): ReactElement {
           active.isContentEditable)
       if (focusedControl) return
       event.preventDefault()
-      if (singleSpinDecision) handleValueSpin()
-      else handleSpin()
+      setAutoSpinToken((token) => token + 1)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [spinReady, singleSpinDecision, handleValueSpin, handleSpin])
+  }, [spinReady])
 
   // --- game log drawer ---------------------------------------------------
   // The scrolling feed is rarely needed mid-turn, so it stays off screen and
@@ -466,16 +492,16 @@ export function App({ store, audio }: AppProps): ReactElement {
                 Players
               </h2>
               <div className={styles.players}>
-                {state.players.map((player, index) => (
+                {displayedPlayers.map((player, index) => (
                   <PlayerPanel
                     key={player.id}
                     difficulty={state.difficulty}
                     editionId={state.editionId}
                     player={player}
                     isActive={index === state.currentPlayerIndex}
-                    compact={state.players.length > 2}
-                    dense={state.players.length > 3}
-                    rank={standings.get(player.id)?.rank ?? state.players.length}
+                    compact={displayedPlayers.length > 2}
+                    dense={displayedPlayers.length > 3}
+                    rank={standings.get(player.id)?.rank ?? displayedPlayers.length}
                   />
                 ))}
               </div>

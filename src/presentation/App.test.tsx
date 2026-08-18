@@ -254,6 +254,115 @@ describe('spinning from the keyboard', () => {
 
     expect(stub.commands).toContainEqual({ type: 'choose', optionId: VALUE_SPIN_OPTION_ID })
   })
+
+  /*
+   * A stub store only proves the right command was *dispatched* — it never
+   * runs the wheel's own animation, so it could not have caught the actual
+   * bug: calling `handleSpin` straight from the keyboard handler committed
+   * the roll to the store without ever arming the wheel to expect it. The
+   * store moved on; the wheel never did, `onSpinComplete` never fired, and
+   * the game sat there permanently disabled. Only a real store, rendered for
+   * real, exercises that arming step — this is deliberately not a stub test.
+   */
+  it('actually turns the wheel, rather than committing a roll it never animates to', async () => {
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: true, // reduced motion: both the wheel and the board settle immediately
+      media: '(prefers-reduced-motion: reduce)',
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })
+    try {
+      const store = startedGame()
+      while (store.getState().phase !== 'awaitingSpin') {
+        const state = store.getState()
+        if (state.phase === 'awaitingDecision') {
+          store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
+        } else break
+      }
+      expect(store.getState().phase).toBe('awaitingSpin')
+
+      render(<App store={store} audio={createFakeAudioPort()} />)
+      fireEvent.keyDown(window, { key: ' ' })
+
+      // A wheel that armed and animated leaves `awaitingSpin` behind for good —
+      // it never gets stuck disabled in `moving` waiting for a wheel that was
+      // never told to turn.
+      await waitFor(() => expect(store.getState().phase).not.toBe('awaitingSpin'))
+      await waitFor(() => expect(store.getState().phase).not.toBe('moving'), { timeout: 3000 })
+    } finally {
+      window.matchMedia = originalMatchMedia
+    }
+  })
+
+  /*
+   * `resolveValueSpin` commits the roll's outcome to `state.players` in the
+   * same dispatch that sets `lastSpin` — long before the wheel has visibly
+   * finished turning. `lastEvent` already waited for the wheel to settle;
+   * the player rail did not, so a debited balance or a new job title showed
+   * up in the "CASH" line while the wheel was still spinning towards the
+   * number that was supposed to decide it. This drives a real game to a
+   * real single-option value spin (a casual payday, reachable for an
+   * unemployed player within a handful of turns on any seed) and checks the
+   * rail synchronously, before the wheel has had a chance to settle.
+   */
+  it('does not reveal a value spin\'s result in the player rail before the wheel settles', async () => {
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: false, // real motion this time — need the "still spinning" window to exist
+      media: '(prefers-reduced-motion: reduce)',
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })
+    try {
+      const store = startedGame()
+      let guard = 0
+      while (guard < 300) {
+        const state = store.getState()
+        if (
+          state.phase === 'awaitingDecision' &&
+          state.pendingDecision?.kind === 'valueSpin' &&
+          state.pendingDecision.options.length === 1
+        ) {
+          break
+        }
+        if (state.phase === 'awaitingSpin') store.dispatch({ type: 'spin' })
+        else if (state.phase === 'moving') store.dispatch({ type: 'settle' })
+        else if (state.phase === 'awaitingDecision') {
+          store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
+        } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })
+        guard += 1
+      }
+      expect(store.getState().phase).toBe('awaitingDecision')
+      const before = store.getState()
+      const spinner = before.players[before.currentPlayerIndex]!
+      const beforeMoney = spinner.money
+
+      render(<App store={store} audio={createFakeAudioPort()} />)
+      const panel = screen.getByText(spinner.name).closest('article')!
+      const panelTextBefore = panel.textContent
+
+      fireEvent.click(screen.getByRole('button', { name: /^spin$/i }))
+
+      // The store already knows the outcome — this is exactly the gap the
+      // rail is not supposed to show.
+      expect(store.getState().players[before.currentPlayerIndex]!.money).not.toBe(beforeMoney)
+      // The rail itself, read from the DOM the instant after pressing Spin,
+      // must not have moved yet — not the cash, not the career, nothing.
+      expect(panel.textContent).toBe(panelTextBefore)
+
+      // Once the wheel actually settles, the rail catches up.
+      await waitFor(
+        () => {
+          expect(panel.textContent).not.toBe(panelTextBefore)
+        },
+        { timeout: 5000 },
+      )
+      expect(store.getState().players[before.currentPlayerIndex]!.money).not.toBe(beforeMoney)
+    } finally {
+      window.matchMedia = originalMatchMedia
+    }
+  })
 })
 
 describe('computer seats', () => {
