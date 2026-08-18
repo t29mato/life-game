@@ -20,6 +20,15 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
+    date: 'August 20, 2026',
+    whatsNew: [],
+    changes: [],
+    fixes: [
+      "Fixed every spin-the-wheel tile — tuition, career choice, a promotion review, a marriage proposal, and the rest — so pressing Spin actually spins the wheel you can see, instead of the result just appearing in the result card with the wheel sitting there disabled. The card now shows what's on the line, then hands the real wheel to you (or, on a computer's turn, spins it the same way a person would) rather than deciding everything the instant the card opened.",
+    ],
+  },
+  {
+    version: 'v1.4.0',
     date: 'August 19, 2026',
     whatsNew: [
       "Career choice is on the wheel now. Job fairs, headhunters, Job-Hopper Alley, and every other career tile put two named jobs on the table and spin for which one you get, instead of you just picking whichever pays more. The card names both jobs and the split — 1-5 for one, 6-10 for the other — before you press Spin. Where the tile allows it, you can still turn both down and keep the job you already have.",
