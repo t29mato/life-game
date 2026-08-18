@@ -153,10 +153,14 @@ describe('choose', () => {
         },
       })
 
-      const next = choose(state, CAREER_STAY_OPTION_ID, { random: createFakeRandom() })
+      const random = createFakeRandom()
+      const next = choose(state, CAREER_STAY_OPTION_ID, { random })
 
       expect(next.players[0]!.career).toEqual(staying)
       expect(next.phase).toBe('resolved')
+      // Staying never touches the wheel — no roll, no new number to animate to.
+      expect(random.calls.spins).toBe(0)
+      expect(next.lastSpin).toBe(state.lastSpin)
     })
   })
 
@@ -648,6 +652,9 @@ describe('choose', () => {
         const worstBand = USA_ECONOMY.tuition.outcomes[0]!
         expect(next.players[0]!.money).toBe(100_000 - worstBand.cost)
         expect(next.lastEvent!.moneyDelta).toBe(-worstBand.cost)
+        // The number the wheel actually landed on, so the visible spinner has
+        // something to animate to instead of the result just appearing.
+        expect(next.lastSpin).toBe(1)
       })
 
       it('charges nothing on a spin that lands in the free band', () => {

@@ -109,6 +109,30 @@ export function App({ store, audio }: AppProps): ReactElement {
 
   const handleSpinComplete = useCallback(() => setWheelSettled(true), [])
 
+  /*
+   * A value-spin decision with nothing to weigh — the tuition bill, a
+   * promotion review, a marriage proposal — is really just "press Spin",
+   * same as the ordinary move roll. Routing it through the same wheel the
+   * move roll uses, instead of a decision-list card with one entry in it,
+   * is what actually makes it feel like a spin: the number lands on the
+   * wheel the player can see, rather than simply appearing in the result
+   * card. A decision that also offers a real second option (Stay) still
+   * shows the full card, because there is an actual choice to weigh there.
+   */
+  const singleSpinDecision =
+    state.phase === 'awaitingDecision' &&
+    state.pendingDecision?.kind === 'valueSpin' &&
+    state.pendingDecision.options.length === 1
+      ? state.pendingDecision
+      : null
+
+  const handleValueSpin = useCallback(() => {
+    const optionId = singleSpinDecision?.options[0]?.id
+    if (!optionId) return
+    setWheelSettled(false)
+    store.dispatch({ type: 'choose', optionId })
+  }, [singleSpinDecision, store])
+
   const handleMovementComplete = useCallback(() => {
     store.dispatch({ type: 'settle' })
   }, [store])
@@ -212,7 +236,11 @@ export function App({ store, audio }: AppProps): ReactElement {
     if (!cpuActingPhases.includes(state.phase)) return
 
     const timer = window.setTimeout(() => {
-      if (state.phase === 'awaitingSpin') {
+      // A single-option value spin is "press Spin" with nothing to weigh, so
+      // a computer seat takes it through the same visible wheel a person
+      // would rather than the number simply appearing — same reasoning as
+      // the ordinary move roll just below.
+      if (state.phase === 'awaitingSpin' || singleSpinDecision) {
         setAutoSpinToken((token) => token + 1)
         return
       }
@@ -221,7 +249,7 @@ export function App({ store, audio }: AppProps): ReactElement {
     }, CPU_THINK_MS[state.phase as 'awaitingSpin' | 'awaitingDecision' | 'resolved'])
 
     return () => window.clearTimeout(timer)
-  }, [state, activePlayer, wheelSettled, handoffVisible, store, cpuActingPhases])
+  }, [state, activePlayer, wheelSettled, handoffVisible, store, cpuActingPhases, singleSpinDecision])
 
   // --- game log drawer ---------------------------------------------------
   // The scrolling feed is rarely needed mid-turn, so it stays off screen and
@@ -383,11 +411,19 @@ export function App({ store, audio }: AppProps): ReactElement {
               moved off the board's other flank so the board could take that
               width — see `.main` in App.module.css. */}
           <aside className={styles.controlRail} aria-label="Spinner and players">
+            {singleSpinDecision && !handoffVisible && (
+              <div className={styles.spinPrompt}>
+                <span className={styles.spinPromptKind}>The wheel</span>
+                <p className={styles.spinPromptText}>
+                  {singleSpinDecision.options[0]?.description || singleSpinDecision.prompt}
+                </p>
+              </div>
+            )}
             <div className={styles.spinnerCard}>
               <Spinner
                 result={state.lastSpin}
-                disabled={state.phase !== 'awaitingSpin' || handoffVisible}
-                onSpin={handleSpin}
+                disabled={!(state.phase === 'awaitingSpin' || singleSpinDecision) || handoffVisible}
+                onSpin={singleSpinDecision ? handleValueSpin : handleSpin}
                 onSpinComplete={handleSpinComplete}
                 autoSpinToken={autoSpinToken}
               />
@@ -435,7 +471,7 @@ export function App({ store, audio }: AppProps): ReactElement {
           </div>
         )}
 
-        {state.phase === 'awaitingDecision' && state.pendingDecision && !handoffVisible && (
+        {state.phase === 'awaitingDecision' && state.pendingDecision && !handoffVisible && !singleSpinDecision && (
           <DecisionModal
             decision={state.pendingDecision}
             board={state.board}
@@ -447,7 +483,10 @@ export function App({ store, audio }: AppProps): ReactElement {
           />
         )}
 
-        {state.phase === 'resolved' && state.lastEvent && (
+        {/* A value spin's own result waits for `wheelSettled` too — same as
+            the ordinary move roll — so the card never appears before the
+            wheel the player just spun has actually finished turning. */}
+        {state.phase === 'resolved' && state.lastEvent && wheelSettled && (
           <EventCard
             event={state.lastEvent}
             editionId={state.editionId}

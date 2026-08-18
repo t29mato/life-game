@@ -744,7 +744,7 @@ function resolveValueSpin(state: GameState, optionId: string, deps: UseCaseDeps)
   if (!player) throw new Error('choose: no current player')
 
   const edition = editionOf(state)
-  const { economy, currency } = edition
+  const { currency } = edition
   const money = (amount: Money): string => formatMoney(amount, currency)
   const space = currentSpace(state, player)
 
@@ -757,6 +757,26 @@ function resolveValueSpin(state: GameState, optionId: string, deps: UseCaseDeps)
   if (optionId !== VALUE_SPIN_OPTION_ID) throw new Error(`choose: unknown value-spin option "${optionId}"`)
 
   const spinValue = deps.random.spin()
+  /*
+   * `lastSpin` is what lets the actual wheel in the rail animate to this
+   * number — the same field the ordinary move-roll uses — rather than the
+   * number simply appearing in an event card with no wheel ever turning for
+   * it. Stamped on every branch below via this one wrapper, so a future
+   * value-spin tile gets it for free instead of by remembering to add it.
+   */
+  return { ...resolveSpinOutcome(state, player, space, spinValue, edition, deps, money), lastSpin: spinValue }
+}
+
+function resolveSpinOutcome(
+  state: GameState,
+  player: Player,
+  space: Space | undefined,
+  spinValue: SpinValue,
+  edition: ReturnType<typeof editionOf>,
+  deps: UseCaseDeps,
+  money: (amount: Money) => string,
+): GameState {
+  const { economy } = edition
 
   // A career spin is identified by the offers it carries, not by the space's
   // own effect — a decision built for a test, or dealt from a tile whose

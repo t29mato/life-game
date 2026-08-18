@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createGameStore } from '@application/createGameStore'
 import type { GameCommand, GameStore } from '@application/GameStore'
+import { CAREER_STAY_OPTION_ID, VALUE_SPIN_OPTION_ID } from '@application/usecases/applyEffect'
 import {
   createInMemoryRepository,
   createInMemoryStatsRepository,
@@ -136,6 +137,66 @@ describe('App play loop', () => {
 
     // The board animates first and reports back; App must not shortcut it.
     expect(stub.commands).not.toContainEqual({ type: 'settle' })
+  })
+})
+
+/*
+ * A value-spin decision with nothing to weigh — the tuition bill, a
+ * promotion review — used to surface as a decision-list card with exactly
+ * one entry in it: "Spin", pick it, Enter. The owner reported that this
+ * felt like the result appeared without ever spinning, because it did — the
+ * wheel in the rail stayed disabled throughout and never turned. It should
+ * now hand the actual wheel to the player instead.
+ */
+describe('a single-option value spin', () => {
+  function withPendingValueSpin(options: GameState['pendingDecision']): GameState {
+    const store = startedGame()
+    return { ...store.getState(), phase: 'awaitingDecision', pendingDecision: options }
+  }
+
+  it('skips the decision-list card and hands the real wheel to the player', () => {
+    const state = withPendingValueSpin({
+      kind: 'valueSpin',
+      prompt: 'Tuition Bill',
+      options: [
+        {
+          id: VALUE_SPIN_OPTION_ID,
+          label: 'Spin',
+          description: 'Spin 1 to 10 to find out what you owe.',
+          icon: 'space:tuition-bill',
+        },
+      ],
+    })
+    const stub = createStubStore(state)
+    render(<App store={stub} audio={createFakeAudioPort()} />)
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByText(/spin 1 to 10 to find out what you owe/i)).toBeInTheDocument()
+
+    const spinButton = screen.getByRole('button', { name: /^spin$/i })
+    expect(spinButton).toBeEnabled()
+
+    fireEvent.click(spinButton)
+    expect(stub.commands).toContainEqual({ type: 'choose', optionId: VALUE_SPIN_OPTION_ID })
+  })
+
+  it('still shows the decision card when there is a real second option to weigh', () => {
+    const state = withPendingValueSpin({
+      kind: 'valueSpin',
+      prompt: 'Two other trades would take you at the level you are on.',
+      options: [
+        { id: VALUE_SPIN_OPTION_ID, label: 'Spin', description: 'Spin for one of two offers.', icon: 'space:payday' },
+        { id: CAREER_STAY_OPTION_ID, label: 'Stay put', description: '', icon: 'space:payday' },
+      ],
+      offeredCareerIds: ['career-a', 'career-b'],
+    })
+    const stub = createStubStore(state)
+    render(<App store={stub} audio={createFakeAudioPort()} />)
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    // The wheel stays disabled — pressing Spin is a choice made inside the
+    // card, same as every other decision, not a direct press on the wheel.
+    expect(screen.getByRole('button', { name: /^spin$/i })).toBeDisabled()
   })
 })
 
