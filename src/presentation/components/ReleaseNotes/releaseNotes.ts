@@ -20,6 +20,16 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
+    date: 'August 19, 2026',
+    whatsNew: [],
+    changes: [],
+    fixes: [
+      "Fixed the Space bar shortcut freezing the game: pressing it disabled the wheel instead of spinning it, and there was no way back short of reloading. Space now presses the wheel for real.",
+      "Fixed a spoiler: a spin-decided tile (tuition, career choice, a promotion review, and the rest) could update a player's cash or job title in the sidebar while the wheel was still turning, before it had actually landed. The sidebar now waits for the wheel to settle, same as the result card already did.",
+    ],
+  },
+  {
+    version: 'v1.4.2',
     date: 'August 20, 2026',
     whatsNew: [
       "Press the Space bar to spin. On a wide desktop screen the wheel sits in its own tray off to the side — Space presses it from wherever your cursor already is, no trip across the screen required. It steps aside the moment anything else on the page has focus, so it never fights with a button you actually meant to press.",
