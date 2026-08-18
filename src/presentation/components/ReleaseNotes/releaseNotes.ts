@@ -21,6 +21,15 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
     date: 'August 20, 2026',
+    whatsNew: [
+      "Press the Space bar to spin. On a wide desktop screen the wheel sits in its own tray off to the side — Space presses it from wherever your cursor already is, no trip across the screen required. It steps aside the moment anything else on the page has focus, so it never fights with a button you actually meant to press.",
+    ],
+    changes: [],
+    fixes: [],
+  },
+  {
+    version: 'v1.4.1',
+    date: 'August 20, 2026',
     whatsNew: [],
     changes: [],
     fixes: [
