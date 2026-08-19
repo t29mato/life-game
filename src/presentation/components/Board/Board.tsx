@@ -326,7 +326,7 @@ export function Board({
      Driven as a transform on a group inside a viewBox that never changes,
      rather than by rewriting the viewBox itself: React owns that attribute and
      would reset it on every re-render, which is a fight the camera loses. */
-  const opening = wideShot(projection)
+  const opening = wideShot(projection, board)
   const initial = cameraTransform(projection, opening)
   const camX = useMotionValue(initial.x)
   const camY = useMotionValue(initial.y)
@@ -413,7 +413,7 @@ export function Board({
     if (!introFlythrough) return
     if (reduceMotion) {
       flyingRef.current = false
-      void applyShot(wideShot(projection), 0)
+      void applyShot(wideShot(projection, board), 0)
       return
     }
 
@@ -459,7 +459,7 @@ export function Board({
       previousRestPlayerId.current = activePlayer?.id ?? null
       const framed = space
         ? focusShot(projection, projection.project(space.layout), RESOLVE_ZOOM)
-        : wideShot(projection)
+        : wideShot(projection, board)
       void applyShot(framed, reduceMotion ? 0 : CAMERA_SECONDS)
       return
     }

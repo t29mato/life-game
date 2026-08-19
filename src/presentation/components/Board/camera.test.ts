@@ -10,6 +10,7 @@ import {
   restPoint,
   restShot,
   restSequence,
+  routeBounds,
   shotRect,
   wideShot,
   FLYTHROUGH_ZOOM,
@@ -56,18 +57,50 @@ function route(): Board {
 const model = route()
 const projection = createProjection(model)
 
-describe('wideShot', () => {
-  it('frames the whole board', () => {
-    const rect = shotRect(projection, wideShot(projection))
+describe('routeBounds', () => {
+  it('bounds every tile, not the wider padded viewBox', () => {
+    const bounds = routeBounds(model, projection)
+    const start = projection.project({ x: 1, y: 1 })
+    const end = projection.project({ x: 12, y: 1 + (11 % 3) })
 
-    expect(rect.x).toBe(0)
-    expect(rect.y).toBe(0)
-    expect(rect.width).toBeCloseTo(projection.viewWidth, 5)
-    expect(rect.height).toBeCloseTo(projection.viewHeight, 5)
+    expect(bounds.x).toBeCloseTo(Math.min(start.x, end.x), 5)
+    // This fixture's board is declared wider and taller (14×5) than the
+    // route it actually lays out (columns 1-12, rows 1-3) — exactly the
+    // shape that used to read as "the map is mostly empty ground."
+    expect(bounds.width).toBeLessThan(projection.viewWidth)
+    expect(bounds.height).toBeLessThan(projection.viewHeight)
   })
 
-  it('is the identity transform, so the first frame needs no camera at all', () => {
-    expect(cameraTransform(projection, wideShot(projection))).toEqual({ x: 0, y: 0, scale: 1 })
+  it('falls back to the full viewBox when the board has no spaces to bound', () => {
+    const empty: Board = { ...model, spaces: {} }
+    expect(routeBounds(empty, projection)).toEqual({
+      x: 0,
+      y: 0,
+      width: projection.viewWidth,
+      height: projection.viewHeight,
+    })
+  })
+})
+
+describe('wideShot', () => {
+  it('frames every tile with a little padding around the outermost row', () => {
+    const shot = wideShot(projection, model)
+    const rect = shotRect(projection, shot)
+    const bounds = routeBounds(model, projection)
+
+    expect(rect.x).toBeLessThanOrEqual(bounds.x + 0.01)
+    expect(rect.y).toBeLessThanOrEqual(bounds.y + 0.01)
+    expect(rect.x + rect.width).toBeGreaterThanOrEqual(bounds.x + bounds.width - 0.01)
+    expect(rect.y + rect.height).toBeGreaterThanOrEqual(bounds.y + bounds.height - 0.01)
+  })
+
+  it('zooms in past the viewBox when the route does not fill it — this fixture is built to have room to spare', () => {
+    expect(wideShot(projection, model).zoom).toBeGreaterThan(1)
+  })
+
+  it('never zooms out past 1 — a route with nothing to trim still frames the whole viewBox at worst', () => {
+    const empty: Board = { ...model, spaces: {} }
+    expect(wideShot(projection, empty).zoom).toBe(1)
   })
 })
 
@@ -250,14 +283,17 @@ describe('restSequence', () => {
   it('leads with a passing wide shot before the rest shot when a new player is handed the table', () => {
     const at = model.spaces['s4'] as Space
     expect(restSequence(model, projection, at, true)).toEqual([
-      wideShot(projection),
+      wideShot(projection, model),
       restShot(model, projection, at),
     ])
   })
 
   it('falls back to the wide shot when there is no space to rest on', () => {
-    expect(restSequence(model, projection, undefined, false)).toEqual([wideShot(projection)])
-    expect(restSequence(model, projection, undefined, true)).toEqual([wideShot(projection), wideShot(projection)])
+    expect(restSequence(model, projection, undefined, false)).toEqual([wideShot(projection, model)])
+    expect(restSequence(model, projection, undefined, true)).toEqual([
+      wideShot(projection, model),
+      wideShot(projection, model),
+    ])
   })
 })
 
@@ -269,7 +305,7 @@ describe('flythroughShots', () => {
     const start = projection.project({ x: 1, y: 1 })
 
     expect(first?.cx).toBeCloseTo(focusShot(projection, start, FLYTHROUGH_ZOOM).cx, 5)
-    expect(last).toEqual(wideShot(projection))
+    expect(last).toEqual(wideShot(projection, model))
   })
 
   it('sweeps forward along the route without doubling back', () => {
@@ -303,7 +339,7 @@ describe('flythroughShots', () => {
   it('degrades to a single wide shot when the board has no start space', () => {
     const empty: Board = { ...model, spaces: {}, startSpaceId: 'gone' }
 
-    expect(flythroughShots(empty, projection)).toEqual([wideShot(projection)])
+    expect(flythroughShots(empty, projection)).toEqual([wideShot(projection, empty)])
   })
 
   it('does not loop forever on a route that circles back on itself', () => {

@@ -55,8 +55,50 @@ export const FLYTHROUGH_ZOOM = 1.45
 /** How many hops out from a milestone the camera starts easing in. */
 const APPROACH_HOPS = 3
 
-export function wideShot(projection: BoardProjection): CameraShot {
-  return { cx: projection.viewWidth / 2, cy: projection.viewHeight / 2, zoom: WIDE_ZOOM }
+/**
+ * The rectangle every tile actually sits in, in viewBox units — not the
+ * viewBox itself, which is padded for `margin`/`marginY` and can end up
+ * larger than the route on one axis than the other depending on how a
+ * fork's `ensureRoom` happened to widen the serpentine partway through.
+ * Scenery drawn past this box (hills, coastline, the scattered background
+ * buildings) is not part of it either.
+ */
+export function routeBounds(board: Board, projection: BoardProjection): CameraRect {
+  const points = Object.values(board.spaces).map((space) => projection.project(space.layout))
+  if (points.length === 0) {
+    return { x: 0, y: 0, width: projection.viewWidth, height: projection.viewHeight }
+  }
+  const xs = points.map((p) => p.x)
+  const ys = points.map((p) => p.y)
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
+}
+
+/**
+ * The overview shot: every tile in frame, at whatever zoom that takes —
+ * fit to the route's own bounding box (`routeBounds`) rather than to the
+ * viewBox `wideShot` used to target. The two are not the same rectangle:
+ * the viewBox carries a fixed margin on every edge, and a wide fork part
+ * way through the route can widen the serpentine's bounds for every row
+ * after it even though earlier rows never used that reach — either way,
+ * fitting the viewBox showed real board past the outermost tile on some
+ * edges and not others, which is what actually read as "the map is mostly
+ * empty ground." Padded by a little over a tile's width so the outermost
+ * row does not touch the frame.
+ */
+export function wideShot(projection: BoardProjection, board: Board): CameraShot {
+  const bounds = routeBounds(board, projection)
+  const pad = projection.tileSize * 1.2
+  const paddedWidth = bounds.width + pad * 2
+  const paddedHeight = bounds.height + pad * 2
+  const zoom =
+    paddedWidth <= 0 || paddedHeight <= 0
+      ? WIDE_ZOOM
+      : Math.max(WIDE_ZOOM, Math.min(projection.viewWidth / paddedWidth, projection.viewHeight / paddedHeight))
+  return { cx: bounds.x + bounds.width / 2, cy: bounds.y + bounds.height / 2, zoom }
 }
 
 /**
@@ -175,8 +217,8 @@ export function restSequence(
   space: Space | undefined,
   establishing: boolean,
 ): readonly CameraShot[] {
-  const rest = space ? restShot(board, projection, space) : wideShot(projection)
-  return establishing ? [wideShot(projection), rest] : [rest]
+  const rest = space ? restShot(board, projection, space) : wideShot(projection, board)
+  return establishing ? [wideShot(projection, board), rest] : [rest]
 }
 
 /**
@@ -207,7 +249,7 @@ export function flythroughShots(
     id = space.next[0]
   }
 
-  if (route.length === 0) return [wideShot(projection)]
+  if (route.length === 0) return [wideShot(projection, board)]
 
   const wanted = Math.max(1, Math.min(stops, route.length))
   const shots: CameraShot[] = []
@@ -216,6 +258,6 @@ export function flythroughShots(
     const at = route[wanted === 1 ? 0 : Math.round((i * (route.length - 1)) / (wanted - 1))] as Point
     shots.push(focusShot(projection, at, FLYTHROUGH_ZOOM))
   }
-  shots.push(wideShot(projection))
+  shots.push(wideShot(projection, board))
   return shots
 }

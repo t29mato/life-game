@@ -218,7 +218,7 @@ describe('Board', () => {
       // Still framing the whole board on the first frame: the move is animated.
       expect(getByTestId('board-camera')).toHaveAttribute(
         'transform',
-        written(cameraTransform(projection, wideShot(projection))),
+        written(cameraTransform(projection, wideShot(projection, model))),
       )
     })
 

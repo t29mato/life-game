@@ -4,7 +4,6 @@ import type { SpinValue } from '@domain/model/types'
 import { useAudio } from '../../hooks/useAudio'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { UiIcon } from '../../icons/ui'
-import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { WEDGE_ANGLE, WEDGE_COUNT, landingRotation, wedgeCenterAngle } from './spinnerMath'
 import styles from './Spinner.module.css'
 
@@ -186,6 +185,8 @@ export function Spinner({
   }, [autoSpinToken])
 
   const ready = !disabled && !spinning
+  const hubLabel = spinning ? 'Spinning…' : 'Spin'
+  const caption = spinning ? 'Spinning…' : ready ? 'Tap the wheel to spin' : ''
 
   return (
     <div className={styles.wrap}>
@@ -319,15 +320,26 @@ export function Spinner({
           />
         </svg>
 
-        <div className={styles.hub} aria-hidden="true">
+        {/* The wheel used to be flanked by its own "Spin" button — now the
+            hub itself is the button, the way the real board game's dial
+            works: press the middle to make it turn. `type="button"` so it
+            can never masquerade as a form submit if this ever ends up
+            inside one. */}
+        <button
+          type="button"
+          className={styles.hub}
+          onClick={handleSpin}
+          disabled={disabled || spinning}
+          aria-label={hubLabel}
+        >
           {landed === null ? (
-            <UiIcon name="dice" size={18} className={styles.hubGlyph} key="idle" />
+            <UiIcon name="dice" size={18} className={styles.hubGlyph} key="idle" aria-hidden="true" />
           ) : (
-            <span className={styles.hubValue} key={landed}>
+            <span className={styles.hubValue} key={landed} aria-hidden="true">
               {landed}
             </span>
           )}
-        </div>
+        </button>
 
         <div className={styles.pointer} aria-hidden="true">
           <svg viewBox="0 0 44 54" className={styles.pointerArt}>
@@ -359,18 +371,11 @@ export function Spinner({
         </div>
       </div>
 
-      <div className={styles.button}>
-        <ChunkyButton
-          variant="primary"
-          size="lg"
-          icon="dice"
-          disabled={disabled || spinning}
-          onClick={handleSpin}
-          fullWidth
-        >
-          {spinning ? 'Spinning…' : 'Spin'}
-        </ChunkyButton>
-      </div>
+      {/* A sighted hint that the wheel itself is what you press — the old
+          button used to say this in words; the wheel has to say it now. */}
+      <p className={styles.caption} aria-hidden="true">
+        {caption}
+      </p>
     </div>
   )
 }
