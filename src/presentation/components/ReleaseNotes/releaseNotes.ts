@@ -22,6 +22,15 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
     version: __APP_VERSION__,
     date: 'August 19, 2026',
     whatsNew: [],
+    changes: [
+      "A tab left open now picks up a new release on its own. It checks quietly every so often and, the moment one is out, applies it the next time nothing would be lost — the title screen or the results screen — never mid-game.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.4.3',
+    date: 'August 19, 2026',
+    whatsNew: [],
     changes: [],
     fixes: [
       "Fixed the Space bar shortcut freezing the game: pressing it disabled the wheel instead of spinning it, and there was no way back short of reloading. Space now presses the wheel for real.",
