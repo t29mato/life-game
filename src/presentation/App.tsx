@@ -28,6 +28,7 @@ import { Spinner } from './components/Spinner/Spinner'
 import { TitleScreen } from './components/TitleScreen/TitleScreen'
 import { TurnHandoff } from './components/TurnHandoff/TurnHandoff'
 import { AudioProvider } from './hooks/useAudio'
+import { useDeployedVersion } from './hooks/useDeployedVersion'
 import { useGameState } from './hooks/useGameState'
 import { UiIcon } from './icons/ui'
 
@@ -66,6 +67,25 @@ const MANUAL_SLOTS = Array.from({ length: SAVE_SLOT_COUNT - 1 }, (_, index) => i
 export function App({ store, audio }: AppProps): ReactElement {
   const state = useGameState(store)
   const [audioUnlocked, setAudioUnlocked] = useState(false)
+
+  /*
+   * A tab left open (or one somebody just switched back to) keeps running
+   * whatever bundle it loaded with — a plain page reload is the only thing
+   * that ever changes that, and nothing on this page was asking for one.
+   * `useDeployedVersion` notices when GitHub Pages is serving a newer build
+   * than the one running; reloading the instant it does would be fine on
+   * the title screen and actively bad mid-turn, so this only acts once the
+   * phase reaches a point with nothing to lose — the title screen or the
+   * results screen — the same places a fresh page load would have landed
+   * anyway. A game in progress is left alone until it naturally gets there.
+   */
+  const staleBuild = useDeployedVersion()
+  useEffect(() => {
+    if (!staleBuild) return
+    if (state.phase === 'setup' || state.phase === 'gameOver') {
+      window.location.reload()
+    }
+  }, [staleBuild, state.phase])
 
   // Browsers refuse to start audio until the user has interacted, so the very
   // first gesture anywhere on the page is what opens the audio context.

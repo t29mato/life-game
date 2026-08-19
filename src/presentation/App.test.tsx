@@ -583,3 +583,80 @@ describe('a computer turn waits for a person', () => {
     }
   })
 })
+
+/*
+ * A tab left open never re-fetches its own bundle on its own — the owner
+ * reported seeing a build from well before this session's work landed,
+ * still running in a tab nobody had reloaded. `useDeployedVersion` notices
+ * a newer build is live; this is what App does with that fact — reload
+ * where nothing is lost (the title screen, the results screen), and never
+ * where something would be (mid-game).
+ */
+describe('picking up a new deploy', () => {
+  let script: HTMLScriptElement
+
+  beforeEach(() => {
+    script = document.createElement('script')
+    script.type = 'module'
+    script.src = '/life-game/assets/index-AAAAAA.js'
+    document.head.appendChild(script)
+  })
+
+  afterEach(() => {
+    document.head.removeChild(script)
+    vi.unstubAllGlobals()
+  })
+
+  function mockNewerDeploy(): void {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: () =>
+          Promise.resolve(
+            '<!doctype html><html><head><script type="module" src="/life-game/assets/index-BBBBBB.js"></script></head></html>',
+          ),
+      }),
+    )
+  }
+
+  it('reloads on its own once a newer build is live and the title screen has nothing to lose', async () => {
+    vi.useFakeTimers()
+    try {
+      mockNewerDeploy()
+      const reload = vi.fn()
+      vi.stubGlobal('location', { ...window.location, reload })
+
+      render(<App store={newStore()} audio={createFakeAudioPort()} />)
+      expect(screen.getByRole('button', { name: /start game/i })).toBeInTheDocument()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000)
+      })
+
+      expect(reload).toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('leaves a game in progress alone, deploy or no deploy', async () => {
+    vi.useFakeTimers()
+    try {
+      mockNewerDeploy()
+      const reload = vi.fn()
+      vi.stubGlobal('location', { ...window.location, reload })
+
+      render(<App store={startedGame()} audio={createFakeAudioPort()} />)
+      expect(screen.getByRole('img', { name: /game board/i })).toBeInTheDocument()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000)
+      })
+
+      expect(reload).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
