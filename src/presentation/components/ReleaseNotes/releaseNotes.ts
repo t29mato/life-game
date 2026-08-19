@@ -23,6 +23,17 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
     date: 'August 19, 2026',
     whatsNew: [],
     changes: [
+      "The board is much bigger on a phone — roughly double, tile for tile. The wheel used to be free to grow as large as it liked above it with nothing guaranteeing the board any room in return; the board now always keeps at least half the screen, and the wheel gave up some of the space it didn't need to make that true.",
+    ],
+    fixes: [
+      "Fixed the title screen's floating dice, cap, and other decorations landing on top of the game's own name on a narrow phone screen.",
+    ],
+  },
+  {
+    version: 'v1.4.4',
+    date: 'August 19, 2026',
+    whatsNew: [],
+    changes: [
       "A tab left open now picks up a new release on its own. It checks quietly every so often and, the moment one is out, applies it the next time nothing would be lost — the title screen or the results screen — never mid-game.",
     ],
     fixes: [],
