@@ -131,6 +131,18 @@
   }
 }
 
+/* The floaters' positions are percentages of `.logoWrap`'s own width, tuned
+   against the wide margin a desktop wordmark has on either side of it. A
+   phone-width `.logoWrap` has almost no such margin, so the same percentages
+   land the dice and the graduation cap on top of the eyebrow line and the
+   wordmark itself — purely decorative, `aria-hidden`, so there is nothing
+   lost by standing them down where the room to float them in does not exist. */
+@media (max-width: 30rem) {
+  .floaters {
+    display: none;
+  }
+}
+
 .eyebrow {
   position: relative;
   font-size: clamp(0.6rem, 2vw, 0.72rem);

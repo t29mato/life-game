@@ -195,7 +195,11 @@
 
   .wheelBox {
     flex: none;
-    width: clamp(160px, 62cqw, 260px);
+    /* Sized down from the old 160-260px range: on a phone this card sits
+       directly above the board, and the wheel does not need to be the
+       biggest thing on screen there the way it earns to be on a spacious
+       desktop rail — the board does. */
+    width: clamp(110px, 40cqw, 170px);
     margin-top: 12px;
   }
 
@@ -209,7 +213,7 @@
   /* The hub is 31% of a much smaller wheel here; the landed number steps
      down with it rather than pressing against the hub's rim. */
   .hubValue {
-    font-size: 1.85rem;
+    font-size: 1.3rem;
   }
 }
 
@@ -219,7 +223,7 @@
 @media (max-height: 820px) {
   @container (max-width: 500px) {
     .wheelBox {
-      width: clamp(140px, 56cqw, 230px);
+      width: clamp(96px, 34cqw, 150px);
     }
   }
 }

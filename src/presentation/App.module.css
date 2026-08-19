@@ -515,7 +515,13 @@
 
   .main {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
+    /* The board used to take whatever the controls row left over, and the
+       controls row had no cap of its own — a bigger wheel (added for a
+       desktop complaint) quietly ate straight into the board's share on a
+       phone, until individual tiles rendered under 10px tall. `minmax(50dvh,
+       1fr)` puts a floor under it: the board always gets at least half the
+       screen, however tall the wheel and player cards below it want to be. */
+    grid-template-rows: minmax(50dvh, 1fr) auto;
     grid-template-areas:
       'board'
       'controls';
