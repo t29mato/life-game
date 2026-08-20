@@ -20,6 +20,17 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
+    date: 'August 21, 2026',
+    whatsNew: [],
+    changes: [
+      "The wheel spins from its own middle now — tap or click the center of the wheel itself to spin it, the same way a real board game's roulette works. The separate Spin button beside it is gone, so the wheel gets to be bigger for it. Space still spins it exactly as before.",
+      "A spin that has nothing to do with where anyone's token sits — tuition, a career choice, a promotion review, a marriage proposal — now turns front and centre in its own window over the middle of the screen, instead of down in the sidebar. An ordinary move roll still spins right beside the board, since that one decides where you actually go.",
+      "The camera fits the board's own route a little more snugly on a wide screen, trimming some of the empty space around the edges.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.4.5',
     date: 'August 19, 2026',
     whatsNew: [],
     changes: [

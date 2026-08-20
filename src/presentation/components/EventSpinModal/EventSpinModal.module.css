@@ -1,0 +1,71 @@
+/* ==========================================================================
+   EventSpinModal — the wheel, dealt onto the middle of the table for a spin
+   the board position has nothing to do with. Same room-dims-warm backdrop
+   DecisionModal uses, so the two read as the same family of interruption.
+   ========================================================================== */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(62, 48, 22, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: var(--z-modal);
+  animation: backdropIn var(--duration-base, 0.28s) var(--ease-out, ease-out) both;
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.card {
+  position: relative;
+  width: min(26rem, 100%);
+  max-height: min(90vh, 40rem);
+  overflow: hidden auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.3rem;
+  padding: 1.75rem 1.5rem 1.6rem;
+  background: var(--surface-grad);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--elev-3);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.kind {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.prompt {
+  font-family: var(--font-display, var(--font-rounded));
+  font-size: clamp(1.3rem, 5.5vw, 1.65rem);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.stakes {
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--ink-soft, var(--ink-faint));
+}

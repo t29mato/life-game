@@ -25,6 +25,14 @@ export interface SpinnerProps {
   readonly spinDuration?: number
   /** Seconds for the overshoot-settle bounce. Overridable for tests. */
   readonly settleDuration?: number
+  /**
+   * The desktop rail sits beside a board on every width, phone included —
+   * on a phone specifically, the board above it is what actually needs the
+   * screen, so the wheel gives up some of its own size on a narrow viewport
+   * to protect it. `EventSpinModal` has no board to protect: a spin with no
+   * bearing on the board's tiles gets the full-size wheel at any width.
+   */
+  readonly compact?: boolean
 }
 
 const WEDGE_COLORS = [
@@ -78,6 +86,7 @@ export function Spinner({
   autoSpinToken = 0,
   spinDuration = 2.2,
   settleDuration = 0.5,
+  compact = false,
 }: SpinnerProps): ReactElement {
   const audio = useAudio()
   const reduceMotion = usePrefersReducedMotion()
@@ -168,6 +177,7 @@ export function Spinner({
 
   const handleSpin = (): void => {
     if (disabled || spinning) return
+    audio.playSfx('confirm')
     armedRef.current = true
     setSpinToken((token) => token + 1)
     onSpin()
@@ -189,7 +199,7 @@ export function Spinner({
   const caption = spinning ? 'Spinning…' : ready ? 'Tap the wheel to spin' : ''
 
   return (
-    <div className={styles.wrap}>
+    <div className={[styles.wrap, compact ? styles.compact : ''].filter(Boolean).join(' ')}>
       <div
         className={[styles.wheelBox, spinning ? styles.spinning : '', ready ? styles.ready : '']
           .filter(Boolean)

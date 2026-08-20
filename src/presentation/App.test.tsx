@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createGameStore } from '@application/createGameStore'
@@ -145,8 +146,11 @@ describe('App play loop', () => {
  * promotion review — used to surface as a decision-list card with exactly
  * one entry in it: "Spin", pick it, Enter. The owner reported that this
  * felt like the result appeared without ever spinning, because it did — the
- * wheel in the rail stayed disabled throughout and never turned. It should
- * now hand the actual wheel to the player instead.
+ * wheel in the rail stayed disabled throughout and never turned. It now
+ * hands the actual wheel to the player instead, front and centre in
+ * `EventSpinModal` — the tile the pawn sits on has nothing to do with an
+ * event spin, so it gets the middle of the screen the same way a decision
+ * card does, rather than the rail beside the board.
  */
 function withPendingValueSpin(options: GameState['pendingDecision']): GameState {
   const store = startedGame()
@@ -154,7 +158,7 @@ function withPendingValueSpin(options: GameState['pendingDecision']): GameState 
 }
 
 describe('a single-option value spin', () => {
-  it('skips the decision-list card and hands the real wheel to the player', () => {
+  it('skips the decision-list card and hands the real wheel to the player, front and centre', () => {
     const state = withPendingValueSpin({
       kind: 'valueSpin',
       prompt: 'Tuition Bill',
@@ -170,9 +174,11 @@ describe('a single-option value spin', () => {
     const stub = createStubStore(state)
     render(<App store={stub} audio={createFakeAudioPort()} />)
 
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByText(/spin 1 to 10 to find out what you owe/i)).toBeInTheDocument()
 
+    // The rail's own wheel sits disabled and hidden from the accessibility
+    // tree behind the modal's — only one "Spin" button should ever resolve.
     const spinButton = screen.getByRole('button', { name: /^spin$/i })
     expect(spinButton).toBeEnabled()
 
@@ -241,7 +247,7 @@ describe('spinning from the keyboard', () => {
     expect(stub.commands).not.toContainEqual({ type: 'spin' })
   })
 
-  it('presses a single-option value spin on Space too', () => {
+  it('presses a single-option value spin on Space too', async () => {
     const state = withPendingValueSpin({
       kind: 'valueSpin',
       prompt: 'Tuition Bill',
@@ -250,7 +256,14 @@ describe('spinning from the keyboard', () => {
     const stub = createStubStore(state)
     render(<App store={stub} audio={createFakeAudioPort()} />)
 
-    fireEvent.keyDown(window, { key: ' ' })
+    // EventSpinModal's focus trap lands focus on the wheel's own button the
+    // instant it mounts, so Space here plays out through that button's
+    // native activation, not the global window handler — the same
+    // deferral "does nothing when some other control already has focus"
+    // above already covers for the rail's identical button.
+    expect(screen.getByRole('button', { name: /^spin$/i })).toHaveFocus()
+    const user = userEvent.setup()
+    await user.keyboard(' ')
 
     expect(stub.commands).toContainEqual({ type: 'choose', optionId: VALUE_SPIN_OPTION_ID })
   })

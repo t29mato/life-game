@@ -225,18 +225,21 @@
    growing taller instead. Matches the viewport breakpoint the rest of the
    stacked mobile layout uses in `App.module.css`, not a container query:
    the desktop rail is just as narrow as a phone card, but the two have to
-   size differently, and only the real viewport tells them apart. */
+   size differently, and only the real viewport tells them apart.
+
+   Scoped to `.compact` — the rail passes it, `EventSpinModal` does not,
+   because a spin with no bearing on the board has no board to protect. */
 @media (max-width: 999px) {
-  .wheelBox {
+  .compact .wheelBox {
     width: clamp(120px, 42vw, 190px);
     margin-top: 2px;
   }
 
-  .hubValue {
+  .compact .hubValue {
     font-size: 1.4rem;
   }
 
-  .caption {
+  .compact .caption {
     font-size: 0.7rem;
   }
 }
@@ -244,7 +247,7 @@
 /* A short room on top of a narrow phone width: every pixel the wheel gives
    up goes straight to the board above it. */
 @media (max-width: 999px) and (max-height: 720px) {
-  .wheelBox {
+  .compact .wheelBox {
     width: clamp(100px, 36vw, 160px);
   }
 }

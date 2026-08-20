@@ -12,7 +12,8 @@ import type { GameStore } from '@application/GameStore'
 import type { AudioPort, BgmTrack } from '@application/ports/AudioPort'
 import { AUTOSAVE_SLOT, SAVE_SLOT_COUNT } from '@application/ports/GameRepositoryPort'
 import { CPU_THINK_MS, decideCpuCommand } from '@application/cpu/decideCpuCommand'
-import type { GamePhase, GameState, NewGameConfig } from '@domain/model/types'
+import type { Decision, GamePhase, GameState, NewGameConfig } from '@domain/model/types'
+import { spinOriginOf, type SpinOrigin } from '@domain/rules/spin'
 
 import styles from './App.module.css'
 import { AudioToggle } from './components/AudioToggle/AudioToggle'
@@ -20,6 +21,7 @@ import { Board } from './components/Board/Board'
 import { ChunkyButton } from './components/ChunkyButton/ChunkyButton'
 import { DecisionModal } from './components/DecisionModal/DecisionModal'
 import { EventCard } from './components/EventCard/EventCard'
+import { EventSpinModal } from './components/EventSpinModal/EventSpinModal'
 import { GameLog } from './components/GameLog/GameLog'
 import { PlayerPanel } from './components/PlayerPanel/PlayerPanel'
 import { rankPlayers } from './components/PlayerPanel/rankPlayers'
@@ -122,12 +124,27 @@ export function App({ store, audio }: AppProps): ReactElement {
    */
   const [wheelSettled, setWheelSettled] = useState(true)
 
+  /*
+   * Which wheel is actually turning — the rail's (a movement roll) or the
+   * modal's (an event spin) — kept from the moment a press commits the roll
+   * until that wheel's own animation calls back, not just while a pending
+   * decision names one. `state.pendingDecision` clears the instant `choose`
+   * is dispatched, same tick as the roll itself; without this, the event
+   * modal would unmount mid-spin; the wheel it was showing would vanish
+   * along with it, and it would never get the chance to call back at all.
+   */
+  const [activeSpin, setActiveSpin] = useState<SpinOrigin | null>(null)
+
   const handleSpin = useCallback(() => {
     setWheelSettled(false)
+    setActiveSpin('movement')
     store.dispatch({ type: 'spin' })
   }, [store])
 
-  const handleSpinComplete = useCallback(() => setWheelSettled(true), [])
+  const handleSpinComplete = useCallback(() => {
+    setWheelSettled(true)
+    setActiveSpin(null)
+  }, [])
 
   /*
    * A value-spin decision (tuition, career choice…) commits its result to
@@ -148,25 +165,36 @@ export function App({ store, audio }: AppProps): ReactElement {
 
   /*
    * A value-spin decision with nothing to weigh — the tuition bill, a
-   * promotion review, a marriage proposal — is really just "press Spin",
-   * same as the ordinary move roll. Routing it through the same wheel the
-   * move roll uses, instead of a decision-list card with one entry in it,
-   * is what actually makes it feel like a spin: the number lands on the
-   * wheel the player can see, rather than simply appearing in the result
-   * card. A decision that also offers a real second option (Stay) still
-   * shows the full card, because there is an actual choice to weigh there.
+   * promotion review, a marriage proposal, career choice — is really just
+   * "press Spin", same shape as the ordinary move roll: `spinOriginOf`
+   * (domain layer) is what tells the two apart. The tile position means
+   * something to a movement roll and nothing to an event spin, which is
+   * why an event spin gets the middle of the screen instead of the rail
+   * beside the board — see `EventSpinModal`. A decision that also offers a
+   * real second option (Stay) still shows the ordinary card, because there
+   * is an actual choice to weigh there, not just a wheel to press.
    */
   const singleSpinDecision =
-    state.phase === 'awaitingDecision' &&
-    state.pendingDecision?.kind === 'valueSpin' &&
-    state.pendingDecision.options.length === 1
+    spinOriginOf(state.phase, state.pendingDecision) === 'event' && state.pendingDecision?.options.length === 1
       ? state.pendingDecision
       : null
+
+  /*
+   * The decision `EventSpinModal` shows text for. `state.pendingDecision`
+   * clears the instant `choose` is dispatched — same reasoning as
+   * `activeSpin` above, and updated the same way, so the modal has
+   * something to render from until its own wheel finishes turning.
+   */
+  const [displayedEventDecision, setDisplayedEventDecision] = useState<Decision | null>(null)
+  useEffect(() => {
+    if (singleSpinDecision) setDisplayedEventDecision(singleSpinDecision)
+  }, [singleSpinDecision])
 
   const handleValueSpin = useCallback(() => {
     const optionId = singleSpinDecision?.options[0]?.id
     if (!optionId) return
     setWheelSettled(false)
+    setActiveSpin('event')
     store.dispatch({ type: 'choose', optionId })
   }, [singleSpinDecision, store])
 
@@ -251,6 +279,12 @@ export function App({ store, audio }: AppProps): ReactElement {
     handoffAcknowledged !== turnKey
 
   const handleHandoffReady = useCallback(() => setHandoffAcknowledged(turnKey), [turnKey])
+
+  // Visible for the whole life of the wheel it owns — from the moment the
+  // decision names the stakes through the animation `handleValueSpin` sets
+  // off, which is why this checks `activeSpin` too and not just the (by
+  // then already-cleared) decision. See the comment by `activeSpin` above.
+  const eventSpinVisible = (singleSpinDecision !== null || activeSpin === 'event') && !handoffVisible
 
   // --- live standings ----------------------------------------------------
   // Tie-aware, and priced at this game's difficulty: a harder game settles
@@ -489,21 +523,22 @@ export function App({ store, audio }: AppProps): ReactElement {
               moved off the board's other flank so the board could take that
               width — see `.main` in App.module.css. */}
           <aside className={styles.controlRail} aria-label="Spinner and players">
-            {singleSpinDecision && !handoffVisible && (
-              <div className={styles.spinPrompt}>
-                <span className={styles.spinPromptKind}>The wheel</span>
-                <p className={styles.spinPromptText}>
-                  {singleSpinDecision.options[0]?.description || singleSpinDecision.prompt}
-                </p>
-              </div>
-            )}
-            <div className={styles.spinnerCard}>
+            {/* The rail's wheel is the movement roll now and only the
+                movement roll — an event spin gets its own wheel, front and
+                centre, in `EventSpinModal` below. `aria-hidden` while that
+                modal is up: this one is inert then (disabled, and correctly
+                so — there is nothing to move yet), and left findable it is
+                a second button named "Spin" a keyboard or screen-reader
+                user would run into for no reason, on top of being a second
+                match for anything that queries the page by that name. */}
+            <div className={styles.spinnerCard} aria-hidden={eventSpinVisible || undefined}>
               <Spinner
                 result={state.lastSpin}
-                disabled={!(state.phase === 'awaitingSpin' || singleSpinDecision) || handoffVisible}
-                onSpin={singleSpinDecision ? handleValueSpin : handleSpin}
+                disabled={state.phase !== 'awaitingSpin' || handoffVisible}
+                onSpin={handleSpin}
                 onSpinComplete={handleSpinComplete}
                 autoSpinToken={autoSpinToken}
+                compact
               />
             </div>
 
@@ -558,6 +593,20 @@ export function App({ store, audio }: AppProps): ReactElement {
             isCpu={activePlayer?.isCpu === true}
             cpuPlayerName={activePlayer?.name ?? ''}
             onChoose={(optionId) => store.dispatch({ type: 'choose', optionId })}
+          />
+        )}
+
+        {/* An event spin's own wheel — tuition, a promotion review, a
+            marriage proposal, career choice. The tile position has nothing
+            to do with any of these, so unlike the movement roll this one
+            gets the middle of the screen, not the rail beside the board. */}
+        {eventSpinVisible && displayedEventDecision && (
+          <EventSpinModal
+            decision={displayedEventDecision}
+            result={state.lastSpin}
+            onSpin={handleValueSpin}
+            onSpinComplete={handleSpinComplete}
+            autoSpinToken={autoSpinToken}
           />
         )}
 

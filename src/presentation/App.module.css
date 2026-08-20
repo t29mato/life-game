@@ -314,40 +314,12 @@
   min-height: 0;
 }
 
-/* The stakes of a single-option value spin (tuition, a promotion review, a
-   marriage proposal…), shown above the wheel instead of a decision-list
-   modal with one entry in it — the player reads what is on the line, then
-   presses the wheel itself to find out. */
-.spinPrompt {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 14px;
-  border-radius: var(--radius-lg);
-  background: var(--surface-grad);
-  box-shadow: var(--elev-1);
-}
-
-.spinPromptKind {
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.spinPromptText {
-  font-size: 0.86rem;
-  line-height: 1.35;
-  color: var(--ink);
-}
-
-/* A shallow paper tray the wheel sits in. It is also this rail's container —
-   `Spinner` watches the width it is given here and folds its wheel and
-   trigger side by side when the column is narrow. See the container query
-   in Spinner.module.css. */
+/* A shallow paper tray the wheel sits in — the movement roll's wheel now,
+   and only the movement roll's. An event spin (tuition, a promotion
+   review, a marriage proposal, career choice) shows its own wheel in
+   `EventSpinModal`, front and centre, since the tile position this rail
+   sits beside means nothing to a spin like that. */
 .spinnerCard {
-  container-type: inline-size;
   display: flex;
   flex: none;
   justify-content: center;
