@@ -26,24 +26,16 @@
   animation: popIn var(--duration-fast, 0.16s) var(--ease-out, ease-out) both;
 }
 
-/* Opens toward whichever side of the tap has room: below and centred by
-   default, flipped above when the tap sits low on the screen, and nudged
-   off-centre horizontally near either edge so the card is never clipped by
-   the viewport it opened in. */
+/* Opens below the tap and centred on it by default, flipped above when the
+   tap sits low on the screen. Always centred horizontally — `left` itself
+   is already clamped to the viewport in TilePopover.tsx, not this CSS, so
+   there is only ever the one horizontal case to handle here. */
 .card[data-side='below'] {
   translate: -50% 14px;
 }
 
 .card[data-side='above'] {
   translate: -50% calc(-100% - 14px);
-}
-
-.card[data-side='below'][data-align='left'] {
-  translate: calc(-100% + 20px) 14px;
-}
-
-.card[data-side='above'][data-align='left'] {
-  translate: calc(-100% + 20px) calc(-100% - 14px);
 }
 
 @keyframes popIn {

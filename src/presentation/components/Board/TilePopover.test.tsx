@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Space } from '@domain/model/types'
 import { TilePopover } from './TilePopover'
 
@@ -82,5 +82,41 @@ describe('TilePopover', () => {
     await user.click(screen.getByRole('button', { name: /close/i }))
 
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  describe('staying inside the viewport on a narrow screen', () => {
+    const originalWidth = window.innerWidth
+
+    function setViewportWidth(width: number): void {
+      Object.defineProperty(window, 'innerWidth', { value: width, configurable: true })
+    }
+
+    afterEach(() => {
+      setViewportWidth(originalWidth)
+    })
+
+    /**
+     * The actual reported bug: a tap near the *left* edge of a phone screen
+     * centred the card on it anyway, and half the card's own width ran off
+     * the edge — reading START, but showing only its last two letters. Only
+     * the *right* edge was ever clamped against before this.
+     */
+    it('shifts right rather than centring on a tap near the left edge', () => {
+      setViewportWidth(390)
+      render(<TilePopover space={makeSpace()} anchor={{ x: 20, y: 300 }} onClose={() => {}} />)
+
+      const left = Number.parseFloat(screen.getByRole('dialog').style.left)
+      // Centred (translate: -50%) on this `left`, so the card's own left
+      // edge lands at `left - cardWidth / 2` — never negative.
+      expect(left).toBeGreaterThanOrEqual(140)
+    })
+
+    it('shifts left rather than centring on a tap near the right edge', () => {
+      setViewportWidth(390)
+      render(<TilePopover space={makeSpace()} anchor={{ x: 380, y: 300 }} onClose={() => {}} />)
+
+      const left = Number.parseFloat(screen.getByRole('dialog').style.left)
+      expect(left).toBeLessThanOrEqual(390 - 140)
+    })
   })
 })

@@ -21,6 +21,15 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
     date: 'August 25, 2026',
+    whatsNew: [],
+    changes: [],
+    fixes: [
+      "Fixed a tap near the left edge of a phone screen opening a space's card half off the side of the screen instead of shifting clear of the edge.",
+    ],
+  },
+  {
+    version: 'v1.5.2',
+    date: 'August 25, 2026',
     whatsNew: [
       "Drag the board — swipe, on a phone — to look around it freely, any time it isn't your turn to actually move. Nothing to hold or release, it just goes where you take it.",
       "Tap any space for its own card: what kind of space it is and what actually happens there, pulled straight from the same rules the game itself plays by.",
