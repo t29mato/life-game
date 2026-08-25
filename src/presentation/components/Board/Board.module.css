@@ -189,6 +189,21 @@
   display: block;
   width: 100%;
   height: auto;
+  /* Free-look drag/swipe owns pointer gestures on the board now — without
+     this, touch tries to scroll or pinch-zoom the page underneath it at
+     the same time a finger is panning the map. */
+  touch-action: none;
+  cursor: grab;
+}
+
+.svg:active {
+  cursor: grabbing;
+}
+
+/* Only a tile itself invites a tap — the road and scenery around it are
+   there to be panned, not pressed. */
+.svg [data-space] {
+  cursor: pointer;
 }
 
 /* ---- Filling a cell with a hard height ------------------------------------

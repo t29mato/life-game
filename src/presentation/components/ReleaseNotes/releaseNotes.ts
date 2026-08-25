@@ -21,6 +21,18 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
     date: 'August 25, 2026',
+    whatsNew: [
+      "Drag the board — swipe, on a phone — to look around it freely, any time it isn't your turn to actually move. Nothing to hold or release, it just goes where you take it.",
+      "Tap any space for its own card: what kind of space it is and what actually happens there, pulled straight from the same rules the game itself plays by.",
+    ],
+    changes: [],
+    fixes: [
+      "Fixed the tighter camera crop from the last release occasionally leaving a player's own car outside the wide shot between turns.",
+    ],
+  },
+  {
+    version: 'v1.5.1',
+    date: 'August 25, 2026',
     whatsNew: [],
     changes: [
       "The board fills the screen corner to corner now — the camera crops in tight instead of leaving spare room around the map, so it reads bigger even though the outermost row can run a sliver past the edge on some screens.",

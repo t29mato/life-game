@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useId, useMemo, useRef, type ReactElement } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactElement,
+} from 'react'
 import { animate, useMotionValue, type AnimationPlaybackControls } from 'framer-motion'
 import type { Board as BoardModel, GamePhase, Player, Space, SpaceId } from '@domain/model/types'
 import { GameIconGlyph } from '../../icons/GameIcon'
@@ -37,6 +46,7 @@ import {
   type CameraShot,
 } from './camera'
 import { Pocket, Scenery } from './Scenery'
+import { TilePopover } from './TilePopover'
 import styles from './Board.module.css'
 
 export interface BoardProps {
@@ -96,6 +106,9 @@ const CAMERA_SECONDS = 0.62
 const FOLLOW_SECONDS = 0.34
 const FLYTHROUGH_SECONDS = 0.9
 const CAMERA_EASE: readonly [number, number, number, number] = [0.16, 1, 0.3, 1]
+
+/** How far a pointer may drift from where it went down and still count as a tap on the tile under it, not a pan past it. */
+const TAP_THRESHOLD_PX = 6
 
 interface TileView {
   readonly space: Space
@@ -252,6 +265,7 @@ export function Board({
   const pawnRefs = useRef<Map<string, PawnHandle>>(new Map())
   const movingRef = useRef(false)
   const surfaceRef = useRef<HTMLDivElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
 
   /**
    * The space each pawn is drawn resting on — distinct from `player.spaceId`
@@ -314,11 +328,24 @@ export function Board({
     [players, spreadX, spreadY],
   )
 
+  /**
+   * Every player's own car, at the exact point it is actually drawn — lifted
+   * onto its tile's face and fanned clear of whoever else is parked there,
+   * same as `pointOf` computes for the pawn itself — not just the tile
+   * centre `routeBounds` measures. Folded into the wide shot below so a cover
+   * crop can never take a parked car's own tile out of frame while still
+   * leaving the car itself, fanned toward the edge, outside it.
+   */
+  const playerPoints = useMemo<readonly Point[]>(
+    () => players.map((player, index) => pointOf(board, projection, player.spaceId, fanOffset(player.spaceId, index))),
+    [players, board, projection, fanOffset],
+  )
+
   /* ── the camera ────────────────────────────────────────────────────────
      Driven as a transform on a group inside a viewBox that never changes,
      rather than by rewriting the viewBox itself: React owns that attribute and
      would reset it on every re-render, which is a fight the camera loses. */
-  const opening = wideShot(projection, board)
+  const opening = wideShot(projection, board, playerPoints)
   const initial = cameraTransform(projection, opening)
   const camX = useMotionValue(initial.x)
   const camY = useMotionValue(initial.y)
@@ -393,6 +420,102 @@ export function Board({
   }, [])
 
   /**
+   * Free look: drag the board (swipe on touch) to pan it, and tap a tile
+   * for its own card — see `TilePopover`. No inertia and no snap-back, on
+   * purpose: a look around is over the moment the player lets go.
+   *
+   * Suspended while a car is actually hopping between tiles (`phase ===
+   * 'moving'`): the movement effect below is mid-animation on this exact
+   * camera then, `await`ing each leg's own `applyShot` to finish, and
+   * stopping that animation out from under it would leave that `await`
+   * waiting on a promise that had already been abandoned — freezing the
+   * play loop the same way an interrupted spin once did. Waiting for a
+   * spin, weighing a decision, or resting on what a turn resolved to are
+   * all fair game: the camera has nothing of its own to say in those
+   * moments, so there is nothing a drag can go on to fight.
+   *
+   * A tap is not a pan cut short — it is judged by how far the pointer
+   * actually travelled, not by whether one happened to land on a tile, so a
+   * drag that happens to end over a tile never also opens that tile's card.
+   */
+  const dragRef = useRef<{
+    readonly pointerId: number
+    readonly startX: number
+    readonly startY: number
+    readonly camX0: number
+    readonly camY0: number
+    readonly panning: boolean
+    moved: number
+  } | null>(null)
+  const [selectedTile, setSelectedTile] = useState<{ readonly space: Space; readonly anchor: Point } | null>(
+    null,
+  )
+
+  const handleBoardPointerDown = useCallback(
+    (event: ReactPointerEvent<SVGSVGElement>) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return
+      const panning = phase !== 'moving'
+      dragRef.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        camX0: camX.get(),
+        camY0: camY.get(),
+        panning,
+        moved: 0,
+      }
+      event.currentTarget.setPointerCapture?.(event.pointerId)
+      if (panning) {
+        cameraControls.current.forEach((controls) => controls.stop())
+        cameraControls.current = []
+        flyingRef.current = false
+      }
+    },
+    [phase, camX, camY],
+  )
+
+  const handleBoardPointerMove = useCallback(
+    (event: ReactPointerEvent<SVGSVGElement>) => {
+      const drag = dragRef.current
+      if (!drag || event.pointerId !== drag.pointerId) return
+      const dxScreen = event.clientX - drag.startX
+      const dyScreen = event.clientY - drag.startY
+      drag.moved = Math.max(drag.moved, Math.hypot(dxScreen, dyScreen))
+      if (!drag.panning) return
+
+      const svg = svgRef.current
+      const rect = svg?.getBoundingClientRect()
+      if (!rect || rect.width === 0 || rect.height === 0) return
+
+      // The svg's own viewBox-to-CSS scale ("slice" — see Board.tsx's JSX):
+      // one viewBox unit of camera translate is this many rendered pixels,
+      // so a drag in screen pixels converts back by dividing it out.
+      const renderScale = Math.max(rect.width / projection.viewWidth, rect.height / projection.viewHeight)
+      const scale = camScale.get()
+      const minX = projection.viewWidth * (1 - scale)
+      const minY = projection.viewHeight * (1 - scale)
+      camX.set(clamp(drag.camX0 + dxScreen / renderScale, minX, 0))
+      camY.set(clamp(drag.camY0 + dyScreen / renderScale, minY, 0))
+    },
+    [projection, camX, camY, camScale],
+  )
+
+  const handleBoardPointerUp = useCallback(
+    (event: ReactPointerEvent<SVGSVGElement>) => {
+      const drag = dragRef.current
+      if (!drag || event.pointerId !== drag.pointerId) return
+      dragRef.current = null
+      if (drag.moved > TAP_THRESHOLD_PX) return
+
+      const hit = document.elementFromPoint(event.clientX, event.clientY)
+      const spaceId = hit?.closest('[data-space]')?.getAttribute('data-space')
+      const space = spaceId ? board.spaces[spaceId] : undefined
+      if (space) setSelectedTile({ space, anchor: { x: event.clientX, y: event.clientY } })
+    },
+    [board],
+  )
+
+  /**
    * The opening sweep. Before the first spin the camera runs the length of the
    * route, so the players see the life ahead of them — school, the wedding, the
    * houses, the coast at the end — rather than meeting it a tile at a time.
@@ -405,13 +528,13 @@ export function Board({
     if (!introFlythrough) return
     if (reduceMotion) {
       flyingRef.current = false
-      void applyShot(wideShot(projection, board), 0)
+      void applyShot(wideShot(projection, board, playerPoints), 0)
       return
     }
 
     let cancelled = false
     const run = async (): Promise<void> => {
-      for (const shot of flythroughShots(board, projection)) {
+      for (const shot of flythroughShots(board, projection, 6, playerPoints)) {
         if (cancelled) return
         await applyShot(shot, FLYTHROUGH_SECONDS)
       }
@@ -451,14 +574,14 @@ export function Board({
       previousRestPlayerId.current = activePlayer?.id ?? null
       const framed = space
         ? focusShot(projection, projection.project(space.layout), RESOLVE_ZOOM)
-        : wideShot(projection, board)
+        : wideShot(projection, board, playerPoints)
       void applyShot(framed, reduceMotion ? 0 : CAMERA_SECONDS)
       return
     }
 
     const changedPlayer = previousRestPlayerId.current !== (activePlayer?.id ?? null)
     previousRestPlayerId.current = activePlayer?.id ?? null
-    const sequence = restSequence(board, projection, space, changedPlayer && !reduceMotion)
+    const sequence = restSequence(board, projection, space, changedPlayer && !reduceMotion, playerPoints)
 
     let cancelled = false
     void (async () => {
@@ -539,6 +662,7 @@ export function Board({
     <div className={styles.frame} data-edition={editionId}>
       <div className={styles.surface} ref={surfaceRef}>
         <svg
+          ref={svgRef}
           className={styles.svg}
           viewBox={`0 0 ${projection.viewWidth} ${projection.viewHeight}`}
           role="img"
@@ -550,6 +674,10 @@ export function Board({
              camera (`wideShot`) already does the same trade at the route
              level: bigger and cropped beats smaller and fully in frame. */
           preserveAspectRatio="xMidYMid slice"
+          onPointerDown={handleBoardPointerDown}
+          onPointerMove={handleBoardPointerMove}
+          onPointerUp={handleBoardPointerUp}
+          onPointerCancel={handleBoardPointerUp}
         >
           <defs>
             <linearGradient id={sheenId} x1="0" y1="0" x2="0" y2="1">
@@ -882,6 +1010,14 @@ export function Board({
           </li>
         ))}
       </ul>
+
+      {selectedTile && (
+        <TilePopover
+          space={selectedTile.space}
+          anchor={selectedTile.anchor}
+          onClose={() => setSelectedTile(null)}
+        />
+      )}
     </div>
   )
 }

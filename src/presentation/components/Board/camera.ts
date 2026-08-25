@@ -85,27 +85,71 @@ export function routeBounds(board: Board, projection: BoardProjection): CameraRe
  */
 export const WIDE_SHOT_PADDING_TILES = 0.25
 
+/** The bounding box of `bounds` widened to also cover every point in `points`. */
+function withExtraPoints(bounds: CameraRect, points: readonly Point[]): CameraRect {
+  if (points.length === 0) return bounds
+  const xs = [bounds.x, bounds.x + bounds.width, ...points.map((p) => p.x)]
+  const ys = [bounds.y, bounds.y + bounds.height, ...points.map((p) => p.y)]
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
+}
+
 /**
- * The overview shot: the route's own bounding box (`routeBounds`) filling
- * the frame, not merely fitted inside it. `Math.max` rather than `Math.min`
- * on purpose — a fork's aspect ratio essentially never matches the
- * viewBox's, and fitting the *shorter* axis (`Math.min`) left the *longer*
- * axis showing real board past the outermost tile, past the point where it
- * read as "the map is mostly empty ground" rather than as a frame. Filling
- * the *longer* axis instead means the shorter one now crops a sliver off
- * the route at the outermost edge — a deliberate trade the owner asked
- * for: looking big beats staying fully in frame.
+ * The overview shot: `routeBounds` filling the frame rather than merely
+ * fitting inside it. `Math.max` rather than `Math.min` on purpose — a
+ * fork's aspect ratio essentially never matches the viewBox's, and fitting
+ * the *shorter* axis (`Math.min`) left the *longer* axis showing real board
+ * past the outermost tile, past the point where it read as "the map is
+ * mostly empty ground" rather than as a frame. Filling the *longer* axis
+ * instead means the shorter one now crops a sliver off the route at the
+ * outermost edge — a deliberate trade the owner asked for: looking big
+ * beats staying fully in frame.
+ *
+ * `playerPoints` — every current player's own car, at the exact point it is
+ * actually drawn (see `pointOf` in `Board.tsx`), not just the tile-centre
+ * box `routeBounds` measures — is only ever allowed to pull the frame
+ * *out*, never further in. If the ordinary cover-cropped frame above
+ * already holds every one of them, it is used unchanged: the common case
+ * loses nothing. Only a player a cover crop would genuinely have cut out of
+ * frame forces a fall back to a fit — `Math.min`, contain rather than
+ * cover — of the *route and that player together*, which by construction
+ * can never crop either one. A car parked in a tight corner therefore costs
+ * a little of the "big" look right then; nothing else does.
  */
-export function wideShot(projection: BoardProjection, board: Board): CameraShot {
+export function wideShot(
+  projection: BoardProjection,
+  board: Board,
+  playerPoints: readonly Point[] = [],
+): CameraShot {
   const bounds = routeBounds(board, projection)
   const pad = projection.tileSize * WIDE_SHOT_PADDING_TILES
-  const paddedWidth = bounds.width + pad * 2
-  const paddedHeight = bounds.height + pad * 2
-  const zoom =
-    paddedWidth <= 0 || paddedHeight <= 0
+  const padded: CameraRect = { x: bounds.x - pad, y: bounds.y - pad, width: bounds.width + pad * 2, height: bounds.height + pad * 2 }
+
+  const routeZoom =
+    padded.width <= 0 || padded.height <= 0
       ? WIDE_ZOOM
-      : Math.max(WIDE_ZOOM, projection.viewWidth / paddedWidth, projection.viewHeight / paddedHeight)
-  return { cx: bounds.x + bounds.width / 2, cy: bounds.y + bounds.height / 2, zoom }
+      : Math.max(WIDE_ZOOM, projection.viewWidth / padded.width, projection.viewHeight / padded.height)
+  const routeCx = padded.x + padded.width / 2
+  const routeCy = padded.y + padded.height / 2
+
+  if (playerPoints.length === 0) return { cx: routeCx, cy: routeCy, zoom: routeZoom }
+
+  const halfW = projection.viewWidth / routeZoom / 2
+  const halfH = projection.viewHeight / routeZoom / 2
+  const allInFrame = playerPoints.every(
+    (p) => Math.abs(p.x - routeCx) <= halfW && Math.abs(p.y - routeCy) <= halfH,
+  )
+  if (allInFrame) return { cx: routeCx, cy: routeCy, zoom: routeZoom }
+
+  const union = withExtraPoints(padded, playerPoints)
+  const zoom =
+    union.width <= 0 || union.height <= 0
+      ? WIDE_ZOOM
+      : Math.max(WIDE_ZOOM, Math.min(projection.viewWidth / union.width, projection.viewHeight / union.height))
+  return { cx: union.x + union.width / 2, cy: union.y + union.height / 2, zoom }
 }
 
 /**
@@ -223,9 +267,10 @@ export function restSequence(
   projection: BoardProjection,
   space: Space | undefined,
   establishing: boolean,
+  playerPoints: readonly Point[] = [],
 ): readonly CameraShot[] {
-  const rest = space ? restShot(board, projection, space) : wideShot(projection, board)
-  return establishing ? [wideShot(projection, board), rest] : [rest]
+  const rest = space ? restShot(board, projection, space) : wideShot(projection, board, playerPoints)
+  return establishing ? [wideShot(projection, board, playerPoints), rest] : [rest]
 }
 
 /**
@@ -243,6 +288,7 @@ export function flythroughShots(
   board: Board,
   projection: BoardProjection,
   stops = 6,
+  playerPoints: readonly Point[] = [],
 ): readonly CameraShot[] {
   const route: Point[] = []
   const seen = new Set<SpaceId>()
@@ -256,7 +302,7 @@ export function flythroughShots(
     id = space.next[0]
   }
 
-  if (route.length === 0) return [wideShot(projection, board)]
+  if (route.length === 0) return [wideShot(projection, board, playerPoints)]
 
   const wanted = Math.max(1, Math.min(stops, route.length))
   const shots: CameraShot[] = []
@@ -265,6 +311,6 @@ export function flythroughShots(
     const at = route[wanted === 1 ? 0 : Math.round((i * (route.length - 1)) / (wanted - 1))] as Point
     shots.push(focusShot(projection, at, FLYTHROUGH_ZOOM))
   }
-  shots.push(wideShot(projection, board))
+  shots.push(wideShot(projection, board, playerPoints))
   return shots
 }

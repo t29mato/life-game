@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   BoardLength,
@@ -11,7 +11,7 @@ import { createBoard } from '@domain/board/createBoard'
 import { AudioProvider } from '../../hooks/useAudio'
 import { createFakeAudioPort } from '../../dev/fakeAudio'
 import { Board, type BoardProps } from './Board'
-import { createProjection } from './boardLayout'
+import { createProjection, slabMetrics, spaceAccent } from './boardLayout'
 import { cameraTransform, focusShot, restShot, wideShot, RESOLVE_ZOOM } from './camera'
 
 function mockReducedMotion(matches: boolean): void {
@@ -215,10 +215,17 @@ describe('Board', () => {
       mockReducedMotion(false)
       const { getByTestId } = renderBoard({ board: model, phase: 'resolved' })
 
+      // The lone default player parks on `start`, lifted onto its tile's own
+      // face same as `pointOf` computes for the pawn itself — folded into
+      // the wide shot the same way Board.tsx's own mount does.
+      const startSpace = model.spaces['start']!
+      const startDepth = slabMetrics(projection, spaceAccent(startSpace)).depth
+      const playerPoint = projection.lift(projection.project(startSpace.layout), startDepth)
+
       // Still framing the whole board on the first frame: the move is animated.
       expect(getByTestId('board-camera')).toHaveAttribute(
         'transform',
-        written(cameraTransform(projection, wideShot(projection, model))),
+        written(cameraTransform(projection, wideShot(projection, model, [playerPoint]))),
       )
     })
 
@@ -590,6 +597,103 @@ describe('Board', () => {
       // ones — however many other players are elsewhere on the board.
       const distance = Math.hypot(bo.x - cass.x, bo.y - cass.y)
       expect(distance).toBeGreaterThan(20)
+    })
+  })
+
+  describe('free look', () => {
+    function fakeRect(width: number, height: number): DOMRect {
+      return {
+        width,
+        height,
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: width,
+        bottom: height,
+        toJSON: () => ({}),
+      } as DOMRect
+    }
+
+    // jsdom does not implement `elementFromPoint` at all — there is no real
+    // layout for it to hit-test against — so it has to be defined before it
+    // can be mocked, rather than merely stubbed. `document` is shared
+    // across every test in this file, so it is torn back down afterwards
+    // rather than left to leak a detached tile into whatever test runs next.
+    afterEach(() => {
+      delete (document as { elementFromPoint?: unknown }).elementFromPoint
+    })
+
+    it('opens a tile’s own card on a tap, reading straight off its space definition', () => {
+      mockReducedMotion(true)
+      const { container } = renderBoard()
+      const tile = container.querySelector('[data-space="c"]') as Element
+      document.elementFromPoint = vi.fn().mockReturnValue(tile)
+
+      const svg = screen.getByRole('img', { name: 'Game board' })
+      fireEvent.pointerDown(svg, { pointerId: 1, clientX: 100, clientY: 100 })
+      fireEvent.pointerUp(svg, { pointerId: 1, clientX: 101, clientY: 99 })
+
+      const card = screen.getByRole('dialog', { name: 'Wedding' })
+      expect(card).toHaveTextContent('Space')
+      expect(card).toHaveTextContent('A space.')
+    })
+
+    it('does not open a card when the pointer drags past the tap threshold first', () => {
+      mockReducedMotion(true)
+      const { container } = renderBoard()
+      const tile = container.querySelector('[data-space="c"]') as Element
+      document.elementFromPoint = vi.fn().mockReturnValue(tile)
+
+      const svg = screen.getByRole('img', { name: 'Game board' })
+      fireEvent.pointerDown(svg, { pointerId: 1, clientX: 100, clientY: 100 })
+      fireEvent.pointerMove(svg, { pointerId: 1, clientX: 160, clientY: 100 })
+      fireEvent.pointerUp(svg, { pointerId: 1, clientX: 160, clientY: 100 })
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('pans the camera transform while dragging when nothing else is animating it', () => {
+      mockReducedMotion(true)
+      const { getByTestId } = renderBoard({ phase: 'awaitingSpin' })
+      const svg = screen.getByRole('img', { name: 'Game board' })
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue(fakeRect(800, 600))
+
+      const before = getByTestId('board-camera').getAttribute('transform')
+      fireEvent.pointerDown(svg, { pointerId: 1, clientX: 200, clientY: 200 })
+      fireEvent.pointerMove(svg, { pointerId: 1, clientX: 120, clientY: 160 })
+
+      expect(getByTestId('board-camera').getAttribute('transform')).not.toEqual(before)
+    })
+
+    /**
+     * The risk a suspended-during-`moving` drag exists to head off: the
+     * movement effect is `await`ing this exact camera's own animation to
+     * finish, leg by leg. Stopping that animation out from under it — same
+     * mechanism `cameraControls.current.forEach(stop)` — would leave that
+     * `await` on a promise `framer-motion` never resolves, freezing the
+     * play loop the same way an interrupted spin once did. This drives an
+     * actual move and drags across it rather than asserting on the
+     * transform directly, so it would catch exactly that freeze if the
+     * suspension above were ever lost.
+     */
+    it('does not stall a move in progress when the player drags mid-hop', async () => {
+      mockReducedMotion(true)
+      const onMovementComplete = vi.fn()
+      renderBoard({
+        players: [makePlayer({ id: 'p1', spaceId: 'start' })],
+        phase: 'moving',
+        movementPath: ['b', 'c'],
+        onMovementComplete,
+      })
+      const svg = screen.getByRole('img', { name: 'Game board' })
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue(fakeRect(800, 600))
+
+      fireEvent.pointerDown(svg, { pointerId: 1, clientX: 200, clientY: 200 })
+      fireEvent.pointerMove(svg, { pointerId: 1, clientX: 120, clientY: 160 })
+      fireEvent.pointerUp(svg, { pointerId: 1, clientX: 120, clientY: 160 })
+
+      await waitFor(() => expect(onMovementComplete).toHaveBeenCalledTimes(1))
     })
   })
 })

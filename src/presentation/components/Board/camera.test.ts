@@ -126,6 +126,42 @@ describe('wideShot', () => {
     const empty: Board = { ...model, spaces: {} }
     expect(wideShot(projection, empty).zoom).toBe(1)
   })
+
+  /**
+   * A car parks lifted off its tile and fanned clear of whoever else is
+   * there — see `pointOf` in `Board.tsx` — so its actual drawn position can
+   * sit outside the plain tile-centre box `routeBounds` measures. A cover
+   * crop fit only to the route could crop a car parked at the outermost
+   * edge out of frame entirely; `playerPoints` is the guarantee that never
+   * happens. `shotRect` separately clamps to the fixed viewBox no matter
+   * what `wideShot` asks for — a point past the *viewBox's own* edge is not
+   * a car this game ever actually draws, so the point used here is just
+   * outside the route rather than outside the world.
+   */
+  it('pulls the frame out to keep a player point just outside the ordinary crop in view', () => {
+    const bounds = routeBounds(model, projection)
+    const justOutside = { x: bounds.x + bounds.width + projection.tileSize * 2, y: bounds.y + bounds.height / 2 }
+
+    const rect = shotRect(projection, wideShot(projection, model, [justOutside]))
+
+    expect(rect.x).toBeLessThanOrEqual(justOutside.x + 0.01)
+    expect(rect.x + rect.width).toBeGreaterThanOrEqual(justOutside.x - 0.01)
+  })
+
+  it('leaves the ordinary cover-cropped frame untouched when every player is already inside it', () => {
+    const bounds = routeBounds(model, projection)
+    // Dead centre of the route — comfortably inside any reasonable crop.
+    const centred = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }
+
+    expect(wideShot(projection, model, [centred])).toEqual(wideShot(projection, model))
+  })
+
+  it('only ever zooms out to make room for a player, never in', () => {
+    const bounds = routeBounds(model, projection)
+    const justOutside = { x: bounds.x + bounds.width + projection.tileSize * 2, y: bounds.y + bounds.height / 2 }
+
+    expect(wideShot(projection, model, [justOutside]).zoom).toBeLessThan(wideShot(projection, model).zoom)
+  })
 })
 
 describe('focusShot', () => {
