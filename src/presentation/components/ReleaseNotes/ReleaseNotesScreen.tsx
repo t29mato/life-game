@@ -1,5 +1,6 @@
 import { useEffect, useRef, type KeyboardEvent, type ReactElement } from 'react'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
+import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { RELEASE_NOTES, type ReleaseNote } from './releaseNotes'
 import styles from './ReleaseNotesScreen.module.css'
 
@@ -27,6 +28,12 @@ export function ReleaseNotesScreen({ onClose }: ReleaseNotesScreenProps): ReactE
   useEffect(() => {
     headingRef.current?.focus()
   }, [])
+
+  // A screen, not a dialog sitting over the title — but with nothing of its
+  // own in the browser's history, a back gesture used to fall straight
+  // through to whatever page came before the game entirely, since there was
+  // no entry here for it to stop on first.
+  useBackDismiss(onClose)
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (event.key === 'Escape') onClose()

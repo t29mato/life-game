@@ -456,13 +456,13 @@
     min-height: 0;
   }
 
-  /* Contain, not stretch: the widest the board may be drawn is the width at
-     which its own shape still fits the cell's height. `--board-aspect` is
-     published by `Board` from its projection, so a longer route caps itself
-     without this file knowing the board's shape. Scaling to fit beats a
-     scrollbar — a board game you have to scroll around is a worse board game. */
+  /* Fill the cell, not just fit inside it: the board takes the whole width
+     the grid gives it, whatever shape that width and the cell's height make
+     together. `Board` (`preserveAspectRatio="xMidYMid slice"`) crops its own
+     drawing to cover that shape rather than letterboxing down to fit it —
+     a bigger map beats a fully-visible one. */
   .boardArea > * {
-    width: min(100%, calc(100cqh * var(--board-aspect, 1.5)));
+    width: 100%;
   }
 }
 
@@ -505,7 +505,7 @@
   }
 
   .boardArea > * {
-    width: min(100%, calc(100cqh * var(--board-aspect, 1.5)));
+    width: 100%;
   }
 
   /* The rail is a full-width stack here; the wheel keeps a card of its own

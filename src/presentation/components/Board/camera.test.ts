@@ -18,6 +18,7 @@ import {
   MILESTONE_ZOOM,
   REST_ZOOM,
   RESOLVE_ZOOM,
+  WIDE_SHOT_PADDING_TILES,
 } from './camera'
 
 function space(id: string, x: number, y: number, next: string[] = [], effect: SpaceEffect = { type: 'none' }): Space {
@@ -83,15 +84,38 @@ describe('routeBounds', () => {
 })
 
 describe('wideShot', () => {
-  it('frames every tile with a little padding around the outermost row', () => {
+  it('covers the padded bounds on at least one axis rather than merely fitting inside them', () => {
     const shot = wideShot(projection, model)
     const rect = shotRect(projection, shot)
     const bounds = routeBounds(model, projection)
+    const pad = projection.tileSize * WIDE_SHOT_PADDING_TILES
+    const paddedWidth = bounds.width + pad * 2
+    const paddedHeight = bounds.height + pad * 2
 
-    expect(rect.x).toBeLessThanOrEqual(bounds.x + 0.01)
-    expect(rect.y).toBeLessThanOrEqual(bounds.y + 0.01)
-    expect(rect.x + rect.width).toBeGreaterThanOrEqual(bounds.x + bounds.width - 0.01)
-    expect(rect.y + rect.height).toBeGreaterThanOrEqual(bounds.y + bounds.height - 0.01)
+    // Never shows more than the padded route on either axis — no axis is
+    // left showing the decorative filler around it.
+    expect(rect.width).toBeLessThanOrEqual(paddedWidth + 0.01)
+    expect(rect.height).toBeLessThanOrEqual(paddedHeight + 0.01)
+
+    // But at least one axis is an exact cover, not just "less than" — the
+    // frame is filled, not merely shrunk to be safely inside the bounds.
+    const widthCovers = Math.abs(rect.width - paddedWidth) < 0.01
+    const heightCovers = Math.abs(rect.height - paddedHeight) < 0.01
+    expect(widthCovers || heightCovers).toBe(true)
+  })
+
+  it('crops into the route on whichever axis the frame does not cover exactly', () => {
+    // This fixture's route bounds are not the same shape as the viewBox, so
+    // covering one axis necessarily crops the other rather than showing it
+    // in full — the deliberate trade for a bigger-looking map.
+    const shot = wideShot(projection, model)
+    const rect = shotRect(projection, shot)
+    const bounds = routeBounds(model, projection)
+    const pad = projection.tileSize * WIDE_SHOT_PADDING_TILES
+
+    const widthCropped = rect.width < bounds.width + pad * 2 - 0.01
+    const heightCropped = rect.height < bounds.height + pad * 2 - 0.01
+    expect(widthCropped || heightCropped).toBe(true)
   })
 
   it('zooms in past the viewBox when the route does not fill it — this fixture is built to have room to spare', () => {

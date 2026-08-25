@@ -20,6 +20,16 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
+    date: 'August 25, 2026',
+    whatsNew: [],
+    changes: [
+      "The board fills the screen corner to corner now — the camera crops in tight instead of leaving spare room around the map, so it reads bigger even though the outermost row can run a sliver past the edge on some screens.",
+      "Release notes open as their own screen now instead of a pop-up. The back button closes it and returns you to the title screen you opened it from, rather than risking a step back out of the game itself.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.5.0',
     date: 'August 21, 2026',
     whatsNew: [],
     changes: [

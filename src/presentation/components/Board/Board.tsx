@@ -1,12 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  type CSSProperties,
-  type ReactElement,
-} from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, type ReactElement } from 'react'
 import { animate, useMotionValue, type AnimationPlaybackControls } from 'framer-motion'
 import type { Board as BoardModel, GamePhase, Player, Space, SpaceId } from '@domain/model/types'
 import { GameIconGlyph } from '../../icons/GameIcon'
@@ -544,23 +536,20 @@ export function Board({
   const contactId = `${uid}-contact`
 
   return (
-    <div
-      className={styles.frame}
-      data-edition={editionId}
-      /* The board's own shape, published to whatever is laying it out. A longer
-         route is a taller board — `long` is taller than it is wide — so the
-         column it sits in cannot assume a landscape card and has to be told.
-         See `.boardArea` in `App.module.css`, which caps the board's width at
-         the width its own aspect still fits the available height at. */
-      style={{ '--board-aspect': `${projection.viewWidth / projection.viewHeight}` } as CSSProperties}
-    >
+    <div className={styles.frame} data-edition={editionId}>
       <div className={styles.surface} ref={surfaceRef}>
         <svg
           className={styles.svg}
           viewBox={`0 0 ${projection.viewWidth} ${projection.viewHeight}`}
           role="img"
           aria-label="Game board"
-          preserveAspectRatio="xMidYMid meet"
+          /* The board's cell fills whatever room it is given rather than
+             capping itself to its own aspect ratio — see `.boardArea` in
+             App.module.css — so `slice` crops the drawing to cover that
+             cell instead of `meet` letterboxing it down to fit inside. The
+             camera (`wideShot`) already does the same trade at the route
+             level: bigger and cropped beats smaller and fully in frame. */
+          preserveAspectRatio="xMidYMid slice"
         >
           <defs>
             <linearGradient id={sheenId} x1="0" y1="0" x2="0" y2="1">

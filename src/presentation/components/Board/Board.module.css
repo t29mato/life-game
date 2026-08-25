@@ -191,28 +191,39 @@
   height: auto;
 }
 
-/* ---- Fitting the board to a cell with a hard height ----------------------
+/* ---- Filling a cell with a hard height ------------------------------------
    Everywhere else the board is sized by its width and grows as tall as its own
    shape demands. That breaks in exactly one layout: the wide screen, where
    `.main`'s first grid row is `minmax(0, 1fr)` and the board's cell therefore
-   has a fixed height. A board taller than that cell — and `long` is taller
-   than it is wide — was clipped by `.surface`, with no way to scroll to the
-   rest of it.
+   has a fixed height. Inside it the drawing covers the whole cell —
+   `width: 100%` above plus `height: 100%` here — and `preserveAspectRatio=
+   "xMidYMid slice"` on the `<svg>` crops whatever the cell's own aspect ratio
+   does not agree with, rather than letterboxing it. `App.module.css` no
+   longer caps the board's own width to its aspect ratio either: the whole
+   point is that the cell's shape wins, not the map's.
 
-   The breakpoint below deliberately mirrors the one in `App.module.css` that
-   creates the constraint. Inside it the drawing is scaled to fit rather than
-   cropped: `preserveAspectRatio="xMidYMid meet"` letterboxes by the width of
-   the rim at worst, and no part of the route can ever be cut off, whatever
-   shape the domain gives the board. `App.module.css` separately caps the
-   board's width so the rim keeps hugging the map — but if that cap were ever
-   wrong, this rule alone still guarantees the whole board is on screen.
-
-   It is scoped rather than global because a phone is a different layout
-   entirely: `App.module.css`'s stacked-screens breakpoint (`max-width: 999px`)
-   already turns `.boardArea` into a size container and fits the board to
-   whatever height is actually left over there — this rule only needs to cover
-   the wide-but-short case that breakpoint doesn't.                          */
+   Scoped rather than global because a phone is a different layout entirely:
+   `App.module.css`'s stacked-screens breakpoint (`max-width: 999px`) turns
+   `.boardArea` into its own size container below, so it needs the same
+   width/height-100% treatment under its own breakpoint instead. */
 @media (min-width: 901px) and (min-height: 620px) {
+  .frame {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .surface {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .svg {
+    height: 100%;
+  }
+}
+
+@media (max-width: 999px) {
   .frame {
     display: flex;
     flex-direction: column;

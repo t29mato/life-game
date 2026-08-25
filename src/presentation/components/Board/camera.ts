@@ -78,26 +78,33 @@ export function routeBounds(board: Board, projection: BoardProjection): CameraRe
 }
 
 /**
- * The overview shot: every tile in frame, at whatever zoom that takes —
- * fit to the route's own bounding box (`routeBounds`) rather than to the
- * viewBox `wideShot` used to target. The two are not the same rectangle:
- * the viewBox carries a fixed margin on every edge, and a wide fork part
- * way through the route can widen the serpentine's bounds for every row
- * after it even though earlier rows never used that reach — either way,
- * fitting the viewBox showed real board past the outermost tile on some
- * edges and not others, which is what actually read as "the map is mostly
- * empty ground." Padded by a little over a tile's width so the outermost
- * row does not touch the frame.
+ * How much slack `wideShot` leaves around the outermost row, in tile
+ * widths. Kept small on purpose — the owner's own words were "bigger is
+ * more fun" — just enough that a tile's icon or label never sits flush
+ * against the very edge of the frame.
+ */
+export const WIDE_SHOT_PADDING_TILES = 0.25
+
+/**
+ * The overview shot: the route's own bounding box (`routeBounds`) filling
+ * the frame, not merely fitted inside it. `Math.max` rather than `Math.min`
+ * on purpose — a fork's aspect ratio essentially never matches the
+ * viewBox's, and fitting the *shorter* axis (`Math.min`) left the *longer*
+ * axis showing real board past the outermost tile, past the point where it
+ * read as "the map is mostly empty ground" rather than as a frame. Filling
+ * the *longer* axis instead means the shorter one now crops a sliver off
+ * the route at the outermost edge — a deliberate trade the owner asked
+ * for: looking big beats staying fully in frame.
  */
 export function wideShot(projection: BoardProjection, board: Board): CameraShot {
   const bounds = routeBounds(board, projection)
-  const pad = projection.tileSize * 1.2
+  const pad = projection.tileSize * WIDE_SHOT_PADDING_TILES
   const paddedWidth = bounds.width + pad * 2
   const paddedHeight = bounds.height + pad * 2
   const zoom =
     paddedWidth <= 0 || paddedHeight <= 0
       ? WIDE_ZOOM
-      : Math.max(WIDE_ZOOM, Math.min(projection.viewWidth / paddedWidth, projection.viewHeight / paddedHeight))
+      : Math.max(WIDE_ZOOM, projection.viewWidth / paddedWidth, projection.viewHeight / paddedHeight)
   return { cx: bounds.x + bounds.width / 2, cy: bounds.y + bounds.height / 2, zoom }
 }
 

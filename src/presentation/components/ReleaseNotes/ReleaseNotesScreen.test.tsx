@@ -1,6 +1,6 @@
-import { render, screen, within, type RenderResult } from '@testing-library/react'
+import { cleanup, render, screen, within, type RenderResult } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AudioProvider } from '../../hooks/useAudio'
 import { createFakeAudioPort } from '../../dev/fakeAudio'
 import { RELEASE_NOTES } from './releaseNotes'
@@ -13,6 +13,23 @@ function renderReleaseNotes(props: ReleaseNotesScreenProps): RenderResult {
     </AudioProvider>,
   )
 }
+
+beforeEach(() => {
+  // A previous test's marker, left over from its own screen mounting here.
+  history.replaceState(null, '')
+})
+
+afterEach(async () => {
+  cleanup()
+  // `useBackDismiss` defers its pop a tick (see that hook's doc comment); a
+  // test that did not explicitly wait for it leaves that `setTimeout(0)`
+  // pending. Draining it here, rather than letting it fire during whichever
+  // test happens to be running next, keeps a real `history.back()` call
+  // from landing on a screen it was never meant for — a stray `popstate`
+  // reaching a still-mounted, unrelated screen's own listener is exactly
+  // how "back" ended up closing the wrong thing in the first place.
+  await new Promise((resolve) => setTimeout(resolve, 0))
+})
 
 describe('ReleaseNotesScreen', () => {
   it('shows the heading and every release, newest first', () => {
@@ -77,5 +94,21 @@ describe('ReleaseNotesScreen', () => {
   it('focuses the heading on mount so screen readers announce the page', () => {
     renderReleaseNotes({ onClose: () => {} })
     expect(screen.getByRole('heading', { name: 'Release Notes' })).toHaveFocus()
+  })
+
+  /**
+   * A screen with no history entry of its own let the browser's back
+   * button (or an OS back gesture) fall straight through to whatever page
+   * came before the game — closing the notes was never the effect, leaving
+   * the game entirely was. This is the fix, exercised end to end rather
+   * than just at the hook.
+   */
+  it('closes on the browser back button, not just the in-screen one', () => {
+    const onClose = vi.fn()
+    renderReleaseNotes({ onClose })
+
+    window.dispatchEvent(new PopStateEvent('popstate'))
+
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 })

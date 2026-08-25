@@ -400,40 +400,24 @@ describe('Board', () => {
   })
 
   /**
-   * The board must never be bigger than the room it is given.
+   * The board fills the room it is given rather than fitting itself inside
+   * it — the owner's own words were "bigger is more fun," so a cell whose
+   * shape does not match the map's own is one the map now crops into
+   * instead of leaving bare table around itself for.
    *
-   * `long` is 23×15 board units, which projects to a viewBox taller than it is
-   * wide — so on a wide screen, where the board's grid row has a hard height,
-   * a board sized by its width alone runs off the bottom of its cell and
-   * `.surface` clips it with nothing to scroll. That is the bug these pin.
-   *
-   * jsdom performs no layout, so asserting computed pixel heights here would
-   * pass vacuously whatever the CSS said. What is asserted instead is the two
-   * things this component actually controls and the fix depends on: that the
-   * true aspect of the projection is published to the layout, so the cell can
-   * cap the board's width by it, and that the drawing is set to scale to fit
-   * rather than to crop. Whether the CSS then does the right thing with them
-   * is a question for a browser, not for jsdom.
+   * jsdom performs no layout, so asserting computed pixel sizes here would
+   * pass vacuously whatever the CSS said. What is asserted instead is the
+   * one thing this component actually controls and the fix depends on: that
+   * the drawing is set to cover its box rather than to fit inside it.
+   * Whether the CSS then hands it a box worth covering is a question for a
+   * browser, not for jsdom.
    */
-  describe('fitting the space it is given', () => {
+  describe('filling the space it is given', () => {
     const lengths: readonly BoardLength[] = ['short', 'standard', 'long']
 
-    it.each(lengths)('publishes the true aspect of a %s board to its container', (length) => {
-      mockReducedMotion(true)
-      const model = createBoard(length)
-      const projection = createProjection(model)
-      const { container } = renderBoard({ board: model })
-
-      const frame = container.firstElementChild as HTMLElement
-      const published = Number(frame.style.getPropertyValue('--board-aspect'))
-
-      expect(published).toBeCloseTo(projection.viewWidth / projection.viewHeight, 6)
-      expect(published).toBeGreaterThan(0)
-    })
-
     /**
-     * The worst case, and the reason the cap cannot be a fixed landscape ratio:
-     * the longest board is taller than it is wide.
+     * The worst case, and the reason nothing here can assume a landscape
+     * viewBox: the longest board is taller than it is wide.
      */
     it('reports the long board as taller than it is wide', () => {
       const projection = createProjection(createBoard('long'))
@@ -453,17 +437,17 @@ describe('Board', () => {
     })
 
     /**
-     * `meet` scales the drawing down until it fits and centres the remainder;
-     * `slice` would fill the box by cropping, which is the very failure being
-     * fixed. Nothing may quietly swap one for the other.
+     * `slice` fills the box by cropping the drawing to cover it; `meet`
+     * would scale it down to fit inside instead, the very letterboxing
+     * being fixed. Nothing may quietly swap one for the other.
      */
-    it('scales the drawing to fit its box rather than cropping it', () => {
+    it('scales the drawing to cover its box rather than fitting inside it', () => {
       mockReducedMotion(true)
       renderBoard({ board: createBoard('long') })
 
       expect(screen.getByRole('img', { name: 'Game board' })).toHaveAttribute(
         'preserveAspectRatio',
-        expect.stringContaining('meet') as unknown as string,
+        expect.stringContaining('slice') as unknown as string,
       )
     })
 
