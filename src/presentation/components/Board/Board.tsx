@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -268,6 +269,35 @@ export function Board({
   const svgRef = useRef<SVGSVGElement>(null)
 
   /**
+   * The live shape of the card the board is actually drawn into — read
+   * imperatively, not `useState`, since it only ever feeds the camera math
+   * inside an effect or a callback, never JSX, and a resize should not by
+   * itself force a re-render of several thousand tiles. `useLayoutEffect`
+   * measures once before the very first paint, same tick as the DOM
+   * mounts, so the opening shot below is never computed against a stale
+   * guess; `ResizeObserver` keeps it current after that.
+   */
+  const containerAspectRef = useRef(projection.viewWidth / projection.viewHeight)
+  useLayoutEffect(() => {
+    const el = surfaceRef.current
+    if (!el) return
+    const apply = (width: number, height: number): void => {
+      if (width > 0 && height > 0) containerAspectRef.current = width / height
+    }
+    const rect = el.getBoundingClientRect()
+    apply(rect.width, rect.height)
+    // jsdom (tests) has no `ResizeObserver` at all — the initial measurement
+    // above is all a test environment either has or needs.
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) apply(entry.contentRect.width, entry.contentRect.height)
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  /**
    * The space each pawn is drawn resting on — distinct from `player.spaceId`
    * for as long as that player's own move is outstanding.
    *
@@ -345,8 +375,8 @@ export function Board({
      Driven as a transform on a group inside a viewBox that never changes,
      rather than by rewriting the viewBox itself: React owns that attribute and
      would reset it on every re-render, which is a fight the camera loses. */
-  const opening = wideShot(projection, board, playerPoints)
-  const initial = cameraTransform(projection, opening)
+  const opening = wideShot(projection, board, playerPoints, containerAspectRef.current)
+  const initial = cameraTransform(projection, opening, containerAspectRef.current)
   const camX = useMotionValue(initial.x)
   const camY = useMotionValue(initial.y)
   const camScale = useMotionValue(initial.scale)
@@ -373,7 +403,7 @@ export function Board({
 
   const applyShot = useCallback(
     (shot: CameraShot, seconds: number): Promise<void> => {
-      const target = cameraTransform(projection, shot)
+      const target = cameraTransform(projection, shot, containerAspectRef.current)
 
       /* On a narrow screen the drawing is wider than its column and pans. The
          transform always lands the shot's centre on the middle of the drawing,
@@ -528,13 +558,13 @@ export function Board({
     if (!introFlythrough) return
     if (reduceMotion) {
       flyingRef.current = false
-      void applyShot(wideShot(projection, board, playerPoints), 0)
+      void applyShot(wideShot(projection, board, playerPoints, containerAspectRef.current), 0)
       return
     }
 
     let cancelled = false
     const run = async (): Promise<void> => {
-      for (const shot of flythroughShots(board, projection, 6, playerPoints)) {
+      for (const shot of flythroughShots(board, projection, 6, playerPoints, containerAspectRef.current)) {
         if (cancelled) return
         await applyShot(shot, FLYTHROUGH_SECONDS)
       }
@@ -573,15 +603,22 @@ export function Board({
     if (phase === 'awaitingDecision' || phase === 'resolved') {
       previousRestPlayerId.current = activePlayer?.id ?? null
       const framed = space
-        ? focusShot(projection, projection.project(space.layout), RESOLVE_ZOOM)
-        : wideShot(projection, board, playerPoints)
+        ? focusShot(projection, projection.project(space.layout), RESOLVE_ZOOM, containerAspectRef.current)
+        : wideShot(projection, board, playerPoints, containerAspectRef.current)
       void applyShot(framed, reduceMotion ? 0 : CAMERA_SECONDS)
       return
     }
 
     const changedPlayer = previousRestPlayerId.current !== (activePlayer?.id ?? null)
     previousRestPlayerId.current = activePlayer?.id ?? null
-    const sequence = restSequence(board, projection, space, changedPlayer && !reduceMotion, playerPoints)
+    const sequence = restSequence(
+      board,
+      projection,
+      space,
+      changedPlayer && !reduceMotion,
+      playerPoints,
+      containerAspectRef.current,
+    )
 
     let cancelled = false
     void (async () => {
@@ -620,7 +657,7 @@ export function Board({
         /* Deliberately not awaited: the camera leads the car rather than
            following it, and nothing about a move may wait on a camera move. */
         void applyShot(
-          focusShot(projection, target, approachZoom(step, total, closest)),
+          focusShot(projection, target, approachZoom(step, total, closest), containerAspectRef.current),
           reduceMotion ? 0 : FOLLOW_SECONDS,
         )
         await ref?.hopThrough([target])

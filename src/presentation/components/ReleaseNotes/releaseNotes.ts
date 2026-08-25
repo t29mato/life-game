@@ -20,6 +20,15 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
+    date: 'August 26, 2026',
+    whatsNew: [],
+    changes: [
+      "The board reads bigger on a wide desktop screen — the camera now zooms in to match how much wider your window is than tall, instead of leaving a plain stretch of background beside the actual route. The wheel-side rail and a phone screen were already sized right and are unchanged.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.5.3',
     date: 'August 25, 2026',
     whatsNew: [],
     changes: [],

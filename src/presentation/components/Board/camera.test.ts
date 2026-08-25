@@ -237,6 +237,83 @@ describe('cameraTransform', () => {
   })
 })
 
+/**
+ * A very wide desktop window and a tall phone both ask the `<svg>` itself
+ * to reveal more of the fixed viewBox than the shot alone implies — see
+ * `preserveAspectRatio="xMidYMid slice"` in `Board.tsx`. Without knowing
+ * the live container's own shape, the camera hands over exactly the same
+ * frame either way, and whichever shape asks for more gets however much of
+ * the fixed viewBox's own decorative margin that extra happens to be, real
+ * route or not. `containerAspect` is how the camera is told what shape it
+ * is actually being drawn into, so it can zoom in to compensate instead.
+ */
+describe('container aspect', () => {
+  const viewAspect = projection.viewWidth / projection.viewHeight
+  const wideContainer = viewAspect * 3
+
+  it('zooms in further than the shot alone asks for when the container is a very different shape', () => {
+    const shot = focusShot(projection, { x: projection.viewWidth / 2, y: projection.viewHeight / 2 }, 2)
+
+    const plain = shotRect(projection, shot)
+    const wide = shotRect(projection, shot, wideContainer)
+
+    expect(wide.width).toBeLessThan(plain.width)
+    expect(wide.height).toBeLessThan(plain.height)
+  })
+
+  it('matches the default exactly when the container already is the viewBox’s own shape', () => {
+    const shot = focusShot(projection, { x: 500, y: 400 }, 1.6)
+
+    expect(shotRect(projection, shot, viewAspect)).toEqual(shotRect(projection, shot))
+    expect(cameraTransform(projection, shot, viewAspect)).toEqual(cameraTransform(projection, shot))
+  })
+
+  it('zooms in the same amount for a container this much narrower as one this much wider', () => {
+    const shot = focusShot(projection, { x: 500, y: 400 }, 1.6)
+
+    const wide = shotRect(projection, shot, viewAspect * 2)
+    const narrow = shotRect(projection, shot, viewAspect / 2)
+
+    expect(wide.width * wide.height).toBeCloseTo(narrow.width * narrow.height, 5)
+  })
+
+  it('still maps the framed rectangle onto the whole viewBox, whatever the container’s shape', () => {
+    const shot = focusShot(projection, { x: 400, y: 260 }, 1.9)
+    const rect = shotRect(projection, shot, wideContainer)
+    const t = cameraTransform(projection, shot, wideContainer)
+
+    expect(rect.x * t.scale + t.x).toBeCloseTo(0, 5)
+    expect(rect.y * t.scale + t.y).toBeCloseTo(0, 5)
+    expect((rect.x + rect.width) * t.scale + t.x).toBeCloseTo(projection.viewWidth, 5)
+    expect((rect.y + rect.height) * t.scale + t.y).toBeCloseTo(projection.viewHeight, 5)
+  })
+
+  /**
+   * `wideShot`'s own player-visibility guarantee (see the `wideShot`
+   * describe block above) is checked against the *plain* frame — this
+   * pins that it still holds once `shotRect` zooms in further still for a
+   * container `wideShot` was never told about, which is exactly what
+   * would happen if a caller forgot to pass the same `containerAspect` to
+   * both.
+   */
+  it('keeps a player inside the frame it actually draws, not just the one wideShot planned for', () => {
+    // A moderate stretch, not `wideContainer`'s extreme one — the fallback
+    // this pins is about the frame `shotRect` actually draws being tighter
+    // than `wideShot` alone accounted for, not about the separate, already
+    // — accepted `WIDE_ZOOM` floor a large enough stretch or overshoot can
+    // hit regardless of anything `containerAspect` does.
+    const moderateContainer = viewAspect * 1.4
+    const bounds = routeBounds(model, projection)
+    const justOutside = { x: bounds.x + bounds.width + projection.tileSize * 0.5, y: bounds.y + bounds.height / 2 }
+
+    const shot = wideShot(projection, model, [justOutside], moderateContainer)
+    const rect = shotRect(projection, shot, moderateContainer)
+
+    expect(rect.x).toBeLessThanOrEqual(justOutside.x + 0.01)
+    expect(rect.x + rect.width).toBeGreaterThanOrEqual(justOutside.x - 0.01)
+  })
+})
+
 describe('approachZoom', () => {
   it('holds the follow distance for a move that ends nowhere special', () => {
     for (let step = 0; step < 6; step += 1) {
@@ -322,6 +399,28 @@ describe('restPoint', () => {
   it('is pure: the same space always leans the same way', () => {
     const at = model.spaces['s4'] as Space
     expect(restPoint(model, projection, at)).toEqual(restPoint(model, projection, at))
+  })
+
+  /**
+   * The reported bug, in miniature: a wide fork elsewhere left this space's
+   * own row with real board on only one side of it — a serpentine folds
+   * back on itself constantly, so "nearby in board-space" and "nearby along
+   * the route" are not the same thing, and a rest shot that only ever
+   * leaned toward the next space had no way to notice. Every other space
+   * on this fixture's board sits to the west; the frame should notice and
+   * lean that way too, not stay planted dead centre on a lone space with
+   * nothing ahead of it and bare board on every other side.
+   */
+  it('pulls toward wherever the route’s own tiles actually cluster nearby, not just toward what comes next', () => {
+    const lonely = space('lonely', 10, 5, [])
+    const westCluster = [space('w1', 8, 4), space('w2', 8, 5), space('w3', 8, 6)]
+    const clusterBoard = board([lonely, ...westCluster], 14, 10)
+    const clusterProjection = createProjection(clusterBoard)
+    const centre = clusterProjection.project(lonely.layout)
+
+    const point = restPoint(clusterBoard, clusterProjection, lonely)
+
+    expect(point.x).toBeLessThan(centre.x)
   })
 })
 

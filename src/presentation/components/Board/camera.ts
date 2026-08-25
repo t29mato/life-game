@@ -118,11 +118,20 @@ function withExtraPoints(bounds: CameraRect, points: readonly Point[]): CameraRe
  * cover — of the *route and that player together*, which by construction
  * can never crop either one. A car parked in a tight corner therefore costs
  * a little of the "big" look right then; nothing else does.
+ *
+ * That guarantee is itself bounded by `WIDE_ZOOM`: `shotRect` never zooms
+ * out past 1 regardless of what a shot asks for, and a `containerAspect`
+ * far enough from the fixed viewBox's own shape already spends part of
+ * that budget before this fallback gets a say (see `aspectStretch`). A
+ * player far enough outside the route, on a container stretched enough,
+ * can still end up beyond the frame — the same already-accepted edge the
+ * empty-board case at the top of this function backs into.
  */
 export function wideShot(
   projection: BoardProjection,
   board: Board,
   playerPoints: readonly Point[] = [],
+  containerAspect: number = projection.viewWidth / projection.viewHeight,
 ): CameraShot {
   const bounds = routeBounds(board, projection)
   const pad = projection.tileSize * WIDE_SHOT_PADDING_TILES
@@ -137,18 +146,34 @@ export function wideShot(
 
   if (playerPoints.length === 0) return { cx: routeCx, cy: routeCy, zoom: routeZoom }
 
-  const halfW = projection.viewWidth / routeZoom / 2
-  const halfH = projection.viewHeight / routeZoom / 2
+  // `shotRect` zooms in past `routeZoom` by however far the live container
+  // strays from the fixed viewBox's own shape, so the frame it actually
+  // draws is tighter than `routeZoom` alone implies — checked here against
+  // that same tighter frame, or a player this fit still covers on paper
+  // could be cropped away for real once the container's own shape is
+  // accounted for.
+  const stretch = aspectStretch(projection, containerAspect)
+  const effectiveZoom = routeZoom * stretch
+  const halfW = projection.viewWidth / effectiveZoom / 2
+  const halfH = projection.viewHeight / effectiveZoom / 2
   const allInFrame = playerPoints.every(
     (p) => Math.abs(p.x - routeCx) <= halfW && Math.abs(p.y - routeCy) <= halfH,
   )
   if (allInFrame) return { cx: routeCx, cy: routeCy, zoom: routeZoom }
 
   const union = withExtraPoints(padded, playerPoints)
+  // Divided by `stretch` up front so that `shotRect`'s own later multiply
+  // by that same `stretch` lands back on the true containing zoom — this
+  // fallback's whole guarantee is that the frame it asks for *contains*
+  // the union, and zooming in any further than that (unchecked) would
+  // break exactly the guarantee it exists for.
   const zoom =
     union.width <= 0 || union.height <= 0
       ? WIDE_ZOOM
-      : Math.max(WIDE_ZOOM, Math.min(projection.viewWidth / union.width, projection.viewHeight / union.height))
+      : Math.max(
+          WIDE_ZOOM,
+          Math.min(projection.viewWidth / union.width, projection.viewHeight / union.height) / stretch,
+        )
   return { cx: union.x + union.width / 2, cy: union.y + union.height / 2, zoom }
 }
 
@@ -156,15 +181,55 @@ export function wideShot(
  * Frames `at` as closely as `zoom` allows without ever showing past the edge of
  * the board — a camera that drifts off the card breaks the illusion that the
  * board is an object rather than a picture.
+ *
+ * `containerAspect` has to be threaded all the way through here rather than
+ * left to `cameraTransform`'s own default: this function's whole job is
+ * clamping `at` against the frame's actual edges, and the frame `shotRect`
+ * draws once `cameraTransform` applies its own stretch is a different,
+ * usually tighter, rectangle than the one this function would clamp
+ * against on the default alone. A clamp computed against the wrong
+ * rectangle does not fail loudly — it just quietly overrides whatever
+ * `at` asked for with wherever *that* rectangle's edge happened to be.
  */
-export function focusShot(projection: BoardProjection, at: Point, zoom: number): CameraShot {
-  const rect = shotRect(projection, { cx: at.x, cy: at.y, zoom })
+export function focusShot(
+  projection: BoardProjection,
+  at: Point,
+  zoom: number,
+  containerAspect: number = projection.viewWidth / projection.viewHeight,
+): CameraShot {
+  const rect = shotRect(projection, { cx: at.x, cy: at.y, zoom }, containerAspect)
   return { cx: rect.x + rect.width / 2, cy: rect.y + rect.height / 2, zoom: Math.max(WIDE_ZOOM, zoom) }
 }
 
+/**
+ * How much further than `shot.zoom` alone to zoom in, because the live
+ * container the board is actually drawn into is some other shape than the
+ * fixed viewBox's own. The `<svg>` itself already crops or reveals more of
+ * that fixed viewBox to fill whatever shape the container is — see
+ * `preserveAspectRatio="xMidYMid slice"` on the drawing itself — but that
+ * crop happens on the *board's own decorative canvas*, not on the route:
+ * a wide desktop window and a tall phone both reveal exactly as much of the
+ * fixed viewBox as their own shape calls for, whether or not the route
+ * actually reaches that far. A serpentine route only fills a *wide* frame
+ * by accident, when several of its rows happen to line up under it — most
+ * of the extra a very wide window asks for is bare board, not more route.
+ * Zooming in by how far the container's own shape strays from the fixed
+ * viewBox's — in *either* direction, a narrow phone included — keeps the
+ * frame close to what the fixed viewBox itself was already shaped for,
+ * rather than stretching it to fit whatever shape a window happens to be.
+ */
+function aspectStretch(projection: BoardProjection, containerAspect: number): number {
+  const viewAspect = projection.viewWidth / projection.viewHeight
+  return Math.max(containerAspect / viewAspect, viewAspect / containerAspect)
+}
+
 /** The board the shot shows, clamped inside the viewBox. */
-export function shotRect(projection: BoardProjection, shot: CameraShot): CameraRect {
-  const zoom = Math.max(WIDE_ZOOM, shot.zoom)
+export function shotRect(
+  projection: BoardProjection,
+  shot: CameraShot,
+  containerAspect: number = projection.viewWidth / projection.viewHeight,
+): CameraRect {
+  const zoom = Math.max(WIDE_ZOOM, shot.zoom) * aspectStretch(projection, containerAspect)
   const width = projection.viewWidth / zoom
   const height = projection.viewHeight / zoom
   return {
@@ -178,9 +243,10 @@ export function shotRect(projection: BoardProjection, shot: CameraShot): CameraR
 export function cameraTransform(
   projection: BoardProjection,
   shot: CameraShot,
+  containerAspect: number = projection.viewWidth / projection.viewHeight,
 ): CameraTransform {
-  const zoom = Math.max(WIDE_ZOOM, shot.zoom)
-  const rect = shotRect(projection, shot)
+  const zoom = Math.max(WIDE_ZOOM, shot.zoom) * aspectStretch(projection, containerAspect)
+  const rect = shotRect(projection, shot, containerAspect)
   // Subtracted rather than negated so the wide shot is a clean `translate(0 0)`
   // and not the negative zero that would otherwise be written into the DOM.
   return { x: 0 - rect.x * zoom, y: 0 - rect.y * zoom, scale: zoom }
@@ -221,33 +287,85 @@ export function arrivalZoom(board: Board, spaceId: SpaceId | undefined): number 
 const REST_LEAD = 0.32
 
 /**
+ * How far the rest frame's own tight zoom is worth trusting to also fall
+ * on real board — see `localDensityCentre`. A serpentine only fills a
+ * frame this size by luck; nudging toward wherever tiles genuinely are
+ * nearby is worth a little of the "dead centre on the car" a spin's
+ * question about what's ahead already gave up some of. Kept short of
+ * `REST_LEAD` itself — this is a correction for bad luck, not the frame's
+ * main reason for pointing anywhere.
+ */
+const DENSITY_PULL = 0.3
+/** How far out "nearby" reaches when weighing which way tiles actually are, in tile widths. */
+const DENSITY_RADIUS_TILES = 4.5
+
+/**
+ * The centre of every space within a short reach of `space`, in whichever
+ * direction the route's own tiles actually continue — not necessarily the
+ * direction a fixed lean or a dead-centre frame would have guessed.
+ *
+ * A serpentine route folds back on itself constantly; the tiles nearest a
+ * given space, in board-space distance, are not reliably "the next few
+ * spaces down the route" — a parallel lane two rows over can sit closer
+ * than the space three hops ahead. That is exactly the point here: this
+ * asks what is actually nearby to look at, not what the route graph says
+ * comes next.
+ */
+function localDensityCentre(board: Board, projection: BoardProjection, space: Space): Point {
+  const at = projection.project(space.layout)
+  const radius = projection.tileSize * DENSITY_RADIUS_TILES
+  const nearby = Object.values(board.spaces)
+    .map((candidate) => projection.project(candidate.layout))
+    .filter((point) => Math.hypot(point.x - at.x, point.y - at.y) <= radius)
+  if (nearby.length === 0) return at
+  return {
+    x: nearby.reduce((sum, point) => sum + point.x, 0) / nearby.length,
+    y: nearby.reduce((sum, point) => sum + point.y, 0) / nearby.length,
+  }
+}
+
+/**
  * Where the rest shot centres: the active player's own tile, nudged toward
- * whatever space comes after it.
+ * whatever space comes after it, and toward wherever the route's own tiles
+ * actually cluster nearby.
  *
  * A player at rest is about to spin, and a spin is a question about what's
  * ahead — so the frame leans that way rather than sitting dead centre on the
  * car, which is what let a tightly zoomed rest shot feel like it was hiding
  * the very thing a player needs to see to plan a move. A fork leans toward the
  * average of every branch rather than picking one, since which branch the
- * player takes is exactly what the spin decides.
+ * player takes is exactly what the spin decides. The density pull is what
+ * keeps that same tight zoom from just as often pointing at whatever bare
+ * board a wide fork elsewhere happened to leave beside this stretch of route
+ * — see `localDensityCentre`.
  */
 export function restPoint(board: Board, projection: BoardProjection, space: Space): Point {
   const at = projection.project(space.layout)
   const nexts = space.next
     .map((id) => board.spaces[id])
     .filter((next): next is Space => next !== undefined)
-  if (nexts.length === 0) return at
+  if (nexts.length === 0) {
+    const density = localDensityCentre(board, projection, space)
+    return { x: at.x + (density.x - at.x) * DENSITY_PULL, y: at.y + (density.y - at.y) * DENSITY_PULL }
+  }
 
   const ahead = projection.project({
     x: nexts.reduce((sum, next) => sum + next.layout.x, 0) / nexts.length,
     y: nexts.reduce((sum, next) => sum + next.layout.y, 0) / nexts.length,
   })
-  return { x: at.x + (ahead.x - at.x) * REST_LEAD, y: at.y + (ahead.y - at.y) * REST_LEAD }
+  const leaned = { x: at.x + (ahead.x - at.x) * REST_LEAD, y: at.y + (ahead.y - at.y) * REST_LEAD }
+  const density = localDensityCentre(board, projection, space)
+  return { x: leaned.x + (density.x - leaned.x) * DENSITY_PULL, y: leaned.y + (density.y - leaned.y) * DENSITY_PULL }
 }
 
 /** The shot a player plans their next spin from: `space`, at `REST_ZOOM`, leaning toward the road ahead. */
-export function restShot(board: Board, projection: BoardProjection, space: Space): CameraShot {
-  return focusShot(projection, restPoint(board, projection, space), REST_ZOOM)
+export function restShot(
+  board: Board,
+  projection: BoardProjection,
+  space: Space,
+  containerAspect: number = projection.viewWidth / projection.viewHeight,
+): CameraShot {
+  return focusShot(projection, restPoint(board, projection, space), REST_ZOOM, containerAspect)
 }
 
 /**
@@ -268,9 +386,12 @@ export function restSequence(
   space: Space | undefined,
   establishing: boolean,
   playerPoints: readonly Point[] = [],
+  containerAspect: number = projection.viewWidth / projection.viewHeight,
 ): readonly CameraShot[] {
-  const rest = space ? restShot(board, projection, space) : wideShot(projection, board, playerPoints)
-  return establishing ? [wideShot(projection, board, playerPoints), rest] : [rest]
+  const rest = space
+    ? restShot(board, projection, space, containerAspect)
+    : wideShot(projection, board, playerPoints, containerAspect)
+  return establishing ? [wideShot(projection, board, playerPoints, containerAspect), rest] : [rest]
 }
 
 /**
@@ -289,6 +410,7 @@ export function flythroughShots(
   projection: BoardProjection,
   stops = 6,
   playerPoints: readonly Point[] = [],
+  containerAspect: number = projection.viewWidth / projection.viewHeight,
 ): readonly CameraShot[] {
   const route: Point[] = []
   const seen = new Set<SpaceId>()
@@ -302,15 +424,15 @@ export function flythroughShots(
     id = space.next[0]
   }
 
-  if (route.length === 0) return [wideShot(projection, board, playerPoints)]
+  if (route.length === 0) return [wideShot(projection, board, playerPoints, containerAspect)]
 
   const wanted = Math.max(1, Math.min(stops, route.length))
   const shots: CameraShot[] = []
   for (let i = 0; i < wanted; i += 1) {
     // Evenly spaced along the route, always including both ends.
     const at = route[wanted === 1 ? 0 : Math.round((i * (route.length - 1)) / (wanted - 1))] as Point
-    shots.push(focusShot(projection, at, FLYTHROUGH_ZOOM))
+    shots.push(focusShot(projection, at, FLYTHROUGH_ZOOM, containerAspect))
   }
-  shots.push(wideShot(projection, board, playerPoints))
+  shots.push(wideShot(projection, board, playerPoints, containerAspect))
   return shots
 }
