@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 const resolve = (path: string) => fileURLToPath(new URL(path, import.meta.url))
 
@@ -47,7 +48,56 @@ export default defineConfig({
     // …and the exact build on screen, which may sit several commits past it.
     __APP_BUILD__: JSON.stringify(appBuild),
   },
-  plugins: [react()],
+  plugins: [
+    react(),
+    /**
+     * `registerType: 'prompt'` on purpose — the whole point the owner asked
+     * for this was to *stop* a tab silently running stale, precached code
+     * forever. `autoUpdate` would activate a new service worker (and its
+     * newly revisioned precache) the instant one finished downloading, with
+     * nothing on screen to say so; `prompt` instead leaves the new worker
+     * waiting until `UpdateBanner` (`virtual:pwa-register/react`) asks a
+     * real person to click something first.
+     *
+     * `base` (the GitHub Pages subpath, passed with `--base=/<repo>/` on
+     * the command line rather than set here — see deploy-pages.yml) is read
+     * from Vite's own resolved config, not repeated here: the manifest's
+     * `start_url`/`scope`, every icon `src`, and the service worker's own
+     * registration path all end up correctly rooted at that subpath (or at
+     * `/`, for the Vercel deploy, which never passes `--base`) without this
+     * file needing to know which one it is being built for.
+     */
+    VitePWA({
+      registerType: 'prompt',
+      includeAssets: ['favicon.svg', 'icons.svg', 'apple-touch-icon.png'],
+      manifest: {
+        name: 'LIFE JOURNEY',
+        short_name: 'Life Journey',
+        description:
+          'Spin the wheel, pick a career, and build a life worth bragging about in this offline board game for one to four players.',
+        theme_color: '#f4e5c8',
+        background_color: '#f4e5c8',
+        display: 'standalone',
+        icons: [
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
+      workbox: {
+        // Every build's asset filenames are already content-hashed by Vite,
+        // so precaching everything the build actually produced is what
+        // makes each service worker's own precache list — and so its own
+        // generated `sw.js`, byte for byte — unique to that build. A tab
+        // running an older one notices the mismatch on its own; no separate
+        // version number needs to be threaded through here to make that true.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        cleanupOutdatedCaches: true,
+        navigateFallback: 'index.html',
+      },
+    }),
+  ],
   resolve: {
     alias: {
       '@domain': resolve('./src/domain'),

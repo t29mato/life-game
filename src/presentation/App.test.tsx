@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createGameStore } from '@application/createGameStore'
 import type { GameCommand, GameStore } from '@application/GameStore'
@@ -14,6 +14,12 @@ import type { GameState, NewGamePlayer } from '@domain/model/types'
 
 import { App } from './App'
 import { createFakeAudioPort } from './dev/fakeAudio'
+
+const { useRegisterSWMock } = vi.hoisted(() => ({ useRegisterSWMock: vi.fn() }))
+
+vi.mock('virtual:pwa-register/react', () => ({
+  useRegisterSW: useRegisterSWMock,
+}))
 
 /**
  * A store whose state the test sets directly, so a single phase can be examined
@@ -57,6 +63,18 @@ function startedGame(
   store.dispatch({ type: 'startGame', config: { players, boardLength: 'standard' } })
   return store
 }
+
+beforeEach(() => {
+  // Every existing test renders `<App>` without caring about the update
+  // banner at all — it should stay invisible for every one of them, same
+  // as a real tab that hasn't heard about a new build. Tests about the
+  // banner itself override this.
+  useRegisterSWMock.mockReturnValue({
+    needRefresh: [false, vi.fn()],
+    offlineReady: [false, vi.fn()],
+    updateServiceWorker: vi.fn(),
+  })
+})
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -598,78 +616,43 @@ describe('a computer turn waits for a person', () => {
 })
 
 /*
- * A tab left open never re-fetches its own bundle on its own — the owner
- * reported seeing a build from well before this session's work landed,
- * still running in a tab nobody had reloaded. `useDeployedVersion` notices
- * a newer build is live; this is what App does with that fact — reload
- * where nothing is lost (the title screen, the results screen), and never
- * where something would be (mid-game).
+ * A tab left open never re-checks its own service worker on its own — a
+ * new one only downloads on a fresh navigation, or when `UpdateBanner`
+ * itself asks again periodically. What App does with that fact is much
+ * simpler than the reload-on-a-timer this project used to do here: it
+ * just always renders `UpdateBanner`, on every screen, and leaves the
+ * decision of when it is safe to lose whatever is on screen to the one
+ * person who actually knows — never reloading anything itself. See
+ * `UpdateBanner.test.tsx` for the button's own behaviour once a new
+ * service worker really is waiting.
  */
-describe('picking up a new deploy', () => {
-  let script: HTMLScriptElement
-
-  beforeEach(() => {
-    script = document.createElement('script')
-    script.type = 'module'
-    script.src = '/life-game/assets/index-AAAAAA.js'
-    document.head.appendChild(script)
-  })
-
-  afterEach(() => {
-    document.head.removeChild(script)
-    vi.unstubAllGlobals()
-  })
-
-  function mockNewerDeploy(): void {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        text: () =>
-          Promise.resolve(
-            '<!doctype html><html><head><script type="module" src="/life-game/assets/index-BBBBBB.js"></script></head></html>',
-          ),
-      }),
-    )
+describe('the update banner', () => {
+  function needsRefresh(): void {
+    useRegisterSWMock.mockReturnValue({
+      needRefresh: [true, vi.fn()],
+      offlineReady: [false, vi.fn()],
+      updateServiceWorker: vi.fn(),
+    })
   }
 
-  it('reloads on its own once a newer build is live and the title screen has nothing to lose', async () => {
-    vi.useFakeTimers()
-    try {
-      mockNewerDeploy()
-      const reload = vi.fn()
-      vi.stubGlobal('location', { ...window.location, reload })
+  it('stays off the title screen until a new build is actually waiting', () => {
+    render(<App store={newStore()} audio={createFakeAudioPort()} />)
 
-      render(<App store={newStore()} audio={createFakeAudioPort()} />)
-      expect(screen.getByRole('button', { name: /start game/i })).toBeInTheDocument()
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(15_000)
-      })
-
-      expect(reload).toHaveBeenCalled()
-    } finally {
-      vi.useRealTimers()
-    }
+    expect(screen.queryByRole('button', { name: /update/i })).not.toBeInTheDocument()
   })
 
-  it('leaves a game in progress alone, deploy or no deploy', async () => {
-    vi.useFakeTimers()
-    try {
-      mockNewerDeploy()
-      const reload = vi.fn()
-      vi.stubGlobal('location', { ...window.location, reload })
+  it('offers the update from the title screen once one is', () => {
+    needsRefresh()
+    render(<App store={newStore()} audio={createFakeAudioPort()} />)
 
-      render(<App store={startedGame()} audio={createFakeAudioPort()} />)
-      expect(screen.getByRole('img', { name: /game board/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /update/i })).toBeInTheDocument()
+  })
 
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(15_000)
-      })
+  it('is offered during an active game too, rather than only at the title or results screen', () => {
+    needsRefresh()
+    render(<App store={startedGame()} audio={createFakeAudioPort()} />)
 
-      expect(reload).not.toHaveBeenCalled()
-    } finally {
-      vi.useRealTimers()
-    }
+    expect(screen.getByRole('img', { name: /game board/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /update/i })).toBeInTheDocument()
   })
 })

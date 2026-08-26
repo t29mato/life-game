@@ -20,6 +20,18 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
+    date: 'August 27, 2026',
+    whatsNew: [
+      "You can add this game to your phone's home screen now, like any other app — open it from the browser menu ('Add to Home Screen' on an iPhone, 'Install' on most others) and it launches full-screen from its own icon from then on, no address bar in the way.",
+      "Once you've opened it at least once, it keeps working with no signal at all — on a plane, underground, wherever. Nothing about play changes; it just doesn't need the internet to start.",
+    ],
+    changes: [
+      "When a new release is out and you already have a tab or the home-screen app open, a small banner now offers to update rather than switching you over on its own — tap it whenever you're ready and it picks up the new version right away.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.5.4',
     date: 'August 26, 2026',
     whatsNew: [],
     changes: [
