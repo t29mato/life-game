@@ -349,6 +349,43 @@ describe('applyEffect', () => {
     })
   })
 
+  describe('divorce', () => {
+    const SPLIT = { effect: { type: 'divorce', reason: 'Divorce settlement' } } as const
+
+    it('debits the settlement, ends the marriage, and sends every child with the departing partner', () => {
+      const player = fixturePlayer({ isMarried: true, children: 2, money: 100_000 })
+      const state = fixtureState({ players: [player] })
+      const { state: next, event } = applyEffect(state, fixtureSpace(SPLIT), { random: createFakeRandom() })
+
+      expect(next.players[0]!.isMarried).toBe(false)
+      expect(next.players[0]!.children).toBe(0)
+      expect(next.players[0]!.money).toBe(100_000 - USA_ECONOMY.divorceSettlement)
+      expect(event.moneyDelta).toBe(-USA_ECONOMY.divorceSettlement)
+      expect(next.pendingDecision).toBeNull()
+    })
+
+    it('still charges the settlement and ends the marriage for a childless couple', () => {
+      const player = fixturePlayer({ isMarried: true, children: 0, money: 100_000 })
+      const state = fixtureState({ players: [player] })
+      const { state: next } = applyEffect(state, fixtureSpace(SPLIT), { random: createFakeRandom() })
+
+      expect(next.players[0]!.isMarried).toBe(false)
+      expect(next.players[0]!.children).toBe(0)
+      expect(next.players[0]!.money).toBe(100_000 - USA_ECONOMY.divorceSettlement)
+    })
+
+    it('passes a single player by entirely', () => {
+      const player = fixturePlayer({ isMarried: false, children: 0, money: 100_000 })
+      const state = fixtureState({ players: [player] })
+      const { state: next, event } = applyEffect(state, fixtureSpace(SPLIT), { random: createFakeRandom() })
+
+      expect(event.moneyDelta).toBe(0)
+      expect(next.players[0]!.money).toBe(100_000)
+      expect(next.players[0]!.isMarried).toBe(false)
+      expect(next.pendingDecision).toBeNull()
+    })
+  })
+
   describe('tuition', () => {
     const BILL = { effect: { type: 'tuition', reason: 'College tuition' } } as const
 

@@ -480,7 +480,11 @@ describe('difficulty means something measurable', () => {
     expect(bustShare(veryHard)).toBeLessThan(0.7)
     // The median player finishes near nothing at all, either side of zero.
     expect(median(veryHard.totals)).toBeGreaterThan(-200_000)
-    expect(median(veryHard.totals)).toBeLessThan(250_000)
+        // A small, uniform softening: four hard/very-hard setback tiles
+    // (overdraft, late rent, parking fine, policy excess) had amounts far
+    // beyond what those bills actually cost in real life and are now
+    // realistic instead, which nudges the very-hard median up slightly.
+    expect(median(veryHard.totals)).toBeLessThan(300_000)
   })
 
   it('keeps going bust common on very hard without making it universal', () => {
@@ -813,10 +817,12 @@ describe('the mid-career fork is a decision, not decoration', () => {
     const sample = sampleOf()
     // A small tolerance, not a strict `<=`: the alley's own payday is
     // EVERY_BOARD tier now (see hopper-bonus) so a short board never leaves
-    // the re-draw without a wage before the next career change, and that
-    // guaranteed payday nudges this measurement by a few percent. The alley
-    // is still the flatter road by a wide margin, not the wilder one.
-    expect(spread(sample.alley)).toBeLessThanOrEqual(spread(sample.road) * 1.05)
+    // the re-draw without a wage before the next career change, and the new
+    // divorce tile in the shared Midtown trunk (a rare, binary, high-variance
+    // event for whichever married players draw it) both nudge this
+    // measurement by a few percent. The alley is still the flatter road by a
+    // wide margin, not the wilder one.
+    expect(spread(sample.alley)).toBeLessThanOrEqual(spread(sample.road) * 1.1)
   })
 })
 

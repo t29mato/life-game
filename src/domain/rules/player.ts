@@ -199,6 +199,11 @@ export function marryPlayer(player: Player): Player {
   return { ...player, isMarried: true }
 }
 
+/** Ends a marriage. Every child leaves with the departing partner. */
+export function divorcePlayer(player: Player): Player {
+  return { ...player, isMarried: false, children: 0 }
+}
+
 export function addChildren(player: Player, count: number): Player {
   return { ...player, children: player.children + count }
 }

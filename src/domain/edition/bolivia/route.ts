@@ -72,7 +72,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
   },
   setback('hard', EVERY_BOARD, 'bo-uni-lost-carnet', 'The Lost ID Card',
     'Your identity card vanishes somewhere on a minibus, and replacing it takes two offices, four queues, one notary, and fees at every desk.',
-    { type: 'payMoney', amount: 2_500, reason: 'Reissuing every document' },
+    { type: 'payMoney', amount: 300, reason: 'Reissuing every document' },
     'blue', 'finance:bank-visit'),
   flavour(LONG_ONLY, 'bo-uni-group-project', 'The Group Presentation', 'Five names on the cover, one person doing the slides. The giant printed banner is, somehow, also your responsibility.', 'blue', 'space:group-project', {
     from: 'hard',
@@ -83,7 +83,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
     id: 'bo-uni-scholarship', kind: 'normal', title: 'The Merit Scholarship',
     description: 'Your grades earn you the faculty\'s top scholarship, and it covers a serious chunk of the years remaining.',
     effect: { type: 'gainMoney', amount: 24_000, reason: 'Merit scholarship' },
-    tone: 'blue', icon: 'space:scholarship-win', tier: STANDARD_UP,
+    tone: 'blue', icon: 'space:scholarship-win', tier: EVERY_BOARD,
   },
   {
     id: 'bo-uni-bread-weeks', kind: 'normal', title: 'Bread and Api Weeks',
@@ -91,7 +91,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 600, reason: 'Groceries on a student budget' },
     tone: 'blue', icon: 'space:grocery-run', tier: LONG_ONLY,
   },
-  flavour(STANDARD_UP, 'bo-uni-finals', 'Finals Week', 'Five exams in four days, and the photocopied notes of three different generations spread across one bed.', 'blue', 'space:finals-week', {
+  flavour(EVERY_BOARD, 'bo-uni-finals', 'Finals Week', 'Five exams in four days, and the photocopied notes of three different generations spread across one bed.', 'blue', 'space:finals-week', {
     from: 'hard',
     description: 'Five exams in four days, and a crash course you panic-buy for the one subject whose professor grades hardest of all.',
     effect: { type: 'payMoney', amount: 1_600, reason: 'The crash course' },
@@ -200,7 +200,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   setback('veryHard', STANDARD_UP, 'bo-work-late-rent', 'Late Rent',
     'The rent goes in four days late, and the landlady\'s nephew is on the doorstep before your apology is.',
-    { type: 'payMoney', amount: 2_500, reason: 'Late rent penalty' },
+    { type: 'payMoney', amount: 200, reason: 'Late rent penalty' },
     'orange', 'space:rent-due'),
   payday(EVERY_BOARD, 'bo-work-payday-2', 'Another month, another fold of notes, and still nobody has ever asked to see a certificate.', missedPayday(
     'hard',
@@ -515,7 +515,7 @@ const MARKET_STREET_LATE: readonly SpaceContent[] = [
   },
   setback('hard', LONG_ONLY, 'bo-main-tow-truck', 'The Tow Truck',
     'Eleven minutes in a no-parking zone that was a parking zone last month, and the municipal tow truck arrives at exactly the wrong moment.',
-    { type: 'payMoney', amount: 1_200, reason: 'Fine and release fee' },
+    { type: 'payMoney', amount: 150, reason: 'Fine and release fee' },
     'slate', 'space:car-trouble'),
   {
     id: 'bo-main-challa', kind: 'normal', title: 'The Blessing Party',
@@ -784,10 +784,10 @@ const MIDTOWN: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:dividend-day', tier: STANDARD_UP,
   },
   {
-    id: 'bo-midtown-parrillada', kind: 'normal', title: 'The Promotion Barbecue',
-    description: 'You got the promotion, so custom is clear: you host the barbecue for the whole floor, and somebody\'s cousin arrives with a guitar and no plans.',
-    effect: { type: 'payEach', amount: 800, reason: 'You hosted the whole floor' },
-    tone: 'slate', icon: 'space:neighborhood-bbq', tier: STANDARD_UP,
+    id: 'bo-midtown-divorce', kind: 'normal', title: 'Splitting Up',
+    description: 'A divorce by mutual agreement, notarised rather than argued in front of a judge. The apartment is quieter than it was.',
+    effect: { type: 'divorce', reason: 'Divorce settlement' },
+    tone: 'slate', icon: 'space:layoff-notice', tier: STANDARD_UP,
   },
   {
     id: 'bo-midtown-heater', kind: 'normal', title: 'The Old Heater',
@@ -1001,7 +1001,7 @@ const STEADY_STREET: readonly SpaceContent[] = [
   )),
   setback('hard', EVERY_BOARD, 'bo-safe-excess', 'Policy Excess',
     'The careful road has claim forms too, and the fine print on yours hides a fee called the excess — and it is far from small.',
-    { type: 'payMoney', amount: 4_000, reason: 'Policy excess' },
+    { type: 'payMoney', amount: 1_000, reason: 'Policy excess' },
     'green', 'finance:insurance-office'),
   setback('veryHard', STANDARD_UP, 'bo-safe-hail', 'Hail on the Roof',
     'A February hailstorm turns the street white in twenty minutes and finds every weak sheet in the tin roof. The man with the ladder is booked until Thursday.',

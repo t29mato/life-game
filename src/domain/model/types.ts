@@ -277,6 +277,15 @@ export type SpaceEffect =
   // --- family -------------------------------------------------------------
   | { readonly type: 'payPerChild'; readonly amount: Money; readonly reason: string }
   | { readonly type: 'collectPerChild'; readonly amount: Money; readonly reason: string }
+  /**
+   * A marriage ends. Married players only — a single player has nobody to
+   * separate from, so the tile passes them by, the same way `household`
+   * does. The settlement comes from `EconomyConstants.divorceSettlement`,
+   * priced per edition the same way a wedding gift is; every child leaves
+   * with the departing partner, which is the mechanical half of "they took
+   * the kids" — Family Lane's own scoring stops counting them from here.
+   */
+  | { readonly type: 'divorce'; readonly reason: string }
   // --- upsets: these are what keep last place in the game ------------------
   /** Swap cash with whoever currently holds the most. */
   | { readonly type: 'swapMoneyWithLeader'; readonly reason: string }

@@ -79,7 +79,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
   },
   setback('hard', EVERY_BOARD, 'college-overdraft', 'Overdraft Fee',
     'The account dips below zero for a single day, and the bank notices before you do.',
-    { type: 'payMoney', amount: 2_500, reason: 'Overdraft charges' },
+    { type: 'payMoney', amount: 300, reason: 'Overdraft charges' },
     'blue', 'finance:bank-visit'),
   flavour(LONG_ONLY, 'college-5', 'Group Project', 'Somehow you end up doing most of the slides. Again.', 'blue', 'space:group-project', {
     from: 'hard',
@@ -90,7 +90,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     id: 'college-6', kind: 'normal', title: 'Scholarship Win',
     description: 'Your essay wins a scholarship nobody expected, and it covers a big part of the bill.',
     effect: { type: 'gainMoney', amount: 24_000, reason: 'Scholarship award' },
-    tone: 'blue', icon: 'space:scholarship-win', tier: STANDARD_UP,
+    tone: 'blue', icon: 'space:scholarship-win', tier: EVERY_BOARD,
   },
   {
     id: 'college-ramen', kind: 'normal', title: 'Ramen Weeks',
@@ -98,7 +98,12 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 600, reason: 'Groceries on a student budget' },
     tone: 'blue', icon: 'space:grocery-run', tier: LONG_ONLY,
   },
-  flavour(STANDARD_UP, 'college-7', 'Finals Week', 'Five exams in four days. You survive on instant noodles.', 'blue', 'space:finals-week', {
+  // EVERY_BOARD, not STANDARD_UP, and the same for Scholarship Win above:
+  // college used to shrink to move-in, tuition, one paycheck and a cap and
+  // gown on a short board — four years compressed into a handful of tiles.
+  // These two were already written and already good; they just needed to
+  // survive the thinning.
+  flavour(EVERY_BOARD, 'college-7', 'Finals Week', 'Five exams in four days. You survive on instant noodles.', 'blue', 'space:finals-week', {
     from: 'hard',
     description: 'Five exams in four days, and a tutor you hire in a panic for the one you dread most.',
     effect: { type: 'payMoney', amount: 1_600, reason: 'Emergency tutoring' },
@@ -249,7 +254,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   setback('veryHard', STANDARD_UP, 'work-late-rent', 'Late Rent',
     'The rent goes in four days late, and the late fee arrives before you can even apologize.',
-    { type: 'payMoney', amount: 2_500, reason: 'Late rent penalty' },
+    { type: 'payMoney', amount: 200, reason: 'Late rent penalty' },
     'orange', 'space:rent-due'),
   /*
    * The payroll this lane loses first, and the one that keeps the opening fork
@@ -720,7 +725,7 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
   },
   setback('hard', LONG_ONLY, 'main-parking', 'Parking Ticket',
     'Eleven minutes over, one parking officer with excellent timing, and a yellow ticket under the windshield wiper.',
-    { type: 'payMoney', amount: 1_200, reason: 'Parking fine' },
+    { type: 'payMoney', amount: 150, reason: 'Parking fine' },
     'slate', 'space:car-trouble'),
   {
     /*
@@ -1032,11 +1037,18 @@ const MIDTOWN: readonly SpaceContent[] = [
     effect: { type: 'stockDividend', perShare: 3_000, reason: 'Quarterly dividend' },
     tone: 'slate', icon: 'space:dividend-day', tier: STANDARD_UP,
   },
+  /*
+   * A converted tile, not a new one, for the same reason `midtown-party`
+   * (the joint account) below was: the route's length is load-bearing, so
+   * saying something new about a marriage means re-theming an existing tile
+   * rather than adding one. Single players walk past this exactly the way
+   * they walk past the joint account.
+   */
   {
-    id: 'midtown-team-dinner', kind: 'normal', title: 'Team Dinner',
-    description: 'You got the promotion, so you get the bill for the whole floor. Somebody at the far end orders the lobster.',
-    effect: { type: 'payEach', amount: 800, reason: 'The tab for the whole floor' },
-    tone: 'slate', icon: 'space:neighborhood-bbq', tier: STANDARD_UP,
+    id: 'midtown-divorce', kind: 'normal', title: 'Splitting Up',
+    description: 'The marriage ends here. The paperwork is faster than either of you expected, and the apartment is quieter than it was.',
+    effect: { type: 'divorce', reason: 'Divorce settlement' },
+    tone: 'slate', icon: 'space:layoff-notice', tier: STANDARD_UP,
   },
   {
     id: 'midtown-dryer-fire', kind: 'normal', title: 'Dryer Fire',
@@ -1273,7 +1285,7 @@ const SAFE_STREET: readonly SpaceContent[] = [
   )),
   setback('hard', EVERY_BOARD, 'safe-excess', 'Policy Deductible',
     'Even the careful road has a claim form on it, and the deductible is always yours to cover.',
-    { type: 'payMoney', amount: 4_000, reason: 'Policy deductible' },
+    { type: 'payMoney', amount: 1_000, reason: 'Policy deductible' },
     'green', 'finance:insurance-office'),
   setback('veryHard', STANDARD_UP, 'safe-roof', 'Roof Repairs',
     'Three roof shingles come off in the night, and the man with the ladder is booked until Thursday.',

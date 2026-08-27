@@ -71,7 +71,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
   },
   setback('hard', EVERY_BOARD, 'jp-uni-phone-trap', 'The Phone Contract',
     'The phone plan you signed at nineteen had a cancellation fee buried in the fine print, and this is the month it catches up with you.',
-    { type: 'payMoney', amount: 250_000, reason: 'Contract cancellation fees' },
+    { type: 'payMoney', amount: 30_000, reason: 'Contract cancellation fees' },
     'blue', 'finance:bank-visit'),
   flavour(LONG_ONLY, 'jp-uni-circle', 'The Circle', 'You join a university club that is nominally about tennis and actually about drinking parties with a tennis theme.', 'blue', 'space:group-project', {
     from: 'hard',
@@ -82,7 +82,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
     id: 'jp-uni-grant', kind: 'normal', title: 'The Real Scholarship',
     description: 'A foundation grant nobody expected — you read the terms twice to confirm it is actually a gift — and it covers a serious chunk of the fees.',
     effect: { type: 'gainMoney', amount: 2_400_000, reason: 'Foundation grant' },
-    tone: 'blue', icon: 'space:scholarship-win', tier: STANDARD_UP,
+    tone: 'blue', icon: 'space:scholarship-win', tier: EVERY_BOARD,
   },
   {
     id: 'jp-uni-cup-noodles', kind: 'normal', title: 'Cup Noodle Weeks',
@@ -90,7 +90,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 60_000, reason: 'Groceries on a student budget' },
     tone: 'blue', icon: 'space:grocery-run', tier: LONG_ONLY,
   },
-  flavour(STANDARD_UP, 'jp-uni-suit-season', 'Suit Season', 'Job hunting begins: one black suit, one white shirt, one approved hairstyle, and forty thousand identical portfolios. Yours has a nice font.', 'blue', 'space:finals-week', {
+  flavour(EVERY_BOARD, 'jp-uni-suit-season', 'Suit Season', 'Job hunting begins: one black suit, one white shirt, one approved hairstyle, and forty thousand identical portfolios. Yours has a nice font.', 'blue', 'space:finals-week', {
     from: 'hard',
     description: 'Job hunting begins: the black suit, the plain shoes, the portrait photos with the regulation half-smile — all, it turns out, sold separately.',
     effect: { type: 'payMoney', amount: 160_000, reason: 'The interview uniform' },
@@ -199,7 +199,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   setback('veryHard', STANDARD_UP, 'jp-work-late-rent', 'Late Rent',
     'The rent goes in four days late, and the guarantor company\'s letter is on the doormat before your apology is.',
-    { type: 'payMoney', amount: 250_000, reason: 'Late rent penalty' },
+    { type: 'payMoney', amount: 20_000, reason: 'Late rent penalty' },
     'orange', 'space:rent-due'),
   payday(EVERY_BOARD, 'jp-work-payday-2', 'Another month, another envelope, and still nobody has ever asked to see a diploma.', missedPayday(
     'hard',
@@ -514,7 +514,7 @@ const SALARYMAN_STREET_LATE: readonly SpaceContent[] = [
   },
   setback('hard', LONG_ONLY, 'jp-main-parking-ticket', 'Parking Ticket',
     'Eleven minutes over, one green-uniformed pair with a camera and excellent timing, and a sticker on the windscreen.',
-    { type: 'payMoney', amount: 120_000, reason: 'Parking fine' },
+    { type: 'payMoney', amount: 15_000, reason: 'Parking fine' },
     'slate', 'space:car-trouble'),
   {
     id: 'jp-main-year-end-party', kind: 'normal', title: 'Year-End Party',
@@ -782,10 +782,10 @@ const MIDTOWN: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:dividend-day', tier: STANDARD_UP,
   },
   {
-    id: 'jp-midtown-welcome-party', kind: 'normal', title: 'The Welcome Party',
-    description: 'The department drinks to the new arrivals. You are senior now, which means the glasses are refilled by rank, and the bill floats to the top of the table, where you sit.',
-    effect: { type: 'payEach', amount: 80_000, reason: 'The senior seat pays' },
-    tone: 'slate', icon: 'space:neighborhood-bbq', tier: STANDARD_UP,
+    id: 'jp-midtown-divorce', kind: 'normal', title: 'Divorce Papers',
+    description: 'A protocol divorce, signed at the ward office counter in the time it takes to renew a driver\'s licence. The apartment is quieter than it was.',
+    effect: { type: 'divorce', reason: 'Divorce settlement' },
+    tone: 'slate', icon: 'space:layoff-notice', tier: STANDARD_UP,
   },
   {
     id: 'jp-midtown-kotatsu', kind: 'normal', title: 'The Old Kotatsu',
@@ -999,7 +999,7 @@ const STEADY_STREET: readonly SpaceContent[] = [
   )),
   setback('hard', EVERY_BOARD, 'jp-safe-excess', 'Policy Excess',
     'Even the careful road has a claim form on it, and the excess is yours to cover, in exact change.',
-    { type: 'payMoney', amount: 400_000, reason: 'Policy excess' },
+    { type: 'payMoney', amount: 100_000, reason: 'Policy excess' },
     'green', 'finance:insurance-office'),
   setback('veryHard', STANDARD_UP, 'jp-safe-typhoon-roof', 'Typhoon Roof',
     'Typhoon nineteen takes three tiles in the night, and the man with the ladder is booked until Thursday.',

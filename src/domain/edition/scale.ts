@@ -72,6 +72,7 @@ const scaleEconomy = (economy: EconomyConstants, factor: number): EconomyConstan
   loanRepayment: scaleByDifficulty(economy.loanRepayment, factor),
   earlyLoanRepayment: scaleByDifficulty(economy.earlyLoanRepayment, factor),
   weddingGift: economy.weddingGift * factor,
+  divorceSettlement: economy.divorceSettlement * factor,
   // Spins and multipliers are counts, not money: only the sums are rescaled.
   marriage: {
     proposalSpin: economy.marriage.proposalSpin,

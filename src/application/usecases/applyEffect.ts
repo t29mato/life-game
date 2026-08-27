@@ -31,6 +31,7 @@ import {
   applyPayRaise,
   creditPlayer,
   debitPlayer,
+  divorcePlayer,
   graduatePlayer,
   hasCalling,
   hasInsurance,
@@ -1246,6 +1247,45 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         `${player.name} collects ${money(gained)} for ${player.children} children.`,
         'money-in',
       )
+      return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
+    }
+
+    case 'divorce': {
+      /*
+       * Single players have nobody to separate from, so the tile passes them
+       * by — same shape as `household`.
+       */
+      if (!player.isMarried) {
+        const event = baseEvent(
+          space,
+          0,
+          [effect.reason, 'Nothing to end — nobody to separate from.'],
+          'normal',
+          `${player.name} has nobody to separate from. They walk on.`,
+        )
+        const log = appendLog(state, player.id, `${player.name} is not married, so there is nothing to end.`, 'info')
+        return { state: { ...state, log, pendingDecision: null }, event }
+      }
+
+      const hadChildren = player.children
+      const settled = debitPlayer(player, economy.divorceSettlement, economy)
+      const updated = divorcePlayer(settled)
+      const delta = updated.money - player.money
+      const loansTaken = updated.loans - player.loans
+      const notes = [effect.reason, `Settlement: ${money(economy.divorceSettlement)}`]
+      if (hadChildren > 0) {
+        const label = hadChildren === 1 ? 'child' : 'children'
+        notes.push(`${hadChildren} ${label} leave with them.`)
+      }
+      if (loansTaken > 0) notes.push(borrowed(loansTaken))
+      const event = baseEvent(
+        space,
+        delta,
+        notes,
+        emphasisOf(delta),
+        `${player.name}'s marriage ends. ${money(economy.divorceSettlement)} settled, and the house is quieter than it was.`,
+      )
+      const log = appendLog(state, player.id, `${player.name} divorces and pays a ${money(economy.divorceSettlement)} settlement.`, 'event')
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
     }
 

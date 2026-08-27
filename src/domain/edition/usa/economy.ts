@@ -78,6 +78,7 @@ export const USA_ECONOMY: EconomyConstants = {
     veryHard: 34_000,
   },
   weddingGift: 10_000,
+  divorceSettlement: 15_000,
   /**
    * The wheel decides the marriage, not just the wedding.
    *

@@ -22,6 +22,18 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
     version: __APP_VERSION__,
     date: 'August 28, 2026',
     whatsNew: [
+      "A marriage can end now, not just begin. It's rare, and it costs a settlement — and every child leaves with the departing partner, so the family scoring at the end of the game stops counting them from there on.",
+      "College runs a little longer before the cap and gown — a couple of already-written years (a scholarship win, finals week) used to be cut from shorter games, and now they always happen.",
+    ],
+    changes: [
+      "A handful of board bills that had drifted a long way from what the thing they describe actually costs — a bank overdraft fee, a parking ticket, a late-rent penalty, an insurance deductible — now land much closer to real life, in every country's own currency.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.7.0',
+    date: 'August 27, 2026',
+    whatsNew: [
       'A new home-screen icon — the road, the sun, and the flag at the end of it, the same picture across every country and every device.',
     ],
     changes: [

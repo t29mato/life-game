@@ -72,7 +72,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
   },
   setback('hard', EVERY_BOARD, 'in-uni-credit-card', 'The Campus Credit Card',
     'The credit card a smiling agent signed you up for at the college gate has a high interest rate hidden in the small print, and this month you finally have to pay it.',
-    { type: 'payMoney', amount: 250_000, reason: 'Credit card charges' },
+    { type: 'payMoney', amount: 30_000, reason: 'Credit card charges' },
     'blue', 'finance:bank-visit'),
   flavour(LONG_ONLY, 'in-uni-fest', 'The Culture Fest', 'You join the festival committee, which is supposed to be about organising events, but is actually about arguing over sponsor banners at two in the morning.', 'blue', 'space:group-project', {
     from: 'hard',
@@ -83,7 +83,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     id: 'in-uni-scholarship', kind: 'normal', title: 'The Merit Scholarship',
     description: 'A trust nobody had heard of awards you a real scholarship — you read the letter three times to confirm nothing is being sold — and it covers a serious chunk of the fees.',
     effect: { type: 'gainMoney', amount: 2_400_000, reason: 'Merit scholarship' },
-    tone: 'blue', icon: 'space:scholarship-win', tier: STANDARD_UP,
+    tone: 'blue', icon: 'space:scholarship-win', tier: EVERY_BOARD,
   },
   {
     id: 'in-uni-mess-fatigue', kind: 'normal', title: 'Mess Fatigue',
@@ -91,7 +91,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 60_000, reason: 'A fortnight of ordering in' },
     tone: 'blue', icon: 'space:grocery-run', tier: LONG_ONLY,
   },
-  flavour(STANDARD_UP, 'in-uni-placement-season', 'Placement Season', 'Final year begins: one formal shirt, one borrowed tie, forty identical resumes, and an aptitude test at seven in the morning. Yours has a nice font.', 'blue', 'space:finals-week', {
+  flavour(EVERY_BOARD, 'in-uni-placement-season', 'Placement Season', 'Final year begins: one formal shirt, one borrowed tie, forty identical resumes, and an aptitude test at seven in the morning. Yours has a nice font.', 'blue', 'space:finals-week', {
     from: 'hard',
     description: 'Final year begins: the formal shirt, the plain shoes, the resume printed on the good paper, and the aptitude-test practice subscription — all, it turns out, sold separately.',
     effect: { type: 'payMoney', amount: 160_000, reason: 'The placement uniform' },
@@ -199,7 +199,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   setback('veryHard', STANDARD_UP, 'in-work-late-rent', 'Late Rent',
     'The rent goes in four days late, and the landlady\'s knock arrives before your apology does, with the society watchman for moral support.',
-    { type: 'payMoney', amount: 250_000, reason: 'Late rent penalty' },
+    { type: 'payMoney', amount: 20_000, reason: 'Late rent penalty' },
     'orange', 'space:rent-due'),
   payday(EVERY_BOARD, 'in-work-payday-2', 'Another month, another credit, and still nobody has ever asked to see a degree.', missedPayday(
     'hard',
@@ -513,7 +513,7 @@ const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
   },
   setback('hard', LONG_ONLY, 'in-main-challan', 'The E-Challan',
     'A camera you never saw, a text message with photographic evidence, and a fine that has been compounding quietly since March.',
-    { type: 'payMoney', amount: 120_000, reason: 'Traffic challan' },
+    { type: 'payMoney', amount: 15_000, reason: 'Traffic challan' },
     'slate', 'space:car-trouble'),
   {
     id: 'in-main-office-party', kind: 'normal', title: 'The Office Diwali Party',
@@ -781,10 +781,10 @@ const MIDTOWN: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:dividend-day', tier: STANDARD_UP,
   },
   {
-    id: 'in-midtown-team-dinner', kind: 'normal', title: 'The Team Dinner',
-    description: 'The team eats out to celebrate the release. You are senior now, which means the bill quietly makes its way down the table and lands at your plate.',
-    effect: { type: 'payEach', amount: 80_000, reason: 'The senior seat pays' },
-    tone: 'slate', icon: 'space:neighborhood-bbq', tier: STANDARD_UP,
+    id: 'in-midtown-divorce', kind: 'normal', title: 'Mutual Consent',
+    description: 'A divorce by mutual consent, filed and granted at the family court after the mandatory cooling-off period. The house is quieter than it was.',
+    effect: { type: 'divorce', reason: 'Divorce settlement' },
+    tone: 'slate', icon: 'space:layoff-notice', tier: STANDARD_UP,
   },
   {
     id: 'in-midtown-geyser', kind: 'normal', title: 'The Old Geyser',
@@ -998,7 +998,7 @@ const STEADY_STREET: readonly SpaceContent[] = [
   )),
   setback('hard', EVERY_BOARD, 'in-safe-excess', 'The Policy Excess',
     'Even the careful road has a claim form on it, and the surveyor\'s report subtracts the excess in exact change.',
-    { type: 'payMoney', amount: 400_000, reason: 'Policy excess' },
+    { type: 'payMoney', amount: 100_000, reason: 'Policy excess' },
     'green', 'finance:insurance-office'),
   setback('veryHard', STANDARD_UP, 'in-safe-monsoon-roof', 'The Monsoon Terrace',
     'The cloudburst finds the one crack in the terrace waterproofing, and the contractor with the good reputation is booked until Thursday.',

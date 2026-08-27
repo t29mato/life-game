@@ -18,6 +18,7 @@ import {
   createPlayer,
   creditPlayer,
   debitPlayer,
+  divorcePlayer,
   expectedPayday,
   graduatePlayer,
   hasInsurance,
@@ -530,6 +531,17 @@ describe('marryPlayer', () => {
     const player = basePlayer({ isMarried: false })
     expect(marryPlayer(player).isMarried).toBe(true)
     expect(player.isMarried).toBe(false)
+  })
+})
+
+describe('divorcePlayer', () => {
+  it('ends the marriage and sends every child with the departing partner', () => {
+    const player = basePlayer({ isMarried: true, children: 3 })
+    const result = divorcePlayer(player)
+    expect(result.isMarried).toBe(false)
+    expect(result.children).toBe(0)
+    expect(player.isMarried).toBe(true)
+    expect(player.children).toBe(3)
   })
 })
 

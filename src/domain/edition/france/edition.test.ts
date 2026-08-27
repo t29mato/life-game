@@ -31,6 +31,7 @@ describe('the france economy is the tuned USA economy at ×1', () => {
     expect(france.startingMoney).toBe(usa.startingMoney * FACTOR)
     expect(france.loanPrincipal).toBe(usa.loanPrincipal * FACTOR)
     expect(france.weddingGift).toBe(usa.weddingGift * FACTOR)
+    expect(france.divorceSettlement).toBe(usa.divorceSettlement * FACTOR)
     expect(france.firstRetirementBonus).toBe(usa.firstRetirementBonus * FACTOR)
     expect(france.casualWagePerPip).toBe(usa.casualWagePerPip * FACTOR)
     expect(france.lifeInsurancePayout).toBe(usa.lifeInsurancePayout * FACTOR)

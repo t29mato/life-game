@@ -73,7 +73,7 @@ const GRANDE_ECOLE_LANE: readonly SpaceContent[] = [
   },
   setback('hard', EVERY_BOARD, 'fr-uni-overdraft', 'Overdraft Charges',
     'Your account dips below zero for one single day. The bank charges you for it anyway, and includes a leaflet about budgeting.',
-    { type: 'payMoney', amount: 2_500, reason: 'Overdraft charges' },
+    { type: 'payMoney', amount: 300, reason: 'Overdraft charges' },
     'blue', 'finance:bank-visit'),
   flavour(LONG_ONLY, 'fr-uni-expose', 'The Group Presentation', 'Somehow you end up making most of the slides again. The other three just offer opinions.', 'blue', 'space:group-project', {
     from: 'hard',
@@ -84,7 +84,7 @@ const GRANDE_ECOLE_LANE: readonly SpaceContent[] = [
     id: 'fr-uni-grant', kind: 'normal', title: 'The Merit Grant',
     description: 'A scholarship exists that matches you exactly. You read the letter twice to be sure it is real, and it covers a big chunk of your fees.',
     effect: { type: 'gainMoney', amount: 24_000, reason: 'Foundation grant' },
-    tone: 'blue', icon: 'space:scholarship-win', tier: STANDARD_UP,
+    tone: 'blue', icon: 'space:scholarship-win', tier: EVERY_BOARD,
   },
   {
     id: 'fr-uni-pasta', kind: 'normal', title: 'Pasta Weeks',
@@ -92,7 +92,7 @@ const GRANDE_ECOLE_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 600, reason: 'Groceries on a student budget' },
     tone: 'blue', icon: 'space:grocery-run', tier: LONG_ONLY,
   },
-  flavour(STANDARD_UP, 'fr-uni-exams', 'Exam Fortnight', 'Five written exams, then one where three teachers watch you work out a problem on a blackboard. You live on coffee.', 'blue', 'space:finals-week', {
+  flavour(EVERY_BOARD, 'fr-uni-exams', 'Exam Fortnight', 'Five written exams, then one where three teachers watch you work out a problem on a blackboard. You live on coffee.', 'blue', 'space:finals-week', {
     from: 'hard',
     description: 'Five written exams, one blackboard exam in front of three teachers — and you panic-hire a tutor for the subject you dread most.',
     effect: { type: 'payMoney', amount: 1_600, reason: 'Emergency tutoring' },
@@ -202,7 +202,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   setback('veryHard', STANDARD_UP, 'fr-work-late-rent', 'Late Rent',
     'Your rent payment arrives four days late. The guarantor company\'s warning letter arrives before your apology does.',
-    { type: 'payMoney', amount: 2_500, reason: 'Late rent penalty' },
+    { type: 'payMoney', amount: 200, reason: 'Late rent penalty' },
     'orange', 'space:rent-due'),
   payday(EVERY_BOARD, 'fr-work-payday-2', 'Another month, another pay slip. Still nobody has asked to see your diploma.', missedPayday(
     'hard',
@@ -517,7 +517,7 @@ const BOULEVARD_LATE: readonly SpaceContent[] = [
   },
   setback('hard', LONG_ONLY, 'fr-main-parking-ticket', 'Parking Ticket',
     'You are eleven minutes over the limit. A very punctual warden leaves a ticket neatly under your wiper.',
-    { type: 'payMoney', amount: 1_200, reason: 'Parking fine' },
+    { type: 'payMoney', amount: 150, reason: 'Parking fine' },
     'slate', 'space:car-trouble'),
   {
     id: 'fr-main-apero', kind: 'normal', title: 'The Apéritif',
@@ -786,10 +786,10 @@ const MIDTOWN: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:dividend-day', tier: STANDARD_UP,
   },
   {
-    id: 'fr-midtown-long-lunch', kind: 'normal', title: 'The Long Lunch',
-    description: 'You got promoted, so lunch is on you for the whole floor. A proper French business lunch means several courses, plus a cheese trolley that keeps coming back.',
-    effect: { type: 'payEach', amount: 800, reason: 'Lunch for the whole floor' },
-    tone: 'slate', icon: 'space:neighborhood-bbq', tier: STANDARD_UP,
+    id: 'fr-midtown-divorce', kind: 'normal', title: 'Splitting Up',
+    description: 'A divorce by mutual consent, signed at the notary\'s office rather than argued in front of a judge. The apartment is quieter than it was.',
+    effect: { type: 'divorce', reason: 'Divorce settlement' },
+    tone: 'slate', icon: 'space:layoff-notice', tier: STANDARD_UP,
   },
   {
     id: 'fr-midtown-fryer', kind: 'normal', title: 'The Deep Fryer',
@@ -1003,7 +1003,7 @@ const PRUDENCE_STREET: readonly SpaceContent[] = [
   )),
   setback('hard', EVERY_BOARD, 'fr-safe-excess', 'Policy Excess',
     'Even the careful road has an insurance claim on it sometimes, and the deductible is yours to pay.',
-    { type: 'payMoney', amount: 4_000, reason: 'Policy excess' },
+    { type: 'payMoney', amount: 1_000, reason: 'Policy excess' },
     'green', 'finance:insurance-office'),
   setback('veryHard', STANDARD_UP, 'fr-safe-roof', 'Roof Repairs',
     'A storm knocks three tiles off your roof overnight, and the only roofer available is booked until Thursday.',

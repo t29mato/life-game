@@ -95,6 +95,7 @@ export const BOLIVIA_ECONOMY: EconomyConstants = {
    * way the $10,000 it mirrors always was.
    */
   weddingGift: 10_000,
+  divorceSettlement: 15_000,
   /**
    * The wheel decides the marriage, not just the wedding — same bands, same
    * spins, same sums as the tuned USA wheel, with the lives behind them

@@ -27,6 +27,7 @@ describe('the japan economy is the tuned USA economy at ×100', () => {
     expect(japan.startingMoney).toBe(usa.startingMoney * FACTOR)
     expect(japan.loanPrincipal).toBe(usa.loanPrincipal * FACTOR)
     expect(japan.weddingGift).toBe(usa.weddingGift * FACTOR)
+    expect(japan.divorceSettlement).toBe(usa.divorceSettlement * FACTOR)
     expect(japan.firstRetirementBonus).toBe(usa.firstRetirementBonus * FACTOR)
     expect(japan.casualWagePerPip).toBe(usa.casualWagePerPip * FACTOR)
     expect(japan.lifeInsurancePayout).toBe(usa.lifeInsurancePayout * FACTOR)

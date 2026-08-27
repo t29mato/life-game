@@ -196,7 +196,11 @@ describe('the yen economy stays in a playable band', () => {
     expect(bustShare(veryHard.totals)).toBeGreaterThan(0.25)
     expect(bustShare(veryHard.totals)).toBeLessThan(0.7)
     expect(median(veryHard.totals)).toBeGreaterThan(-20_000_000)
-    expect(median(veryHard.totals)).toBeLessThan(25_000_000)
+        // A small, uniform softening: four hard/very-hard setback tiles
+    // (overdraft, late rent, parking fine, policy excess) had amounts far
+    // beyond what those bills actually cost in real life and are now
+    // realistic instead, which nudges the very-hard median up slightly.
+    expect(median(veryHard.totals)).toBeLessThan(30_000_000)
   })
 
   it('keeps every difficulty a session and not a marathon', () => {

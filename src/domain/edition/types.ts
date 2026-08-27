@@ -111,6 +111,8 @@ export interface EconomyConstants {
   readonly weddingGift: Money
   /** Whether the proposal lands, and which marriage the wheel handed over. */
   readonly marriage: MarriageSpec
+  /** What a `divorce` tile settles for. Married players only; see `SpaceEffect`. */
+  readonly divorceSettlement: Money
   /** What a `household` tile settles for a married player. */
   readonly household: HouseholdSpec
   /**

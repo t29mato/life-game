@@ -423,6 +423,13 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
       return -effect.amount * player.children
     case 'collectPerChild':
       return effect.amount * player.children
+    case 'divorce':
+      // Worth nothing to a single player, who the tile passes by. To a
+      // married one it costs the settlement and every child's whole future
+      // value, since Family Lane's own scoring stops counting them from here.
+      return player.isMarried
+        ? -(economy.divorceSettlement + player.children * expectedChildValue(player, economy))
+        : 0
     case 'swapMoneyWithLeader': {
       const richest = rivals.reduce<Money>((best, other) => Math.max(best, other.money), 0)
       return Math.max(0, richest - player.money)

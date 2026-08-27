@@ -84,6 +84,7 @@ export const INDIA_ECONOMY: EconomyConstants = {
    * mirrors always was.
    */
   weddingGift: 1_000_000,
+  divorceSettlement: 1_500_000,
   /**
    * The wheel decides the marriage, not just the wedding — same bands, same
    * spins, same sums ×100 as the tuned USA wheel, with the lives behind them
