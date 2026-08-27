@@ -20,6 +20,19 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
+    date: 'August 28, 2026',
+    whatsNew: [
+      'A new home-screen icon — the road, the sun, and the flag at the end of it, the same picture across every country and every device.',
+    ],
+    changes: [
+      "Fewer back-to-back forced stops. A few spots on the board used to chain two mandatory stops right next to each other — right after graduation, and right after taking the Job-Hopper route — so the roll straight after barely mattered. Both now have a beat in between, so every roll still counts for something.",
+      "Changing careers always pays out first. On the Job-Hopper route and a couple of other stretches, it used to be possible to change jobs twice without ever actually collecting a paycheck from either one in between. There's always a payday in there now.",
+      "A couple of plainer word choices — a fender bender is now a minor car crash, a golden handshake is now a final promotion — so nothing on the board depends on knowing an English expression rather than the words themselves. This is the first pass of a wider plain-English review still in progress.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.6.0',
     date: 'August 27, 2026',
     whatsNew: [
       "You can add this game to your phone's home screen now, like any other app — open it from the browser menu ('Add to Home Screen' on an iPhone, 'Install' on most others) and it launches full-screen from its own icon from then on, no address bar in the way.",

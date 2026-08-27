@@ -133,6 +133,17 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     effect: { type: 'graduate' },
     tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
   },
+  // A one-tile buffer, EVERY_BOARD so it survives every length: Cap and Gown
+  // and the job fair right after it were both `stop` tiles, so landing on one
+  // always meant landing on the other next turn too — two turns in a row
+  // where the roll barely mattered. This tile breaks that pair up without
+  // touching either guaranteed event.
+  {
+    id: 'college-9', kind: 'normal', title: 'Packing Up',
+    description: 'You clear out the dorm room and hand back the key, one box of textbooks lighter than you hoped.',
+    effect: { type: 'none' },
+    tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
+  },
 ]
 
 const GRAD_FAIR: SpaceContent = {
@@ -198,6 +209,16 @@ const WORK_LANE: readonly SpaceContent[] = [
     description: 'You are earning, so you are expected to be housed: a deposit, a first month up front, and a bed you put together yourself.',
     effect: { type: 'payMoney', amount: 1_800, reason: 'Deposit and first month' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, unscaled: true,
+  },
+  // A one-tile buffer before the uniform deposit below: on Hard and Very
+  // Hard that tile is also a `stop`, right after this one, which meant the
+  // roll after moving out barely mattered. EVERY_BOARD so it holds the two
+  // apart on a short board too.
+  {
+    id: 'work-first-night', kind: 'normal', title: 'First Night In',
+    description: 'You unpack by lamplight because the overhead bulb still needs replacing.',
+    effect: { type: 'none' },
+    tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD,
   },
   /*
    * A stop rather than an ordinary tile, and only on the harder settings.
@@ -417,7 +438,7 @@ const MAIN_STREET_EARLY: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:weekend-trip', tier: LONG_ONLY,
   },
   {
-    id: 'main-fender-bender', kind: 'normal', title: 'Fender Bender',
+    id: 'main-fender-bender', kind: 'normal', title: 'Minor Car Crash',
     description: 'Someone taps your bumper in the parking lot and the quote arrives by email that afternoon.',
     effect: { type: 'payMoney', amount: 2_400, reason: 'Bodyshop bill', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender', tier: EVERY_BOARD,
@@ -440,7 +461,7 @@ const MAIN_STREET_EARLY: readonly SpaceContent[] = [
      * after the game has finished. There are a dozen on the standard route
      * now, and an insured player watches roughly two of them bounce.
      */
-    id: 'main-prang', kind: 'normal', title: 'Parking Lot Prang',
+    id: 'main-prang', kind: 'normal', title: 'Parking Lot Dent',
     description: 'Somebody reverses into your door in the parking garage and leaves a note that reads, in full, "sorry".',
     effect: { type: 'payMoney', amount: 2_600, reason: 'Door and wing repairs', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender', tier: STANDARD_UP,
@@ -559,6 +580,16 @@ const COMPANY_ROAD: readonly SpaceContent[] = [
  * and a player near the bottom has almost nothing to lose.
  */
 const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
+  // The fork tile right before this lane (`main-crossroads`) is itself a
+  // forced stop, and Name Your Price below is too — so choosing this branch
+  // used to land on two stops back to back, wasting most of two separate
+  // rolls. EVERY_BOARD so the buffer survives thinning on a short board too.
+  {
+    id: 'hopper-lookout', kind: 'normal', title: 'Quiet Job Search',
+    description: 'You update your resume on a lunch break and start taking calls nobody at the office can hear.',
+    effect: { type: 'none' },
+    tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
+  },
   {
     /*
      * A `stop`, so that choosing this road *is* the re-draw rather than a one
@@ -579,10 +610,15 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
     tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
   },
   {
+    // EVERY_BOARD, not STANDARD_UP: on a short board this used to be the
+    // first tile thinned away, which meant a player who re-drew here could
+    // reach the career fair's *second* redraw (after a layoff) without ever
+    // banking a payday from either job in between. This is the alley's own
+    // wage, so it stays on every length the redraw itself is on.
     id: 'hopper-bonus', kind: 'payday', title: 'Signing Bonus',
     description: 'The new firm buys you out of your notice period, and the check lands like a whole extra paycheck.',
     effect: { type: 'payday' },
-    tone: 'green', icon: 'space:bonus-season', tier: STANDARD_UP,
+    tone: 'green', icon: 'space:bonus-season', tier: EVERY_BOARD,
   },
   {
     id: 'hopper-gap', kind: 'normal', title: 'The Gap',
@@ -900,6 +936,16 @@ const FAST_TRACK: readonly SpaceContent[] = [
     'Six weeks signed off, and the paycheck is a great deal lighter by the time you walk back in.',
     { type: 'payMoney', amount: 12_000, reason: 'Unpaid leave' },
     'orange', 'space:steady-hustle'),
+  // Very Hard only, matching the restructure below: without it, a Very Hard
+  // player headhunted onto this lane could be reorganized into yet another
+  // role a few tiles later without ever banking a payday from the one in
+  // between.
+  {
+    id: 'fast-payday-severance', kind: 'payday', title: 'Year-End Payroll',
+    description: 'The year winds down, and whatever this job pays lands one more time before everything changes again.',
+    effect: { type: 'payday' },
+    tone: 'green', icon: 'space:bonus-season', tier: EVERY_BOARD, appearsFrom: 'veryHard',
+  },
   {
     id: 'fast-restructure', kind: 'normal', title: 'Restructure',
     description: 'The company reorganizes overnight, and your name turns up in a different job entirely.',
@@ -1393,7 +1439,7 @@ const SUNSET_STRIP: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:sticky-fingers', tier: EVERY_BOARD,
   },
   {
-    id: 'sunset-handshake', kind: 'normal', title: 'Golden Handshake',
+    id: 'sunset-handshake', kind: 'normal', title: 'Final Promotion',
     description: 'One last title before the door, if they can be persuaded. Spin, and let the last review of your life decide it.',
     effect: { type: 'promotion', reason: 'The last review of your life' },
     tone: 'slate', icon: 'space:big-promotion', tier: EVERY_BOARD,

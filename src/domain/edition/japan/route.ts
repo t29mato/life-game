@@ -125,6 +125,12 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
     effect: { type: 'graduate' },
     tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
   },
+  {
+    id: 'jp-uni-farewell', kind: 'normal', title: 'Clearing the Dorm',
+    description: 'You pack four years into two boxes and hand the room key back to the caretaker.',
+    effect: { type: 'none' },
+    tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
+  },
 ]
 
 const GRAD_FAIR: SpaceContent = {
@@ -166,6 +172,12 @@ const WORK_LANE: readonly SpaceContent[] = [
     description: 'You are earning, so you are expected to be housed: a deposit, a month of gratitude money that thanks the landlord for existing, and a bed you assemble yourself.',
     effect: { type: 'payMoney', amount: 180_000, reason: 'Deposit, key money and first month' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, unscaled: true,
+  },
+  {
+    id: 'jp-work-first-night', kind: 'normal', title: 'First Night In',
+    description: 'You unpack by the light of one bare bulb, because the ceiling light still needs buying.',
+    effect: { type: 'none' },
+    tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD,
   },
   {
     id: 'jp-work-uniform', kind: 'stop', title: 'Uniform Deposit',
@@ -306,7 +318,7 @@ const SALARYMAN_STREET_EARLY: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:weekend-trip', tier: LONG_ONLY,
   },
   {
-    id: 'jp-main-fender-bender', kind: 'normal', title: 'Fender Bender',
+    id: 'jp-main-fender-bender', kind: 'normal', title: 'Minor Car Crash',
     description: 'A gentle tap in the supermarket car park. The other driver bows at precisely forty-five degrees; the quote arrives by email that afternoon.',
     effect: { type: 'payMoney', amount: 240_000, reason: 'Bodyshop bill', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender', tier: EVERY_BOARD,
@@ -409,6 +421,12 @@ const COMPANY_LOYALTY_ROAD: readonly SpaceContent[] = [
  */
 const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
   {
+    id: 'jp-hopper-lookout', kind: 'normal', title: 'Quiet Job Search',
+    description: 'You update your résumé in a manga café after hours and start taking calls nobody at the office can hear.',
+    effect: { type: 'none' },
+    tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
+  },
+  {
     id: 'jp-hopper-move', kind: 'stop', title: 'Name Your Price',
     description: 'You hand in your notice with the next offer already signed. HR looks stunned, as if you had quit on the spot; the new title arrives with a new number attached.',
     effect: { type: 'careerChange', reason: 'You named your price elsewhere', compulsory: true },
@@ -418,7 +436,7 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
     id: 'jp-hopper-bonus', kind: 'payday', title: 'Signing Bonus',
     description: 'The new firm buys out your notice period, and the transfer lands like a bonus season you did not have to wait for.',
     effect: { type: 'payday' },
-    tone: 'green', icon: 'space:bonus-season', tier: STANDARD_UP,
+    tone: 'green', icon: 'space:bonus-season', tier: EVERY_BOARD,
   },
   {
     id: 'jp-hopper-gap', kind: 'normal', title: 'The Gap',
@@ -689,6 +707,12 @@ const CAREER_TRACK: readonly SpaceContent[] = [
     'Six weeks signed off with a doctor\'s note, and the pay packet is a great deal lighter by the time you bow your way back in.',
     { type: 'payMoney', amount: 1_200_000, reason: 'Unpaid leave' },
     'orange', 'space:steady-hustle'),
+  {
+    id: 'jp-fast-payday-severance', kind: 'payday', title: 'Year-End Payroll',
+    description: 'The fiscal year closes out, and whatever this job pays lands in your account one more time before the org chart is redrawn.',
+    effect: { type: 'payday' },
+    tone: 'green', icon: 'space:bonus-season', tier: EVERY_BOARD, appearsFrom: 'veryHard',
+  },
   {
     id: 'jp-fast-reorg', kind: 'normal', title: 'The Reorganisation',
     description: 'The org chart is redrawn overnight and your name turns up in a different box entirely. Nobody asked, which is what a reorganisation is.',

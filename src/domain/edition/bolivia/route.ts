@@ -126,6 +126,12 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
     effect: { type: 'graduate' },
     tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
   },
+  {
+    id: 'bo-uni-farewell', kind: 'normal', title: 'The Empty Room',
+    description: 'You pack four years into two boxes and hand the key back to the landlady who fed you half of them.',
+    effect: { type: 'none' },
+    tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
+  },
 ]
 
 const GRAD_FAIR: SpaceContent = {
@@ -167,6 +173,12 @@ const WORK_LANE: readonly SpaceContent[] = [
     description: 'You are earning, so you are expected to be housed: a deposit, a first month up front, a mattress, and a two-ring stove you carry up four flights yourself.',
     effect: { type: 'payMoney', amount: 1_800, reason: 'Deposit and first month' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, unscaled: true,
+  },
+  {
+    id: 'bo-work-first-night', kind: 'normal', title: 'First Night In',
+    description: 'You unpack by candlelight because the landlady still has not fixed the wiring on your floor.',
+    effect: { type: 'none' },
+    tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD,
   },
   {
     id: 'bo-work-association', kind: 'stop', title: 'The Association Fee',
@@ -410,6 +422,12 @@ const PAYROLL_ROAD: readonly SpaceContent[] = [
  */
 const OWN_ACCOUNT_ALLEY: readonly SpaceContent[] = [
   {
+    id: 'bo-own-lookout', kind: 'normal', title: 'Word Gets Around',
+    description: 'You start putting the word out at the end of every visit, and the calls start coming back before the badge is even handed in.',
+    effect: { type: 'none' },
+    tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
+  },
+  {
     id: 'bo-own-account', kind: 'stop', title: 'Your Own Account',
     description: 'You hand back the badge with the next thing already planned. Your mother is horrified; your cousin buys the first round. The new work comes with a new number attached.',
     effect: { type: 'careerChange', reason: 'You went out on your own account', compulsory: true },
@@ -419,7 +437,7 @@ const OWN_ACCOUNT_ALLEY: readonly SpaceContent[] = [
     id: 'bo-own-first-contract', kind: 'payday', title: 'The First Big Contract',
     description: 'Your first client on your own account pays on delivery, in full, in cash — and it lands like a whole month\'s wage that nobody above you took a slice of.',
     effect: { type: 'payday' },
-    tone: 'green', icon: 'space:bonus-season', tier: STANDARD_UP,
+    tone: 'green', icon: 'space:bonus-season', tier: EVERY_BOARD,
   },
   {
     id: 'bo-own-paperwork', kind: 'normal', title: 'The Paperwork',
@@ -690,6 +708,12 @@ const CAREER_TRACK: readonly SpaceContent[] = [
     'Six weeks signed off with a doctor\'s note, and the envelope is a great deal lighter by the time you walk back in.',
     { type: 'payMoney', amount: 12_000, reason: 'Unpaid leave' },
     'orange', 'space:steady-hustle'),
+  {
+    id: 'bo-fast-payday-severance', kind: 'payday', title: 'Year-End Payroll',
+    description: 'The year winds down, and whatever this job pays lands in your account one more time before everything changes again.',
+    effect: { type: 'payday' },
+    tone: 'green', icon: 'space:bonus-season', tier: EVERY_BOARD, appearsFrom: 'veryHard',
+  },
   {
     id: 'bo-fast-reorg', kind: 'normal', title: 'The Reorganisation',
     description: 'A consultant flies in for a week, the org chart is redrawn over a weekend, and on Monday your name is in a different box with a different title under it. Nobody asked you; nobody asked anybody.',

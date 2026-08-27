@@ -127,6 +127,12 @@ const GRANDE_ECOLE_LANE: readonly SpaceContent[] = [
     effect: { type: 'graduate' },
     tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
   },
+  {
+    id: 'fr-uni-farewell', kind: 'normal', title: 'Clearing the Room',
+    description: 'You empty the student room into two suitcases and hand the key back to the concierge.',
+    effect: { type: 'none' },
+    tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
+  },
 ]
 
 const GRAD_FAIR: SpaceContent = {
@@ -169,6 +175,12 @@ const WORK_LANE: readonly SpaceContent[] = [
     description: 'Now that you are earning, you are expected to move out: a deposit, a guarantor (your parents have to sign), and a rental application thicker than a job application.',
     effect: { type: 'payMoney', amount: 1_800, reason: 'Deposit and first month' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, unscaled: true,
+  },
+  {
+    id: 'fr-work-first-night', kind: 'normal', title: 'First Night In',
+    description: 'You unpack by lamplight, because the overhead bulb is still on next week\'s shopping list.',
+    effect: { type: 'none' },
+    tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD,
   },
   {
     id: 'fr-work-gear', kind: 'stop', title: 'Work Gear Deposit',
@@ -309,7 +321,7 @@ const BOULEVARD_EARLY: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:weekend-trip', tier: LONG_ONLY,
   },
   {
-    id: 'fr-main-fender-bender', kind: 'normal', title: 'Fender Bender',
+    id: 'fr-main-fender-bender', kind: 'normal', title: 'Minor Car Crash',
     description: 'You and the other driver fill out the accident report on the hood of the car, and agree it was your fault.',
     effect: { type: 'payMoney', amount: 2_400, reason: 'Bodyshop bill', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender', tier: EVERY_BOARD,
@@ -412,6 +424,12 @@ const PERMANENT_CONTRACT_ROAD: readonly SpaceContent[] = [
  */
 const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
   {
+    id: 'fr-hopper-lookout', kind: 'normal', title: 'Quiet Job Search',
+    description: 'You update your CV over lunch and start taking calls nobody at the office can hear.',
+    effect: { type: 'none' },
+    tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
+  },
+  {
     id: 'fr-hopper-exit', kind: 'stop', title: 'The Negotiated Exit',
     description: 'You and your company agree, in writing, to part ways. This "negotiated exit" gets you a payout, your full rights, and a fresh start — with a new job and a new salary.',
     effect: { type: 'careerChange', reason: 'You signed the negotiated exit', compulsory: true },
@@ -421,7 +439,7 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
     id: 'fr-hopper-bonus', kind: 'payday', title: 'Signing Bonus',
     description: 'Your new employer pays out your three-month notice period in cash. It lands like a whole extra pay check.',
     effect: { type: 'payday' },
-    tone: 'green', icon: 'space:bonus-season', tier: STANDARD_UP,
+    tone: 'green', icon: 'space:bonus-season', tier: EVERY_BOARD,
   },
   {
     id: 'fr-hopper-gap', kind: 'normal', title: 'The Gap',
@@ -692,6 +710,12 @@ const EXECUTIVE_TRACK: readonly SpaceContent[] = [
     'A doctor signs you off work for six weeks and calmly uses the word "overwork." Your pay is much lighter by the time you return.',
     { type: 'payMoney', amount: 12_000, reason: 'Unpaid leave' },
     'orange', 'space:steady-hustle'),
+  {
+    id: 'fr-fast-payday-severance', kind: 'payday', title: 'Year-End Payroll',
+    description: 'The year closes out, and whatever this job pays lands in your account one more time before the org chart is redrawn.',
+    effect: { type: 'payday' },
+    tone: 'green', icon: 'space:bonus-season', tier: EVERY_BOARD, appearsFrom: 'veryHard',
+  },
   {
     id: 'fr-fast-reorg', kind: 'normal', title: 'The Reorganisation',
     description: 'The company chart is redrawn overnight, and your name ends up in a completely different box. Nobody asked you first — that is what a reorganisation is.',

@@ -126,6 +126,12 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     effect: { type: 'graduate' },
     tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
   },
+  {
+    id: 'in-uni-farewell', kind: 'normal', title: 'Hostel Checkout',
+    description: 'You pack four years into two trunks and hand the room key back to the warden.',
+    effect: { type: 'none' },
+    tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
+  },
 ]
 
 const GRAD_FAIR: SpaceContent = {
@@ -166,6 +172,12 @@ const WORK_LANE: readonly SpaceContent[] = [
     description: 'You are earning, so you are expected to be housed: a paying-guest room with a deposit, two months\' advance, and a landlady whose house rules run to a second page.',
     effect: { type: 'payMoney', amount: 180_000, reason: 'Deposit and two months\' advance' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, unscaled: true,
+  },
+  {
+    id: 'in-work-first-night', kind: 'normal', title: 'First Night In',
+    description: 'You unpack by the light of one bare bulb, because the tube light is still on next week\'s list.',
+    effect: { type: 'none' },
+    tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD,
   },
   {
     id: 'in-work-uniform', kind: 'stop', title: 'Uniform Deposit',
@@ -408,6 +420,12 @@ const PERMANENT_POST_ROAD: readonly SpaceContent[] = [
  */
 const SWITCH_ALLEY: readonly SpaceContent[] = [
   {
+    id: 'in-switch-lookout', kind: 'normal', title: 'Quiet Job Search',
+    description: 'You update your résumé on LinkedIn after hours and start taking calls nobody in the cubicle next door can hear.',
+    effect: { type: 'none' },
+    tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
+  },
+  {
     id: 'in-switch-hike', kind: 'stop', title: 'The Forty-Percent Hike',
     description: 'You resign with the next offer letter already in hand. HR schedules a retention call, then a second one; the counteroffer arrives exactly one day after it stopped mattering.',
     effect: { type: 'careerChange', reason: 'You named your hike elsewhere', compulsory: true },
@@ -417,7 +435,7 @@ const SWITCH_ALLEY: readonly SpaceContent[] = [
     id: 'in-switch-joining-bonus', kind: 'payday', title: 'The Joining Bonus',
     description: 'The new firm buys out your notice period, and the transfer lands like a festival bonus you did not have to wait for.',
     effect: { type: 'payday' },
-    tone: 'green', icon: 'space:bonus-season', tier: STANDARD_UP,
+    tone: 'green', icon: 'space:bonus-season', tier: EVERY_BOARD,
   },
   {
     id: 'in-switch-gap', kind: 'normal', title: 'The Notice-Period Gap',
@@ -688,6 +706,12 @@ const CAREER_TRACK: readonly SpaceContent[] = [
     'Six weeks signed off with a doctor\'s certificate, and the pay slip is a great deal lighter by the time you badge back in.',
     { type: 'payMoney', amount: 1_200_000, reason: 'Unpaid leave' },
     'orange', 'space:steady-hustle'),
+  {
+    id: 'in-fast-payday-severance', kind: 'payday', title: 'Year-End Payroll',
+    description: 'The financial year closes out, and whatever this job pays lands in your account one more time before the org chart is redrawn.',
+    effect: { type: 'payday' },
+    tone: 'green', icon: 'space:bonus-season', tier: EVERY_BOARD, appearsFrom: 'veryHard',
+  },
   {
     id: 'in-fast-reorg', kind: 'normal', title: 'The Reorganisation',
     description: 'The org chart is redrawn overnight and your name turns up in a different box entirely. Nobody asked, which is what a reorganisation is.',

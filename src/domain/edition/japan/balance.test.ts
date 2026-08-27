@@ -189,10 +189,14 @@ describe('the yen economy stays in a playable band', () => {
   })
 
   it('puts very hard on a knife edge: the median finishes near zero', () => {
-    expect(bustShare(veryHard.totals)).toBeGreaterThan(0.3)
+    // The fast-track lane now guarantees a payday between a headhunting and
+    // the very-hard-only reorganisation that used to follow it with no wage
+    // in between (see fast-payday-severance) — a small, deliberate softening
+    // for the players who draw that specific stretch, re-measured here.
+    expect(bustShare(veryHard.totals)).toBeGreaterThan(0.25)
     expect(bustShare(veryHard.totals)).toBeLessThan(0.7)
     expect(median(veryHard.totals)).toBeGreaterThan(-20_000_000)
-    expect(median(veryHard.totals)).toBeLessThan(20_000_000)
+    expect(median(veryHard.totals)).toBeLessThan(25_000_000)
   })
 
   it('keeps every difficulty a session and not a marathon', () => {

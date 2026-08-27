@@ -671,7 +671,13 @@ describe('the endgame is where the game is decided', () => {
       (s) => s.effect.type === 'payday' || s.effect.type === 'payRaise',
     )
     const late = income.filter((s) => (depth.get(s.id) ?? 0) / deepest > 0.5)
-    expect(late.length).toBeGreaterThan(income.length - late.length)
+    // `>=`, not `>`: the Job Hopper Alley payday is EVERY_BOARD tier now (see
+    // hopper-bonus) so a short board never leaves a career change without a
+    // wage before the next one — and that payday necessarily sits early,
+    // since the whole mid-career fork it belongs to is itself early on a
+    // short board. Short/normal ties at 8-8; every other setting still skews
+    // late.
+    expect(late.length).toBeGreaterThanOrEqual(income.length - late.length)
   })
 
   it('has more paydays and raises than the board it replaces (which had 5 and 3)', () => {
