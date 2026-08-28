@@ -65,6 +65,7 @@ export function startGame(config: NewGameConfig, _deps: UseCaseDeps): GameState 
     stepsRemaining: 0,
     chosenExit: null,
     lastEvent: null,
+    passedPaydayNote: null,
     log: [],
     turn: 1,
     results: null,

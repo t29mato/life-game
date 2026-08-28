@@ -20,6 +20,10 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
       ...state,
       pendingDecision: branchDecision(state.board, space.id, state.stepsRemaining),
       phase: 'awaitingDecision',
+      // Landing on a fork so soon after passing a payday is rare enough that
+      // this is the one place the note is simply dropped rather than carried
+      // further — the log line survives regardless.
+      passedPaydayNote: null,
     }
   }
 
@@ -31,14 +35,24 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
       phase: 'awaitingDecision',
       movementPath: [],
       stepsRemaining: 0,
+      passedPaydayNote: null,
     }
   }
 
+  /*
+   * A payday or two the pawn swept past on the way here used to be visible
+   * only in the log — folded into this landing's own notes now, so pressing
+   * Spin and passing straight through a payday is not indistinguishable from
+   * never having one at all.
+   */
+  const notes = state.passedPaydayNote ? [state.passedPaydayNote, ...event.notes] : event.notes
+
   return {
     ...nextState,
-    lastEvent: event,
+    lastEvent: { ...event, notes },
     phase: 'resolved',
     movementPath: [],
     stepsRemaining: 0,
+    passedPaydayNote: null,
   }
 }

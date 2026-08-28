@@ -159,6 +159,68 @@ describe('App play loop', () => {
   })
 })
 
+describe('a landing with nothing to say', () => {
+  it("ends a human seat's own turn on its own, without ever showing a card", async () => {
+    const store = startedGame()
+    const empty: GameState = {
+      ...store.getState(),
+      phase: 'resolved',
+      lastEvent: {
+        spaceId: 'somewhere',
+        title: 'A Quiet Stretch',
+        description: 'Nothing much happens.',
+        icon: 'space:start-of-life',
+        tone: 'slate',
+        moneyDelta: 0,
+        lifeTilesGained: [],
+        notes: [],
+        emphasis: 'normal',
+        narration: 'A quiet stretch of road — nothing to do but enjoy the view.',
+      },
+    }
+
+    const stub = createStubStore(empty)
+    render(<App store={stub} audio={createFakeAudioPort()} />)
+
+    expect(screen.queryByText('A Quiet Stretch')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(stub.commands).toContainEqual({ type: 'endTurn' })
+    })
+  })
+
+  it("still shows a computer seat's own empty card, and waits on Continue, while a human is at the table", () => {
+    const store = startedGame()
+    let guard = 0
+    while (guard < 80) {
+      const state = store.getState()
+      const active = state.players[state.currentPlayerIndex]
+      if (active?.isCpu && state.phase === 'resolved') break
+      if (state.phase === 'awaitingSpin') store.dispatch({ type: 'spin' })
+      else if (state.phase === 'moving') store.dispatch({ type: 'settle' })
+      else if (state.phase === 'awaitingDecision') {
+        store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
+      } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })
+      guard += 1
+    }
+    const cpuTurn = store.getState()
+    const empty: GameState = {
+      ...cpuTurn,
+      lastEvent: {
+        ...cpuTurn.lastEvent!,
+        moneyDelta: 0,
+        lifeTilesGained: [],
+        notes: [],
+        emphasis: 'normal',
+      },
+    }
+
+    const stub = createStubStore(empty)
+    render(<App store={stub} audio={createFakeAudioPort()} />)
+
+    expect(stub.commands).not.toContainEqual({ type: 'endTurn' })
+  })
+})
+
 /*
  * A value-spin decision with nothing to weigh — the tuition bill, a
  * promotion review — used to surface as a decision-list card with exactly

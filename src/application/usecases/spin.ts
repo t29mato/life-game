@@ -26,13 +26,16 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
 
   let movedPlayer = movePlayerTo(player, plan.destinationId)
   let log = appendLog(state, player.id, `${player.name} spins a ${spinValue}.`, 'info')
+  let passedPaydayNote: string | null = null
 
   if (plan.paydaysPassed > 0) {
     // Each payday passed is its own week, so each one is rolled separately.
     const collection = collectPaydays(movedPlayer, plan.paydaysPassed, deps, editionOf(state).economy)
     movedPlayer = collection.player
     if (collection.total !== 0) {
-      log = appendLog({ ...state, log }, player.id, passedPaydayLine(player.name, collection, editionOf(state).currency), 'money-in')
+      const line = passedPaydayLine(player.name, collection, editionOf(state).currency)
+      log = appendLog({ ...state, log }, player.id, line, 'money-in')
+      passedPaydayNote = line
     }
   }
 
@@ -42,6 +45,7 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
     ...state,
     players,
     chosenExit: null,
+    passedPaydayNote,
     lastSpin: spinValue,
     movementPath: plan.path,
     stepsRemaining: plan.stepsRemaining,

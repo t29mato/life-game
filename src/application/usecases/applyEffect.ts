@@ -239,13 +239,27 @@ function houseDecisionOptions(
   currency: CurrencySpec,
 ): DecisionOption[] {
   return [
-    ...houses.map((house) => ({
-      id: house.id,
-      label: house.name,
-      description: house.description,
-      icon: house.icon,
-      detail: formatMoney(house.price, currency),
-    })),
+    ...houses.map((house) => {
+      const [low, high] = house.resaleRange
+      const resale =
+        low === high
+          ? formatMoney(low, currency)
+          : `${formatMoney(low, currency)}–${formatMoney(high, currency)}`
+      return {
+        id: house.id,
+        label: house.name,
+        // Buying is the one board decision whose entire point is a number
+        // nobody sees for the rest of the game — the price is right there
+        // on the tile, but what it sells for at retirement is buried in
+        // `resaleRange` and never shown anywhere else a first-time player
+        // would think to look. Appended, not replacing the house's own
+        // description, since that is still what makes one house a
+        // different pick from another.
+        description: `${house.description} Sells for ${resale} at retirement.`,
+        icon: house.icon,
+        detail: formatMoney(house.price, currency),
+      }
+    }),
     {
       id: DECLINE_HOUSE_OPTION_ID,
       label: declineLabel,
@@ -1041,13 +1055,20 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
     case 'buyStock': {
       const offered: readonly Stock[] = deps.random.shuffle(edition.stocks).slice(0, 3)
       const options: DecisionOption[] = [
-        ...offered.map((stock) => ({
-          id: stock.id,
-          label: `${stock.name} (${stock.ticker})`,
-          description: stock.description,
-          icon: stock.icon,
-          detail: `${money(stock.price)} a share`,
-        })),
+        ...offered.map((stock) => {
+          const [low, high] = stock.payoutRange
+          return {
+            id: stock.id,
+            label: `${stock.name} (${stock.ticker})`,
+            // Same reasoning as a house's own resale line: the price is
+            // right there in `detail`, but what a share actually cashes out
+            // at is buried in `payoutRange` and nowhere else a first-time
+            // player would think to look.
+            description: `${stock.description} Pays out ${money(low)}–${money(high)} a share at retirement.`,
+            icon: stock.icon,
+            detail: `${money(stock.price)} a share`,
+          }
+        }),
         {
           id: DECLINE_STOCK_OPTION_ID,
           label: 'Keep your cash',

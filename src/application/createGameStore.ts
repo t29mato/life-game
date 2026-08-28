@@ -34,6 +34,7 @@ function buildInitialState(): GameState {
     stepsRemaining: 0,
     chosenExit: null,
     lastEvent: null,
+    passedPaydayNote: null,
     log: [],
     turn: 1,
     results: null,

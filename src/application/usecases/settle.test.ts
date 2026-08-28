@@ -42,6 +42,24 @@ describe('settle', () => {
     expect(next.stepsRemaining).toBe(0)
   })
 
+  it('folds a payday passed along the way into the landing event\'s own notes, then clears it', () => {
+    const board = fixtureMovementBoard()
+    const player = fixturePlayer({ spaceId: 'a', money: 1_000 })
+    const state = fixtureState({
+      board,
+      players: [player],
+      phase: 'moving',
+      stepsRemaining: 0,
+      movementPath: ['a'],
+      passedPaydayNote: 'Player passes payday: $500.',
+    })
+
+    const next = settle(state, { random: createFakeRandom() })
+
+    expect(next.lastEvent!.notes).toContain('Player passes payday: $500.')
+    expect(next.passedPaydayNote).toBeNull()
+  })
+
   it('goes to awaitingDecision instead of resolved when the landing effect itself needs a decision', () => {
     const board = fixtureMovementBoard()
     const careerSpace = fixtureSpace({ id: 'careerFair', effect: { type: 'chooseCareer', pool: 'basic' }, next: [] })

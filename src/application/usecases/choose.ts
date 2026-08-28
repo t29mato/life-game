@@ -129,13 +129,16 @@ function resolveBranch(state: GameState, optionId: string, deps: UseCaseDeps): G
 
   let movedPlayer = movePlayerTo(player, plan.destinationId)
   let log = appendLog(state, player.id, `${player.name} heads toward ${plan.destinationId}.`, 'info')
+  let passedPaydayNote: string | null = null
 
   if (plan.paydaysPassed > 0) {
     // Same rule as `spin`: one roll per payday, because they are separate weeks.
     const collection = collectPaydays(movedPlayer, plan.paydaysPassed, deps, editionOf(state).economy)
     movedPlayer = collection.player
     if (collection.total !== 0) {
-      log = appendLog({ ...state, log }, player.id, passedPaydayLine(player.name, collection, editionOf(state).currency), 'money-in')
+      const line = passedPaydayLine(player.name, collection, editionOf(state).currency)
+      log = appendLog({ ...state, log }, player.id, line, 'money-in')
+      passedPaydayNote = line
     }
   }
 
@@ -143,6 +146,7 @@ function resolveBranch(state: GameState, optionId: string, deps: UseCaseDeps): G
     ...state,
     players: replacePlayer(state.players, movedPlayer),
     pendingDecision: null,
+    passedPaydayNote,
     movementPath: plan.path,
     stepsRemaining: plan.stepsRemaining,
     phase: 'moving',

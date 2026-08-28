@@ -22,6 +22,21 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
     version: __APP_VERSION__,
     date: 'August 28, 2026',
     whatsNew: [
+      'An Assets button in the header opens every player\'s full financial picture at once — cash, house, shares, loans, life tiles and family, each spelled out as its own line rather than squeezed into the sidebar or hidden behind a hover.',
+    ],
+    changes: [
+      "No more spoilers: the board itself used to jump to your landing tile the instant you pressed Spin, well before the wheel had visibly finished turning. Now it waits for the wheel, same as the result card already did.",
+      "A payday you sweep straight past on the way to somewhere else now shows up on the card you actually see, instead of only ever being visible by opening the log.",
+      "A tile with truly nothing on it — no money, no news — no longer stops your turn for a card with nothing to read. It just ends the turn and moves on.",
+      "House hunting and the trading floor now say what buying actually gets you — what a house sells for at retirement, what a share pays out — instead of only naming the price.",
+      "Text throughout the game reads a little larger.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.8.0',
+    date: 'August 28, 2026',
+    whatsNew: [
       "A marriage can end now, not just begin. It's rare, and it costs a settlement — and every child leaves with the departing partner, so the family scoring at the end of the game stops counting them from there on.",
       "College runs a little longer before the cap and gown — a couple of already-written years (a scholarship win, finals week) used to be cut from shorter games, and now they always happen.",
     ],

@@ -202,7 +202,14 @@
     system-ui, sans-serif;
   --tabular: tabular-nums lining-nums;
 
-  font: 16px/1.5 var(--font-rounded);
+  /* 17px, not 16 — the owner reported the whole game reading small, and
+     every text size in the app is written in `rem` off this one root, so
+     a small lift here reaches every panel, card and label together rather
+     than needing each one hand-tuned. Kept modest rather than dramatic:
+     several layouts (the board's own rail, a phone's whole-page fit) are
+     checked by e2e tests at exact viewport sizes, and a bigger jump risks
+     text no longer fitting a card sized for the old scale. */
+  font: 17px/1.5 var(--font-rounded);
   color: var(--ink);
   background: var(--canvas);
   font-synthesis: none;

@@ -553,6 +553,14 @@ export interface GameState {
    */
   readonly chosenExit: SpaceId | null
   readonly lastEvent: LandingEvent | null
+  /**
+   * A payday or two the pawn swept straight past on its way here, worded the
+   * same way the log line is — set by `spin`/`choose` the instant a move
+   * passes one, and folded into the next landing event's own notes by
+   * `settle` so it is not only ever visible by opening the log. Null once
+   * `settle` has consumed it, or when nothing was passed.
+   */
+  readonly passedPaydayNote: string | null
   readonly log: readonly GameLogEntry[]
   readonly turn: number
   readonly results: GameResults | null

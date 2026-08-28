@@ -15,6 +15,7 @@ export type UiIconName =
   | 'plus'
   | 'rocket'
   | 'folder'
+  | 'wallet'
   | 'replay'
   | 'save'
   | 'exit'
@@ -73,6 +74,14 @@ function Glyph({ name }: { readonly name: UiIconName }): ReactElement {
           strokeWidth="1.9"
           strokeLinejoin="round"
         />
+      )
+    case 'wallet':
+      return (
+        <g fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round">
+          <path d="M4 7.6c0-1 .8-1.8 1.8-1.8h11.4c1 0 1.8.8 1.8 1.8v9.4c0 1-.8 1.8-1.8 1.8H5.8c-1 0-1.8-.8-1.8-1.8Z" />
+          <path d="M4 10.4h14.6a1.4 1.4 0 0 1 1.4 1.4v2.4a1.4 1.4 0 0 1-1.4 1.4H16a1.9 1.9 0 0 1 0-3.8h2.6" strokeLinecap="round" />
+          <circle cx="16" cy="12.6" r="0.9" fill="currentColor" stroke="none" />
+        </g>
       )
     case 'replay':
       return (

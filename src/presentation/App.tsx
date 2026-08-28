@@ -16,6 +16,7 @@ import type { Decision, GamePhase, GameState, NewGameConfig } from '@domain/mode
 import { spinOriginOf, type SpinOrigin } from '@domain/rules/spin'
 
 import styles from './App.module.css'
+import { AssetsModal } from './components/AssetsModal/AssetsModal'
 import { AudioToggle } from './components/AudioToggle/AudioToggle'
 import { Board } from './components/Board/Board'
 import { ChunkyButton } from './components/ChunkyButton/ChunkyButton'
@@ -43,6 +44,23 @@ const trackForPhase = (phase: string): BgmTrack => {
   if (phase === 'setup') return 'title'
   if (phase === 'gameOver') return 'results'
   return 'board'
+}
+
+/**
+ * True for a landing that genuinely has nothing to say — a `none`-effect
+ * tile with no payday passed on the way there, no life tile, and no reason
+ * to cut in with `big`/`milestone` emphasis. A card built from one of these
+ * is a "Continue" button in front of a blank sentence, so it never shows;
+ * see the `resolved`-phase effect below.
+ */
+function isEmptyLandingEvent(event: GameState['lastEvent']): boolean {
+  if (!event) return false
+  return (
+    event.moneyDelta === 0 &&
+    event.notes.length === 0 &&
+    event.lifeTilesGained.length === 0 &&
+    event.emphasis === 'normal'
+  )
 }
 
 /**
@@ -127,17 +145,39 @@ export function App({ store, audio }: AppProps): ReactElement {
     setActiveSpin(null)
   }, [])
 
+  /**
+   * A `none`-effect landing — nothing gained, nothing lost, no payday passed
+   * on the way — ends its own turn instead of putting up a card with nothing
+   * on it for someone to dismiss. Waits on `wheelSettled` for the same
+   * reason the card itself does: `state.lastEvent` is already the empty one
+   * before the wheel has visibly stopped.
+   *
+   * A computer seat's own empty landing is left alone here, deliberately —
+   * `cpuActingPhases` below already decides whether a CPU's `resolved` phase
+   * advances on its own or waits for a human to press Continue, and a card
+   * with nothing on it is not a special case of that rule, just a card. Only
+   * ever ends a *human* seat's own turn.
+   */
+  useEffect(() => {
+    if (state.phase !== 'resolved' || !wheelSettled) return
+    if (state.players[state.currentPlayerIndex]?.isCpu) return
+    if (!isEmptyLandingEvent(state.lastEvent)) return
+    store.dispatch({ type: 'endTurn' })
+  }, [state.phase, state.lastEvent, state.players, state.currentPlayerIndex, wheelSettled, store])
+
   /*
-   * A value-spin decision (tuition, career choice…) commits its result to
-   * `state.players` the instant it is dispatched — same tick as `lastSpin`,
-   * long before the wheel has visibly finished turning. `lastEvent` already
-   * waits for `wheelSettled` so the result *card* can't spoil itself; the
-   * player list was the other half of that promise nobody kept — a debited
-   * balance or a new job title would show up in the rail while the wheel
-   * was still spinning towards the number that was supposed to decide it.
-   * This freezes what the rail shows to whatever was true when the wheel
-   * was last settled, and only lets it catch up once `onSpinComplete` says
-   * the wheel actually agrees.
+   * A movement roll commits its result to `state.players` the instant it is
+   * dispatched — `spin()` already knows and has written the destination
+   * tile before the wheel has visibly finished turning, same tick as
+   * `lastSpin`. `lastEvent` already waits for `wheelSettled` so the result
+   * *card* can't spoil itself; the player list was the other half of that
+   * promise nobody kept — a debited balance, a new job title, or (worst of
+   * all) the board's own "you are here" bracket jumping straight to the
+   * destination tile would all give the roll away while the wheel was still
+   * spinning towards the number that was supposed to decide it. This
+   * freezes what both the rail *and the board* show to whatever was true
+   * when the wheel was last settled, and only lets either catch up once
+   * `onSpinComplete` says the wheel actually agrees.
    */
   const [displayedPlayers, setDisplayedPlayers] = useState(state.players)
   useEffect(() => {
@@ -357,6 +397,13 @@ export function App({ store, audio }: AppProps): ReactElement {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [logOpen])
 
+  // --- assets modal --------------------------------------------------------
+  // The sidebar's own cards already carry every one of these numbers, but
+  // shrink further with every seat added and hide net worth's own breakdown
+  // behind a hover tooltip — no help at all on a phone. A header control
+  // opens the same figures at a size meant to actually be read.
+  const [assetsOpen, setAssetsOpen] = useState(false)
+
   // --- opening camera sweep ----------------------------------------------
   const [introPending, setIntroPending] = useState(false)
   const previousPhase = useRef<GamePhase>(state.phase)
@@ -432,6 +479,15 @@ export function App({ store, audio }: AppProps): ReactElement {
             <ChunkyButton
               variant="secondary"
               size="sm"
+              icon="wallet"
+              aria-haspopup="dialog"
+              onClick={() => setAssetsOpen(true)}
+            >
+              <span className={styles.btnLabel}>Assets</span>
+            </ChunkyButton>
+            <ChunkyButton
+              variant="secondary"
+              size="sm"
               icon="folder"
               aria-expanded={logOpen}
               aria-controls="game-log-drawer"
@@ -492,7 +548,7 @@ export function App({ store, audio }: AppProps): ReactElement {
           <section className={styles.boardArea} aria-label="Game board">
             <Board
               board={state.board}
-              players={state.players}
+              players={displayedPlayers}
               currentPlayerIndex={state.currentPlayerIndex}
               phase={state.phase}
               movementPath={wheelSettled ? state.movementPath : []}
@@ -567,6 +623,16 @@ export function App({ store, audio }: AppProps): ReactElement {
           </div>
         )}
 
+        {assetsOpen && (
+          <AssetsModal
+            players={state.players}
+            activePlayerId={activePlayer?.id}
+            difficulty={state.difficulty}
+            editionId={state.editionId}
+            onClose={() => setAssetsOpen(false)}
+          />
+        )}
+
         {state.phase === 'awaitingDecision' && state.pendingDecision && !handoffVisible && !singleSpinDecision && (
           <DecisionModal
             decision={state.pendingDecision}
@@ -595,14 +661,23 @@ export function App({ store, audio }: AppProps): ReactElement {
 
         {/* A value spin's own result waits for `wheelSettled` too — same as
             the ordinary move roll — so the card never appears before the
-            wheel the player just spun has actually finished turning. */}
-        {state.phase === 'resolved' && state.lastEvent && wheelSettled && (
-          <EventCard
-            event={state.lastEvent}
-            editionId={state.editionId}
-            onDismiss={() => store.dispatch({ type: 'endTurn' })}
-          />
-        )}
+            wheel the player just spun has actually finished turning. A
+            *human* seat's empty `none`-effect landing never appears at all
+            — the effect above ends that turn on its own — this guard is
+            only what keeps it from flashing on screen for the one render in
+            between. A computer seat's own empty landing still shows and
+            still waits on Continue like any other of its cards: nothing
+            else is left to end that turn while a human is at the table. */}
+        {state.phase === 'resolved' &&
+          state.lastEvent &&
+          wheelSettled &&
+          !(isEmptyLandingEvent(state.lastEvent) && !activePlayer?.isCpu) && (
+            <EventCard
+              event={state.lastEvent}
+              editionId={state.editionId}
+              onDismiss={() => store.dispatch({ type: 'endTurn' })}
+            />
+          )}
 
         {handoffVisible && activePlayer && (
           <TurnHandoff
