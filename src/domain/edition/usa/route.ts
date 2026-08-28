@@ -516,7 +516,7 @@ const MAIN_STREET_EARLY: readonly SpaceContent[] = [
  * you, leaving costs you the rest of the week and certainly changes things.
  */
 const MID_CAREER_FORK: SpaceContent = {
-  id: 'main-crossroads', kind: 'stop', title: 'Five Years In',
+  id: 'main-crossroads', kind: 'normal', title: 'Five Years In',
   description: 'Five years at the same desk, and a recruiter\'s email you have somehow still not deleted. The road forks here.',
   effect: { type: 'none' },
   tone: 'orange', icon: 'space:networking-night', tier: EVERY_BOARD,
@@ -585,10 +585,14 @@ const COMPANY_ROAD: readonly SpaceContent[] = [
  * and a player near the bottom has almost nothing to lose.
  */
 const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
-  // The fork tile right before this lane (`main-crossroads`) is itself a
-  // forced stop, and Name Your Price below is too — so choosing this branch
-  // used to land on two stops back to back, wasting most of two separate
-  // rolls. EVERY_BOARD so the buffer survives thinning on a short board too.
+  // Name Your Price below is a forced stop, and `main-crossroads` — the fork
+  // right before this lane — used to be one too, so a roll into this branch
+  // landed on two stops back to back and wasted most of two separate turns.
+  // The fork is a `normal` tile now (see `resolveForkBranch` in `branch.ts`:
+  // a fork is the wheel's own call, so it no longer needs to hold the whole
+  // move hostage to make its choice), which already halves that collision.
+  // This tile stays EVERY_BOARD regardless, so the remaining buffer before
+  // Name Your Price survives thinning on a short board too.
   {
     id: 'hopper-lookout', kind: 'normal', title: 'Quiet Job Search',
     description: 'You update your resume on a lunch break and start taking calls nobody at the office can hear.',

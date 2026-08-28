@@ -3,6 +3,7 @@ import { planMovement, planMovementVia } from '@domain/board/movement'
 import { movePlayerTo } from '@domain/rules/player'
 import { appendLog } from './logging'
 import { editionOf } from '@domain/edition/registry'
+import { resolveForkBranch } from './branch'
 import { collectPaydays, passedPaydayLine } from './payday'
 import type { UseCaseDeps } from './types'
 
@@ -16,16 +17,34 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
   if (!player) throw new Error('spin: no current player')
 
   const spinValue = deps.random.spin()
+
   /*
-   * A player standing on a fork picks their road before spinning, so the wheel
-   * only decides how far they get down a road already committed to.
+   * A fork used to be a choice, made before this spin, by whoever was
+   * experienced enough to already know which road paid better — a real
+   * advantage a first-time player never had. It is this same spin's own
+   * roll now: 1-5 takes the first road, 6-10 the second, and the number
+   * that picked the road is also how far it carries you down it — exactly
+   * the distance an ordinary spin already averages, so a fork costs a
+   * player nothing they would not have spun anyway.
    */
-  const plan = state.chosenExit
-    ? planMovementVia(state.board, player.spaceId, state.chosenExit, spinValue)
-    : planMovement(state.board, player.spaceId, spinValue)
+  const branchTaken = resolveForkBranch(state.board, player.spaceId, spinValue)
+  const plan =
+    branchTaken !== undefined
+      ? planMovementVia(state.board, player.spaceId, branchTaken, spinValue)
+      : state.chosenExit
+        ? planMovementVia(state.board, player.spaceId, state.chosenExit, spinValue)
+        : planMovement(state.board, player.spaceId, spinValue)
 
   let movedPlayer = movePlayerTo(player, plan.destinationId)
-  let log = appendLog(state, player.id, `${player.name} spins a ${spinValue}.`, 'info')
+  const forkNote =
+    branchTaken !== undefined
+      ? (() => {
+          const target = state.board.spaces[branchTaken]
+          const label = target?.lane?.name ?? target?.title ?? 'a new road'
+          return ` and the fork sends them onto ${label}`
+        })()
+      : ''
+  let log = appendLog(state, player.id, `${player.name} spins a ${spinValue}${forkNote}.`, 'info')
   let passedPaydayNote: string | null = null
 
   if (plan.paydaysPassed > 0) {

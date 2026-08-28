@@ -47,9 +47,11 @@ describe('startGame', () => {
    * road is picked before the wheel so a player cannot take whichever lane the
    * number happened to land them well on.
    */
-  it('opens on the first fork, turn 1, first player active', () => {
+  it('opens on the wheel, turn 1, first player active', () => {
+    // Standing on the opening fork is no longer a decision to make before
+    // spinning — see `spin.ts` for where that choice moved to.
     const state = startGame(config(['Alex', 'Bo']), deps)
-    expect(state.phase).toBe('awaitingDecision')
+    expect(state.phase).toBe('awaitingSpin')
     expect(state.turn).toBe(1)
     expect(state.currentPlayerIndex).toBe(0)
   })
@@ -122,7 +124,7 @@ describe('startGame', () => {
         deps,
       )
       expect(state.players.every((player) => player.isCpu)).toBe(true)
-      expect(state.phase).toBe('awaitingDecision')
+      expect(state.phase).toBe('awaitingSpin')
     })
   })
 })

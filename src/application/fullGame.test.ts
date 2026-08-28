@@ -68,8 +68,9 @@ describe('full game integration', () => {
     const store = buildStore(42)
 
     store.dispatch({ type: 'startGame', config })
-    // A game opens on the first fork: the road is chosen before the wheel.
-    expect(store.getState().phase).toBe('awaitingDecision')
+    // A game opens on the first fork, but the road is the wheel's own call
+    // now rather than a decision made before it — see `spin.ts`.
+    expect(store.getState().phase).toBe('awaitingSpin')
     expect(store.getState().players).toHaveLength(3)
 
     let iterations = 0

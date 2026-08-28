@@ -159,32 +159,36 @@ describe('the two roads out of a fork', () => {
   })
 
   /*
-   * The rule this validator shipped without, and the bug it therefore missed.
+   * The rule this validator shipped without, and the bug it briefly had.
    *
-   * `main-crossroads` — the mid-career fork — went out as a `normal` tile, so
-   * a player who spun *past* it reached the choice already knowing how many
-   * steps were left over and could take whichever road landed them well. That
-   * is exactly the advantage the chosen-exit rule exists to remove. The
-   * validator is the only thing standing between the next country's author and
-   * the same trap, so the invariant lives here rather than in a code review.
+   * `main-crossroads` — the mid-career fork — went out as a `normal` tile
+   * once, back when a road was a choice a player made deliberately before
+   * the wheel was spun: reaching the fork already knowing how many steps
+   * were left over let a player take whichever road landed them well. A
+   * fork is the wheel's own call now (see `resolveForkBranch` in
+   * `branch.ts`), which is what let `main-crossroads` go back to being a
+   * `normal` tile on purpose — there is no longer a choice to hand an
+   * advantage back on, `stop` or not.
    */
-  it('refuses a fork a player can spin straight past', () => {
-    const broken = editSpace(EDITION_USA.route, 'main-crossroads', { kind: 'normal' })
-    const problems = complains(broken, 'main-crossroads')
-    expect(problems.length).toBeGreaterThan(0)
-    expect(problems.join('\n')).toMatch(/halt|stop/i)
+  it('accepts a fork on a `normal` tile now that a fork is the wheel\'s own call', () => {
+    const asNormal = editSpace(EDITION_USA.route, 'main-crossroads', { kind: 'normal' })
+    expect(complains(asNormal, 'main-crossroads')).toEqual([])
   })
 
-  it.each(['start', 'marriage', 'home-buying', 'main-crossroads'])(
-    'is satisfied by the shipped fork at "%s"',
+  it.each(['start', 'marriage', 'home-buying'])(
+    'is still satisfied by the shipped fork at "%s", which keeps its own effect and so keeps its `stop`',
     (id) => {
-      // The counterpart to the test above: it has to be passing for a reason,
-      // not passing because nothing on this board is a fork any more.
       const junction = spacesOf(EDITION_USA.route).find((space) => space.id === id)
       expect(junction, `"${id}" is no longer on the route`).toBeDefined()
       expect(junction!.kind === 'stop' || junction!.kind === 'start').toBe(true)
     },
   )
+
+  it('is satisfied by the shipped fork at "main-crossroads", now a `normal` tile', () => {
+    const junction = spacesOf(EDITION_USA.route).find((space) => space.id === 'main-crossroads')
+    expect(junction?.kind).toBe('normal')
+    expect(complains(EDITION_USA.route, 'main-crossroads')).toEqual([])
+  })
 
   it('refuses two roads with the same name', () => {
     // A real hazard when a country's forks are written by copy-paste: the

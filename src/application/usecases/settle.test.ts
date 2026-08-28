@@ -9,18 +9,21 @@ describe('settle', () => {
     expect(() => settle(state, { random: createFakeRandom() })).toThrow(/moving/)
   })
 
-  it('raises a branch decision when stopped at a fork with steps remaining', () => {
+  it('resolves a fork reached mid-move with the roll still owed, instead of asking', () => {
+    // 1 step owed: `resolveForkBranch` reads that as the roll, and 1 is a
+    // "first road" number — same rule `spin.ts` uses when a player is
+    // already standing on the fork at the top of their turn.
     const board = fixtureMovementBoard()
     const player = fixturePlayer({ spaceId: 'fork' })
     const state = fixtureState({ board, players: [player], phase: 'moving', stepsRemaining: 1 })
 
     const next = settle(state, { random: createFakeRandom() })
 
-    expect(next.phase).toBe('awaitingDecision')
-    expect(next.pendingDecision).not.toBeNull()
-    expect(next.pendingDecision!.kind).toBe('branch')
-    const ids = next.pendingDecision!.options.map((o) => o.id)
-    expect(ids).toEqual(['stopBranch', 'longBranch'])
+    expect(next.phase).toBe('moving')
+    expect(next.pendingDecision).toBeNull()
+    expect(next.movementPath).toEqual(['stopBranch'])
+    expect(next.stepsRemaining).toBe(0)
+    expect(next.log.some((entry) => entry.message.includes('Stop Branch'))).toBe(true)
   })
 
   it('applies the destination effect and resolves when there is no fork to choose', () => {
@@ -86,14 +89,16 @@ describe('settle', () => {
   })
 })
 
-describe('a fork explains what the spin bought', () => {
+describe('a fork mid-move keeps the pawn moving, never stalls it on a question', () => {
   /*
-   * A fork stops the pawn before it moves at all, so without this the spin
-   * reads as having been ignored: the wheel lands, a card appears, and the car
-   * has not budged. A playtester reported exactly that, believing a second
-   * spin was needed to move.
+   * A fork used to stop the pawn and ask which way, so a spin that reached
+   * one mid-move read as having been ignored — the wheel landed, a card
+   * appeared, and the car had not budged. A fork is the wheel's own call now
+   * (see `spin.ts`), reached mid-move or not, so there is no longer a
+   * question to stall on: the same roll that got the player this far keeps
+   * them moving.
    */
-  it('tells the player how far they are about to travel', () => {
+  it('takes the first road on a low roll and keeps the full distance owed', () => {
     const state = fixtureState({
       board: fixtureMovementBoard(),
       players: [fixturePlayer({ id: 'p1', spaceId: 'fork' })],
@@ -105,22 +110,30 @@ describe('a fork explains what the spin bought', () => {
 
     const next = settle(state, { random: createFakeRandom() })
 
-    expect(next.phase).toBe('awaitingDecision')
-    expect(next.pendingDecision?.prompt).toContain('4 spaces')
+    expect(next.phase).toBe('moving')
+    expect(next.pendingDecision).toBeNull()
+    // stopBranch is a forced stop, so all 4 owed steps land the player
+    // exactly there regardless — see the second test for a roll that
+    // actually has room to show its distance.
+    expect(next.movementPath).toEqual(['stopBranch'])
   })
 
-  it('says it in the singular for a single space', () => {
+  it('takes the second road on a high roll', () => {
     const state = fixtureState({
       board: fixtureMovementBoard(),
       players: [fixturePlayer({ id: 'p1', spaceId: 'fork' })],
       currentPlayerIndex: 0,
       phase: 'moving',
-      stepsRemaining: 1,
+      stepsRemaining: 6,
       movementPath: [],
     })
 
     const next = settle(state, { random: createFakeRandom() })
 
-    expect(next.pendingDecision?.prompt).toContain('1 space down')
+    expect(next.phase).toBe('moving')
+    // longBranch → mid → merge → final → retirement: none of the four are a
+    // forced stop, so all 6 owed steps carry the player the whole way to the
+    // terminal space in one go.
+    expect(next.movementPath).toEqual(['longBranch', 'mid', 'merge', 'final', 'retirement'])
   })
 })

@@ -363,7 +363,7 @@ const OFFICE_ROAD_EARLY: readonly SpaceContent[] = [
  * movement, as every fork must.
  */
 const MID_CAREER_FORK: SpaceContent = {
-  id: 'in-crossroads', kind: 'stop', title: 'Five Years In',
+  id: 'in-crossroads', kind: 'normal', title: 'Five Years In',
   description: 'Five years at the same desk, an increment letter on schedule, and a recruiter\'s message you have somehow still not deleted. The road forks here.',
   effect: { type: 'none' },
   tone: 'orange', icon: 'space:networking-night', tier: EVERY_BOARD,

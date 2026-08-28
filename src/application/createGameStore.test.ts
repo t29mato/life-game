@@ -99,11 +99,6 @@ describe('createGameStore', () => {
   it('ignores an invalid choose command outside awaitingDecision', () => {
     const { store } = buildStore()
     store.dispatch({ type: 'startGame', config })
-    // A game opens on the first fork, so answer that before testing the case
-    // this is actually about: a `choose` arriving when nothing is being chosen.
-    const opening = store.getState()
-    expect(opening.phase).toBe('awaitingDecision')
-    store.dispatch({ type: 'choose', optionId: opening.pendingDecision!.options[0]!.id })
     expect(store.getState().phase).toBe('awaitingSpin')
 
     expect(() => store.dispatch({ type: 'choose', optionId: 'anything' })).not.toThrow()
@@ -129,7 +124,7 @@ describe('createGameStore', () => {
       expect(store.getState().phase).toBe('setup')
 
       store.dispatch({ type: 'load', slot: 2 })
-      expect(store.getState().phase).toBe('awaitingDecision')
+      expect(store.getState().phase).toBe('awaitingSpin')
       expect(store.getState().players).toEqual(savedPlayers)
     })
 

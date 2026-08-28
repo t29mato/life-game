@@ -21,6 +21,16 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
     date: 'August 28, 2026',
+    whatsNew: [],
+    changes: [
+      "Forks no longer ask you to choose a road before you spin — landing on one, the same spin that decides how far you travel also decides which road you take. Nobody who has played the game before gets a head start on the players who haven't.",
+      "The Five Years In fork on the road to the top no longer stops your turn on its own — it used to sit right in front of another forced stop, so choosing the job-hopper road could cost you most of two turns in a row.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.9.0',
+    date: 'August 28, 2026',
     whatsNew: [
       'An Assets button in the header opens every player\'s full financial picture at once — cash, house, shares, loans, life tiles and family, each spelled out as its own line rather than squeezed into the sidebar or hidden behind a hover.',
     ],

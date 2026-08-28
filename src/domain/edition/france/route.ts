@@ -366,7 +366,7 @@ const BOULEVARD_EARLY: readonly SpaceContent[] = [
  * junction halts movement, as every fork must.
  */
 const MID_CAREER_FORK: SpaceContent = {
-  id: 'fr-crossroads', kind: 'stop', title: 'Five Years In',
+  id: 'fr-crossroads', kind: 'normal', title: 'Five Years In',
   description: 'Five years into a permanent job, your pay rises slowly by seniority — and a recruiter\'s message is still sitting, unread, in your inbox. The road forks here.',
   effect: { type: 'none' },
   tone: 'orange', icon: 'space:networking-night', tier: EVERY_BOARD,

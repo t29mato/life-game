@@ -141,21 +141,19 @@ export function boardProblems(board: Board, label: string): readonly string[] {
       say(`fork "${fork.id}" offers ${fork.next.length} roads — a fork offers exactly two`)
     }
     /*
-     * The rule this validator was built for and did not have.
+     * The rule this validator was built for, and outgrew.
      *
-     * A fork halts movement *before* stepping off it, so a player who merely
-     * passes over one arrives at the choice with their leftover steps already
-     * known — and picks whichever road happens to land them well. The game
-     * removed that advantage deliberately, by making a road something you
-     * commit to before the wheel is spun; a fork on a `normal` tile hands it
-     * straight back, and only to the players who happened to overshoot it.
-     * `main-crossroads` shipped that way and this is the check that found it.
+     * A road used to be a choice a player made deliberately before the wheel
+     * was spun, so a fork on a `normal` tile handed a real advantage to
+     * whoever overshot it with steps already known — `main-crossroads`
+     * shipped that way and this is the check that found it. There is no
+     * longer a choice to hand an advantage back on: `spin`/`settle` read
+     * *any* fork, `stop` or not, and let the very roll that reaches it pick
+     * the road and the distance both — see `resolveForkBranch` in
+     * `branch.ts`. A `stop` fork still works exactly as it always did; a
+     * `normal` one now does too, which is what lets an edition thin how many
+     * of its stops a short board carries without touching which forks exist.
      */
-    if (fork.kind !== 'stop' && fork.kind !== 'start') {
-      say(
-        `fork "${fork.id}" is a "${fork.kind}" tile, so a player can spin past it and choose their road already knowing how many steps are left over — every fork halts movement, which means "stop" (or the start tile, which halts by definition)`,
-      )
-    }
     const names = new Set<string>()
     for (const headId of fork.next) {
       const head: Space | undefined = board.spaces[headId]
@@ -295,13 +293,8 @@ export function validateRoute(route: RouteDefinition, edition: Edition): readonl
 
   for (const segment of route.segments) {
     if (segment.kind !== 'fork') continue
-    // Said here as well as on the built board, so an author is told which
-    // *junction they wrote* is wrong rather than which tile the walker built.
-    if (segment.at.kind !== 'stop' && segment.at.kind !== 'start') {
-      say(
-        `the junction "${segment.at.id}" is a "${segment.at.kind}" tile — a fork has to halt movement, or a player who spins past it chooses their road already knowing how many steps they have left. Make it a "stop".`,
-      )
-    }
+    // A junction no longer has to be a `stop` — see the matching comment on
+    // the built-board check above, which is the one that used to live here.
     const names = new Set<string>()
     for (const branch of segment.branches) {
       if (!branch.identity.name.trim()) {

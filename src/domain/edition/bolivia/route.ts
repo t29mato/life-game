@@ -363,7 +363,7 @@ const MARKET_STREET_EARLY: readonly SpaceContent[] = [
  * each side of the argument. The junction halts movement, as every fork must.
  */
 const MID_CAREER_FORK: SpaceContent = {
-  id: 'bo-crossroads', kind: 'stop', title: 'Five Years In',
+  id: 'bo-crossroads', kind: 'normal', title: 'Five Years In',
   description: 'Five years of steady work, and two voices at Sunday lunch: your mother says keep the payroll and the pension, your cousin says nobody ever got rich working for somebody else. The road forks here.',
   effect: { type: 'none' },
   tone: 'orange', icon: 'space:networking-night', tier: EVERY_BOARD,

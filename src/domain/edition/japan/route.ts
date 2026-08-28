@@ -363,7 +363,7 @@ const SALARYMAN_STREET_EARLY: readonly SpaceContent[] = [
  * fork must.
  */
 const MID_CAREER_FORK: SpaceContent = {
-  id: 'jp-crossroads', kind: 'stop', title: 'Five Years In',
+  id: 'jp-crossroads', kind: 'normal', title: 'Five Years In',
   description: 'Five years at the same desk, a seniority raise on schedule, and a recruiter\'s message you have somehow still not deleted. The road forks here.',
   effect: { type: 'none' },
   tone: 'orange', icon: 'space:networking-night', tier: EVERY_BOARD,
