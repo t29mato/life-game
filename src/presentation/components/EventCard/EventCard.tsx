@@ -2,13 +2,15 @@ import { useEffect, useState, type CSSProperties, type ReactElement } from 'reac
 import { motion } from 'framer-motion'
 import type { EditionId, LandingEvent } from '@domain/model/types'
 import { editionFor } from '@domain/edition/registry'
-import { formatMoneyDelta } from '../../format'
+import { formatMoney, formatMoneyDelta } from '../../format'
 import { GameIcon } from '../../icons/GameIcon'
+import { useAudio } from '../../hooks/useAudio'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { RollingNumber } from '../RollingNumber/RollingNumber'
 import { Confetti } from '../Confetti/Confetti'
+import { CoinBurst, TransferLane } from '../CoinFlight/CoinFlight'
 import styles from './EventCard.module.css'
 
 export interface EventCardProps {
@@ -30,10 +32,13 @@ const FLASH_RESET_DELAY = 420
 export function EventCard({ event, onDismiss, editionId }: EventCardProps): ReactElement {
   const containerRef = useModalFocusTrap<HTMLDivElement>(onDismiss)
   const reduceMotion = usePrefersReducedMotion()
+  const audio = useAudio()
   const { currency } = editionFor(editionId)
   const moneyDelta = (amount: number): string => formatMoneyDelta(amount, currency)
+  const money = (amount: number): string => formatMoney(amount, currency)
   const [revealed, setRevealed] = useState(false)
   const [burstTick, setBurstTick] = useState(0)
+  const [coinTick, setCoinTick] = useState(0)
   const [flashing, setFlashing] = useState(false)
 
   const emphasis = event.emphasis ?? 'normal'
@@ -44,16 +49,28 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
 
   useEffect(() => {
     setRevealed(false)
-    const revealTimer = setTimeout(() => setRevealed(true), reduceMotion ? 0 : REVEAL_DELAY)
+    const revealTimer = setTimeout(() => {
+      setRevealed(true)
+      // Coins (or a transfer) fire the moment the number starts rolling —
+      // every landing with money on it, not only a milestone's confetti.
+      if (event.moneyDelta !== 0 || (event.transfers?.length ?? 0) > 0) {
+        setCoinTick((tick) => tick + 1)
+        audio.playSfx(event.moneyDelta >= 0 ? 'coinGain' : 'coinLose')
+      }
+    }, reduceMotion ? 0 : REVEAL_DELAY)
 
     let burstTimer: ReturnType<typeof setTimeout> | undefined
     if (isMilestone) {
-      burstTimer = setTimeout(() => setBurstTick((tick) => tick + 1), BURST_DELAY)
+      burstTimer = setTimeout(() => {
+        setBurstTick((tick) => tick + 1)
+        audio.playSfx('milestone')
+      }, BURST_DELAY)
     }
 
     let flashTimer: ReturnType<typeof setTimeout> | undefined
     if (isCutIn && !reduceMotion) {
       setFlashing(true)
+      audio.playSfx('cutIn')
       flashTimer = setTimeout(() => setFlashing(false), FLASH_RESET_DELAY)
     } else {
       setFlashing(false)
@@ -64,6 +81,7 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
       if (burstTimer) clearTimeout(burstTimer)
       if (flashTimer) clearTimeout(flashTimer)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event, isMilestone, isCutIn, reduceMotion])
 
   const direction = event.moneyDelta > 0 ? 'up' : event.moneyDelta < 0 ? 'down' : 'flat'
@@ -131,6 +149,7 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
           <p className={styles.description}>{event.description}</p>
 
           <div className={`${styles.deltaPlate} ${deltaClassName}`}>
+            <CoinBurst burstKey={coinTick} kind={event.moneyDelta >= 0 ? 'gain' : 'lose'} />
             <span className={styles.deltaArrow} aria-hidden="true">
               {arrow}
             </span>
@@ -141,6 +160,26 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
               duration={0.7}
             />
           </div>
+
+          {event.transfers && event.transfers.length > 0 ? (
+            <div className={styles.transferLanes}>
+              {event.transfers.map((transfer, index) => (
+                <TransferLane
+                  key={transfer.playerId}
+                  flightKey={coinTick}
+                  delay={index * 0.22}
+                  format={money}
+                  entry={{
+                    playerName: transfer.playerName,
+                    playerColor: transfer.playerColor,
+                    // `transfers` is signed from *that* player's own point of
+                    // view; the lane reads from the viewing player's side.
+                    amount: -transfer.amount,
+                  }}
+                />
+              ))}
+            </div>
+          ) : null}
 
           {event.lifeTilesGained.length > 0 ? (
             <div className={styles.tiles}>

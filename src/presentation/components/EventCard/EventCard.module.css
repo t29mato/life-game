@@ -203,7 +203,7 @@
 .narration {
   font-style: italic;
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: clamp(0.95rem, 3.4vw, 1.02rem);
   line-height: 1.4;
   max-width: 24rem;
   padding: 0.15rem 0 0.15rem 0.6rem;
@@ -290,13 +290,14 @@
 
 .description {
   color: var(--ink-soft);
-  font-size: 0.95rem;
+  font-size: clamp(0.98rem, 3.6vw, 1.08rem);
   line-height: 1.45;
   max-width: 24rem;
 }
 
 /* ---- Money delta: an enamelled plate you cannot miss --------------------- */
 .deltaPlate {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
@@ -394,8 +395,19 @@
   flex-direction: column;
   gap: 0.3rem;
   color: var(--ink-soft);
-  font-size: 0.88rem;
+  font-size: clamp(0.9rem, 3.2vw, 0.96rem);
   font-weight: 600;
+}
+
+/* One row per player whose balance this landing moved — the coin's own
+   flight sits above `.notes`, which still spells out the same fact in
+   words underneath. */
+.transferLanes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 100%;
+  margin-top: 0.3rem;
 }
 
 .note::before {

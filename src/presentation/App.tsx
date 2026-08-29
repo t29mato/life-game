@@ -578,9 +578,17 @@ export function App({ store, audio }: AppProps): ReactElement {
                 user would run into for no reason, on top of being a second
                 match for anything that queries the page by that name. */}
             {forkAhead && !eventSpinVisible && (
-              <p className={styles.forkAhead} role="status">
-                This spin decides your road too — 1-5: {forkAhead[0]}, 6-10: {forkAhead[1]}.
-              </p>
+              <div className={styles.forkAhead} role="status">
+                <span className={styles.forkAheadLabel}>This spin also picks your road</span>
+                <span className={styles.forkAheadRoad}>
+                  <span className={styles.forkAheadRange}>1–5</span>
+                  {forkAhead[0]}
+                </span>
+                <span className={styles.forkAheadRoad}>
+                  <span className={styles.forkAheadRange}>6–10</span>
+                  {forkAhead[1]}
+                </span>
+              </div>
             )}
             <div className={styles.spinnerCard} aria-hidden={eventSpinVisible || undefined}>
               <Spinner

@@ -1,0 +1,192 @@
+/* ==========================================================================
+   CoinFlight — coins and notes in motion: a burst for an ordinary gain or
+   loss, a travelling coin between "You" and whoever else's balance moved.
+   ========================================================================== */
+
+.burstField {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.burstPiece {
+  position: absolute;
+  left: var(--left);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  animation: coin-rise var(--duration) var(--delay) cubic-bezier(0.16, 0.85, 0.4, 1) both;
+}
+
+.burstPiece svg {
+  display: block;
+  width: calc(22px * var(--size));
+  height: calc(22px * var(--size));
+  filter: drop-shadow(0 2px 3px rgba(40, 24, 6, 0.35));
+}
+
+.burstLose .burstPiece {
+  animation-name: coin-drop;
+}
+
+@keyframes coin-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(6px) scale(0.4) rotate(0deg);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--drift)), -50%) translateY(calc(var(--rise) * -1)) scale(1) rotate(var(--spin));
+  }
+}
+
+@keyframes coin-drop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-4px) scale(0.9) rotate(0deg);
+  }
+  18% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--drift)), -50%) translateY(var(--rise)) scale(0.55) rotate(var(--spin));
+  }
+}
+
+/* ---- A single transfer lane: You <-> another player, coin in between --- */
+
+.lane {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--lane-color) 10%, transparent);
+}
+
+.laneEnd {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.laneThem {
+  color: var(--lane-color);
+}
+
+.laneDot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--lane-color);
+  box-shadow: 0 0 0 2px var(--lane-color-light);
+  flex: none;
+}
+
+.laneTrack {
+  position: relative;
+  height: 1.1rem;
+  min-width: 2.5rem;
+}
+
+.laneTrack::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0.4rem;
+  right: 0.4rem;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--lane-color) 0 4px, transparent 4px 8px);
+  opacity: 0.5;
+  transform: translateY(-50%);
+}
+
+.laneCoin {
+  position: absolute;
+  top: 50%;
+  filter: drop-shadow(0 1px 2px rgba(40, 24, 6, 0.4));
+}
+
+.laneCoinToThem {
+  animation: coin-fly-right 0.85s var(--lane-delay) cubic-bezier(0.32, 0.1, 0.2, 1) both;
+}
+
+.laneCoinToYou {
+  animation: coin-fly-left 0.85s var(--lane-delay) cubic-bezier(0.32, 0.1, 0.2, 1) both;
+}
+
+@keyframes coin-fly-right {
+  0% {
+    left: 0;
+    opacity: 0;
+    transform: translateY(-50%) scale(0.6) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% - 18px);
+    opacity: 0;
+    transform: translateY(-50%) scale(1.05) rotate(340deg);
+  }
+}
+
+@keyframes coin-fly-left {
+  0% {
+    left: calc(100% - 18px);
+    opacity: 0;
+    transform: translateY(-50%) scale(0.6) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: 0;
+    opacity: 0;
+    transform: translateY(-50%) scale(1.05) rotate(-340deg);
+  }
+}
+
+.laneAmount {
+  font-size: 0.82rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.laneAmountGain {
+  color: var(--candy-mint-dark);
+}
+
+.laneAmountLose {
+  color: var(--candy-coral-dark);
+}
+
+.lane[data-reduce-motion] .laneCoin {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .burstPiece {
+    display: none;
+  }
+  .laneCoin {
+    display: none;
+  }
+}

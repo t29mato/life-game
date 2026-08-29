@@ -21,6 +21,18 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
     date: 'August 29, 2026',
+    whatsNew: [
+      "Money now moves the way it looks like it moves: coins and notes fly wherever cash changes hands — your own gains and bills, a payday you swept past mid-move, a round of gifts or a collection between players — with a sound to match. The final standings get the same coins for the winner's own moment.",
+    ],
+    changes: [
+      "The fork spin's own stakes — which road this press decides, not just how far — now sit right on top of the wheel, large enough to actually read before you press it.",
+      "Descriptions read a little bigger throughout — event cards, the wheel's own stakes, and every choice card's fine print.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.11.0',
+    date: 'August 29, 2026',
     whatsNew: [],
     changes: [
       "Most stops aren't stops any more. Tuition, a promotion review, a new career, a wedding, a new baby — the news still happens exactly the same, but a big roll no longer gets cut short landing on the tile that delivers it. Only a handful of tiles that ask a real question — buying a house, retiring early — still halt your turn.",

@@ -466,6 +466,24 @@ export interface LandingEvent {
   readonly emphasis?: LandingEmphasis
   /** One line of host commentary, e.g. "That's the lead gone, just like that!" */
   readonly narration?: string
+  /**
+   * Every other player whose own balance moved because of this landing —
+   * `collectFromEach`, `payEach`, a wallet swap — signed from *that*
+   * player's own point of view (positive: they gained; negative: they
+   * paid). `notes` already says this in words; this is the same fact
+   * structured for the presentation layer to animate, not a second source
+   * of truth for it — the amount and direction always agree with the note
+   * that names them.
+   */
+  readonly transfers?: readonly MoneyTransfer[]
+}
+
+export interface MoneyTransfer {
+  readonly playerId: PlayerId
+  readonly playerName: string
+  readonly playerColor: PlayerColor
+  /** Signed from this player's own point of view: positive is a gain. */
+  readonly amount: Money
 }
 
 /** `big` gets a cut-in; `milestone` gets a cut-in plus confetti. */

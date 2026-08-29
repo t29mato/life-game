@@ -461,6 +461,17 @@ describe('applyEffect', () => {
       expect(next.players[2]!.money).toBe(1_000)
       expect(event.moneyDelta).toBe(200)
     })
+
+    it('carries a transfer for every player who paid, signed from their own side', () => {
+      const mover = fixturePlayer({ id: 'p1', money: 0 })
+      const p2 = fixturePlayer({ id: 'p2', name: 'Rival', color: 'blue', money: 1_000 })
+      const state = fixtureState({ players: [mover, p2], currentPlayerIndex: 0 })
+      const space = fixtureSpace({ effect: { type: 'collectFromEach', amount: 200, reason: 'Prize money' } })
+      const { event } = applyEffect(state, space, { random: createFakeRandom() })
+      expect(event.transfers).toEqual([
+        { playerId: 'p2', playerName: 'Rival', playerColor: 'blue', amount: -200 },
+      ])
+    })
   })
 
   describe('payEach', () => {
@@ -475,6 +486,17 @@ describe('applyEffect', () => {
       expect(next.players[1]!.money).toBe(200)
       expect(next.players[2]!.money).toBe(0)
       expect(event.moneyDelta).toBe(-200)
+    })
+
+    it('carries a transfer for every player who was paid, signed from their own side', () => {
+      const mover = fixturePlayer({ id: 'p1', money: 1_000 })
+      const p2 = fixturePlayer({ id: 'p2', name: 'Rival', color: 'green', money: 0 })
+      const state = fixtureState({ players: [mover, p2], currentPlayerIndex: 0 })
+      const space = fixtureSpace({ effect: { type: 'payEach', amount: 200, reason: 'Round of drinks' } })
+      const { event } = applyEffect(state, space, { random: createFakeRandom() })
+      expect(event.transfers).toEqual([
+        { playerId: 'p2', playerName: 'Rival', playerColor: 'green', amount: 200 },
+      ])
     })
   })
 
@@ -1008,6 +1030,10 @@ describe('applyEffect', () => {
       expect(event.moneyDelta).toBe(295_000)
       expect(event.emphasis).toBe('big')
       expect(next.log[0]!.tone).toBe('upset')
+      // The leader's own side of the swap: they went from $300,000 to $5,000.
+      expect(event.transfers).toEqual([
+        { playerId: 'p2', playerName: 'Bo', playerColor: leader.color, amount: -295_000 },
+      ])
     })
 
     it('ignores retired players when looking for the leader', () => {

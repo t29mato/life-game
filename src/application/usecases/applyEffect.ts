@@ -9,6 +9,7 @@ import type {
   LandingEmphasis,
   LandingEvent,
   Money,
+  MoneyTransfer,
   Player,
   Space,
   Stock,
@@ -761,6 +762,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       let players = state.players
       let mover = player
       const notes = [effect.reason]
+      const transfers: MoneyTransfer[] = []
       for (const payer of payers) {
         const debited = debitPlayer(payer, effect.amount, economy)
         players = replacePlayer(players, debited)
@@ -769,16 +771,20 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         // three facts a table would want read out loud watching cash change
         // hands for real.
         notes.push(`${payer.name} pays you ${money(effect.amount)} — down to ${money(debited.money)}.`)
+        transfers.push({ playerId: payer.id, playerName: payer.name, playerColor: payer.color, amount: -effect.amount })
       }
       players = replacePlayer(players, mover)
       const delta = mover.money - player.money
-      const event = baseEvent(
-        space,
-        delta,
-        notes,
-        emphasisOf(delta),
-        `Everybody pays up — ${player.name} is collecting!`,
-      )
+      const event: LandingEvent = {
+        ...baseEvent(
+          space,
+          delta,
+          notes,
+          emphasisOf(delta),
+          `Everybody pays up — ${player.name} is collecting!`,
+        ),
+        transfers,
+      }
       const log = appendLog(
         state,
         player.id,
@@ -793,21 +799,31 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       let players = state.players
       let mover = player
       const notes = [effect.reason]
+      const transfers: MoneyTransfer[] = []
       for (const recipient of recipients) {
         mover = debitPlayer(mover, effect.amount, economy)
         const credited = creditPlayer(recipient, effect.amount)
         players = replacePlayer(players, credited)
         notes.push(`You pay ${recipient.name} ${money(effect.amount)} — up to ${money(credited.money)}.`)
+        transfers.push({
+          playerId: recipient.id,
+          playerName: recipient.name,
+          playerColor: recipient.color,
+          amount: effect.amount,
+        })
       }
       players = replacePlayer(players, mover)
       const delta = mover.money - player.money
-      const event = baseEvent(
-        space,
-        delta,
-        notes,
-        emphasisOf(delta),
-        `The round is on ${player.name} — everybody else gets paid!`,
-      )
+      const event: LandingEvent = {
+        ...baseEvent(
+          space,
+          delta,
+          notes,
+          emphasisOf(delta),
+          `The round is on ${player.name} — everybody else gets paid!`,
+        ),
+        transfers,
+      }
       const log = appendLog(
         state,
         player.id,
@@ -1341,13 +1357,18 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       let players = replacePlayer(state.players, setMoney(player, leader.money))
       players = replacePlayer(players, setMoney(leader, player.money))
       const delta = leader.money - player.money
-      const event = baseEvent(
-        space,
-        delta,
-        [effect.reason, `Swapped wallets with ${leader.name}: ${money(player.money)} ↔ ${money(leader.money)}`],
-        'big',
-        `Swap! ${player.name} takes ${leader.name}'s wallet, and the whole board just changed shape!`,
-      )
+      const event: LandingEvent = {
+        ...baseEvent(
+          space,
+          delta,
+          [effect.reason, `Swapped wallets with ${leader.name}: ${money(player.money)} ↔ ${money(leader.money)}`],
+          'big',
+          `Swap! ${player.name} takes ${leader.name}'s wallet, and the whole board just changed shape!`,
+        ),
+        transfers: [
+          { playerId: leader.id, playerName: leader.name, playerColor: leader.color, amount: -delta },
+        ],
+      }
       const log = appendLog(
         state,
         player.id,

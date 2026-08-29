@@ -165,6 +165,38 @@ describe('EventCard', () => {
     expect(screen.queryByText(/^".*"$/)).not.toBeInTheDocument()
   })
 
+  it('renders a transfer lane for every player whose balance this landing moved', () => {
+    mockReducedMotion(true)
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <EventCard
+          event={makeEvent({
+            moneyDelta: 400,
+            transfers: [
+              { playerId: 'p2', playerName: 'Bo', playerColor: 'blue', amount: -200 },
+              { playerId: 'p3', playerName: 'Cy', playerColor: 'green', amount: -200 },
+            ],
+          })}
+          onDismiss={() => {}}
+        />
+      </AudioProvider>,
+    )
+    expect(screen.getByText('Bo')).toBeInTheDocument()
+    expect(screen.getByText('Cy')).toBeInTheDocument()
+    // Signed from the viewing player's own side: they gained both $200s.
+    expect(screen.getAllByText('+$200')).toHaveLength(2)
+  })
+
+  it('renders no transfer lanes when the landing never moved another player\'s balance', () => {
+    mockReducedMotion(true)
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <EventCard event={makeEvent()} onDismiss={() => {}} />
+      </AudioProvider>,
+    )
+    expect(screen.queryByText(/^[+−]\$/)).not.toBeInTheDocument()
+  })
+
   it('bursts confetti for emphasis "milestone" regardless of tone', async () => {
     mockReducedMotion(false)
     render(

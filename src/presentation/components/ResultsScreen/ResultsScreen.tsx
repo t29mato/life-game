@@ -8,6 +8,7 @@ import { formatMoney, formatOrdinal } from '../../format'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { RollingNumber } from '../RollingNumber/RollingNumber'
 import { Confetti } from '../Confetti/Confetti'
+import { CoinBurst } from '../CoinFlight/CoinFlight'
 import { UiIcon, type UiIconName } from '../../icons/ui'
 import styles from './ResultsScreen.module.css'
 
@@ -201,6 +202,9 @@ export function ResultsScreen({ results, records, onPlayAgain, editionId }: Resu
       </header>
 
       <div className={styles.stage}>
+        {/* Same coin the board itself throws at any other landing — the
+            winner's own moment gets the same world, not a bespoke one. */}
+        <CoinBurst burstKey={fanfareTick} kind="gain" pieceCount={22} />
         <div className={styles.podium}>
           {podiumOrder.map((entry) => (
             <div

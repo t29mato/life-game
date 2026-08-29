@@ -231,10 +231,10 @@
 }
 
 .optionDescription {
-  font-size: 0.84rem;
+  font-size: clamp(0.88rem, 3.2vw, 0.94rem);
   font-weight: 600;
   color: var(--ink-soft);
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 /* ---- Branch lane preview: what a fork actually holds --------------------- */

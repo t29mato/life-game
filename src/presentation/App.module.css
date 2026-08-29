@@ -331,19 +331,51 @@
 
 /* Named ahead of the press that settles it — a fork's own significance,
    otherwise invisible until the log line after the wheel has already
-   stopped. See `forkRoadNames` in `branch.ts`. */
+   stopped. See `forkRoadNames` in `branch.ts`. Sits directly on top of the
+   wheel it belongs to, sized to be the first thing read on the rail, not a
+   caption underneath everything else. */
 .forkAhead {
   flex: none;
-  margin: 0;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius-lg);
-  background: var(--surface-grad);
-  box-shadow: var(--elev-1);
-  font-size: 0.78rem;
-  font-weight: 700;
-  line-height: 1.35;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0 0 -0.15rem;
+  padding: 0.65rem 0.85rem 0.75rem;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: linear-gradient(180deg, var(--candy-sun) 0%, var(--candy-tangerine) 100%);
+  box-shadow: var(--elev-2);
+  color: #3a2405;
   text-align: center;
-  color: var(--ink-soft);
+  position: relative;
+  z-index: 1;
+}
+
+.forkAheadLabel {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+.forkAheadRoad {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.45rem;
+  font-size: clamp(1rem, 3.4vw, 1.2rem);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.forkAheadRange {
+  flex: none;
+  padding: 0.05rem 0.45rem;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 0.82rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .playersBlock {

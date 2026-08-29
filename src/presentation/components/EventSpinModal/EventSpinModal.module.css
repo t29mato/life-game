@@ -65,7 +65,8 @@
 }
 
 .stakes {
-  font-size: 0.92rem;
+  font-size: clamp(0.95rem, 3.6vw, 1.08rem);
+  font-weight: 600;
   line-height: 1.45;
   color: var(--ink-soft, var(--ink-faint));
 }
