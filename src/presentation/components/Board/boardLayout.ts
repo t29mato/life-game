@@ -1056,6 +1056,12 @@ export type SceneryKind =
   | 'field'
   | 'rock'
   | 'boat'
+  | 'landmark-usa'
+  | 'landmark-japan'
+  | 'landmark-france'
+  | 'landmark-india-taj'
+  | 'landmark-india-gate'
+  | 'landmark-bolivia'
 
 export interface SceneryPiece {
   readonly id: string
@@ -1116,8 +1122,50 @@ export function sceneryExtent(kind: SceneryKind): { readonly up: number; readonl
       return { up: 0.28, side: 0.54 }
     case 'rock':
       return { up: 0.38, side: 0.36 }
+    case 'landmark-usa':
+      // The tallest, narrowest silhouette — a raised torch reads fine
+      // thin against the sky. Kept short of the shape's own drawn
+      // reach, the same trade-off `landmark-japan` documents: a statue
+      // is allowed to rise behind a tree or a rooftop, never behind a
+      // tile or a road.
+      return { up: 1.6, side: 0.6 }
+    case 'landmark-france':
+      // Same trade-off again: the tower's iron legs stay clear of tiles
+      // and roads; its spire is allowed to clear the rooftops around it.
+      return { up: 1.9, side: 0.6 }
+    case 'landmark-japan':
+      // A mountain, not a building: wide at the foot, so it needs the
+      // room to either side more than it needs height. Kept deliberately
+      // short of the shape's own drawn reach — a mountain is allowed to
+      // rise behind a tree or a rooftop the way the real skyline would,
+      // just never behind a tile or a road; those are what this box
+      // actually has to keep the ground clear of.
+      return { up: 1.5, side: 1.3 }
+    case 'landmark-india-taj':
+      return { up: 1.5, side: 1.1 }
+    case 'landmark-india-gate':
+    case 'landmark-bolivia':
+      return { up: 1.3, side: 1.0 }
     default:
       return { up: 0.4, side: 0.48 }
+  }
+}
+
+/** One edition, one skyline — the single guaranteed landmark this board gets. */
+export function landmarkKindFor(editionId: string | undefined): SceneryKind | null {
+  switch (editionId) {
+    case 'usa':
+      return 'landmark-usa'
+    case 'japan':
+      return 'landmark-japan'
+    case 'france':
+      return 'landmark-france'
+    case 'india':
+      return 'landmark-india-taj'
+    case 'bolivia':
+      return 'landmark-bolivia'
+    default:
+      return null
   }
 }
 
@@ -1147,7 +1195,14 @@ const CAPTION_CLEARANCE = 1.55
  * district is tried before giving up, so a tight gap gets a hedge rather than a
  * hole.
  */
-export function scatterScenery(board: Board, projection: BoardProjection): readonly SceneryPiece[] {
+export function scatterScenery(
+  board: Board,
+  projection: BoardProjection,
+  editionId?: string,
+  /** Forces a specific landmark regardless of `editionId` — comparing two
+   * candidates for the same country without a second edition to switch to. */
+  landmarkOverride?: SceneryKind,
+): readonly SceneryPiece[] {
   const spaces = Object.values(board.spaces)
   const lanes = boardLanes(board)
   const districts = districtBySpace(lanes)
@@ -1213,6 +1268,46 @@ export function scatterScenery(board: Board, projection: BoardProjection): reado
       return true
     }
     return false
+  }
+
+  /*
+   * One country, one skyline: a single guaranteed landmark, placed before
+   * anything else so it gets first pick of clear ground rather than
+   * whatever the random scatter happens to leave over. Tried across a
+   * spread of candidate spots — high in the background first, since a
+   * mountain or a tower reads best standing behind the board rather than
+   * shouldered into a gap between tiles — so a short board's tighter
+   * layout still has *somewhere* for it to fit.
+   */
+  const landmarkKind = landmarkOverride ?? landmarkKindFor(editionId)
+  if (landmarkKind) {
+    const candidates = [
+      { x: projection.viewWidth * 0.12, y: projection.viewHeight * 0.3 },
+      { x: projection.viewWidth * 0.88, y: projection.viewHeight * 0.3 },
+      { x: projection.viewWidth * 0.12, y: projection.viewHeight * 0.22 },
+      { x: projection.viewWidth * 0.88, y: projection.viewHeight * 0.22 },
+      { x: projection.viewWidth * 0.5, y: projection.viewHeight * 0.18 },
+      { x: projection.viewWidth * 0.12, y: projection.viewHeight * 0.42 },
+      { x: projection.viewWidth * 0.88, y: projection.viewHeight * 0.42 },
+      { x: projection.viewWidth * 0.5, y: projection.viewHeight * 0.35 },
+      { x: projection.viewWidth * 0.14, y: projection.viewHeight * 0.16 },
+      { x: projection.viewWidth * 0.86, y: projection.viewHeight * 0.16 },
+      { x: projection.viewWidth * 0.14, y: projection.viewHeight * 0.55 },
+      { x: projection.viewWidth * 0.86, y: projection.viewHeight * 0.55 },
+    ]
+    for (const candidate of candidates) {
+      if (!fits(candidate.x, candidate.y, landmarkKind)) continue
+      const district = groundAt(candidate.x, candidate.y) ?? 'meadow'
+      pieces.push({
+        id: 'landmark',
+        kind: landmarkKind,
+        district,
+        x: candidate.x,
+        y: candidate.y,
+        seed: 0.5,
+      })
+      break
+    }
   }
 
   for (let gy = cell * 0.5; gy < projection.viewHeight; gy += cell) {

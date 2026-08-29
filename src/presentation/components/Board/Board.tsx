@@ -224,7 +224,7 @@ export function Board({
   const coast = useMemo(() => coastline(board, projection), [board, projection])
   const pockets = useMemo(() => forkPockets(board, projection), [board, projection])
   const hills = useMemo(() => ridges(board, projection), [board, projection])
-  const scenery = useMemo(() => scatterScenery(board, projection), [board, projection])
+  const scenery = useMemo(() => scatterScenery(board, projection, editionId), [board, projection, editionId])
   const strands = useMemo(() => routeStrands(board, projection, lanes), [board, projection, lanes])
 
   const tiles = useMemo<readonly TileView[]>(() => {

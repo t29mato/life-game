@@ -334,6 +334,183 @@ export function Scenery({
         </g>
       )
 
+    /*
+     * The one guaranteed landmark a board's own edition carries — see
+     * `landmarkKindFor` in `boardLayout.ts`. Built from the same flat,
+     * faceted vocabulary as everything else here (a lit face, a shaded
+     * one, one drop shadow), just at a height nothing else on the map
+     * reaches, so it reads as *behind* the board rather than a tile that
+     * grew too big.
+     */
+    case 'landmark-usa': {
+      // The Statue of Liberty: a stone plinth, a tapering robe, a raised
+      // arm carrying the torch clear of the crown.
+      return (
+        <g transform={`${at} scale(2.2)`}>
+          <ellipse cx={s * 0.1} cy={s * 0.5} rx={s * 0.85} ry={s * 0.2} className={styles.drop} />
+          <rect x={-s * 0.62} y={-s * 0.02} width={s * 1.24} height={s * 0.55} className={styles.rock} />
+          <rect x={s * 0.02} y={-s * 0.02} width={s * 0.6} height={s * 0.55} className={styles.rockShade} />
+          <path
+            d={`M ${-s * 0.42} ${-s * 0.02} L ${-s * 0.3} ${-s * 3.1} L ${s * 0.3} ${-s * 3.1} L ${s * 0.44} ${-s * 0.02} Z`}
+            className={styles.landmark}
+          />
+          <path
+            d={`M ${s * 0.02} ${-s * 3.1} L ${s * 0.3} ${-s * 3.1} L ${s * 0.44} ${-s * 0.02} L ${s * 0.06} ${-s * 0.02} Z`}
+            className={styles.landmarkShade}
+          />
+          <circle cx={0} cy={-s * 3.28} r={s * 0.19} className={styles.landmark} />
+          {[-0.16, -0.02, 0.12].map((dx) => (
+            <path
+              key={dx}
+              d={`M ${s * dx} ${-s * 3.44} L ${s * (dx + 0.07)} ${-s * 3.66} L ${s * (dx + 0.14)} ${-s * 3.44} Z`}
+              className={styles.landmarkAccent}
+            />
+          ))}
+          <path
+            d={`M ${s * 0.18} ${-s * 3.02} L ${s * 0.62} ${-s * 3.86} L ${s * 0.5} ${-s * 3.98} L ${s * 0.28} ${-s * 3.16} Z`}
+            className={styles.landmarkShade}
+          />
+          <path
+            d={`M ${s * 0.5} ${-s * 3.98} L ${s * 0.74} ${-s * 4.14} L ${s * 0.66} ${-s * 3.9} Z`}
+            className={styles.landmarkAccent}
+          />
+          <ellipse cx={s * 0.6} cy={-s * 4.18} rx={s * 0.14} ry={s * 0.1} className={styles.landmarkAccent} />
+        </g>
+      )
+    }
+
+    case 'landmark-japan': {
+      // Fuji, snow-capped, with a torii standing at its foot.
+      const w = s * 2.4
+      const h = s * 2.2
+      return (
+        <g transform={`${at} scale(2)`}>
+          <ellipse cx={s * 0.2} cy={s * 0.16} rx={w * 0.62} ry={s * 0.22} className={styles.drop} />
+          <path d={`M ${-w / 2} 0 L 0 ${-h} L ${w / 2} 0 Z`} className={styles.landmark} />
+          <path d={`M 0 ${-h} L ${w / 2} 0 L ${w * 0.06} 0 Z`} className={styles.landmarkShade} />
+          <path
+            d={`M ${-s * 0.24} ${-h * 0.78} L 0 ${-h} L ${s * 0.26} ${-h * 0.76} L ${s * 0.1} ${-h * 0.68} L ${-s * 0.08} ${-h * 0.7} Z`}
+            fill="#f6faff"
+          />
+          <path
+            d={`M 0 ${-h} L ${s * 0.26} ${-h * 0.76} L ${s * 0.1} ${-h * 0.68} Z`}
+            fill="#cfe0ee"
+          />
+          <g transform={`translate(${w * 0.42} 0)`}>
+            <rect x={-s * 0.34} y={-s * 0.86} width={s * 0.1} height={s * 0.86} className={styles.landmarkAccentShade} />
+            <rect x={s * 0.24} y={-s * 0.86} width={s * 0.1} height={s * 0.86} className={styles.landmarkAccent} />
+            <rect x={-s * 0.44} y={-s * 0.9} width={s * 0.88} height={s * 0.13} className={styles.landmarkAccent} />
+            <rect x={-s * 0.36} y={-s * 0.72} width={s * 0.72} height={s * 0.1} className={styles.landmarkAccentShade} />
+          </g>
+        </g>
+      )
+    }
+
+    case 'landmark-france': {
+      // The Eiffel Tower: four stacked, tapering iron segments and a spire.
+      const h = s * 5.2
+      const base = s * 1.3
+      return (
+        <g transform={`${at} scale(1.5)`}>
+          <ellipse cx={s * 0.14} cy={s * 0.14} rx={base * 0.66} ry={s * 0.2} className={styles.drop} />
+          <path
+            d={`M ${-base / 2} 0 L ${-s * 0.22} ${-h * 0.42} L ${-s * 0.22} ${-h * 0.78} L ${-s * 0.06} ${-h} L ${s * 0.06} ${-h} L ${s * 0.22} ${-h * 0.78} L ${s * 0.22} ${-h * 0.42} L ${base / 2} 0 Z`}
+            className={styles.landmark}
+          />
+          <path
+            d={`M 0 0 L ${s * 0.22} ${-h * 0.42} L ${s * 0.22} ${-h * 0.78} L ${s * 0.06} ${-h} L 0 ${-h} Z`}
+            className={styles.landmarkShade}
+          />
+          <path
+            d={`M ${-base * 0.42} ${-s * 0.02} L ${s * 0.22} ${-h * 0.42} M ${base * 0.42} ${-s * 0.02} L ${-s * 0.22} ${-h * 0.42} M ${-s * 0.22} ${-h * 0.42} L ${s * 0.22} ${-h * 0.78} M ${s * 0.22} ${-h * 0.42} L ${-s * 0.22} ${-h * 0.78}`}
+            stroke="rgba(255,255,255,0.3)"
+            strokeWidth={s * 0.03}
+            fill="none"
+          />
+          <rect x={-s * 0.03} y={-h * 1.06} width={s * 0.06} height={h * 0.06} className={styles.landmarkAccent} />
+        </g>
+      )
+    }
+
+    case 'landmark-india-taj': {
+      // The Taj Mahal: a domed pavilion between two slender minarets.
+      const w = s * 2.2
+      const h = s * 1.5
+      return (
+        <g transform={`${at} scale(1.8)`}>
+          <ellipse cx={s * 0.1} cy={s * 0.16} rx={w * 0.58} ry={s * 0.2} className={styles.drop} />
+          {[-1, 1].map((side) => (
+            <g key={side} transform={`translate(${side * w * 0.44} 0)`}>
+              <rect x={-s * 0.08} y={-h * 1.5} width={s * 0.16} height={h * 1.5} className={styles.landmark} />
+              <rect x={0} y={-h * 1.5} width={s * 0.08} height={h * 1.5} className={styles.landmarkShade} />
+              <path d={`M ${-s * 0.1} ${-h * 1.5} L 0 ${-h * 1.68} L ${s * 0.1} ${-h * 1.5} Z`} className={styles.landmarkAccent} />
+            </g>
+          ))}
+          <rect x={-w * 0.34} y={-h * 0.6} width={w * 0.68} height={h * 0.6} className={styles.landmark} />
+          <rect x={0} y={-h * 0.6} width={w * 0.34} height={h * 0.6} className={styles.landmarkShade} />
+          <path
+            d={`M ${-w * 0.34} ${-h * 0.6} L 0 ${-h * 1.1} L ${w * 0.34} ${-h * 0.6} Z`}
+            className={styles.landmark}
+          />
+          <path d={`M 0 ${-h * 1.1} L ${w * 0.34} ${-h * 0.6} L 0 ${-h * 0.6} Z`} className={styles.landmarkShade} />
+          <path
+            d={`M ${-w * 0.14} ${-h * 1.02} A ${w * 0.14} ${w * 0.14} 0 0 1 ${w * 0.14} ${-h * 1.02} Z`}
+            className={styles.landmark}
+          />
+          <path d={`M 0 ${-h * 1.28} L ${s * 0.05} ${-h * 1.16} L ${-s * 0.05} ${-h * 1.16} Z`} className={styles.landmarkAccent} />
+        </g>
+      )
+    }
+
+    case 'landmark-india-gate': {
+      // India Gate: a sandstone triumphal arch.
+      const w = s * 1.9
+      const h = s * 2.0
+      return (
+        <g transform={`${at} scale(1.7)`}>
+          <ellipse cx={s * 0.14} cy={s * 0.16} rx={w * 0.6} ry={s * 0.2} className={styles.drop} />
+          <rect x={-w / 2} y={-h} width={w} height={h} className={styles.landmark} />
+          <rect x={0} y={-h} width={w / 2} height={h} className={styles.landmarkShade} />
+          <rect x={-w / 2} y={-h * 1.12} width={w} height={h * 0.12} className={styles.landmark} />
+          <rect x={0} y={-h * 1.12} width={w / 2} height={h * 0.12} className={styles.landmarkShade} />
+          <path
+            d={`M ${-w * 0.22} 0 L ${-w * 0.22} ${-h * 0.62} A ${w * 0.22} ${w * 0.22} 0 0 1 ${w * 0.22} ${-h * 0.62} L ${w * 0.22} 0 Z`}
+            fill="var(--sea-deep, #1a86bd)"
+            opacity={0.35}
+          />
+        </g>
+      )
+    }
+
+    case 'landmark-bolivia': {
+      // The Gate of the Sun: a single stone monolith with a carved lintel.
+      const w = s * 1.9
+      const h = s * 1.5
+      return (
+        <g transform={`${at} scale(2.0)`}>
+          <ellipse cx={s * 0.14} cy={s * 0.16} rx={w * 0.6} ry={s * 0.2} className={styles.drop} />
+          <rect x={-w / 2} y={-h} width={w} height={h} className={styles.landmark} />
+          <rect x={0} y={-h} width={w / 2} height={h} className={styles.landmarkShade} />
+          <rect x={-w / 2} y={-h * 1.16} width={w} height={h * 0.16} className={styles.landmarkAccentShade} />
+          <rect x={0} y={-h * 1.16} width={w / 2} height={h * 0.16} className={styles.landmarkAccent} />
+          {[-0.32, -0.1, 0.12, 0.34].map((dx) => (
+            <rect
+              key={dx}
+              x={s * dx}
+              y={-h * 1.14}
+              width={s * 0.1}
+              height={h * 0.1}
+              className={styles.landmark}
+            />
+          ))}
+          <path
+            d={`M ${-w * 0.18} 0 L ${-w * 0.18} ${-h * 0.66} L ${w * 0.18} ${-h * 0.66} L ${w * 0.18} 0 Z`}
+            fill="rgba(20, 14, 6, 0.4)"
+          />
+        </g>
+      )
+    }
+
     default:
       return (
         <g transform={at}>

@@ -8,6 +8,7 @@ import {
   districtBySpace,
   fanSlot,
   forkPockets,
+  landmarkKindFor,
   pawnSlot,
   ridges,
   roundedPolyline,
@@ -1015,5 +1016,66 @@ describe('scatterScenery', () => {
     expect(scatterScenery(large, createProjection(large)).length).toBeGreaterThan(
       scatterScenery(tiny, createProjection(tiny)).length,
     )
+  })
+
+  /**
+   * One country, one skyline — see `landmarkKindFor`. Everything the ordinary
+   * scatter already has to prove (never on a tile, never on the road, always
+   * inside the viewBox) applies just as much to the one guaranteed piece as
+   * to the sixty incidental ones.
+   */
+  describe('the guaranteed landmark', () => {
+    it.each(['usa', 'japan', 'france', 'india', 'bolivia'] as const)(
+      'places exactly one landmark for %s, clear of every tile and every road',
+      (editionId) => {
+        const pieces = scatterScenery(model, projection, editionId)
+        const landmarks = pieces.filter((piece) => piece.kind.startsWith('landmark-'))
+        expect(landmarks).toHaveLength(1)
+        expect(landmarks[0]?.kind).toBe(landmarkKindFor(editionId))
+
+        const landmark = landmarks[0]!
+        for (const s of Object.values(model.spaces)) {
+          const tile = projection.project(s.layout)
+          const clearance = projection.tileSize * (spaceCaption(s) ? 1.5 : 0.82)
+          expect(Math.hypot(landmark.x - tile.x, landmark.y - tile.y)).toBeGreaterThanOrEqual(clearance)
+        }
+        const segments = routeSegments(model, projection)
+        const roadClearance = projection.roadCasingWidth / 2
+        for (const [a, b] of segments) {
+          expect(distanceToSegment(landmark, a, b)).toBeGreaterThan(roadClearance)
+        }
+        expect(landmark.x).toBeGreaterThanOrEqual(0)
+        expect(landmark.x).toBeLessThanOrEqual(projection.viewWidth)
+        expect(landmark.y).toBeGreaterThanOrEqual(0)
+        expect(landmark.y).toBeLessThanOrEqual(projection.viewHeight)
+      },
+    )
+
+    it('places no landmark at all for an edition with no skyline of its own', () => {
+      const pieces = scatterScenery(model, projection, 'some-future-edition')
+      expect(pieces.some((piece) => piece.kind.startsWith('landmark-'))).toBe(false)
+    })
+
+    it('lets a caller force a specific landmark regardless of edition — comparing two candidates', () => {
+      const pieces = scatterScenery(model, projection, 'india', 'landmark-india-gate')
+      const landmarks = pieces.filter((piece) => piece.kind.startsWith('landmark-'))
+      expect(landmarks).toHaveLength(1)
+      expect(landmarks[0]?.kind).toBe('landmark-india-gate')
+    })
+  })
+})
+
+describe('landmarkKindFor', () => {
+  it('maps every edition with a landmark to its own kind', () => {
+    expect(landmarkKindFor('usa')).toBe('landmark-usa')
+    expect(landmarkKindFor('japan')).toBe('landmark-japan')
+    expect(landmarkKindFor('france')).toBe('landmark-france')
+    expect(landmarkKindFor('india')).toBe('landmark-india-taj')
+    expect(landmarkKindFor('bolivia')).toBe('landmark-bolivia')
+  })
+
+  it('has no opinion about an edition it does not recognise', () => {
+    expect(landmarkKindFor('atlantis')).toBeNull()
+    expect(landmarkKindFor(undefined)).toBeNull()
   })
 })

@@ -22,6 +22,15 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
     version: __APP_VERSION__,
     date: 'August 29, 2026',
     whatsNew: [
+      "Every edition finally looks like the country it's named for: the Statue of Liberty stands somewhere on the American board, Fuji and a torii gate on the Japanese one, the Eiffel Tower in France, the Gate of the Sun in Bolivia, and the Taj Mahal in India — one skyline per board, standing behind the tiles rather than on them.",
+    ],
+    changes: [],
+    fixes: [],
+  },
+  {
+    version: 'v1.12.0',
+    date: 'August 29, 2026',
+    whatsNew: [
       "Money now moves the way it looks like it moves: coins and notes fly wherever cash changes hands — your own gains and bills, a payday you swept past mid-move, a round of gifts or a collection between players — with a sound to match. The final standings get the same coins for the winner's own moment.",
     ],
     changes: [
