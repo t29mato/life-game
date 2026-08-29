@@ -410,7 +410,7 @@ describe('spinning from the keyboard', () => {
     try {
       const store = startedGame()
       let guard = 0
-      while (guard < 300) {
+      while (guard < 300 && store.getState().phase !== 'gameOver') {
         const state = store.getState()
         if (
           state.phase === 'awaitingDecision' &&
@@ -429,7 +429,6 @@ describe('spinning from the keyboard', () => {
       expect(store.getState().phase).toBe('awaitingDecision')
       const before = store.getState()
       const spinner = before.players[before.currentPlayerIndex]!
-      const beforeMoney = spinner.money
 
       render(<App store={store} audio={createFakeAudioPort()} />)
       const panel = screen.getByText(spinner.name).closest('article')!
@@ -437,9 +436,16 @@ describe('spinning from the keyboard', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /^spin$/i }))
 
-      // The store already knows the outcome — this is exactly the gap the
-      // rail is not supposed to show.
-      expect(store.getState().players[before.currentPlayerIndex]!.money).not.toBe(beforeMoney)
+      /*
+       * The store already knows the outcome — this is exactly the gap the
+       * rail is not supposed to show. `phase` is the proxy that works for
+       * every value-spin equally: `player.money` used to serve here, but a
+       * promotion review that misses still gives a raise (the salary rate
+       * moves, not cash) and a career spin never carries a signing bonus
+       * either, so neither reliably tells "before" and "after" apart the way
+       * every value-spin's own phase transition does.
+       */
+      expect(store.getState().phase).not.toBe('awaitingDecision')
       // The rail itself, read from the DOM the instant after pressing Spin,
       // must not have moved yet — not the cash, not the career, nothing.
       expect(panel.textContent).toBe(panelTextBefore)
@@ -451,7 +457,6 @@ describe('spinning from the keyboard', () => {
         },
         { timeout: 5000 },
       )
-      expect(store.getState().players[before.currentPlayerIndex]!.money).not.toBe(beforeMoney)
     } finally {
       window.matchMedia = originalMatchMedia
     }

@@ -70,7 +70,10 @@ export function describeSpins(packets: readonly PaydayPacket[]): string {
 
 /**
  * The log line for paydays passed mid-move — identical in `spin` and `choose`,
- * and worded so a player can tell a wage packet from a week of shifts.
+ * and worded so a player can tell a wage packet from a week of shifts. Ends
+ * on the balance it left behind, the same as every event this move swept
+ * past now does — an amount with nothing to compare it to is a number, not
+ * news.
  */
 export function passedPaydayLine(
   playerName: string,
@@ -79,17 +82,18 @@ export function passedPaydayLine(
 ): string {
   const count = collection.packets.length > 1 ? ` ${collection.packets.length}x` : ''
   const money = formatMoney(collection.total, currency)
+  const balance = ` — now ${formatMoney(collection.player.money, currency)}.`
   if (collection.kind === 'salary') {
     // The × 12 breakdown only holds for one payday's worth — sweeping past
     // several in one move multiplies the total, and dividing that by 12 would
     // quote a monthly rate nobody is actually on.
     const total = collection.packets.length === 1 ? paydayReceipt(collection.total, currency) : money
-    return `${playerName} passes payday${count}: ${total}.`
+    return `${playerName} passes payday${count}: ${total}${balance}`
   }
 
   const spins = describeSpins(collection.packets)
   if (collection.kind === 'casual') {
-    return `${playerName} picks up shifts passing payday${count}, spinning ${spins}: ${money}.`
+    return `${playerName} picks up shifts passing payday${count}, spinning ${spins}: ${money}${balance}`
   }
-  return `${playerName} passes payday${count}, spinning ${spins}: ${money}.`
+  return `${playerName} passes payday${count}, spinning ${spins}: ${money}${balance}`
 }

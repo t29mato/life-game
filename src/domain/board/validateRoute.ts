@@ -34,8 +34,9 @@ const LENGTHS: readonly BoardLength[] = ['short', 'standard', 'long']
  * Each of these has machinery behind it that a country cannot opt out of — a
  * degree gates the graduate career pool, a marriage gates children, a house is
  * half of the final score — so a board without one has dead engine attached to
- * it. And each has to be a `stop`, because movement halts on a `stop` and on
- * nothing else: written as an ordinary tile, a career fair is one a laid-off
+ * it. And each has to be an `event` or a `stop` — the only two kinds a
+ * milestone's effect is guaranteed to fire on, whether landed on exactly or
+ * swept past: written as an ordinary tile, a career fair is one a laid-off
  * player spins straight over, and the milestone then happens to some players
  * and not others depending on a wheel.
  */
@@ -44,6 +45,29 @@ const REQUIRED_MILESTONES: readonly SpaceEffect['type'][] = [
   'chooseCareer',
   'getMarried',
   'buyHouse',
+]
+
+/**
+ * Effects an `event` tile is allowed to carry — every one of them settled by
+ * a spin alone, nothing a player has to weigh. `buyHouse` is the reason this
+ * list exists rather than a single `kind !== 'stop'` check: it is a real
+ * decision (which house, or none), and a decision paused mid-move for is a
+ * decision a player never actually got to make. An effect not on this list
+ * gets a `stop`, the same as it always did, until someone has actually
+ * confirmed it never raises more than the one "press Spin" option and adds
+ * it here on purpose.
+ */
+const AUTO_RESOLVABLE_EFFECT_TYPES: readonly SpaceEffect['type'][] = [
+  'none',
+  'gainMoney',
+  'payMoney',
+  'graduate',
+  'tuition',
+  'chooseCareer',
+  'careerChange',
+  'promotion',
+  'getMarried',
+  'haveChildren',
 ]
 
 // ---------------------------------------------------------------------------
@@ -178,13 +202,15 @@ export function boardProblems(board: Board, label: string): readonly string[] {
  * Losing a job is a good swing; losing it with no re-hire ahead is a seat that
  * spends the rest of the game collecting casual wages, and because it depends
  * on which lane and which board length a player happened to take, it shows up
- * as a statistic rather than as a bug. Only a `stop` guarantees anything —
- * movement halts there and nowhere else — so an ordinary `careerChange` tile
- * on the way is no guarantee at all.
+ * as a statistic rather than as a bug. Only a `stop` or an `event` guarantees
+ * anything — an ordinary tile's effect is only ever certain for whoever lands
+ * on it exactly — so an ordinary `careerChange` tile on the way is no
+ * guarantee at all.
  */
 function strandedByALayoff(board: Board): readonly string[] {
   const hires = (space: Space): boolean =>
-    (space.effect.type === 'careerChange' || space.effect.type === 'chooseCareer') && space.kind === 'stop'
+    (space.effect.type === 'careerChange' || space.effect.type === 'chooseCareer') &&
+    (space.kind === 'stop' || space.kind === 'event')
 
   const memo = new Map<SpaceId, boolean>()
   const escapesUnemployed = (id: SpaceId): boolean => {
@@ -370,9 +396,28 @@ function problemsOn(
     }
   }
   for (const space of live) {
-    if (REQUIRED_MILESTONES.includes(space.effect.type) && space.kind !== 'stop') {
+    if (REQUIRED_MILESTONES.includes(space.effect.type) && space.kind !== 'stop' && space.kind !== 'event') {
       say(
-        `"${space.id}" carries a "${space.effect.type}" but is a "${space.kind}" tile — movement halts on a "stop" and on nothing else, so a player can spin straight past this milestone and half the table never has it happen`,
+        `"${space.id}" carries a "${space.effect.type}" but is a "${space.kind}" tile — only "stop" and "event" guarantee an effect fires, so a player can spin straight past this milestone and half the table never has it happen`,
+      )
+    }
+    if (space.kind === 'event' && !AUTO_RESOLVABLE_EFFECT_TYPES.includes(space.effect.type)) {
+      say(
+        `"${space.id}" is an "event" tile carrying a "${space.effect.type}" effect, which is not on the auto-resolvable list — an "event" tile can never pause for a real choice, since a player mid-move never gets asked. Give it a "stop" instead, or confirm the effect never raises more than one option and add it to AUTO_RESOLVABLE_EFFECT_TYPES.`,
+      )
+    }
+    /*
+     * `careerChange` is on the auto-resolvable list, but only earns it when
+     * `compulsory` — the redraw itself is the whole point of the road, so
+     * there is nothing to weigh (`applyEffect`'s "Stay" option never gets
+     * built). Without `compulsory`, a player who already has a job is
+     * offered a real "Stay or Spin" choice, same as `main-career-fair`
+     * shipped with once — the bug this check exists to catch, discovered by
+     * the balance suite hanging rather than by a reviewer's eye.
+     */
+    if (space.kind === 'event' && space.effect.type === 'careerChange' && !space.effect.compulsory) {
+      say(
+        `"${space.id}" is an "event" tile carrying a non-compulsory "careerChange" — a player who already has a job gets a real "Stay or Spin" choice there, which an "event" tile can never pause mid-move to ask. Give it a "stop" instead, or mark the effect "compulsory".`,
       )
     }
   }

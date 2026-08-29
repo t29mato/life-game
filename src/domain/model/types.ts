@@ -170,7 +170,23 @@ export type SpaceKind =
   | 'normal'
   /** Salary is collected when passing *or* landing. */
   | 'payday'
-  /** Movement always halts here even with steps left over. */
+  /**
+   * A milestone whose effect always fires, passed or landed on — but never
+   * halts movement, so a big roll is never cut short just for having found
+   * one along the way. This is what almost every effect-bearing `stop` used
+   * to be before that also forced a halt; see `resolveForkBranch`'s own
+   * history in `branch.ts` for the sibling story about `stop` itself. The
+   * only effects allowed on an `event` space are ones a spin alone settles —
+   * `validateRoute` enforces that so a future tile with a real decision on
+   * it (a house to pick between, a loan to weigh) cannot land here by
+   * accident and lose its own stop.
+   */
+  | 'event'
+  /**
+   * Movement always halts here even with steps left over — now reserved for
+   * the rare tile whose effect is a real decision a player has to weigh
+   * (which house, whether to retire), not just a spin to press.
+   */
   | 'stop'
   /** Terminal space; reaching it retires the player. */
   | 'retirement'
@@ -554,13 +570,15 @@ export interface GameState {
   readonly chosenExit: SpaceId | null
   readonly lastEvent: LandingEvent | null
   /**
-   * A payday or two the pawn swept straight past on its way here, worded the
-   * same way the log line is — set by `spin`/`choose` the instant a move
-   * passes one, and folded into the next landing event's own notes by
-   * `settle` so it is not only ever visible by opening the log. Null once
-   * `settle` has consumed it, or when nothing was passed.
+   * Every payday and every `event`-kind milestone the pawn swept straight
+   * past on its way here, worded the same way each one's own log line is and
+   * in the order the road actually crossed them — set by `spin`/`choose` the
+   * instant a move passes one, and folded into the next landing event's own
+   * notes by `settle` so a tile passed at speed is not indistinguishable
+   * from a tile that was never on the road at all. Empty once `settle` has
+   * consumed it, or when nothing was passed.
    */
-  readonly passedPaydayNote: string | null
+  readonly passedNotes: readonly string[]
   readonly log: readonly GameLogEntry[]
   readonly turn: number
   readonly results: GameResults | null

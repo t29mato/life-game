@@ -51,7 +51,7 @@ const GRANDE_ECOLE_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 1_400, reason: 'Deposit and agency fee' },
   }),
   {
-    id: 'fr-uni-fees', kind: 'stop', title: 'The School Fees',
+    id: 'fr-uni-fees', kind: 'event', title: 'The School Fees',
     description: 'Two free years of studying paid off: you passed the entrance exam. But the school itself is not free, and the bill is due before you even see the library.',
     effect: { type: 'tuition', reason: 'Grande école fees' },
     tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD,
@@ -122,7 +122,7 @@ const GRANDE_ECOLE_LANE: readonly SpaceContent[] = [
     tone: 'blue', icon: 'finance:bank-visit', tier: STANDARD_UP,
   },
   {
-    id: 'fr-uni-graduation', kind: 'stop', title: 'Graduation Day',
+    id: 'fr-uni-graduation', kind: 'event', title: 'Graduation Day',
     description: 'You graduate with a long, impressive-sounding diploma, a handshake from an official, and a network of alumni you can call on for life.',
     effect: { type: 'graduate' },
     tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
@@ -136,7 +136,7 @@ const GRANDE_ECOLE_LANE: readonly SpaceContent[] = [
 ]
 
 const GRAD_FAIR: SpaceContent = {
-  id: 'fr-grad-forum', kind: 'stop', title: 'The Careers Forum',
+  id: 'fr-grad-forum', kind: 'event', title: 'The Careers Forum',
   description: 'Former students of your school fill the great hall for one day, offering firm handshakes and firmer salary numbers. Two jobs are open. Pick one.',
   effect: { type: 'chooseCareer', pool: 'graduate' },
   tone: 'gold', icon: 'space:grad-job-fair', tier: EVERY_BOARD,
@@ -152,7 +152,7 @@ const GRAD_FAIR: SpaceContent = {
  */
 const WORK_LANE: readonly SpaceContent[] = [
   {
-    id: 'fr-apprenticeship-day', kind: 'stop', title: 'Apprenticeship Day',
+    id: 'fr-apprenticeship-day', kind: 'event', title: 'Apprenticeship Day',
     description: 'A trade school finds you an employer on the spot. You sign Monday, and you are paid from Tuesday — while the exam students are still standing in line to enrol.',
     effect: { type: 'chooseCareer', pool: 'basic' },
     tone: 'gold', icon: 'space:first-job-fair', tier: EVERY_BOARD,
@@ -171,7 +171,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     'A month of living on nothing',
   )),
   {
-    id: 'fr-work-moving-out', kind: 'stop', title: 'Moving Out',
+    id: 'fr-work-moving-out', kind: 'event', title: 'Moving Out',
     description: 'Now that you are earning, you are expected to move out: a deposit, a guarantor (your parents have to sign), and a rental application thicker than a job application.',
     effect: { type: 'payMoney', amount: 1_800, reason: 'Deposit and first month' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, unscaled: true,
@@ -183,7 +183,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD,
   },
   {
-    id: 'fr-work-gear', kind: 'stop', title: 'Work Gear Deposit',
+    id: 'fr-work-gear', kind: 'event', title: 'Work Gear Deposit',
     description: 'Two sets of overalls, steel-toed boots, an ID badge, and a deposit you doubt you will ever see again.',
     effect: { type: 'payMoney', amount: 1_500, reason: 'Work gear deposit' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, appearsFrom: 'hard',
@@ -430,7 +430,7 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
     tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
   },
   {
-    id: 'fr-hopper-exit', kind: 'stop', title: 'The Negotiated Exit',
+    id: 'fr-hopper-exit', kind: 'event', title: 'The Negotiated Exit',
     description: 'You and your company agree, in writing, to part ways. This "negotiated exit" gets you a payout, your full rights, and a fresh start — with a new job and a new salary.',
     effect: { type: 'careerChange', reason: 'You signed the negotiated exit', compulsory: true },
     tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
@@ -470,7 +470,7 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
 /** The Boulevard, second half: the review, the redundancy plan, and the ring. */
 const BOULEVARD_LATE: readonly SpaceContent[] = [
   {
-    id: 'fr-main-annual-review', kind: 'stop', title: 'The Annual Review',
+    id: 'fr-main-annual-review', kind: 'event', title: 'The Annual Review',
     description: 'A small meeting room, two managers, your file open on the table. One question: are you ready for the next job up? Spin to find out what they decide.',
     effect: { type: 'promotion', reason: 'Your annual review came round' },
     tone: 'orange', icon: 'space:pay-raise-talk', tier: EVERY_BOARD,
@@ -571,7 +571,7 @@ const BOULEVARD_LATE: readonly SpaceContent[] = [
 ]
 
 const MARRIAGE: SpaceContent = {
-  id: 'fr-wedding', kind: 'stop', title: 'Wedding Day',
+  id: 'fr-wedding', kind: 'event', title: 'Wedding Day',
   description: 'You marry twice in one day: once at the town hall in front of the mayor, and once at a party that, by tradition, runs until dawn. Guests fill the gift envelope box on the table.',
   effect: { type: 'getMarried' },
   tone: 'pink', icon: 'space:wedding-day', tier: EVERY_BOARD,
@@ -586,7 +586,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
     tone: 'purple', icon: 'space:nursery-setup', tier: EVERY_BOARD,
   },
   {
-    id: 'fr-family-new-baby', kind: 'stop', title: 'New Baby',
+    id: 'fr-family-new-baby', kind: 'event', title: 'New Baby',
     description: 'A tiny new family member arrives, and the state — which was ready and waiting — opens a file, a benefit, and a vaccination schedule for them.',
     effect: { type: 'haveChildren', count: 1, celebrationPerPip: 400 },
     tone: 'purple', icon: 'space:new-baby', tier: EVERY_BOARD,

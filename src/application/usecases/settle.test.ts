@@ -54,13 +54,13 @@ describe('settle', () => {
       phase: 'moving',
       stepsRemaining: 0,
       movementPath: ['a'],
-      passedPaydayNote: 'Player passes payday: $500.',
+      passedNotes: ['Player passes payday: $500.'],
     })
 
     const next = settle(state, { random: createFakeRandom() })
 
     expect(next.lastEvent!.notes).toContain('Player passes payday: $500.')
-    expect(next.passedPaydayNote).toBeNull()
+    expect(next.passedNotes).toEqual([])
   })
 
   it('goes to awaitingDecision instead of resolved when the landing effect itself needs a decision', () => {

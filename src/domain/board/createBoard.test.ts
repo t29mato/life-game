@@ -159,11 +159,18 @@ describe.each(SETTINGS)('createBoard(%s, %s)', (length, difficulty) => {
     }
   })
 
-  it('halts movement at every milestone that has to be resolved on the spot', () => {
-    const forcedStops: readonly SpaceEffect['type'][] = ['chooseCareer', 'getMarried', 'buyHouse']
+  it('guarantees every milestone effect fires, landed on or swept past', () => {
+    // `buyHouse` is the one real decision left among these — a house to pick
+    // between, or none — so it alone still has to be a true `stop`.
+    // `chooseCareer` and `getMarried` are settled by a spin alone now, which
+    // is exactly what makes `event` safe for them: the effect still always
+    // fires, it just no longer holds a big roll hostage to do it.
+    const guaranteed: readonly SpaceEffect['type'][] = ['chooseCareer', 'getMarried', 'buyHouse']
     for (const space of Object.values(board.spaces)) {
-      if (forcedStops.includes(space.effect.type)) {
-        expect(space.kind, `"${space.id}" should be a stop`).toBe('stop')
+      if (space.effect.type === 'buyHouse') {
+        expect(space.kind, `"${space.id}" is a real decision and must stay a stop`).toBe('stop')
+      } else if (guaranteed.includes(space.effect.type)) {
+        expect(['stop', 'event'], `"${space.id}" must guarantee its effect`).toContain(space.kind)
       }
     }
   })
@@ -202,7 +209,7 @@ describe.each(SETTINGS)('createBoard(%s, %s)', (length, difficulty) => {
     }
   })
 
-  it('sends both start branches to a stop space offering a career choice', () => {
+  it('sends both start branches to a guaranteed career choice', () => {
     for (const branchStartId of board.spaces[board.startSpaceId]!.next) {
       let cursor: SpaceId | undefined = branchStartId
       let guard = 0
@@ -210,14 +217,14 @@ describe.each(SETTINGS)('createBoard(%s, %s)', (length, difficulty) => {
       while (cursor && guard < 100) {
         const space: Space | undefined = board.spaces[cursor]
         expect(space).toBeDefined()
-        if (space!.kind === 'stop' && space!.effect.type === 'chooseCareer') {
+        if ((space!.kind === 'stop' || space!.kind === 'event') && space!.effect.type === 'chooseCareer') {
           found = true
           break
         }
         cursor = space!.next[0]
         guard += 1
       }
-      expect(found, `branch starting at "${branchStartId}" never reaches a chooseCareer stop`).toBe(true)
+      expect(found, `branch starting at "${branchStartId}" never reaches a guaranteed chooseCareer tile`).toBe(true)
     }
   })
 
@@ -241,12 +248,15 @@ describe.each(SETTINGS)('createBoard(%s, %s)', (length, difficulty) => {
     const graduation = milestones.filter((space) => space.effect.type === 'graduate')
     expect(graduation.length, 'the board must offer a degree somewhere').toBeGreaterThan(0)
     for (const space of graduation) {
-      expect(space.kind, `"${space.title}" is what tuition pays for and must not be skippable`).toBe('stop')
+      expect(
+        ['stop', 'event'],
+        `"${space.title}" is what tuition pays for and must not be skippable`,
+      ).toContain(space.kind)
     }
 
     const babies = milestones.filter((space) => space.effect.type === 'haveChildren')
     expect(
-      babies.some((space) => space.kind === 'stop'),
+      babies.some((space) => space.kind === 'stop' || space.kind === 'event'),
       'Family Lane must deliver at least one child that cannot be spun past',
     ).toBe(true)
   })
@@ -779,7 +789,8 @@ describe('the board rewards the career you chose, and makes you talk to people',
  */
 describe('nobody can be laid off with no way back', () => {
   const isGuaranteedRehire = (space: Space): boolean =>
-    (space.effect.type === 'careerChange' || space.effect.type === 'chooseCareer') && space.kind === 'stop'
+    (space.effect.type === 'careerChange' || space.effect.type === 'chooseCareer') &&
+    (space.kind === 'stop' || space.kind === 'event')
 
   /**
    * Can a player standing on `id` reach retirement without ever being forced

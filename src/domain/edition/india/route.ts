@@ -50,7 +50,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 140_000, reason: 'Deposit, mess advance and development fee' },
   }),
   {
-    id: 'in-uni-admission', kind: 'stop', title: 'Admission Day',
+    id: 'in-uni-admission', kind: 'event', title: 'Admission Day',
     description: 'Two years of coaching classes end in one Sunday morning: an examination hall packed with students, silent except for pencils and one invigilator\'s squeaking shoes. Your rank comes through — and the fees are due at the counter before anyone shows you the library.',
     effect: { type: 'tuition', reason: 'Admission and tuition fees' },
     tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD,
@@ -121,7 +121,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     tone: 'blue', icon: 'finance:bank-visit', tier: STANDARD_UP,
   },
   {
-    id: 'in-uni-convocation', kind: 'stop', title: 'Convocation Day',
+    id: 'in-uni-convocation', kind: 'event', title: 'Convocation Day',
     description: 'Four years, one project report, and a rolled degree your mother will frame before the week is out. Officially a graduate.',
     effect: { type: 'graduate' },
     tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
@@ -135,7 +135,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
 ]
 
 const GRAD_FAIR: SpaceContent = {
-  id: 'in-campus-placement', kind: 'stop', title: 'Campus Placement',
+  id: 'in-campus-placement', kind: 'event', title: 'Campus Placement',
   description: 'One week of aptitude tests, group discussions, and a notice board the whole batch keeps walking past to check. Two offer letters carry your name; pick one.',
   effect: { type: 'chooseCareer', pool: 'graduate' },
   tone: 'gold', icon: 'space:grad-job-fair', tier: EVERY_BOARD,
@@ -149,7 +149,7 @@ const GRAD_FAIR: SpaceContent = {
  */
 const WORK_LANE: readonly SpaceContent[] = [
   {
-    id: 'in-joining-day', kind: 'stop', title: 'Joining Day',
+    id: 'in-joining-day', kind: 'event', title: 'Joining Day',
     description: 'Your uncle knows a man, the man needs hands, and by Friday you have a badge, a duty roster, and a wage — two years before the students earn a thing.',
     effect: { type: 'chooseCareer', pool: 'basic' },
     tone: 'gold', icon: 'space:first-job-fair', tier: EVERY_BOARD,
@@ -168,7 +168,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     'A month of living on nothing',
   )),
   {
-    id: 'in-work-pg-room', kind: 'stop', title: 'The Paying-Guest Room',
+    id: 'in-work-pg-room', kind: 'event', title: 'The Paying-Guest Room',
     description: 'You are earning, so you are expected to be housed: a paying-guest room with a deposit, two months\' advance, and a landlady whose house rules run to a second page.',
     effect: { type: 'payMoney', amount: 180_000, reason: 'Deposit and two months\' advance' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, unscaled: true,
@@ -180,7 +180,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD,
   },
   {
-    id: 'in-work-uniform', kind: 'stop', title: 'Uniform Deposit',
+    id: 'in-work-uniform', kind: 'event', title: 'Uniform Deposit',
     description: 'Two uniforms, a name badge, safety shoes, and a deposit you have a feeling you will never see again.',
     effect: { type: 'payMoney', amount: 150_000, reason: 'Uniform deposit' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, appearsFrom: 'hard',
@@ -426,7 +426,7 @@ const SWITCH_ALLEY: readonly SpaceContent[] = [
     tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
   },
   {
-    id: 'in-switch-hike', kind: 'stop', title: 'The Forty-Percent Hike',
+    id: 'in-switch-hike', kind: 'event', title: 'The Forty-Percent Hike',
     description: 'You resign with the next offer letter already in hand. HR schedules a retention call, then a second one; the counteroffer arrives exactly one day after it stopped mattering.',
     effect: { type: 'careerChange', reason: 'You named your hike elsewhere', compulsory: true },
     tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
@@ -466,7 +466,7 @@ const SWITCH_ALLEY: readonly SpaceContent[] = [
 /** Office Road, second half: the appraisal, the restructuring, and the ring. */
 const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
   {
-    id: 'in-main-appraisal', kind: 'stop', title: 'The Appraisal',
+    id: 'in-main-appraisal', kind: 'event', title: 'The Appraisal',
     description: 'A small meeting room, two managers with your self-review open between them, and a rating that ranks you against everyone else on the team. Spin, and hear where you land.',
     effect: { type: 'promotion', reason: 'Your appraisal came round' },
     tone: 'orange', icon: 'space:pay-raise-talk', tier: EVERY_BOARD,
@@ -567,7 +567,7 @@ const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
 ]
 
 const MARRIAGE: SpaceContent = {
-  id: 'in-wedding', kind: 'stop', title: 'The Wedding',
+  id: 'in-wedding', kind: 'event', title: 'The Wedding',
   description: 'Three days, five functions, a white horse, a brass band, and every guest hands over a decorated envelope whose sum ends, by strict custom, in a single extra rupee.',
   effect: { type: 'getMarried' },
   tone: 'pink', icon: 'space:wedding-day', tier: EVERY_BOARD,
@@ -582,7 +582,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
     tone: 'purple', icon: 'space:nursery-setup', tier: EVERY_BOARD,
   },
   {
-    id: 'in-family-new-baby', kind: 'stop', title: 'New Baby',
+    id: 'in-family-new-baby', kind: 'event', title: 'New Baby',
     description: 'A tiny new roommate arrives, and so does the entire extended family, with sweets, opinions, and a naming ceremony that requires a hall.',
     effect: { type: 'haveChildren', count: 1, celebrationPerPip: 40_000 },
     tone: 'purple', icon: 'space:new-baby', tier: EVERY_BOARD,

@@ -16,6 +16,30 @@ export function isFork(board: Board, spaceId: SpaceId): boolean {
 }
 
 /**
+ * The two road names a fork at `spaceId` leads to, in roll order (1-5 the
+ * first, 6-10 the second) — or `undefined` when `spaceId` isn't a fork.
+ *
+ * A fork's own significance went dark the moment `turnStart` stopped raising
+ * a `branch` decision for it: the player used to be told "which way do you
+ * go?" with both roads named before the wheel was even pressed, and losing
+ * that framing left the fork-resolving spin looking identical to an
+ * ordinary movement roll — nothing on screen said this particular press
+ * also settled a road, so the result read as decided *for* the player
+ * rather than *by* the press they had just made. This is what the rail
+ * shows instead, ahead of the spin, so a fork stays visibly a fork.
+ */
+export function forkRoadNames(board: Board, spaceId: SpaceId): readonly [string, string] | undefined {
+  const space = board.spaces[spaceId]
+  if (!space || space.next.length < 2) return undefined
+  const [firstId, secondId] = space.next
+  const nameOf = (id: SpaceId): string => {
+    const target = board.spaces[id]
+    return target?.lane?.name ?? target?.title ?? 'a new road'
+  }
+  return [nameOf(firstId!), nameOf(secondId!)]
+}
+
+/**
  * The road `roll` sends a player at `spaceId` down, or `undefined` when
  * `spaceId` is not a fork at all. Shared by `spin` (the ordinary case: a
  * player standing on a fork at the top of their turn) and `settle` (the

@@ -81,6 +81,7 @@ describe('planMovement', () => {
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -92,6 +93,7 @@ describe('planMovement', () => {
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -105,6 +107,7 @@ describe('planMovement', () => {
       stepsRemaining: 3,
       stoppedBy: 'fork',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -116,6 +119,7 @@ describe('planMovement', () => {
       stepsRemaining: 3,
       stoppedBy: 'fork',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -133,6 +137,7 @@ describe('planMovement', () => {
       stepsRemaining: 0,
       stoppedBy: 'forcedStop',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -144,6 +149,7 @@ describe('planMovement', () => {
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
       paydaysPassed: 1,
+    eventsPassed: [],
     })
 
     const landedOn = planMovement(paydayStopBoard(), 'a', 1)
@@ -153,6 +159,7 @@ describe('planMovement', () => {
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -164,6 +171,7 @@ describe('planMovement', () => {
       stepsRemaining: 0,
       stoppedBy: 'terminal',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -175,6 +183,7 @@ describe('planMovement', () => {
       stepsRemaining: 0,
       stoppedBy: 'terminal',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -200,6 +209,7 @@ describe('planMovementVia', () => {
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -211,6 +221,7 @@ describe('planMovementVia', () => {
       stepsRemaining: 0,
       stoppedBy: 'terminal',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -222,6 +233,7 @@ describe('planMovementVia', () => {
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -235,6 +247,7 @@ describe('planMovementVia', () => {
       stepsRemaining: 0,
       stoppedBy: 'forcedStop',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -246,6 +259,7 @@ describe('planMovementVia', () => {
       stepsRemaining: 0,
       stoppedBy: 'terminal',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -258,6 +272,7 @@ describe('planMovementVia', () => {
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
       paydaysPassed: 1,
+    eventsPassed: [],
     })
 
     const landedOn = planMovementVia(board, 'a', 'b', 1)
@@ -267,6 +282,7 @@ describe('planMovementVia', () => {
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 
@@ -294,6 +310,7 @@ describe('planMovementVia', () => {
       stepsRemaining: 1,
       stoppedBy: 'fork',
       paydaysPassed: 0,
+    eventsPassed: [],
     })
   })
 })

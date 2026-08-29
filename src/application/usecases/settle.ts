@@ -1,4 +1,4 @@
-import type { GameState, SpinValue } from '@domain/model/types'
+import type { GameState, Player, SpinValue } from '@domain/model/types'
 import { planMovementVia } from '@domain/board/movement'
 import { movePlayerTo } from '@domain/rules/player'
 import { editionOf } from '@domain/edition/registry'
@@ -6,6 +6,7 @@ import { applyEffect } from './applyEffect'
 import { appendLog } from './logging'
 import { branchDecision, resolveForkBranch } from './branch'
 import { collectPaydays, passedPaydayLine } from './payday'
+import { applyPassedEvents } from './passedEvents'
 import type { UseCaseDeps } from './types'
 
 /** Resolves whatever the pawn's destination requires: a fork choice, a landing effect, or both in sequence. */
@@ -38,7 +39,7 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
         ...state,
         pendingDecision: branchDecision(state.board, space.id, state.stepsRemaining),
         phase: 'awaitingDecision',
-        passedPaydayNote: null,
+        passedNotes: [],
       }
     }
 
@@ -47,7 +48,7 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
     const target = state.board.spaces[branchTaken]
     const label = target?.lane?.name ?? target?.title ?? 'a new road'
     let log = appendLog(state, player.id, `${player.name}'s roll carries them onto ${label}.`, 'info')
-    let passedPaydayNote: string | null = null
+    const passedNotes: string[] = []
 
     if (plan.paydaysPassed > 0) {
       const collection = collectPaydays(movedPlayer, plan.paydaysPassed, deps, editionOf(state).economy)
@@ -55,16 +56,26 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
       if (collection.total !== 0) {
         const line = passedPaydayLine(player.name, collection, editionOf(state).currency)
         log = appendLog({ ...state, log }, player.id, line, 'money-in')
-        passedPaydayNote = line
+        passedNotes.push(line)
       }
     }
 
-    const players = state.players.map((candidate) => (candidate.id === movedPlayer.id ? movedPlayer : candidate))
+    let players: readonly Player[] = state.players.map((candidate) =>
+      candidate.id === movedPlayer.id ? movedPlayer : candidate,
+    )
+
+    if (plan.eventsPassed.length > 0) {
+      const passedState = { ...state, players, log }
+      const { state: afterEvents, notes } = applyPassedEvents(passedState, plan.eventsPassed, deps)
+      players = afterEvents.players
+      log = afterEvents.log
+      passedNotes.push(...notes)
+    }
 
     return {
       ...state,
       players,
-      passedPaydayNote,
+      passedNotes,
       movementPath: plan.path,
       stepsRemaining: plan.stepsRemaining,
       phase: 'moving',
@@ -80,17 +91,17 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
       phase: 'awaitingDecision',
       movementPath: [],
       stepsRemaining: 0,
-      passedPaydayNote: null,
+      passedNotes: [],
     }
   }
 
   /*
-   * A payday or two the pawn swept past on the way here used to be visible
-   * only in the log — folded into this landing's own notes now, so pressing
-   * Spin and passing straight through a payday is not indistinguishable from
-   * never having one at all.
+   * Every payday or `event` milestone the pawn swept past on the way here
+   * used to be visible only in the log — folded into this landing's own
+   * notes now, so pressing Spin and passing straight through one is not
+   * indistinguishable from never having one at all.
    */
-  const notes = state.passedPaydayNote ? [state.passedPaydayNote, ...event.notes] : event.notes
+  const notes = state.passedNotes.length > 0 ? [...state.passedNotes, ...event.notes] : event.notes
 
   return {
     ...nextState,
@@ -98,6 +109,6 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
     phase: 'resolved',
     movementPath: [],
     stepsRemaining: 0,
-    passedPaydayNote: null,
+    passedNotes: [],
   }
 }

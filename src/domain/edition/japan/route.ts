@@ -49,7 +49,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 140_000, reason: 'Deposit and gratitude money' },
   }),
   {
-    id: 'jp-uni-tuition', kind: 'stop', title: 'Entrance Fees',
+    id: 'jp-uni-tuition', kind: 'event', title: 'Entrance Fees',
     description: 'One February morning decides four years: an examination hall silent except for six hundred pencils and one person coughing. You pass — and the fees are due before anyone shows you the library.',
     effect: { type: 'tuition', reason: 'University entrance and tuition' },
     tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD,
@@ -120,7 +120,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
     tone: 'blue', icon: 'finance:bank-visit', tier: STANDARD_UP,
   },
   {
-    id: 'jp-uni-graduation', kind: 'stop', title: 'Graduation Day',
+    id: 'jp-uni-graduation', kind: 'event', title: 'Graduation Day',
     description: 'Four years, one thesis, and a diploma tube you will never open again. Officially a graduate.',
     effect: { type: 'graduate' },
     tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
@@ -134,7 +134,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
 ]
 
 const GRAD_FAIR: SpaceContent = {
-  id: 'jp-job-hunt', kind: 'stop', title: 'The Job Hunt',
+  id: 'jp-job-hunt', kind: 'event', title: 'The Job Hunt',
   description: 'Forty thousand of you buy the same black suit in the same week and take the same aptitude test. Two doors open; pick one.',
   effect: { type: 'chooseCareer', pool: 'graduate' },
   tone: 'gold', icon: 'space:grad-job-fair', tier: EVERY_BOARD,
@@ -149,7 +149,7 @@ const GRAD_FAIR: SpaceContent = {
  */
 const WORK_LANE: readonly SpaceContent[] = [
   {
-    id: 'jp-placement-day', kind: 'stop', title: 'Placement Day',
+    id: 'jp-placement-day', kind: 'event', title: 'Placement Day',
     description: 'Your school has an arrangement with a local firm, and by Friday you have a badge, a uniform, and a wage — two years before the students earn a thing.',
     effect: { type: 'chooseCareer', pool: 'basic' },
     tone: 'gold', icon: 'space:first-job-fair', tier: EVERY_BOARD,
@@ -168,7 +168,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     'A month of living on nothing',
   )),
   {
-    id: 'jp-work-moving-out', kind: 'stop', title: 'Moving Out',
+    id: 'jp-work-moving-out', kind: 'event', title: 'Moving Out',
     description: 'You are earning, so you are expected to be housed: a deposit, a month of gratitude money that thanks the landlord for existing, and a bed you assemble yourself.',
     effect: { type: 'payMoney', amount: 180_000, reason: 'Deposit, key money and first month' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, unscaled: true,
@@ -180,7 +180,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD,
   },
   {
-    id: 'jp-work-uniform', kind: 'stop', title: 'Uniform Deposit',
+    id: 'jp-work-uniform', kind: 'event', title: 'Uniform Deposit',
     description: 'Two uniforms, a name badge, safety boots, and a deposit you have a feeling you will never see again.',
     effect: { type: 'payMoney', amount: 150_000, reason: 'Uniform deposit' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, appearsFrom: 'hard',
@@ -427,7 +427,7 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
     tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
   },
   {
-    id: 'jp-hopper-move', kind: 'stop', title: 'Name Your Price',
+    id: 'jp-hopper-move', kind: 'event', title: 'Name Your Price',
     description: 'You hand in your notice with the next offer already signed. HR looks stunned, as if you had quit on the spot; the new title arrives with a new number attached.',
     effect: { type: 'careerChange', reason: 'You named your price elsewhere', compulsory: true },
     tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
@@ -467,7 +467,7 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
 /** Salaryman Street, second half: the review, the restructuring, and the ring. */
 const SALARYMAN_STREET_LATE: readonly SpaceContent[] = [
   {
-    id: 'jp-main-review', kind: 'stop', title: 'The Review',
+    id: 'jp-main-review', kind: 'event', title: 'The Review',
     description: 'A small meeting room, two managers with your file open between them, and one question: are you ready for the desk above yours? Spin, and hear what they say.',
     effect: { type: 'promotion', reason: 'Your review came round' },
     tone: 'orange', icon: 'space:pay-raise-talk', tier: EVERY_BOARD,
@@ -568,7 +568,7 @@ const SALARYMAN_STREET_LATE: readonly SpaceContent[] = [
 ]
 
 const MARRIAGE: SpaceContent = {
-  id: 'jp-wedding', kind: 'stop', title: 'Wedding Day',
+  id: 'jp-wedding', kind: 'event', title: 'Wedding Day',
   description: 'A hotel banquet, two outfit changes, and every guest hands over a thick envelope of crisp notes — attendance is priced, and beautifully calligraphed.',
   effect: { type: 'getMarried' },
   tone: 'pink', icon: 'space:wedding-day', tier: EVERY_BOARD,
@@ -583,7 +583,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
     tone: 'purple', icon: 'space:nursery-setup', tier: EVERY_BOARD,
   },
   {
-    id: 'jp-family-new-baby', kind: 'stop', title: 'New Baby',
+    id: 'jp-family-new-baby', kind: 'event', title: 'New Baby',
     description: 'A tiny new roommate arrives. The ward office sends a nurse, a handbook, and a lump sum that almost covers the hospital.',
     effect: { type: 'haveChildren', count: 1, celebrationPerPip: 40_000 },
     tone: 'purple', icon: 'space:new-baby', tier: EVERY_BOARD,

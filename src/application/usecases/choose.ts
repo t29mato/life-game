@@ -129,7 +129,7 @@ function resolveBranch(state: GameState, optionId: string, deps: UseCaseDeps): G
 
   let movedPlayer = movePlayerTo(player, plan.destinationId)
   let log = appendLog(state, player.id, `${player.name} heads toward ${plan.destinationId}.`, 'info')
-  let passedPaydayNote: string | null = null
+  const passedNotes: string[] = []
 
   if (plan.paydaysPassed > 0) {
     // Same rule as `spin`: one roll per payday, because they are separate weeks.
@@ -138,15 +138,25 @@ function resolveBranch(state: GameState, optionId: string, deps: UseCaseDeps): G
     if (collection.total !== 0) {
       const line = passedPaydayLine(player.name, collection, editionOf(state).currency)
       log = appendLog({ ...state, log }, player.id, line, 'money-in')
-      passedPaydayNote = line
+      passedNotes.push(line)
     }
   }
 
+  /*
+   * `plan.eventsPassed` is deliberately left unhandled here: `resolveBranch`
+   * itself is unreachable in the live path (`turnStart` never raises a
+   * `branch` decision any more — see `branch.ts`), kept only as the same
+   * defensive fallback `settle.ts`'s own dead branch is. Wiring in
+   * `applyPassedEvents` would mean importing it from `choose.ts` while it
+   * imports `resolveSpinOutcome` back — a real circular import for code that
+   * can never actually run, which is a worse trade than the gap it would
+   * close.
+   */
   return {
     ...state,
     players: replacePlayer(state.players, movedPlayer),
     pendingDecision: null,
-    passedPaydayNote,
+    passedNotes,
     movementPath: plan.path,
     stepsRemaining: plan.stepsRemaining,
     phase: 'moving',
@@ -771,7 +781,12 @@ function resolveValueSpin(state: GameState, optionId: string, deps: UseCaseDeps)
   return { ...resolveSpinOutcome(state, player, space, spinValue, edition, deps, money), lastSpin: spinValue }
 }
 
-function resolveSpinOutcome(
+/**
+ * Everything a value-spin decision resolves into, once a `SpinValue` exists
+ * for it — exported so `passedEvents.ts` can settle the same tile the same
+ * way for a roll that only swept past it, without a press to answer.
+ */
+export function resolveSpinOutcome(
   state: GameState,
   player: Player,
   space: Space | undefined,
@@ -917,14 +932,22 @@ function resolveRetireEarly(state: GameState, optionId: string, deps: UseCaseDep
   )
   const delta = updated.money - player.money
 
+  /*
+   * The bonus itself, named first and named plainly — "Bonus: $Y" rather
+   * than buried after the stake. The card's own delta plate reads net of
+   * what went in, which on a low spin prints a red, discouraging number even
+   * though the fund the player just locked in for the rest of the game is a
+   * real one; the bonus figure is what answers "was it worth stopping",
+   * which the net delta alone does not.
+   */
   const event = outcomeEvent(
     space,
     player,
     'The Number',
     delta,
     [
-      `${money(economy.fireNumber)} into the fund.`,
-      `Spun a ${spin}: it comes back as ${money(payout)}.`,
+      `Bonus: ${money(payout)} (spun a ${spin}).`,
+      `${money(economy.fireNumber)} went into the fund to get there.`,
       `Retirement rank #${rank}, and every payday still on the road belongs to somebody else now.`,
     ],
     'milestone',

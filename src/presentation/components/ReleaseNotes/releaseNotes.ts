@@ -20,6 +20,21 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
+    date: 'August 29, 2026',
+    whatsNew: [],
+    changes: [
+      "Most stops aren't stops any more. Tuition, a promotion review, a new career, a wedding, a new baby — the news still happens exactly the same, but a big roll no longer gets cut short landing on the tile that delivers it. Only a handful of tiles that ask a real question — buying a house, retiring early — still halt your turn.",
+      "Early retirement spells out the bonus itself, not just what it nets against the stake, so a modest roll doesn't read as a loss when the fund you just locked in is a real one.",
+      "The final standings no longer give the winner away by where their name sits on the screen or what rank is printed next to it — every row and every number waits its turn in the same reveal the podium already runs.",
+      "Money that changes hands between players — a collection, a round of gifts — now says whose balance ended up where, not just who paid what.",
+      "A payday or any other event you sweep past mid-move now says what it left your balance at, not only what it was worth.",
+    ],
+    fixes: [
+      "The very first spin of a game — the fork that sends you to college or straight to work — could resolve with nothing on screen to say a road was even being decided. It now names both roads before you press the wheel, same as every other spin that asks something of you.",
+    ],
+  },
+  {
+    version: 'v1.10.0',
     date: 'August 28, 2026',
     whatsNew: [],
     changes: [

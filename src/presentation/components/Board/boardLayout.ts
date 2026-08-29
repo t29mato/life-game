@@ -201,7 +201,10 @@ export function spaceAccent(space: Space): SpaceAccent {
       break
   }
   if (space.kind === 'payday') return 'payday'
-  if (space.kind === 'stop') return 'stop'
+  // `event` and `stop` read the same on the board — both guarantee an
+  // effect no other tile does, and the distinction between them (whether a
+  // turn halts for it) isn't a thing the board's own artwork needs to say.
+  if (space.kind === 'stop' || space.kind === 'event') return 'stop'
   return 'plain'
 }
 

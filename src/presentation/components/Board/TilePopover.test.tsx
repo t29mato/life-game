@@ -32,7 +32,8 @@ describe('TilePopover', () => {
     ['start', 'Start'],
     ['normal', 'Space'],
     ['payday', 'Payday'],
-    ['stop', 'Stop'],
+    ['event', 'Milestone'],
+    ['stop', 'Decision'],
     ['retirement', 'Retirement'],
   ] as const)('labels a %s space as %s', (kind, label) => {
     render(<TilePopover space={makeSpace({ kind })} anchor={{ x: 200, y: 200 }} onClose={() => {}} />)

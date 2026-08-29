@@ -57,7 +57,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 1_400, reason: 'Dorm deposit' },
   }),
   {
-    id: 'college-2', kind: 'stop', title: 'Tuition Bill',
+    id: 'college-2', kind: 'event', title: 'Tuition Bill',
     description: "The registrar's office sends a bill that is shockingly high, and nobody enrolls until it is paid.",
     effect: { type: 'tuition', reason: 'College tuition' },
     tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD,
@@ -133,7 +133,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
     tone: 'blue', icon: 'finance:bank-visit', tier: STANDARD_UP,
   },
   {
-    id: 'college-8', kind: 'stop', title: 'Cap and Gown',
+    id: 'college-8', kind: 'event', title: 'Cap and Gown',
     description: 'You slip into your cap and gown — officially a graduate.',
     effect: { type: 'graduate' },
     tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
@@ -152,7 +152,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
 ]
 
 const GRAD_FAIR: SpaceContent = {
-  id: 'grad-fair', kind: 'stop', title: 'Grad Job Fair',
+  id: 'grad-fair', kind: 'event', title: 'Grad Job Fair',
   description: 'Recruiters line the quad, eager to hire fresh graduates like you.',
   effect: { type: 'chooseCareer', pool: 'graduate' },
   tone: 'gold', icon: 'space:grad-job-fair', tier: EVERY_BOARD,
@@ -177,7 +177,7 @@ const GRAD_FAIR: SpaceContent = {
  */
 const WORK_LANE: readonly SpaceContent[] = [
   {
-    id: 'first-job-fair', kind: 'stop', title: 'First Job Fair',
+    id: 'first-job-fair', kind: 'event', title: 'First Job Fair',
     description: 'Local employers set up booths, hunting for hungry new talent — and you are hired by Friday.',
     effect: { type: 'chooseCareer', pool: 'basic' },
     tone: 'gold', icon: 'space:first-job-fair', tier: EVERY_BOARD,
@@ -210,7 +210,7 @@ const WORK_LANE: readonly SpaceContent[] = [
      * chooses, not a misfortune, and multiplying it on the harder settings
      * would not make the road harder so much as delete it.
      */
-    id: 'work-2', kind: 'stop', title: 'Moving Out',
+    id: 'work-2', kind: 'event', title: 'Moving Out',
     description: 'You are earning, so you are expected to be housed: a deposit, a first month up front, and a bed you put together yourself.',
     effect: { type: 'payMoney', amount: 1_800, reason: 'Deposit and first month' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, unscaled: true,
@@ -235,7 +235,7 @@ const WORK_LANE: readonly SpaceContent[] = [
    * takes this road in a bad year actually feels it.
    */
   {
-    id: 'work-uniform', kind: 'stop', title: 'Uniform Deposit',
+    id: 'work-uniform', kind: 'event', title: 'Uniform Deposit',
     description: 'Two shirts, a name badge, and a deposit you have a feeling you will never see again.',
     effect: { type: 'payMoney', amount: 1_500, reason: 'Uniform deposit' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, appearsFrom: 'hard',
@@ -609,7 +609,7 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
      * graduate band moves a few thousand, and a school-leaver re-drawing from
      * a band that runs from $24,000 to $86,000 moves their whole game.
      */
-    id: 'hopper-move', kind: 'stop', title: 'Name Your Price',
+    id: 'hopper-move', kind: 'event', title: 'Name Your Price',
     description: 'You hand in your notice with the next offer already signed, and the new title turns up with a new number attached.',
     // Compulsory, and that is the whole reason Company Road is a real
     // alternative: this road *is* the re-draw. A player who could stand on the
@@ -672,7 +672,7 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
      * It costs the session a halt and roughly a turn, which is the honest
      * price of the mechanic and was measured rather than assumed.
      */
-    id: 'main-review', kind: 'stop', title: 'The Review',
+    id: 'main-review', kind: 'event', title: 'The Review',
     description: 'A small room, two people with your file open in front of them, and one question: are you ready for the job above yours? Spin, and hear what they say.',
     effect: { type: 'promotion', reason: 'Your review came round' },
     tone: 'orange', icon: 'space:pay-raise-talk', tier: EVERY_BOARD,
@@ -789,7 +789,7 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
 ]
 
 const MARRIAGE: SpaceContent = {
-  id: 'marriage', kind: 'stop', title: 'Wedding Day',
+  id: 'marriage', kind: 'event', title: 'Wedding Day',
   description: "Vows are exchanged, tears are shed, and it's official — you're married!",
   effect: { type: 'getMarried' },
   tone: 'pink', icon: 'space:wedding-day', tier: EVERY_BOARD,
@@ -803,7 +803,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
     tone: 'purple', icon: 'space:nursery-setup', tier: EVERY_BOARD,
   },
   {
-    id: 'family-2', kind: 'stop', title: 'New Baby',
+    id: 'family-2', kind: 'event', title: 'New Baby',
     description: 'A tiny new roommate arrives, and nothing is ever quiet again.',
     effect: { type: 'haveChildren', count: 1, celebrationPerPip: 400 },
     tone: 'purple', icon: 'space:new-baby', tier: EVERY_BOARD,

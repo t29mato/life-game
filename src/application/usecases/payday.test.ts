@@ -117,22 +117,23 @@ describe('passedPaydayLine', () => {
     const collection = collectPaydays(fixturePlayer({ career: SALARIED, money: 0 }), 2, {
       random: createFakeRandom(),
     })
-    expect(passedPaydayLine('Ada', collection)).toBe('Ada passes payday 2x: $80,000.')
+    expect(passedPaydayLine('Ada', collection)).toBe('Ada passes payday 2x: $80,000 — now $80,000.')
   })
 
   it('shows the spins behind an unsteady packet', () => {
     const collection = collectPaydays(fixturePlayer({ career: UNSTEADY, money: 0 }), 2, {
       random: createFakeRandom({ spins: [3, 8] }),
     })
-    expect(passedPaydayLine('Ada', collection)).toBe('Ada passes payday 2x, spinning 3 and 8: $88,000.')
+    expect(passedPaydayLine('Ada', collection)).toBe('Ada passes payday 2x, spinning 3 and 8: $88,000 — now $88,000.')
   })
 
   it('says a player between jobs picked up shifts', () => {
     const collection = collectPaydays(fixturePlayer({ career: null, money: 0 }), 1, {
       random: createFakeRandom({ spins: [6] }),
     })
+    const amount = '$' + (CASUAL_WAGE_PER_PIP * 6).toLocaleString('en-US')
     expect(passedPaydayLine('Ada', collection)).toBe(
-      `Ada picks up shifts passing payday, spinning a 6: ${'$' + (CASUAL_WAGE_PER_PIP * 6).toLocaleString('en-US')}.`,
+      `Ada picks up shifts passing payday, spinning a 6: ${amount} — now ${amount}.`,
     )
   })
 })

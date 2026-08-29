@@ -909,7 +909,7 @@ export function Board({
                       fill={`url(#${sheenId})`}
                     />
 
-                    {space.kind === 'stop' ? (
+                    {(space.kind === 'stop' || space.kind === 'event') ? (
                       <path
                         className={styles.hazardBand}
                         d={bottomBandPath(half, radius, band)}
@@ -951,7 +951,7 @@ export function Board({
                     <GameIconGlyph
                       name={space.icon}
                       size={size * 0.72}
-                      y={space.kind === 'stop' ? -band * 0.42 : 0}
+                      y={(space.kind === 'stop' || space.kind === 'event') ? -band * 0.42 : 0}
                     />
 
                     {tile.caption && tile.captionAt ? (

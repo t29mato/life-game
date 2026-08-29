@@ -762,9 +762,13 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       let mover = player
       const notes = [effect.reason]
       for (const payer of payers) {
-        players = replacePlayer(players, debitPlayer(payer, effect.amount, economy))
+        const debited = debitPlayer(payer, effect.amount, economy)
+        players = replacePlayer(players, debited)
         mover = creditPlayer(mover, effect.amount)
-        notes.push(`${payer.name} pays you ${money(effect.amount)}.`)
+        // Whose money moved, how much, and what it left them with — the same
+        // three facts a table would want read out loud watching cash change
+        // hands for real.
+        notes.push(`${payer.name} pays you ${money(effect.amount)} — down to ${money(debited.money)}.`)
       }
       players = replacePlayer(players, mover)
       const delta = mover.money - player.money
@@ -791,8 +795,9 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       const notes = [effect.reason]
       for (const recipient of recipients) {
         mover = debitPlayer(mover, effect.amount, economy)
-        players = replacePlayer(players, creditPlayer(recipient, effect.amount))
-        notes.push(`You pay ${recipient.name} ${money(effect.amount)}.`)
+        const credited = creditPlayer(recipient, effect.amount)
+        players = replacePlayer(players, credited)
+        notes.push(`You pay ${recipient.name} ${money(effect.amount)} — up to ${money(credited.money)}.`)
       }
       players = replacePlayer(players, mover)
       const delta = mover.money - player.money

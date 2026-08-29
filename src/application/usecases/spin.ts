@@ -1,10 +1,11 @@
-import type { GameState } from '@domain/model/types'
+import type { GameState, Player } from '@domain/model/types'
 import { planMovement, planMovementVia } from '@domain/board/movement'
 import { movePlayerTo } from '@domain/rules/player'
 import { appendLog } from './logging'
 import { editionOf } from '@domain/edition/registry'
 import { resolveForkBranch } from './branch'
 import { collectPaydays, passedPaydayLine } from './payday'
+import { applyPassedEvents } from './passedEvents'
 import type { UseCaseDeps } from './types'
 
 /** Spins for the current player, plans their movement, and pays out any paydays passed along the way. */
@@ -45,7 +46,7 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
         })()
       : ''
   let log = appendLog(state, player.id, `${player.name} spins a ${spinValue}${forkNote}.`, 'info')
-  let passedPaydayNote: string | null = null
+  const passedNotes: string[] = []
 
   if (plan.paydaysPassed > 0) {
     // Each payday passed is its own week, so each one is rolled separately.
@@ -54,17 +55,39 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
     if (collection.total !== 0) {
       const line = passedPaydayLine(player.name, collection, editionOf(state).currency)
       log = appendLog({ ...state, log }, player.id, line, 'money-in')
-      passedPaydayNote = line
+      passedNotes.push(line)
     }
   }
 
-  const players = state.players.map((candidate) => (candidate.id === movedPlayer.id ? movedPlayer : candidate))
+  let players: readonly Player[] = state.players.map((candidate) =>
+    candidate.id === movedPlayer.id ? movedPlayer : candidate,
+  )
+
+  /*
+   * `event` tiles this move swept past — a milestone whose effect fires
+   * whether landed on or not, but never holds the move up for it (see
+   * `SpaceKind` in `types.ts`). Settled after paydays rather than
+   * interleaved with them in true walking order: the two never depend on
+   * each other's outcome closely enough to be worth the wiring a single
+   * merged pass would need, with one acknowledged exception — a payday
+   * rolled here can still be at the pre-change career if a career-change
+   * event tile was actually crossed earlier in the same move. Rare enough
+   * (both kinds have to land in one roll) that it is noted rather than
+   * solved.
+   */
+  if (plan.eventsPassed.length > 0) {
+    const passedState = { ...state, players, log }
+    const { state: afterEvents, notes } = applyPassedEvents(passedState, plan.eventsPassed, deps)
+    players = afterEvents.players
+    log = afterEvents.log
+    passedNotes.push(...notes)
+  }
 
   return {
     ...state,
     players,
     chosenExit: null,
-    passedPaydayNote,
+    passedNotes,
     lastSpin: spinValue,
     movementPath: plan.path,
     stepsRemaining: plan.stepsRemaining,

@@ -108,6 +108,39 @@ describe('ResultsScreen', () => {
     await waitFor(() => expect(audio.sfxLog).toContain('fanfare'), { timeout: 3000 })
   })
 
+  it('does not give the winner away by row order or rank text before the reveal reaches them', () => {
+    // Seat order (playerId) deliberately runs opposite to finish order here —
+    // Bob (p1) came second, Alice (p2) won — so a table sorted by rank would
+    // put the winner's name on top the instant the screen painted, no matter
+    // what the numbers next to it said.
+    mockReducedMotion(false)
+    const results: GameResults = {
+      standings: [
+        playerResult({ playerId: 'p2', name: 'Alice', total: 245000, rank: 1 }),
+        playerResult({ playerId: 'p1', name: 'Bob', color: 'red', total: 180000, rank: 2 }),
+      ],
+      winnerId: 'p2',
+    }
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <ResultsScreen results={results} records={[]} onPlayAgain={() => {}} />
+      </AudioProvider>,
+    )
+
+    const rows = screen.getAllByRole('row')
+    // Seat order, not finish order: Bob's row first.
+    expect(rows[0]).toHaveTextContent('Bob')
+    expect(rows[1]).toHaveTextContent('Alice')
+
+    // Neither row states its rank yet — that is exactly what "before the
+    // reveal reaches them" means. (The podium's own "1st"/"2nd" labels are a
+    // fixture of the podium *shape*, not a row, and stay out of this check.)
+    expect(rows[0]).not.toHaveTextContent('1st')
+    expect(rows[0]).not.toHaveTextContent('2nd')
+    expect(rows[1]).not.toHaveTextContent('1st')
+    expect(rows[1]).not.toHaveTextContent('2nd')
+  })
+
   it('calls onPlayAgain when the Play Again button is clicked', async () => {
     mockReducedMotion(true)
     const user = userEvent.setup()

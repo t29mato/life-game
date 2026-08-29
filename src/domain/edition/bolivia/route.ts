@@ -50,7 +50,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
     effect: { type: 'payMoney', amount: 1_400, reason: 'Two months up front' },
   }),
   {
-    id: 'bo-uni-entrance', kind: 'stop', title: 'The Entrance Exam',
+    id: 'bo-uni-entrance', kind: 'event', title: 'The Entrance Exam',
     description: 'One Monday morning, three thousand hopefuls, one gymnasium of desks. You pass — and then come five years of fees, photocopies, materials and city rent, due before anyone shows you the library.',
     effect: { type: 'tuition', reason: 'Five years of a degree' },
     tone: 'blue', icon: 'space:tuition-bill', tier: EVERY_BOARD,
@@ -121,7 +121,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
     tone: 'blue', icon: 'finance:bank-visit', tier: STANDARD_UP,
   },
   {
-    id: 'bo-uni-defence', kind: 'stop', title: 'The Thesis Defence',
+    id: 'bo-uni-defence', kind: 'event', title: 'The Thesis Defence',
     description: 'Three professors, one projector, and your entire extended family in the back rows dressed for a wedding. You pass, and the flowers arrive before the verdict is finished.',
     effect: { type: 'graduate' },
     tone: 'blue', icon: 'space:cap-and-gown', tier: EVERY_BOARD,
@@ -135,7 +135,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
 ]
 
 const GRAD_FAIR: SpaceContent = {
-  id: 'bo-grad-fair', kind: 'stop', title: 'The Professionals\' Fair',
+  id: 'bo-grad-fair', kind: 'event', title: 'The Professionals\' Fair',
   description: 'The degree is framed and the title goes in front of your name forever. Two firms want it on their letterhead; pick one.',
   effect: { type: 'chooseCareer', pool: 'graduate' },
   tone: 'gold', icon: 'space:grad-job-fair', tier: EVERY_BOARD,
@@ -150,7 +150,7 @@ const GRAD_FAIR: SpaceContent = {
  */
 const WORK_LANE: readonly SpaceContent[] = [
   {
-    id: 'bo-market-monday', kind: 'stop', title: 'Monday at the Market',
+    id: 'bo-market-monday', kind: 'event', title: 'Monday at the Market',
     description: 'Your aunt has a stall, and the stall next to hers needs a pair of hands. By Friday you know every price in the hall and you are being paid — years before the students earn a thing.',
     effect: { type: 'chooseCareer', pool: 'basic' },
     tone: 'gold', icon: 'space:first-job-fair', tier: EVERY_BOARD,
@@ -169,7 +169,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     'A month of living on nothing',
   )),
   {
-    id: 'bo-work-moving-out', kind: 'stop', title: 'Moving Out',
+    id: 'bo-work-moving-out', kind: 'event', title: 'Moving Out',
     description: 'You are earning, so you are expected to be housed: a deposit, a first month up front, a mattress, and a two-ring stove you carry up four flights yourself.',
     effect: { type: 'payMoney', amount: 1_800, reason: 'Deposit and first month' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, unscaled: true,
@@ -181,7 +181,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD,
   },
   {
-    id: 'bo-work-association', kind: 'stop', title: 'The Association Fee',
+    id: 'bo-work-association', kind: 'event', title: 'The Association Fee',
     description: 'Nobody trades on this row without joining the traders\' association: an entry fee, a folder of stamps, and a monthly quota the treasurer collects in person.',
     effect: { type: 'payMoney', amount: 1_500, reason: 'Joining the association' },
     tone: 'orange', icon: 'space:rent-due', tier: EVERY_BOARD, appearsFrom: 'hard',
@@ -428,7 +428,7 @@ const OWN_ACCOUNT_ALLEY: readonly SpaceContent[] = [
     tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
   },
   {
-    id: 'bo-own-account', kind: 'stop', title: 'Your Own Account',
+    id: 'bo-own-account', kind: 'event', title: 'Your Own Account',
     description: 'You hand back the badge with the next thing already planned. Your mother is horrified; your cousin buys the first round. The new work comes with a new number attached.',
     effect: { type: 'careerChange', reason: 'You went out on your own account', compulsory: true },
     tone: 'orange', icon: 'space:headhunted', tier: EVERY_BOARD,
@@ -468,7 +468,7 @@ const OWN_ACCOUNT_ALLEY: readonly SpaceContent[] = [
 /** Market Street, second half: the review, the layoff, and the goldsmiths' window. */
 const MARKET_STREET_LATE: readonly SpaceContent[] = [
   {
-    id: 'bo-main-review', kind: 'stop', title: 'The Review',
+    id: 'bo-main-review', kind: 'event', title: 'The Review',
     description: 'A small back room, two people with the year\'s ledger open between them, and one question: are you ready to run more than you run now? Spin, and hear what they say.',
     effect: { type: 'promotion', reason: 'Your review came round' },
     tone: 'orange', icon: 'space:pay-raise-talk', tier: EVERY_BOARD,
@@ -569,7 +569,7 @@ const MARKET_STREET_LATE: readonly SpaceContent[] = [
 ]
 
 const MARRIAGE: SpaceContent = {
-  id: 'bo-wedding', kind: 'stop', title: 'Wedding Day',
+  id: 'bo-wedding', kind: 'event', title: 'Wedding Day',
   description: 'The registry office on Thursday, the church on Saturday, and then the fiesta — where every guest is godparent of something, from the cake to the band, and the sponsorships are announced out loud to applause.',
   effect: { type: 'getMarried' },
   tone: 'pink', icon: 'space:wedding-day', tier: EVERY_BOARD,
@@ -584,7 +584,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
     tone: 'purple', icon: 'space:nursery-setup', tier: EVERY_BOARD,
   },
   {
-    id: 'bo-family-new-baby', kind: 'stop', title: 'New Baby',
+    id: 'bo-family-new-baby', kind: 'event', title: 'New Baby',
     description: 'A tiny new roommate arrives, and is immediately declared by four separate grandmothers to look exactly like four separate people.',
     effect: { type: 'haveChildren', count: 1, celebrationPerPip: 400 },
     tone: 'purple', icon: 'space:new-baby', tier: EVERY_BOARD,

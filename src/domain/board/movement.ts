@@ -15,6 +15,7 @@ function finish(
   stoppedBy: MovementStopReason,
   stepsRemaining: number,
   paydaysPassed: number,
+  eventsPassed: readonly SpaceId[],
 ): MovementPlan {
   const lastVisited = path[path.length - 1]
   return {
@@ -23,6 +24,7 @@ function finish(
     stepsRemaining,
     stoppedBy,
     paydaysPassed,
+    eventsPassed,
   }
 }
 
@@ -37,23 +39,25 @@ function walk(
   stepsOwed: number,
   path: readonly SpaceId[],
   paydaysPassed: number,
+  eventsPassed: readonly SpaceId[],
 ): MovementPlan {
   let travelled = path
   let remaining = stepsOwed
   let paydays = paydaysPassed
+  let events = eventsPassed
   let cursor = currentId
 
   while (true) {
     const currentSpace = getSpace(board, cursor)
 
     if (currentSpace.next.length === 0) {
-      return finish(originId, travelled, 'terminal', 0, paydays)
+      return finish(originId, travelled, 'terminal', 0, paydays, events)
     }
     if (currentSpace.next.length > 1) {
-      return finish(originId, travelled, 'fork', remaining, paydays)
+      return finish(originId, travelled, 'fork', remaining, paydays, events)
     }
     if (remaining === 0) {
-      return finish(originId, travelled, 'stepsExhausted', 0, paydays)
+      return finish(originId, travelled, 'stepsExhausted', 0, paydays, events)
     }
 
     const nextId = currentSpace.next[0]
@@ -66,23 +70,29 @@ function walk(
     remaining -= 1
     cursor = nextId
 
+    // A true `stop` is now the rare tile whose effect is a real decision —
+    // see `SpaceKind` — so it is still the one kind that halts movement
+    // outright, steps and all.
     if (nextSpace.kind === 'stop') {
-      return finish(originId, travelled, 'forcedStop', 0, paydays)
+      return finish(originId, travelled, 'forcedStop', 0, paydays, events)
     }
     if (nextId === board.retirementSpaceId) {
-      return finish(originId, travelled, 'terminal', 0, paydays)
+      return finish(originId, travelled, 'terminal', 0, paydays, events)
     }
     if (remaining === 0) {
-      return finish(originId, travelled, 'stepsExhausted', 0, paydays)
+      return finish(originId, travelled, 'stepsExhausted', 0, paydays, events)
     }
     if (nextSpace.kind === 'payday') {
       paydays += 1
+    }
+    if (nextSpace.kind === 'event') {
+      events = [...events, nextId]
     }
   }
 }
 
 export function planMovement(board: Board, fromSpaceId: SpaceId, steps: number): MovementPlan {
-  return walk(board, fromSpaceId, fromSpaceId, steps, [], 0)
+  return walk(board, fromSpaceId, fromSpaceId, steps, [], 0, [])
 }
 
 export function planMovementVia(
@@ -103,15 +113,16 @@ export function planMovementVia(
   const remaining = steps - 1
 
   if (chosenSpace.kind === 'stop') {
-    return finish(forkSpaceId, path, 'forcedStop', 0, 0)
+    return finish(forkSpaceId, path, 'forcedStop', 0, 0, [])
   }
   if (chosenNextId === board.retirementSpaceId) {
-    return finish(forkSpaceId, path, 'terminal', 0, 0)
+    return finish(forkSpaceId, path, 'terminal', 0, 0, [])
   }
   if (remaining === 0) {
-    return finish(forkSpaceId, path, 'stepsExhausted', 0, 0)
+    return finish(forkSpaceId, path, 'stepsExhausted', 0, 0, [])
   }
 
   const paydaysPassed = chosenSpace.kind === 'payday' ? 1 : 0
-  return walk(board, forkSpaceId, chosenNextId, remaining, path, paydaysPassed)
+  const eventsPassed = chosenSpace.kind === 'event' ? [chosenNextId] : []
+  return walk(board, forkSpaceId, chosenNextId, remaining, path, paydaysPassed, eventsPassed)
 }

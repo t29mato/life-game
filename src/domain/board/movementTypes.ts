@@ -27,4 +27,11 @@ export interface MovementPlan {
    * pays out, so that landing on a payday never pays twice.
    */
   readonly paydaysPassed: number
+  /**
+   * `event`-kind spaces passed *through*, in the order they were crossed.
+   * Excludes the destination, whose own effect resolves through the ordinary
+   * landing path — same rule as `paydaysPassed`, so a milestone never fires
+   * twice for a roll that happens to end exactly on it.
+   */
+  readonly eventsPassed: readonly SpaceId[]
 }

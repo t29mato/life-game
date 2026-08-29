@@ -169,6 +169,20 @@ export function ResultsScreen({ results, records, onPlayAgain, editionId }: Resu
     .map((rank) => podium.find((s) => s.rank === rank))
     .filter((s): s is PlayerResult => Boolean(s))
 
+  /*
+   * The table below the podium used to list every row in finished rank
+   * order — 1st at the top — which gave the winner away by row position
+   * alone, numbers or no numbers, the instant the screen painted. Seat order
+   * carries no information about who won (`playerId` is assigned at
+   * `startGame`, long before this game's own outcome exists), so a row's
+   * *position* stays as blind as its still-hidden total until the same
+   * last-to-first sequence the podium already runs actually reaches it.
+   */
+  const seatOrder = useMemo(
+    () => [...standings].sort((a, b) => a.playerId.localeCompare(b.playerId)),
+    [standings],
+  )
+
   return (
     <div className={`${styles.screen} ${winnerLanded ? styles.finished : ''}`}>
       <Confetti burstKey={fanfareTick} pieceCount={150} />
@@ -215,7 +229,7 @@ export function ResultsScreen({ results, records, onPlayAgain, editionId }: Resu
       </div>
 
       <div className={styles.table} role="table" aria-label="Final standings">
-        {standings.map((entry) => {
+        {seatOrder.map((entry) => {
           const revealed = isRevealed(entry.playerId)
           const isWinner = entry.playerId === results.winnerId
           const badge = revealed ? rowBadge(entry, history) : null
@@ -228,8 +242,8 @@ export function ResultsScreen({ results, records, onPlayAgain, editionId }: Resu
               }`}
               style={colorVars(entry.color)}
             >
-              <span role="cell" className={styles.rank}>
-                {formatOrdinal(entry.rank)}
+              <span role="cell" className={styles.rank} aria-hidden={!revealed || undefined}>
+                {revealed ? formatOrdinal(entry.rank) : '?'}
               </span>
               <span role="cell" className={styles.rowIdentity}>
                 <span className={styles.rowDot} aria-hidden="true" />

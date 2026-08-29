@@ -175,14 +175,30 @@ describe('the two roads out of a fork', () => {
     expect(complains(asNormal, 'main-crossroads')).toEqual([])
   })
 
-  it.each(['start', 'marriage', 'home-buying'])(
-    'is still satisfied by the shipped fork at "%s", which keeps its own effect and so keeps its `stop`',
-    (id) => {
-      const junction = spacesOf(EDITION_USA.route).find((space) => space.id === id)
-      expect(junction, `"${id}" is no longer on the route`).toBeDefined()
-      expect(junction!.kind === 'stop' || junction!.kind === 'start').toBe(true)
-    },
-  )
+  it('is still satisfied by the shipped fork at "start"', () => {
+    const junction = spacesOf(EDITION_USA.route).find((space) => space.id === 'start')
+    expect(junction?.kind).toBe('start')
+  })
+
+  /*
+   * `marriage` moved on from `stop` to `event` in the same round that turned
+   * every `stop`-tuition, -promotion, -careerChange, -chooseCareer and
+   * -haveChildren tile into one: `getMarried` settles on a spin alone (see
+   * `AUTO_RESOLVABLE_EFFECT_TYPES`), so it no longer needs to hold a move
+   * hostage to guarantee firing. `home-buying` is the one fork left with a
+   * real decision on it — which house, or none — so it is the one fork left
+   * that still has to be a `stop`.
+   */
+  it('is still satisfied by the shipped fork at "home-buying", which keeps a real decision and so keeps its `stop`', () => {
+    const junction = spacesOf(EDITION_USA.route).find((space) => space.id === 'home-buying')
+    expect(junction?.kind).toBe('stop')
+  })
+
+  it('is satisfied by the shipped fork at "marriage", now an `event` tile', () => {
+    const junction = spacesOf(EDITION_USA.route).find((space) => space.id === 'marriage')
+    expect(junction?.kind).toBe('event')
+    expect(complains(EDITION_USA.route, 'marriage')).toEqual([])
+  })
 
   it('is satisfied by the shipped fork at "main-crossroads", now a `normal` tile', () => {
     const junction = spacesOf(EDITION_USA.route).find((space) => space.id === 'main-crossroads')

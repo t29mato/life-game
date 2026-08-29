@@ -65,7 +65,7 @@ export function startGame(config: NewGameConfig, _deps: UseCaseDeps): GameState 
     stepsRemaining: 0,
     chosenExit: null,
     lastEvent: null,
-    passedPaydayNote: null,
+    passedNotes: [],
     log: [],
     turn: 1,
     results: null,
@@ -74,8 +74,9 @@ export function startGame(config: NewGameConfig, _deps: UseCaseDeps): GameState 
   const names = players.map((player) => player.name).join(', ')
   const log = appendLog(empty, null, `Welcome to LIFE JOURNEY! Players: ${names}.`, 'info')
 
-  // Everybody starts standing on the very first fork, so the opening move of
-  // the game is choosing a road — college or straight to work — not a spin.
+  // Everybody starts standing on the very first fork, but the opening move
+  // of the game is a spin like any other now — see `turnStart` in
+  // `branch.ts` for why a fork no longer opens its own decision screen.
   const opening: GameState = { ...empty, log }
   return { ...opening, ...turnStart(opening, 0) }
 }

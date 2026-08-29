@@ -12,6 +12,7 @@ import type { GameStore } from '@application/GameStore'
 import type { AudioPort, BgmTrack } from '@application/ports/AudioPort'
 import { AUTOSAVE_SLOT, SAVE_SLOT_COUNT } from '@application/ports/GameRepositoryPort'
 import { CPU_THINK_MS, decideCpuCommand } from '@application/cpu/decideCpuCommand'
+import { forkRoadNames } from '@application/usecases/branch'
 import type { Decision, GamePhase, GameState, NewGameConfig } from '@domain/model/types'
 import { spinOriginOf, type SpinOrigin } from '@domain/rules/spin'
 
@@ -280,17 +281,13 @@ export function App({ store, audio }: AppProps): ReactElement {
   const turnKey = activePlayer ? `${state.turn}:${activePlayer.id}` : null
   const [handoffAcknowledged, setHandoffAcknowledged] = useState<string | null>(null)
   /*
-   * A turn no longer always opens on the wheel: a player standing on a fork
-   * chooses their road first, so the turn begins in `awaitingDecision`. Gating
-   * the handoff on `awaitingSpin` alone meant it silently never appeared on
-   * those turns — including the opening move of every game — and one player
-   * could be handed a decision that belonged to the person beside them.
+   * Every turn opens on the wheel now, fork or not — see `branch.ts` for why
+   * a fork stopped needing its own decision screen. This used to also cover
+   * `awaitingDecision` for a player standing on a fork; that branch decision
+   * no longer exists in the live path (`turnStart` never raises one), so the
+   * only phase a turn opens on is `awaitingSpin`.
    */
-  const startingTurn =
-    state.phase === 'awaitingSpin' ||
-    (state.phase === 'awaitingDecision' &&
-      state.pendingDecision?.kind === 'branch' &&
-      state.stepsRemaining === 0)
+  const startingTurn = state.phase === 'awaitingSpin'
 
   const handoffVisible =
     humanSeats >= 2 &&
@@ -363,6 +360,17 @@ export function App({ store, audio }: AppProps): ReactElement {
    * through the real button-press path, so it can't skip that step again.
    */
   const spinReady = (state.phase === 'awaitingSpin' || singleSpinDecision) && !handoffVisible && !activePlayer?.isCpu
+
+  /*
+   * The rail names a fork's two roads before the press that settles one —
+   * see `forkRoadNames` in `branch.ts` for why this exists at all. Gated the
+   * same way `spinReady` is: no point naming a road nobody standing here is
+   * about to press for (a CPU seat, mid-handoff, or a spin already spent).
+   */
+  const forkAhead =
+    state.phase === 'awaitingSpin' && !handoffVisible && activePlayer && !activePlayer.isCpu
+      ? forkRoadNames(state.board, activePlayer.spaceId)
+      : undefined
   useEffect(() => {
     if (!spinReady) return
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -408,8 +416,7 @@ export function App({ store, audio }: AppProps): ReactElement {
   const [introPending, setIntroPending] = useState(false)
   const previousPhase = useRef<GamePhase>(state.phase)
   useEffect(() => {
-    // A game now opens on the start-space fork (`awaitingDecision`), not on
-    // the wheel — the sweep fires on leaving setup for either.
+    // The sweep fires on leaving setup, whatever phase a game opens on.
     if (previousPhase.current === 'setup' && state.phase !== 'setup') setIntroPending(true)
     if (state.phase === 'moving') setIntroPending(false)
     previousPhase.current = state.phase
@@ -570,6 +577,11 @@ export function App({ store, audio }: AppProps): ReactElement {
                 a second button named "Spin" a keyboard or screen-reader
                 user would run into for no reason, on top of being a second
                 match for anything that queries the page by that name. */}
+            {forkAhead && !eventSpinVisible && (
+              <p className={styles.forkAhead} role="status">
+                This spin decides your road too — 1-5: {forkAhead[0]}, 6-10: {forkAhead[1]}.
+              </p>
+            )}
             <div className={styles.spinnerCard} aria-hidden={eventSpinVisible || undefined}>
               <Spinner
                 result={state.lastSpin}

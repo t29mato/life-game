@@ -15,7 +15,13 @@ const KIND_LABEL: Readonly<Record<SpaceKind, string>> = {
   start: 'Start',
   normal: 'Space',
   payday: 'Payday',
-  stop: 'Stop',
+  // A milestone: its effect always happens, landed on or swept past, but it
+  // never holds a turn up for it — see `SpaceKind` in `types.ts`.
+  event: 'Milestone',
+  // The rare tile left that still halts a turn outright — reserved now for
+  // an effect that is a real decision (which house, whether to retire), not
+  // just a spin to press.
+  stop: 'Decision',
   retirement: 'Retirement',
 }
 
