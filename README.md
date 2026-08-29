@@ -11,8 +11,7 @@ USA, Japan, France, India, Bolivia — same rules, same board, a different life
 and a different currency in each.
 
 Play with 2–4 people around one screen, against the computer, or a mix of both.
-Pick a short, standard or long board depending on how much of an evening you
-have.
+A full game runs about fifteen minutes.
 
 ![Title screen: pick players, colours and a country edition](docs/screenshots/title-screen.png)
 
@@ -145,7 +144,7 @@ npm test
   including corrupt, foreign and version-mismatched payloads, the capped records
   history, and the Web Audio adapter against a hand-written fake `AudioContext`.
 - **Whole system** (`src/test/gameBalance.test.ts`) — hundreds of complete games
-  across seeds, player counts and all three board lengths, asserting the
+  across seeds, player counts and difficulties, asserting the
   properties that only emerge from everything running together: every game
   terminates, an all-computer table finishes unaided, the economy stays in a
   playable band, and the lead genuinely changes hands rather than the board being
