@@ -1057,10 +1057,12 @@ describe('scatterScenery', () => {
     })
 
     it('lets a caller force a specific landmark regardless of edition — comparing two candidates', () => {
-      const pieces = scatterScenery(model, projection, 'india', 'landmark-india-gate')
+      // India Gate shipped; the Taj Mahal is what a forced override still
+      // reaches — this is how the two were compared before India Gate won.
+      const pieces = scatterScenery(model, projection, 'india', 'landmark-india-taj')
       const landmarks = pieces.filter((piece) => piece.kind.startsWith('landmark-'))
       expect(landmarks).toHaveLength(1)
-      expect(landmarks[0]?.kind).toBe('landmark-india-gate')
+      expect(landmarks[0]?.kind).toBe('landmark-india-taj')
     })
   })
 })
@@ -1070,7 +1072,7 @@ describe('landmarkKindFor', () => {
     expect(landmarkKindFor('usa')).toBe('landmark-usa')
     expect(landmarkKindFor('japan')).toBe('landmark-japan')
     expect(landmarkKindFor('france')).toBe('landmark-france')
-    expect(landmarkKindFor('india')).toBe('landmark-india-taj')
+    expect(landmarkKindFor('india')).toBe('landmark-india-gate')
     expect(landmarkKindFor('bolivia')).toBe('landmark-bolivia')
   })
 

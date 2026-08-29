@@ -21,6 +21,15 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
     version: __APP_VERSION__,
     date: 'August 29, 2026',
+    whatsNew: [],
+    changes: [
+      "India's landmark is India Gate now, not the Taj Mahal — both were built and put side by side, and the arch read clearer at board size.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.13.0',
+    date: 'August 29, 2026',
     whatsNew: [
       "Every edition finally looks like the country it's named for: the Statue of Liberty stands somewhere on the American board, Fuji and a torii gate on the Japanese one, the Eiffel Tower in France, the Gate of the Sun in Bolivia, and the Taj Mahal in India — one skyline per board, standing behind the tiles rather than on them.",
     ],

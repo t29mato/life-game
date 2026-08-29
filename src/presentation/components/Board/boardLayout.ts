@@ -1161,7 +1161,9 @@ export function landmarkKindFor(editionId: string | undefined): SceneryKind | nu
     case 'france':
       return 'landmark-france'
     case 'india':
-      return 'landmark-india-taj'
+      // India Gate over the Taj Mahal — both were built and compared;
+      // the owner's own call.
+      return 'landmark-india-gate'
     case 'bolivia':
       return 'landmark-bolivia'
     default:
