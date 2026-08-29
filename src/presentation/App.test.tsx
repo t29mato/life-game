@@ -141,7 +141,7 @@ describe('App play loop', () => {
     while (store.getState().movementPath.length === 0 && guard < 200) {
       const state = store.getState()
       if (state.phase === 'awaitingSpin') store.dispatch({ type: 'spin' })
-      else if (state.phase === 'moving') store.dispatch({ type: 'settle' })
+      else if (state.phase === 'moving' || state.phase === 'passingEvent') store.dispatch({ type: 'settle' })
       else if (state.phase === 'awaitingDecision') {
         store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
       } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })
@@ -196,7 +196,7 @@ describe('a landing with nothing to say', () => {
       const active = state.players[state.currentPlayerIndex]
       if (active?.isCpu && state.phase === 'resolved') break
       if (state.phase === 'awaitingSpin') store.dispatch({ type: 'spin' })
-      else if (state.phase === 'moving') store.dispatch({ type: 'settle' })
+      else if (state.phase === 'moving' || state.phase === 'passingEvent') store.dispatch({ type: 'settle' })
       else if (state.phase === 'awaitingDecision') {
         store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
       } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })
@@ -420,7 +420,7 @@ describe('spinning from the keyboard', () => {
           break
         }
         if (state.phase === 'awaitingSpin') store.dispatch({ type: 'spin' })
-        else if (state.phase === 'moving') store.dispatch({ type: 'settle' })
+        else if (state.phase === 'moving' || state.phase === 'passingEvent') store.dispatch({ type: 'settle' })
         else if (state.phase === 'awaitingDecision') {
           store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
         } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })
@@ -481,7 +481,7 @@ describe('computer seats', () => {
       while (store.getState().players[store.getState().currentPlayerIndex]?.isCpu !== true && guard < 50) {
         const state = store.getState()
         if (state.phase === 'awaitingSpin') store.dispatch({ type: 'spin' })
-        else if (state.phase === 'moving') store.dispatch({ type: 'settle' })
+        else if (state.phase === 'moving' || state.phase === 'passingEvent') store.dispatch({ type: 'settle' })
         else if (state.phase === 'awaitingDecision') {
           store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
         } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })
@@ -643,7 +643,7 @@ describe('a computer turn waits for a person', () => {
         const active = state.players[state.currentPlayerIndex]
         if (active?.isCpu && state.phase === 'resolved') break
         if (state.phase === 'awaitingSpin') store.dispatch({ type: 'spin' })
-        else if (state.phase === 'moving') store.dispatch({ type: 'settle' })
+        else if (state.phase === 'moving' || state.phase === 'passingEvent') store.dispatch({ type: 'settle' })
         else if (state.phase === 'awaitingDecision') {
           store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
         } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })

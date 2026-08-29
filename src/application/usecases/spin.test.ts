@@ -28,7 +28,7 @@ describe('spin', () => {
     expect(next.players[0]!.spaceId).toBe('payday1')
   })
 
-  it('pays out salary for every payday passed through (not landed on)', () => {
+  it('queues, but does not yet pay, every payday passed through (not landed on)', () => {
     const board = fixtureMovementBoard()
     // Salaried, so the sum under test is the pass-through rule rather than the
     // wheel — what an unsteady trade collects on the way past is payday.test.ts's.
@@ -42,7 +42,13 @@ describe('spin', () => {
 
     expect(next.movementPath).toEqual(['a', 'payday1', 'fork'])
     expect(next.stepsRemaining).toBe(1)
-    expect(next.players[0]!.money).toBe(career.salary)
+    /*
+     * Queued for `settle` to pay out as its own card — named for `payday1`
+     * — once the pawn's own hop animation has actually finished, not paid
+     * the instant the store learns about it. See `PassedQueueItem`.
+     */
+    expect(next.pendingPassedItems).toEqual([{ kind: 'payday', spaceId: 'payday1' }])
+    expect(next.players[0]!.money).toBe(0)
     expect(next.players[0]!.spaceId).toBe('fork')
   })
 

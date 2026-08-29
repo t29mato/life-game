@@ -44,10 +44,15 @@ import {
  * Long enough that a person can read what just happened and see the computer
  * "decide"; short enough that three CPU seats never feel like a cutscene.
  */
-export const CPU_THINK_MS: Readonly<Record<'awaitingSpin' | 'awaitingDecision' | 'resolved', number>> = {
+export const CPU_THINK_MS: Readonly<
+  Record<'awaitingSpin' | 'awaitingDecision' | 'resolved' | 'passingEvent', number>
+> = {
   awaitingSpin: 700,
   awaitingDecision: 1_100,
   resolved: 900,
+  // A card for a tile the pawn only passed, not one it stopped on — same
+  // "let a person actually read it" pause `resolved` already gets.
+  passingEvent: 900,
 }
 
 // --- Tuning -----------------------------------------------------------------
@@ -864,6 +869,10 @@ export function decideCpuCommand(state: GameState): GameCommand | null {
       return { type: 'spin' }
     case 'resolved':
       return { type: 'endTurn' }
+    case 'passingEvent':
+      // A card for a tile the pawn only passed — dismissing it is calling
+      // `settle` again, the same command that produced the card.
+      return { type: 'settle' }
     case 'awaitingDecision': {
       const decision = state.pendingDecision
       if (!decision || decision.options.length === 0) return null

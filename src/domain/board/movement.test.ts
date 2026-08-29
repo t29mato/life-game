@@ -80,7 +80,7 @@ describe('planMovement', () => {
       destinationId: 'c',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -92,7 +92,7 @@ describe('planMovement', () => {
       destinationId: 'b',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -106,7 +106,7 @@ describe('planMovement', () => {
       destinationId: 'fork',
       stepsRemaining: 3,
       stoppedBy: 'fork',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -118,7 +118,7 @@ describe('planMovement', () => {
       destinationId: 'fork',
       stepsRemaining: 3,
       stoppedBy: 'fork',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -136,7 +136,7 @@ describe('planMovement', () => {
       destinationId: 'd',
       stepsRemaining: 0,
       stoppedBy: 'forcedStop',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -148,7 +148,7 @@ describe('planMovement', () => {
       destinationId: 'c',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: 1,
+      paydaysPassed: ['b'],
     eventsPassed: [],
     })
 
@@ -158,7 +158,7 @@ describe('planMovement', () => {
       destinationId: 'b',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -170,7 +170,7 @@ describe('planMovement', () => {
       destinationId: 'f',
       stepsRemaining: 0,
       stoppedBy: 'terminal',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -182,7 +182,7 @@ describe('planMovement', () => {
       destinationId: 'e',
       stepsRemaining: 0,
       stoppedBy: 'terminal',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -192,7 +192,7 @@ describe('planMovement', () => {
     // a -> b(payday, passed) -> c -> d(stop) halts forced stop before payday e
     expect(plan.stoppedBy).toBe('forcedStop')
     expect(plan.destinationId).toBe('d')
-    expect(plan.paydaysPassed).toBe(1)
+    expect(plan.paydaysPassed).toEqual(['b'])
   })
 })
 
@@ -208,7 +208,7 @@ describe('planMovementVia', () => {
       destinationId: 'd',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -220,7 +220,7 @@ describe('planMovementVia', () => {
       destinationId: 'e',
       stepsRemaining: 0,
       stoppedBy: 'terminal',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -232,7 +232,7 @@ describe('planMovementVia', () => {
       destinationId: 'c2',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -246,7 +246,7 @@ describe('planMovementVia', () => {
       destinationId: 'd',
       stepsRemaining: 0,
       stoppedBy: 'forcedStop',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -258,7 +258,7 @@ describe('planMovementVia', () => {
       destinationId: 'f',
       stepsRemaining: 0,
       stoppedBy: 'terminal',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -271,7 +271,7 @@ describe('planMovementVia', () => {
       destinationId: 'c',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: 1,
+      paydaysPassed: ['b'],
     eventsPassed: [],
     })
 
@@ -281,7 +281,7 @@ describe('planMovementVia', () => {
       destinationId: 'b',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })
@@ -309,7 +309,7 @@ describe('planMovementVia', () => {
       destinationId: 'fork2',
       stepsRemaining: 1,
       stoppedBy: 'fork',
-      paydaysPassed: 0,
+      paydaysPassed: [],
     eventsPassed: [],
     })
   })

@@ -74,7 +74,12 @@ function isEmptyLandingEvent(event: GameState['lastEvent']): boolean {
  * dismissing its own cards rather than deadlocking.
  */
 const CPU_PHASES_WITH_HUMAN: readonly GamePhase[] = ['awaitingSpin', 'awaitingDecision']
-const CPU_PHASES_ALL_COMPUTER: readonly GamePhase[] = ['awaitingSpin', 'awaitingDecision', 'resolved']
+const CPU_PHASES_ALL_COMPUTER: readonly GamePhase[] = [
+  'awaitingSpin',
+  'awaitingDecision',
+  'resolved',
+  'passingEvent',
+]
 
 const MANUAL_SLOTS = Array.from({ length: SAVE_SLOT_COUNT - 1 }, (_, index) => index + 1)
 
@@ -335,7 +340,7 @@ export function App({ store, audio }: AppProps): ReactElement {
       }
       const command = decideCpuCommand(store.getState())
       if (command) store.dispatch(command)
-    }, CPU_THINK_MS[state.phase as 'awaitingSpin' | 'awaitingDecision' | 'resolved'])
+    }, CPU_THINK_MS[state.phase as 'awaitingSpin' | 'awaitingDecision' | 'resolved' | 'passingEvent'])
 
     return () => window.clearTimeout(timer)
   }, [state, activePlayer, wheelSettled, handoffVisible, store, cpuActingPhases, singleSpinDecision])
@@ -698,6 +703,23 @@ export function App({ store, audio }: AppProps): ReactElement {
               onDismiss={() => store.dispatch({ type: 'endTurn' })}
             />
           )}
+
+        {/* A payday or event tile crossed on the way to wherever the pawn
+            actually stopped — its own card, named for its own tile, shown
+            before the destination's. Dismissing is just calling `settle`
+            again: the same command that first drained this item off the
+            queue also advances past it, exactly the way a fork mid-move
+            already re-enters `settle` without a dedicated command of its
+            own. Never folded into the landing card's notes — that was the
+            whole complaint this phase exists to fix: a card with no tile of
+            its own to point to. */}
+        {state.phase === 'passingEvent' && state.activePassedEvent && wheelSettled && (
+          <EventCard
+            event={state.activePassedEvent}
+            editionId={state.editionId}
+            onDismiss={() => store.dispatch({ type: 'settle' })}
+          />
+        )}
 
         {handoffVisible && activePlayer && (
           <TurnHandoff

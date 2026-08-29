@@ -23,6 +23,16 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
     date: 'August 29, 2026',
     whatsNew: [],
     changes: [
+      "A payday or event tile you sweep past mid-move now gets its own card, named for that tile, shown right there before your turn's final card — no more guessing which stop a line in the notes actually came from.",
+      "Payday itself always shows a card now, even on a flat salary with no wheel to spin — the money still changed, so it still gets a moment on screen.",
+    ],
+    fixes: [],
+  },
+  {
+    version: 'v1.14.0',
+    date: 'August 29, 2026',
+    whatsNew: [],
+    changes: [
       "India's landmark is India Gate now, not the Taj Mahal — both were built and put side by side, and the arch read clearer at board size.",
     ],
     fixes: [],

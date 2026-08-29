@@ -537,6 +537,13 @@ export type GamePhase =
   | 'awaitingSpin'
   /** `movementPath` is populated; the UI is animating the pawn along it. */
   | 'moving'
+  /**
+   * A payday or `event` tile the current move swept past, not the tile the
+   * pawn is actually stopping on — `activePassedEvent` names it and
+   * `pendingPassedItems` says how many more are still owed their own card
+   * before play can reach the real landing.
+   */
+  | 'passingEvent'
   /** `pendingDecision` must be answered before play continues. */
   | 'awaitingDecision'
   /** The landing effect has been applied; `lastEvent` describes it. */
@@ -588,18 +595,33 @@ export interface GameState {
   readonly chosenExit: SpaceId | null
   readonly lastEvent: LandingEvent | null
   /**
-   * Every payday and every `event`-kind milestone the pawn swept straight
-   * past on its way here, worded the same way each one's own log line is and
-   * in the order the road actually crossed them — set by `spin`/`choose` the
-   * instant a move passes one, and folded into the next landing event's own
-   * notes by `settle` so a tile passed at speed is not indistinguishable
-   * from a tile that was never on the road at all. Empty once `settle` has
-   * consumed it, or when nothing was passed.
+   * Every payday and every `event`-kind milestone this move is still owed a
+   * card for — in the order the road actually crossed them, set by
+   * `spin`/`choose` the instant a move passes one and worked through one at
+   * a time by `settle`, each producing its own `activePassedEvent` before
+   * play can reach the tile the pawn actually stops on. A tile passed at
+   * speed used to be folded silently into whatever tile the pawn finally
+   * stood on — indistinguishable from a tile that was never on the road at
+   * all, and the reason this is a queue of its own cards now rather than a
+   * line of text borrowed by someone else's.
    */
-  readonly passedNotes: readonly string[]
+  readonly pendingPassedItems: readonly PassedQueueItem[]
+  /**
+   * The card `phase === 'passingEvent'` is showing — the *next* item off
+   * `pendingPassedItems`, already resolved (its spin already spun, its
+   * money already moved), waiting only to be read and dismissed. Null once
+   * dismissed or when nothing is mid-move.
+   */
+  readonly activePassedEvent: LandingEvent | null
   readonly log: readonly GameLogEntry[]
   readonly turn: number
   readonly results: GameResults | null
+}
+
+/** One payday or `event`-kind tile a move swept past, still owed its own card. */
+export interface PassedQueueItem {
+  readonly kind: 'payday' | 'event'
+  readonly spaceId: SpaceId
 }
 
 export interface NewGamePlayer {

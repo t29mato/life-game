@@ -45,22 +45,58 @@ describe('settle', () => {
     expect(next.stepsRemaining).toBe(0)
   })
 
-  it('folds a payday passed along the way into the landing event\'s own notes, then clears it', () => {
+  it('resolves one item off the passed-item queue as its own named card, not folded into the landing', () => {
     const board = fixtureMovementBoard()
-    const player = fixturePlayer({ spaceId: 'a', money: 1_000 })
+    const player = fixturePlayer({ spaceId: 'fork', money: 1_000 })
     const state = fixtureState({
       board,
       players: [player],
       phase: 'moving',
-      stepsRemaining: 0,
-      movementPath: ['a'],
-      passedNotes: ['Player passes payday: $500.'],
+      stepsRemaining: 1,
+      movementPath: ['a', 'payday1', 'fork'],
+      pendingPassedItems: [{ kind: 'payday', spaceId: 'payday1' }],
     })
 
     const next = settle(state, { random: createFakeRandom() })
 
-    expect(next.lastEvent!.notes).toContain('Player passes payday: $500.')
-    expect(next.passedNotes).toEqual([])
+    // The queue drains before the fork it was standing on even gets a look —
+    // "Fork" itself is never mentioned in this card.
+    expect(next.phase).toBe('passingEvent')
+    expect(next.activePassedEvent?.title).toBe('Payday')
+    expect(next.pendingPassedItems).toEqual([])
+    expect(next.movementPath).toEqual([])
+    // Not resolved yet: the fork this move was still owed is still owed.
+    expect(next.stepsRemaining).toBe(1)
+  })
+
+  it('drains every item in the queue, in order, before finally reaching the fork it was standing on', () => {
+    const board = fixtureMovementBoard()
+    const player = fixturePlayer({ spaceId: 'fork', money: 1_000 })
+    const state = fixtureState({
+      board,
+      players: [player],
+      phase: 'moving',
+      stepsRemaining: 1,
+      pendingPassedItems: [
+        { kind: 'payday', spaceId: 'payday1' },
+        { kind: 'event', spaceId: 'stopBranch' },
+      ],
+    })
+
+    const afterFirst = settle(state, { random: createFakeRandom() })
+    expect(afterFirst.phase).toBe('passingEvent')
+    expect(afterFirst.activePassedEvent?.title).toBe('Payday')
+    expect(afterFirst.pendingPassedItems).toHaveLength(1)
+
+    // Dismissing the card is just calling `settle` again — no separate command.
+    const afterSecond = settle(afterFirst, { random: createFakeRandom() })
+    expect(afterSecond.phase).toBe('passingEvent')
+    expect(afterSecond.pendingPassedItems).toEqual([])
+
+    const afterQueue = settle(afterSecond, { random: createFakeRandom() })
+    expect(afterQueue.phase).toBe('moving')
+    expect(afterQueue.movementPath).toEqual(['stopBranch'])
+    expect(afterQueue.stepsRemaining).toBe(0)
   })
 
   it('goes to awaitingDecision instead of resolved when the landing effect itself needs a decision', () => {

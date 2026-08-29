@@ -89,6 +89,7 @@ describe('full game integration', () => {
           store.dispatch({ type: 'spin' })
           break
         case 'moving':
+        case 'passingEvent':
           store.dispatch({ type: 'settle' })
           break
         case 'awaitingDecision': {
@@ -119,7 +120,7 @@ describe('full game integration', () => {
       for (let guard = 0; guard < MAX_ITERATIONS && store.getState().phase !== 'gameOver'; guard += 1) {
         const state = store.getState()
         if (state.phase === 'awaitingSpin') store.dispatch({ type: 'spin' })
-        else if (state.phase === 'moving') store.dispatch({ type: 'settle' })
+        else if (state.phase === 'moving' || state.phase === 'passingEvent') store.dispatch({ type: 'settle' })
         else if (state.phase === 'awaitingDecision') {
           store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
         } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })
@@ -217,7 +218,7 @@ describe('all-computer game', () => {
       const state = store.getState()
       const player = state.players[state.currentPlayerIndex]!
 
-      if (state.phase === 'moving') {
+      if (state.phase === 'moving' || state.phase === 'passingEvent') {
         store.dispatch({ type: 'settle' })
         continue
       }

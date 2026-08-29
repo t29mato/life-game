@@ -1,22 +1,50 @@
-import type { GameState, Player, SpinValue } from '@domain/model/types'
+import type { GameState, PassedQueueItem, Player, SpinValue } from '@domain/model/types'
 import { planMovementVia } from '@domain/board/movement'
 import { movePlayerTo } from '@domain/rules/player'
-import { editionOf } from '@domain/edition/registry'
 import { applyEffect } from './applyEffect'
 import { appendLog } from './logging'
 import { branchDecision, resolveForkBranch } from './branch'
-import { collectPaydays, passedPaydayLine } from './payday'
-import { applyPassedEvents } from './passedEvents'
+import { applyPassedEvent } from './passedEvents'
 import type { UseCaseDeps } from './types'
 
-/** Resolves whatever the pawn's destination requires: a fork choice, a landing effect, or both in sequence. */
+/**
+ * Resolves whatever the pawn's move still owes: a payday or `event` tile
+ * swept past that hasn't had its own card yet, a fork choice, a landing
+ * effect, or some of each in sequence. Called once per card — the UI
+ * dispatches it again every time a `passingEvent` card is dismissed, the
+ * same way it already dispatches `settle` again for a fork reached with
+ * distance still owed.
+ */
 export function settle(state: GameState, deps: UseCaseDeps): GameState {
-  if (state.phase !== 'moving') {
-    throw new Error(`settle: only valid in 'moving', got '${state.phase}'`)
+  if (state.phase !== 'moving' && state.phase !== 'passingEvent') {
+    throw new Error(`settle: only valid in 'moving' or 'passingEvent', got '${state.phase}'`)
   }
 
   const player = state.players[state.currentPlayerIndex]
   if (!player) throw new Error('settle: no current player')
+
+  /*
+   * The queue drains before anything else does — a payday or an `event`
+   * tile this move already crossed, each getting its own card, named for
+   * the tile it actually happened on, before play can reach the fork
+   * choice or the landing still further down the road. `movementPath`
+   * clears here: the pawn has already finished the hop that crossed this
+   * queue, and showing a card is not a moment that hops it anywhere else.
+   */
+  if (state.pendingPassedItems.length > 0) {
+    const [next, ...rest] = state.pendingPassedItems
+    const space = state.board.spaces[next!.spaceId]
+    if (!space) throw new Error(`settle: unknown space "${next!.spaceId}" in the passed-item queue`)
+
+    const { state: afterEvent, event } = applyPassedEvent(state, space, deps)
+    return {
+      ...afterEvent,
+      pendingPassedItems: rest,
+      activePassedEvent: event,
+      phase: 'passingEvent',
+      movementPath: [],
+    }
+  }
 
   const space = state.board.spaces[player.spaceId]
   if (!space) throw new Error(`settle: player stands on unknown space "${player.spaceId}"`)
@@ -27,7 +55,8 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
    * (see `spin.ts`). Resolved the same way, with the *same* roll: the
    * distance still owed is what decides the road and carries the player
    * down it, so nothing about a fork depends on where in a move it happens
-   * to land.
+   * to land. Whatever this next leg itself sweeps past joins the queue
+   * rather than resolving here, same as the first leg did in `spin.ts`.
    */
   if (state.stepsRemaining > 0 && space.next.length > 1) {
     const roll = state.stepsRemaining as SpinValue
@@ -39,43 +68,26 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
         ...state,
         pendingDecision: branchDecision(state.board, space.id, state.stepsRemaining),
         phase: 'awaitingDecision',
-        passedNotes: [],
       }
     }
 
     const plan = planMovementVia(state.board, space.id, branchTaken, roll)
-    let movedPlayer = movePlayerTo(player, plan.destinationId)
+    const movedPlayer = movePlayerTo(player, plan.destinationId)
     const target = state.board.spaces[branchTaken]
     const label = target?.lane?.name ?? target?.title ?? 'a new road'
-    let log = appendLog(state, player.id, `${player.name}'s roll carries them onto ${label}.`, 'info')
-    const passedNotes: string[] = []
-
-    if (plan.paydaysPassed > 0) {
-      const collection = collectPaydays(movedPlayer, plan.paydaysPassed, deps, editionOf(state).economy)
-      movedPlayer = collection.player
-      if (collection.total !== 0) {
-        const line = passedPaydayLine(player.name, collection, editionOf(state).currency)
-        log = appendLog({ ...state, log }, player.id, line, 'money-in')
-        passedNotes.push(line)
-      }
-    }
-
-    let players: readonly Player[] = state.players.map((candidate) =>
+    const log = appendLog(state, player.id, `${player.name}'s roll carries them onto ${label}.`, 'info')
+    const players: readonly Player[] = state.players.map((candidate) =>
       candidate.id === movedPlayer.id ? movedPlayer : candidate,
     )
-
-    if (plan.eventsPassed.length > 0) {
-      const passedState = { ...state, players, log }
-      const { state: afterEvents, notes } = applyPassedEvents(passedState, plan.eventsPassed, deps)
-      players = afterEvents.players
-      log = afterEvents.log
-      passedNotes.push(...notes)
-    }
+    const pendingPassedItems: PassedQueueItem[] = [
+      ...plan.paydaysPassed.map((spaceId): PassedQueueItem => ({ kind: 'payday', spaceId })),
+      ...plan.eventsPassed.map((spaceId): PassedQueueItem => ({ kind: 'event', spaceId })),
+    ]
 
     return {
       ...state,
       players,
-      passedNotes,
+      pendingPassedItems,
       movementPath: plan.path,
       stepsRemaining: plan.stepsRemaining,
       phase: 'moving',
@@ -91,24 +103,14 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
       phase: 'awaitingDecision',
       movementPath: [],
       stepsRemaining: 0,
-      passedNotes: [],
     }
   }
 
-  /*
-   * Every payday or `event` milestone the pawn swept past on the way here
-   * used to be visible only in the log — folded into this landing's own
-   * notes now, so pressing Spin and passing straight through one is not
-   * indistinguishable from never having one at all.
-   */
-  const notes = state.passedNotes.length > 0 ? [...state.passedNotes, ...event.notes] : event.notes
-
   return {
     ...nextState,
-    lastEvent: { ...event, notes },
+    lastEvent: event,
     phase: 'resolved',
     movementPath: [],
     stepsRemaining: 0,
-    passedNotes: [],
   }
 }

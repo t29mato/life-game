@@ -1,14 +1,11 @@
-import type { GameState, Player } from '@domain/model/types'
+import type { GameState, PassedQueueItem } from '@domain/model/types'
 import { planMovement, planMovementVia } from '@domain/board/movement'
 import { movePlayerTo } from '@domain/rules/player'
 import { appendLog } from './logging'
-import { editionOf } from '@domain/edition/registry'
 import { resolveForkBranch } from './branch'
-import { collectPaydays, passedPaydayLine } from './payday'
-import { applyPassedEvents } from './passedEvents'
 import type { UseCaseDeps } from './types'
 
-/** Spins for the current player, plans their movement, and pays out any paydays passed along the way. */
+/** Spins for the current player and plans their movement. */
 export function spin(state: GameState, deps: UseCaseDeps): GameState {
   if (state.phase !== 'awaitingSpin') {
     throw new Error(`spin: only valid in 'awaitingSpin', got '${state.phase}'`)
@@ -36,7 +33,7 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
         ? planMovementVia(state.board, player.spaceId, state.chosenExit, spinValue)
         : planMovement(state.board, player.spaceId, spinValue)
 
-  let movedPlayer = movePlayerTo(player, plan.destinationId)
+  const movedPlayer = movePlayerTo(player, plan.destinationId)
   const forkNote =
     branchTaken !== undefined
       ? (() => {
@@ -45,49 +42,29 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
           return ` and the fork sends them onto ${label}`
         })()
       : ''
-  let log = appendLog(state, player.id, `${player.name} spins a ${spinValue}${forkNote}.`, 'info')
-  const passedNotes: string[] = []
-
-  if (plan.paydaysPassed > 0) {
-    // Each payday passed is its own week, so each one is rolled separately.
-    const collection = collectPaydays(movedPlayer, plan.paydaysPassed, deps, editionOf(state).economy)
-    movedPlayer = collection.player
-    if (collection.total !== 0) {
-      const line = passedPaydayLine(player.name, collection, editionOf(state).currency)
-      log = appendLog({ ...state, log }, player.id, line, 'money-in')
-      passedNotes.push(line)
-    }
-  }
-
-  let players: readonly Player[] = state.players.map((candidate) =>
-    candidate.id === movedPlayer.id ? movedPlayer : candidate,
-  )
+  const log = appendLog(state, player.id, `${player.name} spins a ${spinValue}${forkNote}.`, 'info')
+  const players = state.players.map((candidate) => (candidate.id === movedPlayer.id ? movedPlayer : candidate))
 
   /*
-   * `event` tiles this move swept past — a milestone whose effect fires
-   * whether landed on or not, but never holds the move up for it (see
-   * `SpaceKind` in `types.ts`). Settled after paydays rather than
-   * interleaved with them in true walking order: the two never depend on
-   * each other's outcome closely enough to be worth the wiring a single
-   * merged pass would need, with one acknowledged exception — a payday
-   * rolled here can still be at the pre-change career if a career-change
-   * event tile was actually crossed earlier in the same move. Rare enough
-   * (both kinds have to land in one roll) that it is noted rather than
-   * solved.
+   * Every payday and every `event` tile this move sweeps past — named,
+   * queued in the order the road actually crosses them, and left entirely
+   * unresolved here. `settle` works through the queue one card at a time
+   * once the pawn has actually finished animating there; resolving any of
+   * it early would let the store know an outcome the screen has not shown
+   * anyone yet, the exact spoiler the wheel-settling machinery elsewhere in
+   * this file exists to prevent.
    */
-  if (plan.eventsPassed.length > 0) {
-    const passedState = { ...state, players, log }
-    const { state: afterEvents, notes } = applyPassedEvents(passedState, plan.eventsPassed, deps)
-    players = afterEvents.players
-    log = afterEvents.log
-    passedNotes.push(...notes)
-  }
+  const pendingPassedItems: PassedQueueItem[] = [
+    ...plan.paydaysPassed.map((spaceId): PassedQueueItem => ({ kind: 'payday', spaceId })),
+    ...plan.eventsPassed.map((spaceId): PassedQueueItem => ({ kind: 'event', spaceId })),
+  ]
 
   return {
     ...state,
     players,
     chosenExit: null,
-    passedNotes,
+    pendingPassedItems,
+    activePassedEvent: null,
     lastSpin: spinValue,
     movementPath: plan.path,
     stepsRemaining: plan.stepsRemaining,

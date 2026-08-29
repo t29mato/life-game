@@ -1,4 +1,14 @@
-import type { GameState, LandingEmphasis, LandingEvent, LogTone, Money, Player, Space, SpinValue } from '@domain/model/types'
+import type {
+  GameState,
+  LandingEmphasis,
+  LandingEvent,
+  LogTone,
+  Money,
+  PassedQueueItem,
+  Player,
+  Space,
+  SpinValue,
+} from '@domain/model/types'
 import type { CurrencySpec } from '@domain/edition/types'
 import { SHARES_PER_PURCHASE } from '@domain/model/constants'
 import { planMovementVia } from '@domain/board/movement'
@@ -47,7 +57,6 @@ import {
 } from './applyEffect'
 import { formatMoney, loanNote, raiseNote, salaryPeriod, salaryRate } from './format'
 import { appendLog } from './logging'
-import { collectPaydays, passedPaydayLine } from './payday'
 import type { UseCaseDeps } from './types'
 
 function replacePlayer(players: readonly Player[], updated: Player): readonly Player[] {
@@ -97,7 +106,7 @@ function resolved(state: GameState, players: readonly Player[], event: LandingEv
   }
 }
 
-function resolveBranch(state: GameState, optionId: string, deps: UseCaseDeps): GameState {
+function resolveBranch(state: GameState, optionId: string, _deps: UseCaseDeps): GameState {
   const player = state.players[state.currentPlayerIndex]
   if (!player) throw new Error('choose: no current player')
 
@@ -126,37 +135,26 @@ function resolveBranch(state: GameState, optionId: string, deps: UseCaseDeps): G
   }
 
   const plan = planMovementVia(state.board, player.spaceId, optionId, state.stepsRemaining)
-
-  let movedPlayer = movePlayerTo(player, plan.destinationId)
-  let log = appendLog(state, player.id, `${player.name} heads toward ${plan.destinationId}.`, 'info')
-  const passedNotes: string[] = []
-
-  if (plan.paydaysPassed > 0) {
-    // Same rule as `spin`: one roll per payday, because they are separate weeks.
-    const collection = collectPaydays(movedPlayer, plan.paydaysPassed, deps, editionOf(state).economy)
-    movedPlayer = collection.player
-    if (collection.total !== 0) {
-      const line = passedPaydayLine(player.name, collection, editionOf(state).currency)
-      log = appendLog({ ...state, log }, player.id, line, 'money-in')
-      passedNotes.push(line)
-    }
-  }
+  const movedPlayer = movePlayerTo(player, plan.destinationId)
+  const log = appendLog(state, player.id, `${player.name} heads toward ${plan.destinationId}.`, 'info')
 
   /*
-   * `plan.eventsPassed` is deliberately left unhandled here: `resolveBranch`
-   * itself is unreachable in the live path (`turnStart` never raises a
-   * `branch` decision any more — see `branch.ts`), kept only as the same
-   * defensive fallback `settle.ts`'s own dead branch is. Wiring in
-   * `applyPassedEvents` would mean importing it from `choose.ts` while it
-   * imports `resolveSpinOutcome` back — a real circular import for code that
-   * can never actually run, which is a worse trade than the gap it would
-   * close.
+   * Left for `settle` to drain, same as every other leg of a move — see
+   * `PassedQueueItem` in `types.ts`. `resolveBranch` itself is unreachable
+   * in the live path (`turnStart` never raises a `branch` decision any
+   * more — see `branch.ts`), kept only as the same defensive fallback
+   * `settle.ts`'s own dead branch is.
    */
+  const pendingPassedItems: PassedQueueItem[] = [
+    ...plan.paydaysPassed.map((spaceId): PassedQueueItem => ({ kind: 'payday', spaceId })),
+    ...plan.eventsPassed.map((spaceId): PassedQueueItem => ({ kind: 'event', spaceId })),
+  ]
+
   return {
     ...state,
     players: replacePlayer(state.players, movedPlayer),
     pendingDecision: null,
-    passedNotes,
+    pendingPassedItems,
     movementPath: plan.path,
     stepsRemaining: plan.stepsRemaining,
     phase: 'moving',

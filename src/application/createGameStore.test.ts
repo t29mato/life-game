@@ -30,6 +30,7 @@ function playToGameOver(store: ReturnType<typeof createGameStore>): GameState {
         store.dispatch({ type: 'spin' })
         break
       case 'moving':
+      case 'passingEvent':
         store.dispatch({ type: 'settle' })
         break
       case 'awaitingDecision':
@@ -166,7 +167,7 @@ describe('createGameStore', () => {
       for (let guard = 0; guard < 50 && store.getState().phase !== 'resolved'; guard += 1) {
         const state = store.getState()
         if (state.phase === 'awaitingSpin') store.dispatch({ type: 'spin' })
-        else if (state.phase === 'moving') store.dispatch({ type: 'settle' })
+        else if (state.phase === 'moving' || state.phase === 'passingEvent') store.dispatch({ type: 'settle' })
         else if (state.phase === 'awaitingDecision') {
           store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
         } else break

@@ -137,6 +137,7 @@ const playGame = (
         break
       }
       case 'moving':
+      case 'passingEvent':
         store.dispatch({ type: 'settle' })
         break
       case 'awaitingDecision': {

@@ -23,10 +23,14 @@ export interface MovementPlan {
   readonly stepsRemaining: number
   readonly stoppedBy: MovementStopReason
   /**
-   * Payday spaces passed *through*. Excludes the destination, whose own effect
-   * pays out, so that landing on a payday never pays twice.
+   * Payday spaces passed *through*, in the order they were crossed. Excludes
+   * the destination, whose own effect pays out, so that landing on a payday
+   * never pays twice. Tracked by id, the same as `eventsPassed`, rather than
+   * as a bare count — each has its own name (`Signing Bonus`, `Spot Bonus`,
+   * ...) and the presentation layer names it when it pays out mid-move,
+   * exactly as a landing does.
    */
-  readonly paydaysPassed: number
+  readonly paydaysPassed: readonly SpaceId[]
   /**
    * `event`-kind spaces passed *through*, in the order they were crossed.
    * Excludes the destination, whose own effect resolves through the ordinary

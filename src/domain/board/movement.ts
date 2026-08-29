@@ -14,7 +14,7 @@ function finish(
   path: readonly SpaceId[],
   stoppedBy: MovementStopReason,
   stepsRemaining: number,
-  paydaysPassed: number,
+  paydaysPassed: readonly SpaceId[],
   eventsPassed: readonly SpaceId[],
 ): MovementPlan {
   const lastVisited = path[path.length - 1]
@@ -38,7 +38,7 @@ function walk(
   currentId: SpaceId,
   stepsOwed: number,
   path: readonly SpaceId[],
-  paydaysPassed: number,
+  paydaysPassed: readonly SpaceId[],
   eventsPassed: readonly SpaceId[],
 ): MovementPlan {
   let travelled = path
@@ -83,7 +83,7 @@ function walk(
       return finish(originId, travelled, 'stepsExhausted', 0, paydays, events)
     }
     if (nextSpace.kind === 'payday') {
-      paydays += 1
+      paydays = [...paydays, nextId]
     }
     if (nextSpace.kind === 'event') {
       events = [...events, nextId]
@@ -92,7 +92,7 @@ function walk(
 }
 
 export function planMovement(board: Board, fromSpaceId: SpaceId, steps: number): MovementPlan {
-  return walk(board, fromSpaceId, fromSpaceId, steps, [], 0, [])
+  return walk(board, fromSpaceId, fromSpaceId, steps, [], [], [])
 }
 
 export function planMovementVia(
@@ -113,16 +113,16 @@ export function planMovementVia(
   const remaining = steps - 1
 
   if (chosenSpace.kind === 'stop') {
-    return finish(forkSpaceId, path, 'forcedStop', 0, 0, [])
+    return finish(forkSpaceId, path, 'forcedStop', 0, [], [])
   }
   if (chosenNextId === board.retirementSpaceId) {
-    return finish(forkSpaceId, path, 'terminal', 0, 0, [])
+    return finish(forkSpaceId, path, 'terminal', 0, [], [])
   }
   if (remaining === 0) {
-    return finish(forkSpaceId, path, 'stepsExhausted', 0, 0, [])
+    return finish(forkSpaceId, path, 'stepsExhausted', 0, [], [])
   }
 
-  const paydaysPassed = chosenSpace.kind === 'payday' ? 1 : 0
+  const paydaysPassed = chosenSpace.kind === 'payday' ? [chosenNextId] : []
   const eventsPassed = chosenSpace.kind === 'event' ? [chosenNextId] : []
   return walk(board, forkSpaceId, chosenNextId, remaining, path, paydaysPassed, eventsPassed)
 }

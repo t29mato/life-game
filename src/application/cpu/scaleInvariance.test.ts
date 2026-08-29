@@ -90,7 +90,7 @@ const cpuTranscript = (seed: number, scaled: boolean, difficulty: 'normal' | 'ha
   let steps = 0
   while (state.phase !== 'gameOver' && steps < 5_000) {
     steps += 1
-    if (state.phase === 'moving') {
+    if (state.phase === 'moving' || state.phase === 'passingEvent') {
       state = settle(state, deps)
       continue
     }

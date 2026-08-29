@@ -59,7 +59,12 @@ function chosen(state: GameState): string {
 
 describe('CPU_THINK_MS', () => {
   it('paces every phase the CPU acts in, slowly enough to follow', () => {
-    expect(Object.keys(CPU_THINK_MS).sort()).toEqual(['awaitingDecision', 'awaitingSpin', 'resolved'])
+    expect(Object.keys(CPU_THINK_MS).sort()).toEqual([
+      'awaitingDecision',
+      'awaitingSpin',
+      'passingEvent',
+      'resolved',
+    ])
     for (const delay of Object.values(CPU_THINK_MS)) {
       expect(delay).toBeGreaterThan(0)
       expect(delay).toBeLessThanOrEqual(2_000)

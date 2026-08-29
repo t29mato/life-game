@@ -83,7 +83,7 @@ describe('choose', () => {
       expect(next.players[0]!.spaceId).toBe('stopBranch')
     })
 
-    it('continues walking the chosen branch and pays paydays passed along it', () => {
+    it('continues walking the chosen branch and queues paydays passed along it', () => {
       // Salaried, so the figure asserted is the pass-through rule and not a spin.
       const salaried = BASIC_CAREERS.find((career) => career.payPerPip === undefined)!
       const player = fixturePlayer({ spaceId: 'fork', career: salaried, money: 0 })
@@ -106,7 +106,10 @@ describe('choose', () => {
       expect(next.movementPath).toEqual(['longBranch', 'mid', 'merge'])
       expect(next.stepsRemaining).toBe(0)
       expect(next.players[0]!.spaceId).toBe('merge')
-      expect(next.players[0]!.money).toBe(salaried.salary) // mid payday passed through
+      // Queued for `settle` to pay out as its own card, not paid the instant
+      // the store learns about it — same rule `spin.ts` follows.
+      expect(next.pendingPassedItems).toEqual([{ kind: 'payday', spaceId: 'mid' }])
+      expect(next.players[0]!.money).toBe(0)
     })
   })
 
