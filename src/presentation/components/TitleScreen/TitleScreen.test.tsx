@@ -89,46 +89,9 @@ describe('TitleScreen', () => {
     expect(redSwatch).toBeDisabled()
   })
 
-  describe('faces', () => {
-    it('defaults every seat to the factory look: the classic face', () => {
-      renderTitleScreen()
-      const faces = screen.getByRole('group', { name: 'Player 1 face' })
-      expect(faces.querySelector('[aria-pressed="true"]')).toHaveAccessibleName('Classic face')
-    })
-
-    it('sends a chosen face with the start config', async () => {
-      const user = userEvent.setup()
-      const { onStart } = renderTitleScreen()
-
-      const faces = screen.getByRole('group', { name: 'Player 1 face' })
-      await user.click(within(faces).getByRole('button', { name: /cool face/i }))
-
-      await user.click(screen.getByRole('button', { name: /start game/i }))
-      expect(onStart).toHaveBeenCalledWith(
-        expect.objectContaining({
-          players: [
-            expect.objectContaining({ face: 'cool' }),
-            expect.objectContaining({ face: 'classic' }),
-          ],
-        }),
-      )
-    })
-
-    it('lets two players share a face — only colours are exclusive', async () => {
-      const user = userEvent.setup()
-      renderTitleScreen()
-      for (const index of [1, 2]) {
-        const faces = screen.getByRole('group', { name: `Player ${index} face` })
-        await user.click(within(faces).getByRole('button', { name: /cheerful face/i }))
-      }
-      for (const index of [1, 2]) {
-        const faces = screen.getByRole('group', { name: `Player ${index} face` })
-        expect(within(faces).getByRole('button', { name: /cheerful face/i })).toHaveAttribute(
-          'aria-pressed',
-          'true',
-        )
-      }
-    })
+  it('offers no face picker — a car earns its look in play, nothing is chosen here', () => {
+    renderTitleScreen()
+    expect(screen.queryByRole('group', { name: 'Player 1 face' })).not.toBeInTheDocument()
   })
 
   it('offers twelve colours, none of them twice', () => {
@@ -165,8 +128,8 @@ describe('TitleScreen', () => {
 
     expect(onStart).toHaveBeenCalledWith({
       players: [
-        { name: 'Zoe', color: 'red', face: 'classic', isCpu: false },
-        { name: 'Player 2', color: 'blue', face: 'classic', isCpu: true },
+        { name: 'Zoe', color: 'red', isCpu: false },
+        { name: 'Player 2', color: 'blue', isCpu: true },
       ],
       difficulty: 'normal',
       editionId: 'usa',
@@ -339,7 +302,6 @@ describe('TitleScreen', () => {
     const zoe: PlayerProfile = {
       name: 'Zoe',
       color: 'teal',
-      face: 'cool',
       lastUsedAt: '2026-08-01T12:00:00.000Z',
     }
 
@@ -348,7 +310,7 @@ describe('TitleScreen', () => {
       expect(screen.queryByText('Recent')).not.toBeInTheDocument()
     })
 
-    it('fills a whole row from one tap: name, colour and face', async () => {
+    it('fills a whole row from one tap: name and colour', async () => {
       const user = userEvent.setup()
       const { onStart } = renderTitleScreen({ profiles: [zoe] })
 
@@ -360,7 +322,7 @@ describe('TitleScreen', () => {
       expect(onStart).toHaveBeenCalledWith(
         expect.objectContaining({
           players: [
-            expect.objectContaining({ name: 'Zoe', color: 'teal', face: 'cool' }),
+            expect.objectContaining({ name: 'Zoe', color: 'teal' }),
             expect.objectContaining({ name: 'Player 2' }),
           ],
         }),

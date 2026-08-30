@@ -1,0 +1,191 @@
+/* ==========================================================================
+   The player strip: every seat at a glance, on one paper band across the
+   foot of the screen. The rail of tall per-seat cards is gone from the
+   default view — what stays permanently on screen is only what a glance
+   needs mid-turn, and the whole band is one button that opens the full
+   breakdown in StatusModal.
+   ========================================================================== */
+
+.strip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  /* `safe` for the four-seats-on-a-phone case: centred while the band has
+     room, scrollable from the first seat — never a first seat pushed off the
+     left edge with no way back — once it does not. */
+  justify-content: safe center;
+  gap: clamp(6px, 1vw, 12px);
+  padding: 7px clamp(8px, 1.2vw, 14px);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--surface-grad);
+  box-shadow: var(--elev-1);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.strip:hover {
+  transform: translateY(-1px);
+}
+
+.strip:active {
+  transform: translateY(1px);
+}
+
+/* One seat: moulded dome, name, wallet. The active seat's chip lights in
+   that player's own colour — whose turn it is, readable before any text —
+   and everyone else stays matte paper. */
+.seat {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 5px;
+  border-radius: var(--radius-full);
+  background: var(--surface-alt);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-strong) 40%, transparent);
+}
+
+.active {
+  background: color-mix(in srgb, var(--seat-base) 14%, var(--surface));
+  box-shadow:
+    inset 0 0 0 2px var(--seat-base),
+    0 2px 6px -2px color-mix(in srgb, var(--seat-dark) 55%, transparent);
+}
+
+/* The pawn in miniature — the same moulded plastic as the header's turn pip. */
+.dome {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: var(--radius-full);
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1;
+  background: radial-gradient(
+    circle at 34% 26%,
+    var(--seat-light) 0%,
+    var(--seat-base) 55%,
+    var(--seat-dark) 100%
+  );
+  box-shadow:
+    0 1px 0 var(--seat-dark),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.name {
+  max-width: 12ch;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cash is the loudest thing on the seat, same rule as everywhere money is
+   printed. */
+.cash {
+  font-size: 0.98rem;
+  font-weight: 900;
+  font-variant-numeric: var(--tabular);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.debt {
+  color: var(--negative-dark);
+}
+
+.rank {
+  flex: none;
+  padding: 0.12rem 0.42rem;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--border-strong) 30%, transparent);
+  font-size: 0.64rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.retired {
+  flex: none;
+  padding: 0.12rem 0.42rem;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--seat-base) 24%, var(--surface));
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* The pressability cue, held apart from the seats by a hairline so it reads
+   as the band's own control corner rather than a fifth player. */
+.open {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 2px;
+  padding-left: clamp(8px, 1.2vw, 14px);
+  border-left: 1px solid color-mix(in srgb, var(--border-strong) 55%, transparent);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 560px) {
+  /* Four seats on a narrow phone: the ordinals and the affordance label are
+     the first facts to go — the dome, name and wallet are the glance. */
+  .rank {
+    display: none;
+  }
+
+  .openLabel {
+    display: none;
+  }
+
+  /* Wide enough for the default "PLAYER 1"-style names to survive whole —
+     an ellipsis on every seat at once says nothing to anybody. */
+  .name {
+    max-width: 11ch;
+    font-size: 0.62rem;
+  }
+
+  .cash {
+    font-size: 0.88rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strip {
+    transition: none;
+  }
+
+  .strip:hover,
+  .strip:active {
+    transform: none;
+  }
+}

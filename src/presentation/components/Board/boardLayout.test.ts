@@ -2,18 +2,20 @@ import { describe, expect, it } from 'vitest'
 import type { Board, Space, SpaceTone } from '@domain/model/types'
 import {
   boardLanes,
+  capitalSkylineFor,
   clamp,
   coastline,
   createProjection,
   districtBySpace,
+  editionSceneryKind,
   fanSlot,
   forkPockets,
-  landmarkKindFor,
   pawnSlot,
   ridges,
   roundedPolyline,
   routeStrands,
   scatterScenery,
+  sceneryExtent,
   slabMetrics,
   spaceAccent,
   spaceCaption,
@@ -1019,65 +1021,149 @@ describe('scatterScenery', () => {
   })
 
   /**
-   * One country, one skyline — see `landmarkKindFor`. Everything the ordinary
-   * scatter already has to prove (never on a tile, never on the road, always
-   * inside the viewBox) applies just as much to the one guaranteed piece as
-   * to the sixty incidental ones.
+   * One country, one capital — see `capitalSkylineFor`. Everything the
+   * ordinary scatter already has to prove (never on a tile, never on the
+   * road, always inside the viewBox) applies just as much to the guaranteed
+   * skyline pieces as to the sixty incidental ones — and the anchor piece,
+   * placed first, must always land.
    */
-  describe('the guaranteed landmark', () => {
+  describe('the capital skyline', () => {
     it.each(['usa', 'japan', 'france', 'india', 'bolivia'] as const)(
-      'places exactly one landmark for %s, clear of every tile and every road',
+      'places %s’s skyline, anchor first, clear of every tile and every road',
       (editionId) => {
         const pieces = scatterScenery(model, projection, editionId)
         const landmarks = pieces.filter((piece) => piece.kind.startsWith('landmark-'))
-        expect(landmarks).toHaveLength(1)
-        expect(landmarks[0]?.kind).toBe(landmarkKindFor(editionId))
+        const skyline = capitalSkylineFor(editionId)
+        expect(landmarks.length).toBeGreaterThanOrEqual(1)
+        expect(landmarks.length).toBeLessThanOrEqual(skyline.length)
+        expect(landmarks[0]?.kind).toBe(skyline[0])
+        // Every placed piece is from this capital's skyline, none twice.
+        const kinds = landmarks.map((piece) => piece.kind)
+        expect(new Set(kinds).size).toBe(kinds.length)
+        for (const kind of kinds) expect(skyline).toContain(kind)
 
-        const landmark = landmarks[0]!
-        for (const s of Object.values(model.spaces)) {
-          const tile = projection.project(s.layout)
-          const clearance = projection.tileSize * (spaceCaption(s) ? 1.5 : 0.82)
-          expect(Math.hypot(landmark.x - tile.x, landmark.y - tile.y)).toBeGreaterThanOrEqual(clearance)
-        }
         const segments = routeSegments(model, projection)
         const roadClearance = projection.roadCasingWidth / 2
-        for (const [a, b] of segments) {
-          expect(distanceToSegment(landmark, a, b)).toBeGreaterThan(roadClearance)
+        for (const landmark of landmarks) {
+          for (const s of Object.values(model.spaces)) {
+            const tile = projection.project(s.layout)
+            const clearance = projection.tileSize * (spaceCaption(s) ? 1.5 : 0.82)
+            expect(Math.hypot(landmark.x - tile.x, landmark.y - tile.y)).toBeGreaterThanOrEqual(clearance)
+          }
+          for (const [a, b] of segments) {
+            expect(distanceToSegment(landmark, a, b)).toBeGreaterThan(roadClearance)
+          }
+          expect(landmark.x).toBeGreaterThanOrEqual(0)
+          expect(landmark.x).toBeLessThanOrEqual(projection.viewWidth)
+          expect(landmark.y).toBeGreaterThanOrEqual(0)
+          expect(landmark.y).toBeLessThanOrEqual(projection.viewHeight)
         }
-        expect(landmark.x).toBeGreaterThanOrEqual(0)
-        expect(landmark.x).toBeLessThanOrEqual(projection.viewWidth)
-        expect(landmark.y).toBeGreaterThanOrEqual(0)
-        expect(landmark.y).toBeLessThanOrEqual(projection.viewHeight)
       },
     )
 
-    it('places no landmark at all for an edition with no skyline of its own', () => {
+    it.each(['usa', 'japan', 'france', 'india', 'bolivia'] as const)(
+      'never lets two of %s’s skyline pieces stand on top of each other',
+      (editionId) => {
+        const landmarks = scatterScenery(model, projection, editionId).filter((piece) =>
+          piece.kind.startsWith('landmark-'),
+        )
+        for (let i = 0; i < landmarks.length; i += 1) {
+          for (let j = i + 1; j < landmarks.length; j += 1) {
+            const a = landmarks[i]!
+            const b = landmarks[j]!
+            const reach =
+              projection.tileSize * (sceneryExtent(a.kind).side + sceneryExtent(b.kind).side)
+            const apart =
+              Math.abs(a.x - b.x) >= reach || Math.abs(a.y - b.y) >= projection.rowPitch * 1.5
+            expect(apart, `${a.kind} crowds ${b.kind}`).toBe(true)
+          }
+        }
+      },
+    )
+
+    it('places no landmark at all for an edition with no capital of its own', () => {
       const pieces = scatterScenery(model, projection, 'some-future-edition')
       expect(pieces.some((piece) => piece.kind.startsWith('landmark-'))).toBe(false)
     })
 
-    it('lets a caller force a specific landmark regardless of edition — comparing two candidates', () => {
-      // India Gate shipped; the Taj Mahal is what a forced override still
-      // reaches — this is how the two were compared before India Gate won.
-      const pieces = scatterScenery(model, projection, 'india', 'landmark-india-taj')
+    it('lets a caller force a single specific landmark regardless of edition — comparing two candidates', () => {
+      // How two candidates for one country get compared before one ships:
+      // the override drops the whole skyline for just the piece named.
+      const pieces = scatterScenery(model, projection, 'usa', 'landmark-japan-fuji')
       const landmarks = pieces.filter((piece) => piece.kind.startsWith('landmark-'))
       expect(landmarks).toHaveLength(1)
-      expect(landmarks[0]?.kind).toBe('landmark-india-taj')
+      expect(landmarks[0]?.kind).toBe('landmark-japan-fuji')
+    })
+  })
+
+  /**
+   * The capital's building stock — see `editionSceneryKind`. Districts say
+   * what stands where; the edition says what it looks like. Asserted on the
+   * scatter's actual output, not just the mapping, so a leak of a generic
+   * kind past the mapping would show up here.
+   */
+  describe('the capital’s building stock', () => {
+    it('raises Haussmann blocks in Paris where other capitals raise glass', () => {
+      const kinds = new Set(scatterScenery(model, projection, 'france').map((piece) => piece.kind))
+      expect(kinds.has('mansard')).toBe(true)
+      expect(kinds.has('block')).toBe(false)
+      expect(kinds.has('tower')).toBe(false)
+    })
+
+    it('holds Washington to its height limit', () => {
+      const kinds = new Set(scatterScenery(model, projection, 'usa').map((piece) => piece.kind))
+      expect(kinds.has('tower')).toBe(false)
+    })
+
+    it('lets Tokyo keep its towers', () => {
+      const kinds = new Set(scatterScenery(model, projection, 'japan').map((piece) => piece.kind))
+      expect(kinds.has('tower')).toBe(true)
     })
   })
 })
 
-describe('landmarkKindFor', () => {
-  it('maps every edition with a landmark to its own kind', () => {
-    expect(landmarkKindFor('usa')).toBe('landmark-usa')
-    expect(landmarkKindFor('japan')).toBe('landmark-japan')
-    expect(landmarkKindFor('france')).toBe('landmark-france')
-    expect(landmarkKindFor('india')).toBe('landmark-india-gate')
-    expect(landmarkKindFor('bolivia')).toBe('landmark-bolivia')
+describe('capitalSkylineFor', () => {
+  it('anchors every edition’s skyline on its capital’s most recognisable piece', () => {
+    expect(capitalSkylineFor('usa')[0]).toBe('landmark-usa-capitol')
+    expect(capitalSkylineFor('japan')[0]).toBe('landmark-japan-tower')
+    expect(capitalSkylineFor('france')[0]).toBe('landmark-france-eiffel')
+    expect(capitalSkylineFor('india')[0]).toBe('landmark-india-gate')
+    expect(capitalSkylineFor('bolivia')[0]).toBe('landmark-bolivia-peak')
+  })
+
+  it('gives every edition more than one piece to place', () => {
+    for (const editionId of ['usa', 'japan', 'france', 'india', 'bolivia']) {
+      expect(capitalSkylineFor(editionId).length).toBeGreaterThan(1)
+    }
   })
 
   it('has no opinion about an edition it does not recognise', () => {
-    expect(landmarkKindFor('atlantis')).toBeNull()
-    expect(landmarkKindFor(undefined)).toBeNull()
+    expect(capitalSkylineFor('atlantis')).toEqual([])
+    expect(capitalSkylineFor(undefined)).toEqual([])
+  })
+})
+
+describe('editionSceneryKind', () => {
+  it('swaps Washington’s towers for blocks and its houses for brick rowhouses', () => {
+    expect(editionSceneryKind('usa', 'tower')).toBe('block')
+    expect(editionSceneryKind('usa', 'house')).toBe('rowhouse')
+  })
+
+  it('swaps Paris’s towers and blocks for mansard-roofed Haussmann blocks', () => {
+    expect(editionSceneryKind('france', 'tower')).toBe('mansard')
+    expect(editionSceneryKind('france', 'block')).toBe('mansard')
+  })
+
+  it('keeps New Delhi and La Paz low without touching their homes', () => {
+    expect(editionSceneryKind('india', 'tower')).toBe('block')
+    expect(editionSceneryKind('bolivia', 'tower')).toBe('block')
+    expect(editionSceneryKind('india', 'house')).toBe('house')
+    expect(editionSceneryKind('bolivia', 'house')).toBe('house')
+  })
+
+  it('leaves Tokyo — and any edition it does not recognise — alone', () => {
+    expect(editionSceneryKind('japan', 'tower')).toBe('tower')
+    expect(editionSceneryKind(undefined, 'tower')).toBe('tower')
+    expect(editionSceneryKind('atlantis', 'house')).toBe('house')
   })
 })

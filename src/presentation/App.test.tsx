@@ -108,7 +108,7 @@ describe('remembering players', () => {
     await user.click(screen.getByRole('button', { name: /start game/i }))
 
     expect(profiles.list().map((profile) => profile.name)).toEqual(['Player 1'])
-    expect(profiles.list()[0]).toMatchObject({ color: 'red', face: 'classic' })
+    expect(profiles.list()[0]).toMatchObject({ color: 'red' })
   })
 })
 
@@ -296,6 +296,34 @@ describe('a single-option value spin', () => {
 
     fireEvent.click(spinButton)
     expect(stub.commands).toContainEqual({ type: 'choose', optionId: VALUE_SPIN_OPTION_ID })
+  })
+
+  it("carries an option's roll-to-outcome table through to the wheel screen", () => {
+    const state = withPendingValueSpin({
+      kind: 'valueSpin',
+      prompt: 'Tuition Bill',
+      options: [
+        {
+          id: VALUE_SPIN_OPTION_ID,
+          label: 'Roll',
+          description: 'Roll to find out what you owe.',
+          icon: 'space:tuition-bill',
+          table: [
+            { range: '1-2', amount: '$90,000' },
+            { range: '6', amount: 'Full ride' },
+          ],
+        },
+      ],
+    })
+    render(
+      <App store={createStubStore(state)} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />,
+    )
+
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByRole('table')).toBeInTheDocument()
+    expect(within(dialog).getByText('1-2')).toBeInTheDocument()
+    expect(within(dialog).getByText('$90,000')).toBeInTheDocument()
+    expect(within(dialog).getByText('Full ride')).toBeInTheDocument()
   })
 
   it('still shows the decision card when there is a real second option to weigh', () => {
@@ -500,9 +528,11 @@ describe('spinning from the keyboard', () => {
    * number that was supposed to decide it. This drives a real game to a
    * real single-option value spin (a casual payday, reachable for an
    * unemployed player within a handful of turns on any seed) and checks the
-   * rail synchronously, before the wheel has had a chance to settle.
+   * strip synchronously, before the wheel has had a chance to settle. The
+   * rail this guarded when it was written has since become the strip at the
+   * foot of the screen; the promise it holds is unchanged.
    */
-  it('does not reveal a value spin\'s result in the player rail before the wheel settles', async () => {
+  it('does not reveal a value spin\'s result in the player strip before the wheel settles', async () => {
     const originalMatchMedia = window.matchMedia
     window.matchMedia = vi.fn().mockReturnValue({
       matches: false, // real motion this time — need the "still spinning" window to exist
@@ -515,45 +545,62 @@ describe('spinning from the keyboard', () => {
        * Searched for rather than hardcoded to one seed: a value spin with a
        * single option is a specific tile reached by a specific player, and
        * whether any given seed's game passes through one before everybody
-       * retires is luck. The first seed that does is as good as any other.
+       * retires is luck. It must also be one whose outcome moves *cash* —
+       * the strip prints nothing but the wallet, so a promotion review that
+       * only moves the salary rate would leave this test staring at text
+       * that never changes for the right reason. Each candidate is probed
+       * to its outcome first, then replayed fresh on the same seed: the
+       * seeded random is deterministic, so the replay lands on the same
+       * decision with the roll still unspent.
        */
+      const driveToValueSpin = (seed: number): ReturnType<typeof createGameStore> | null => {
+        const candidate = startedGame(undefined, seed)
+        let guard = 0
+        while (guard < 300 && candidate.getState().phase !== 'gameOver') {
+          const state = candidate.getState()
+          if (
+            state.phase === 'awaitingDecision' &&
+            state.pendingDecision?.kind === 'valueSpin' &&
+            state.pendingDecision.options.length === 1
+          ) {
+            return candidate
+          }
+          if (awaitsRoll(state.phase)) candidate.dispatch({ type: 'spin' })
+          else if (state.phase === 'moving' || state.phase === 'passingEvent') {
+            candidate.dispatch({ type: 'settle' })
+          } else if (state.phase === 'awaitingDecision') {
+            candidate.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
+          } else if (state.phase === 'resolved') candidate.dispatch({ type: 'endTurn' })
+          guard += 1
+        }
+        return null
+      }
       const store = (() => {
         for (let seed = 1; seed <= 40; seed += 1) {
-          const candidate = startedGame(undefined, seed)
-          let guard = 0
-          while (guard < 300 && candidate.getState().phase !== 'gameOver') {
-            const state = candidate.getState()
-            if (
-              state.phase === 'awaitingDecision' &&
-              state.pendingDecision?.kind === 'valueSpin' &&
-              state.pendingDecision.options.length === 1
-            ) {
-              return candidate
-            }
-            if (awaitsRoll(state.phase)) candidate.dispatch({ type: 'spin' })
-            else if (state.phase === 'moving' || state.phase === 'passingEvent') {
-              candidate.dispatch({ type: 'settle' })
-            } else if (state.phase === 'awaitingDecision') {
-              candidate.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
-            } else if (state.phase === 'resolved') candidate.dispatch({ type: 'endTurn' })
-            guard += 1
-          }
+          const probe = driveToValueSpin(seed)
+          if (!probe) continue
+          const at = probe.getState()
+          const seat = at.currentPlayerIndex
+          const cashBefore = at.players[seat]!.money
+          probe.dispatch({ type: 'choose', optionId: at.pendingDecision!.options[0]!.id })
+          if (probe.getState().players[seat]!.money === cashBefore) continue
+          return driveToValueSpin(seed)!
         }
-        throw new Error('no seed reached a single-option value spin')
+        throw new Error('no seed reached a cash-moving single-option value spin')
       })()
       expect(store.getState().phase).toBe('awaitingDecision')
-      const before = store.getState()
-      const spinner = before.players[before.currentPlayerIndex]!
 
       render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
-      const panel = screen.getByText(spinner.name).closest('article')!
-      const panelTextBefore = panel.textContent
+      // The strip carries every seat's cash, so its text is the sum of what
+      // the whole table shows — if any wallet moves early, this moves.
+      const strip = screen.getByRole('button', { name: /players — open full status/i })
+      const stripTextBefore = strip.textContent
 
       fireEvent.click(screen.getByRole('button', { name: /^roll$/i }))
 
       /*
        * The store already knows the outcome — this is exactly the gap the
-       * rail is not supposed to show. `phase` is the proxy that works for
+       * strip is not supposed to show. `phase` is the proxy that works for
        * every value-spin equally: `player.money` used to serve here, but a
        * promotion review that misses still gives a raise (the salary rate
        * moves, not cash) and a career spin never carries a signing bonus
@@ -561,14 +608,14 @@ describe('spinning from the keyboard', () => {
        * every value-spin's own phase transition does.
        */
       expect(store.getState().phase).not.toBe('awaitingDecision')
-      // The rail itself, read from the DOM the instant after pressing Spin,
-      // must not have moved yet — not the cash, not the career, nothing.
-      expect(panel.textContent).toBe(panelTextBefore)
+      // The strip itself, read from the DOM the instant after pressing Spin,
+      // must not have moved yet — not the cash, not the standing, nothing.
+      expect(strip.textContent).toBe(stripTextBefore)
 
-      // Once the wheel actually settles, the rail catches up.
+      // Once the wheel actually settles, the strip catches up.
       await waitFor(
         () => {
-          expect(panel.textContent).not.toBe(panelTextBefore)
+          expect(strip.textContent).not.toBe(stripTextBefore)
         },
         { timeout: 5000 },
       )
@@ -588,7 +635,11 @@ describe('spinning from the keyboard', () => {
  * used, before the card it produced can be read.
  */
 describe('a roll the player only drove past', () => {
-  function sweptPast(rolled?: SpinValue, players?: readonly NewGamePlayer[]): GameState {
+  function sweptPast(
+    rolled?: SpinValue,
+    players?: readonly NewGamePlayer[],
+    stakes?: string,
+  ): GameState {
     const store = startedGame(players)
     return {
       ...store.getState(),
@@ -605,6 +656,7 @@ describe('a roll the player only drove past', () => {
         emphasis: 'milestone',
         narration: 'A 3! Ada is hired as a Chef.',
         ...(rolled === undefined ? {} : { rolled }),
+        ...(stakes === undefined ? {} : { stakes }),
       },
     }
   }
@@ -644,6 +696,36 @@ describe('a roll the player only drove past', () => {
       timeout: 5000,
     })
     expect(screen.getByText('Ada becomes a Chef!')).toBeInTheDocument()
+  })
+
+  it('names what each face is worth before the die lands, same as a landed tile already does', () => {
+    render(
+      <App
+        store={createStubStore(
+          sweptPast(3, undefined, '1-3: Warehouse Picker, $32,000. 4-6: Line Cook, $28,000.'),
+        )}
+        audio={createFakeAudioPort()}
+        profiles={createInMemoryProfileRepository()}
+      />,
+    )
+
+    // The stakes a player is hoping for while the die turns — not the tile's
+    // own flavour text, which says nothing about what a 3 or a 4 is worth.
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText(/1-3: Warehouse Picker, \$32,000\. 4-6: Line Cook, \$28,000\./)).toBeInTheDocument()
+    expect(within(dialog).queryByText('Two offers on the table.')).not.toBeInTheDocument()
+  })
+
+  it('falls back to the tile\'s own description when a swept tile had nothing riding on the roll', () => {
+    render(
+      <App
+        store={createStubStore(sweptPast(3))}
+        audio={createFakeAudioPort()}
+        profiles={createInMemoryProfileRepository()}
+      />,
+    )
+
+    expect(within(screen.getByRole('dialog')).getByText('Two offers on the table.')).toBeInTheDocument()
   })
 
   it("throws itself for a computer seat's own swept-past roll — nobody at the table presses for them", async () => {
@@ -848,8 +930,17 @@ describe('game log drawer', () => {
   })
 })
 
-describe('player status', () => {
-  it('shows a status card for every seat at a four player table', () => {
+/*
+ * The tall per-seat cards left the default view entirely — the owner asked
+ * for the players along the bottom of the screen as a simplified band, with
+ * the full detail one press away. The strip is a glance (name, wallet,
+ * standing, whose turn); StatusModal is the report, and the strip itself is
+ * now the way in.
+ */
+describe('the player strip', () => {
+  const strip = (): HTMLElement => screen.getByRole('button', { name: /players — open full status/i })
+
+  it('names every seat and its wallet at a four player table', () => {
     const store = startedGame([
       { name: 'Ada', color: 'red', isCpu: false },
       { name: 'Ben', color: 'blue', isCpu: true },
@@ -858,23 +949,79 @@ describe('player status', () => {
     ])
     render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
-    // One card per player, all mounted at once — the layout may never hide a
-    // seat behind a scrollbar or below the fold.
-    expect(screen.getAllByRole('article')).toHaveLength(4)
+    // Every seat on the band at once — the strip may never hide a player.
+    for (const name of ['Ada', 'Ben', 'Cy', 'Dee']) {
+      expect(within(strip()).getByText(name)).toBeInTheDocument()
+    }
+    // Cash is the one figure a glance earns; everyone opens with the same
+    // stake, so one balance per seat.
+    expect(within(strip()).getAllByText(/\$/).length).toBe(4)
   })
 
-  // The players share one rail with the spinner — the old separate left rail
-  // and its standings strip are gone, so each card must now carry the rank
-  // and net worth the strip used to show.
-  it('seats every player under the spinner, each with rank and net worth', () => {
+  it('carries each seat\'s live standing — a tie shares 1st rather than inventing an order', () => {
     render(<App store={startedGame()} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
-    const rail = screen.getByRole('complementary', { name: /^players$/i })
-    expect(within(rail).getAllByRole('article')).toHaveLength(2)
-    expect(within(rail).getAllByText('Net worth')).toHaveLength(2)
-    // Nobody has moved yet, so both seats hold identical net worth — a tie
-    // shares 1st place rather than inventing an order.
-    expect(within(rail).getAllByText(/1st place/)).toHaveLength(2)
+    // Nobody has moved yet, so both seats hold identical net worth.
+    expect(within(strip()).getAllByText('1st')).toHaveLength(2)
+  })
+
+  it('opens the full status picture when the strip itself is pressed, and closes again', () => {
+    render(<App store={startedGame()} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    expect(screen.queryByRole('dialog', { name: /player status/i })).not.toBeInTheDocument()
+    fireEvent.click(strip())
+
+    // The same StatusModal the header button used to open: every seat's
+    // complete breakdown, side by side.
+    const dialog = screen.getByRole('dialog', { name: /player status/i })
+    expect(within(dialog).getAllByText('Net worth')).toHaveLength(2)
+    expect(within(dialog).getByLabelText(/ada's status/i)).toBeInTheDocument()
+    expect(within(dialog).getByLabelText(/ben's status/i)).toBeInTheDocument()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /close/i }))
+    expect(screen.queryByRole('dialog', { name: /player status/i })).not.toBeInTheDocument()
+  })
+
+  // The strip is always on screen and visibly pressable, which made the
+  // header's own Status button a second name for the same door — it went
+  // rather than leaving two controls doing one job.
+  it('is the only way into the status modal — the header button is gone', () => {
+    render(<App store={startedGame()} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    expect(screen.queryByRole('button', { name: /^status$/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('the die stepping aside for the driving car', () => {
+  /*
+   * The die sits at the centre of the screen, which is exactly where the
+   * camera holds the driving car, so mid-move the dock has to step aside —
+   * `.dieAside` fades it out and drops its pointer events. The window is
+   * sub-second in a real game, which is why it is pinned here rather than
+   * screenshotted.
+   */
+  it('steps the die aside while the car is actually driving', () => {
+    const store = startedGame()
+    const base = store.getState()
+    const dieDockOf = (): HTMLElement =>
+      screen.getByRole('button', { name: /^roll/i }).closest('[class*="dieDock"]') as HTMLElement
+
+    const { unmount } = render(
+      <App
+        store={createStubStore({ ...base, phase: 'awaitingSpin' })}
+        audio={createFakeAudioPort()}
+        profiles={createInMemoryProfileRepository()}
+      />,
+    )
+    expect(dieDockOf().className).not.toMatch(/dieAside/)
+    unmount()
+
+    // Real steps for the board to animate, so nothing settles from under us.
+    const moving = { ...base, phase: 'moving' as const, movementPath: [base.players[0]!.spaceId] }
+    render(
+      <App store={createStubStore(moving)} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />,
+    )
+    expect(dieDockOf().className).toMatch(/dieAside/)
   })
 })
 

@@ -68,17 +68,21 @@
   --sail-lit: #ffffff;
   --wake: rgba(255, 255, 255, 0.5);
 
-  /* ---- The one guaranteed landmark this edition's board carries --------
-     `--landmark`/`--landmark-shade` are the structure's own body (the
-     robe, the mountain, the ironwork); `--landmark-accent`/`-accent-shade`
-     are whatever sits on or beside it in a second colour (the torch, a
-     torii, snow, gold on a dome). Defaults here are the Statue of
-     Liberty's own verdigris and torch gold; every other edition below
-     retints both pairs for its own landmark. */
-  --landmark: #6fae9c;
-  --landmark-shade: #4c7d70;
+  /* ---- The capital skyline this edition's board carries ----------------
+     `--landmark`/`--landmark-shade` are the anchor structure's own body
+     (marble, ironwork, sandstone, rock); `--landmark-accent`/`-accent-shade`
+     are whatever reads in a second, brighter colour (a gilt finial, a
+     deck band, a gondola cabin); `--landmark-alt`/`--landmark-alt-shade`
+     are the skyline's second material (a zinc roof, a distant mountain's
+     slate, a copper dome). Defaults here are Washington's own marble and
+     gilt; every other edition below retints all three pairs for its own
+     capital. */
+  --landmark: #f0ead9;
+  --landmark-shade: #c3bb9e;
   --landmark-accent: #e8c14f;
   --landmark-accent-shade: #b8912c;
+  --landmark-alt: #d9d3c2;
+  --landmark-alt-shade: #a8a18a;
 
   --tile-drop: rgba(44, 52, 20, 0.24);
   --tile-drop-soft: rgba(44, 52, 20, 0.17);
@@ -92,14 +96,26 @@
   box-shadow: var(--elev-3);
 }
 
-/* ---- Per-country map pigments ------------------------------------------
+/* ---- Per-capital map pigments ------------------------------------------
    Same map, same shapes, same one-light-from-upper-left rendering — only the
-   paint changes. Each edition retints the terrain toward that country's own
-   land and roofline, the way an actual road atlas would: still land, still
-   sea, still a road you can follow, just a different country's daylight.
-   `editionId` is set as `data-edition` on this element (see Board.tsx); with
-   no match (or before the prop is set) the frame keeps the base USA pigments
-   defined above, so nothing here is ever a hard requirement to render. */
+   paint changes. Each edition retints the terrain toward its own capital's
+   daylight — Tokyo's blossom and slate, Paris's limestone and zinc, Delhi's
+   sandstone, La Paz's altiplano earth — and each capital's skyline pieces
+   (see `capitalSkylineFor` in boardLayout.ts) pick their three colour pairs
+   up from here. Still land, still sea, still a road you can follow, just a
+   different capital's daylight. `editionId` is set as `data-edition` on this
+   element (see Board.tsx); with no match (or before the prop is set) the
+   frame keeps the base Washington pigments defined above, so nothing here is
+   ever a hard requirement to render. */
+.frame[data-edition='usa'] {
+  /* Washington's own streets: brick rowfronts under white stone monuments.
+     The base palette above stays neutral cream for editions this file has
+     never heard of; the capital's brick is opted into by name. */
+  --bldg: #e2b49a;
+  --bldg-shade: #b3805f;
+  --bldg-top: #f4d9c4;
+}
+
 .frame[data-edition='japan'] {
   --land: #b7d68f;
   --land-far: #cfe2ab;
@@ -121,11 +137,14 @@
   --roof-shade: #232c3d;
   --crop: #d7c869;
 
-  /* Fuji's own slate-violet slope, and the torii's vermillion. */
-  --landmark: #8894ad;
-  --landmark-shade: #5c6684;
-  --landmark-accent: #c8452f;
-  --landmark-accent-shade: #93301f;
+  /* Tokyo: the lattice tower's vermillion body, warm-white deck bands,
+     and Fuji's slate-violet slope behind the pagoda's roofs. */
+  --landmark: #c8452f;
+  --landmark-shade: #93301f;
+  --landmark-accent: #f6f1e4;
+  --landmark-accent-shade: #d8cdb6;
+  --landmark-alt: #8894ad;
+  --landmark-alt-shade: #5c6684;
 }
 
 .frame[data-edition='france'] {
@@ -148,11 +167,14 @@
   --roof-shade: #2c3948;
   --crop: #cdb84a;
 
-  /* Weathered puddled iron, the way the tower itself actually reads. */
+  /* Paris: weathered puddled iron for the tower, and the limestone the
+     arch and every Haussmann façade are cut from. */
   --landmark: #5c5850;
   --landmark-shade: #3a372f;
   --landmark-accent: #d2492f;
   --landmark-accent-shade: #9c3320;
+  --landmark-alt: #ddd2ba;
+  --landmark-alt-shade: #ab9d80;
 }
 
 .frame[data-edition='india'] {
@@ -175,11 +197,14 @@
   --roof-shade: #7a2c17;
   --crop: #dfb72f;
 
-  /* The Taj's white marble, warmed at dusk, and its gold finial. */
-  --landmark: #f3ece0;
-  --landmark-shade: #cfc0a4;
+  /* New Delhi: the red sandstone Lutyens built in, a gilt finial, and
+     the secretariat dome's weathered copper-slate. */
+  --landmark: #d8b184;
+  --landmark-shade: #a87f4f;
   --landmark-accent: #d8ab3f;
   --landmark-accent-shade: #a97f27;
+  --landmark-alt: #7d7887;
+  --landmark-alt-shade: #575264;
 }
 
 .frame[data-edition='bolivia'] {
@@ -202,11 +227,19 @@
   --roof-shade: #6e2c1a;
   --crop: #c8b13d;
 
-  /* Andesite stone, and the sun-face relief carved across the lintel. */
+  /* The city bowl's famous unfinished red brick, climbing every slope. */
+  --bldg: #c9895e;
+  --bldg-shade: #96603c;
+  --bldg-top: #e0aa80;
+
+  /* La Paz: the massif's bare andesite under its glaciers, and the red
+     gondola cabins strung across the bowl. */
   --landmark: #8c7a68;
   --landmark-shade: #62533f;
-  --landmark-accent: #d4a13f;
-  --landmark-accent-shade: #a1761f;
+  --landmark-accent: #d84a35;
+  --landmark-accent-shade: #a1301e;
+  --landmark-alt: #a5906f;
+  --landmark-alt-shade: #7a6a4c;
 }
 
 /* The interior of the card. The map fills it, so the fill here only shows
@@ -488,6 +521,14 @@
 
 .landmarkAccentShade {
   fill: var(--landmark-accent-shade);
+}
+
+.landmarkAlt {
+  fill: var(--landmark-alt);
+}
+
+.landmarkAltShade {
+  fill: var(--landmark-alt-shade);
 }
 
 .rockShade {

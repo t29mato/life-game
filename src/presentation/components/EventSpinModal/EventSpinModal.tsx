@@ -11,6 +11,12 @@ export interface EventSpinModalProps {
   readonly prompt: string
   /** One line on what is riding on it, read before the die is thrown. */
   readonly stakes: string
+  /**
+   * The die's own outcome table — see `DecisionOption.table`. Rendered as an
+   * actual table beneath `stakes`, which is why `stakes` should never repeat
+   * what a row here already says.
+   */
+  readonly table?: readonly { readonly range: string; readonly amount: string }[] | undefined
   readonly result: SpinValue | null
   readonly onSpin: () => void
   readonly onSpinComplete: () => void
@@ -51,6 +57,7 @@ export interface EventSpinModalProps {
 export function EventSpinModal({
   prompt,
   stakes,
+  table,
   result,
   onSpin,
   onSpinComplete,
@@ -107,6 +114,30 @@ export function EventSpinModal({
           </h2>
           <p className={styles.stakes}>{stakes}</p>
         </header>
+
+        {/* What each face is actually worth, as rows — a player scans this
+            once and knows exactly what to hope for, instead of parsing it
+            back out of a sentence the way `stakes` alone used to ask them
+            to. Only ever present alongside a real breakdown; most rolls
+            (a single threshold, a flat rate) have nothing to tabulate. */}
+        {table && table.length > 0 ? (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th scope="col">Roll</th>
+                <th scope="col">Outcome</th>
+              </tr>
+            </thead>
+            <tbody>
+              {table.map((row) => (
+                <tr key={row.range}>
+                  <td>{row.range}</td>
+                  <td>{row.amount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
 
         <Dice
           result={result}

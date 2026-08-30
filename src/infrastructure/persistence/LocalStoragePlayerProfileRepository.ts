@@ -14,7 +14,6 @@ function isPlausibleProfile(value: unknown): value is PlayerProfile {
     typeof value.name === 'string' &&
     value.name.trim().length > 0 &&
     typeof value.color === 'string' &&
-    typeof value.face === 'string' &&
     typeof value.lastUsedAt === 'string'
   )
 }

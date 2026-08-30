@@ -148,6 +148,28 @@ export function DecisionModal({
                 <span className={styles.optionBody}>
                   <span className={styles.optionLabel}>{option.label}</span>
                   <span className={styles.optionDescription}>{option.description}</span>
+                  {/* What each face is actually worth, as rows — see
+                      `DecisionOption.table`. Only ever present alongside a
+                      real breakdown; `description` above stays the plain-
+                      language framing and never repeats a row's own words. */}
+                  {option.table && option.table.length > 0 ? (
+                    <table className={styles.optionTable}>
+                      <thead>
+                        <tr>
+                          <th scope="col">Roll</th>
+                          <th scope="col">Outcome</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {option.table.map((row) => (
+                          <tr key={row.range}>
+                            <td>{row.range}</td>
+                            <td>{row.amount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : null}
                   {lane && lane.length > 0 ? (
                     <span className={styles.lanePreview}>
                       <span className={styles.laneIcons} aria-hidden="true">

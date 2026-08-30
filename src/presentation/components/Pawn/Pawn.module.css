@@ -148,6 +148,88 @@
   stroke-width: 1.1;
 }
 
+/* ---- Wealth tiers -------------------------------------------------------- */
+/* What a player's fortunes do to the moulding. Tier 1 is the same plastic
+   gone chalky — the base colour knocked toward grey and the specular nearly
+   gone, because dull paint is what stops shining — while the marks
+   themselves (dent, scratches, rust) are drawn in Pawn.tsx. Tiers 3 and 4
+   add brightwork in one shared chrome tone rather than a new palette. */
+
+.token[data-tier='1'] .body {
+  fill: color-mix(in srgb, var(--pawn-base) 68%, #8a8375);
+}
+
+.token[data-tier='1'] .gloss {
+  opacity: 0.16;
+}
+
+.dent {
+  fill: #241d3f;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.scratch {
+  fill: none;
+  stroke: #241d3f;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.rust {
+  fill: #8a5a2b;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* The front hub with its brightwork long gone: a bald tyre, nothing shiny. */
+.wornHub {
+  fill: color-mix(in srgb, var(--pawn-dark) 40%, #241d3f);
+}
+
+/* The one chrome tone all the brightwork shares — a cold near-white, so it
+   reads as metal against every plastic tint rather than as more paint. */
+.trim {
+  fill: none;
+  stroke: #f2f6fa;
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.hubRing {
+  fill: none;
+  stroke: #f2f6fa;
+  stroke-width: 1.4;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* The second colour of a two-tone paint job, over the long bonnet only. */
+.twoTone {
+  fill: color-mix(in srgb, var(--pawn-light) 72%, #ffffff);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.ornamentStem {
+  fill: none;
+  stroke: #f2f6fa;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.ornamentHead {
+  fill: #f2f6fa;
+  stroke: var(--pawn-dark);
+  stroke-width: 0.9;
+  pointer-events: none;
+}
+
 /* ---- Passengers ---------------------------------------------------------- */
 
 .peg {
@@ -169,22 +251,6 @@
 .pegGloss {
   fill: #ffffff;
   opacity: 0.75;
-}
-
-/* The driver's expression: a few strokes in the tyres' own dark ink, which
-   holds on every head tint because heads are always a light mix. */
-.face {
-  pointer-events: none;
-}
-
-.faceInk {
-  fill: #241d3f;
-}
-
-.faceStroke {
-  fill: none;
-  stroke: #241d3f;
-  stroke-linecap: round;
 }
 
 /* Past the cap the back seat carries a count instead of more heads. */

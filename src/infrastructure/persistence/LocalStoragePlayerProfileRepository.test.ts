@@ -7,7 +7,7 @@ import { createMemoryStorage } from './memoryStorage'
 function fixtureProfile(
   overrides: Partial<Omit<PlayerProfile, 'lastUsedAt'>> = {},
 ): Omit<PlayerProfile, 'lastUsedAt'> {
-  return { name: 'Ada', color: 'teal', face: 'cheerful', ...overrides }
+  return { name: 'Ada', color: 'teal', ...overrides }
 }
 
 function throwingStorage(): Storage {
@@ -72,14 +72,14 @@ describe('createLocalStoragePlayerProfileRepository', () => {
     expect(repo.list().map((p) => p.name)).toEqual(['Grace', 'Ada'])
   })
 
-  it('treats "Alex" and "alex" as the same person, keeping the newer design and spelling', () => {
+  it('treats "Alex" and "alex" as the same person, keeping the newer colour and spelling', () => {
     const repo = createLocalStoragePlayerProfileRepository(createMemoryStorage())
-    repo.upsert(fixtureProfile({ name: 'Alex', color: 'red', face: 'classic' }))
-    repo.upsert(fixtureProfile({ name: 'alex', color: 'navy', face: 'cool' }))
+    repo.upsert(fixtureProfile({ name: 'Alex', color: 'red' }))
+    repo.upsert(fixtureProfile({ name: 'alex', color: 'navy' }))
 
     const profiles = repo.list()
     expect(profiles).toHaveLength(1)
-    expect(profiles[0]).toMatchObject({ name: 'alex', color: 'navy', face: 'cool' })
+    expect(profiles[0]).toMatchObject({ name: 'alex', color: 'navy' })
   })
 
   it('moves a returning player back to the front of the list', () => {
@@ -133,6 +133,14 @@ describe('createLocalStoragePlayerProfileRepository', () => {
     storage.setItem(PROFILES_KEY, JSON.stringify([good, { garbage: true }, 'nonsense', { name: '  ' }]))
     const repo = createLocalStoragePlayerProfileRepository(storage)
     expect(repo.list()).toEqual([good])
+  })
+
+  it('still reads a profile saved back when faces existed — the stray key just rides along', () => {
+    const storage = createMemoryStorage()
+    const legacy = { ...fixtureProfile(), face: 'cool', lastUsedAt: '2026-08-29T12:00:00.000Z' }
+    storage.setItem(PROFILES_KEY, JSON.stringify([legacy]))
+    const repo = createLocalStoragePlayerProfileRepository(storage)
+    expect(repo.list()[0]).toMatchObject({ name: 'Ada', color: 'teal' })
   })
 
   it('swallows a setItem quota/security exception instead of crashing', () => {

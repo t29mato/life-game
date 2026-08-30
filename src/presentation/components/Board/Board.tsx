@@ -10,10 +10,13 @@ import {
   type ReactElement,
 } from 'react'
 import { animate, useMotionValue, type AnimationPlaybackControls } from 'framer-motion'
-import type { Board as BoardModel, GamePhase, Player, Space, SpaceId } from '@domain/model/types'
+import type { Board as BoardModel, Difficulty, GamePhase, Player, Space, SpaceId } from '@domain/model/types'
+import { editionFor } from '@domain/edition/registry'
+import { estimateNetWorth } from '@domain/rules/scoring'
 import { GameIconGlyph } from '../../icons/GameIcon'
 import { Pawn, type PawnHandle, type PawnPoint } from '../Pawn/Pawn'
 import { describeCar } from '../Pawn/passengers'
+import { wealthTier } from '../Pawn/wealthTier'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import {
   boardLanes,
@@ -75,19 +78,29 @@ export interface BoardProps {
   readonly introFlythrough?: boolean
   /** Which country's map pigments to paint the terrain in — see `.frame`'s `[data-edition]` overrides. */
   readonly editionId?: string
+  /**
+   * How unkind this game is. It reaches the board for one reason only: what a
+   * loan costs to settle depends on it, and that cost is part of the live net
+   * worth each car's wealth tier is banded from — the same reason
+   * `rankPlayers` takes it. Omitted means priced at `normal`.
+   */
+  readonly difficulty?: Difficulty
 }
 
 /**
  * Car length and how far apart parked cars sit, both as fractions of a tile,
  * indexed by how many players are in the game.
  *
- * A single car is drawn as long as its space — the toy overhangs the
+ * A single car is drawn longer than its space — the toy overhangs the
  * board, and that is what makes it read as a physical object sitting on the
- * tile rather than as an icon printed inside it. Each extra player shortens
- * every car and widens the echelon, so a full stack still fits on one space
- * with every roofline and every passenger in view.
+ * tile rather than as an icon printed inside it. Cars used to shrink hard
+ * with every extra player so a full stack could be squeezed onto one space;
+ * now that a shared tile is allowed to spill over (see the spreads below),
+ * they give up far less of their size — a wealth-tier change or a new child
+ * in the back has to stay legible at the board's normal zoom even at a full
+ * table, and a car two-thirds of a tile long could not promise that.
  */
-const PAWN_SCALE: readonly number[] = [1.04, 1.04, 0.99, 0.86, 0.77]
+const PAWN_SCALE: readonly number[] = [1.15, 1.15, 1.08, 0.98, 0.9]
 
 /**
  * The echelon reaches further sideways than it does back, because a car is
@@ -98,19 +111,19 @@ const PAWN_SCALE: readonly number[] = [1.04, 1.04, 0.99, 0.86, 0.77]
  * The step back matters just as much, though: two cars offset only sideways
  * still have their bodies overlapping through most of their width, and it is
  * the back step that lifts one roofline clear of the other so a stack of cars
- * reads as several roofs in a row rather than one wide smear. At four to a
- * tile the back step used to be little more than a third of a car's own
- * height — barely more than the wheels alone — which is what let two cars in
- * the middle of the row all but merge into one silhouette; it is widened here
- * so a step is always a good fraction of a whole car tall.
+ * reads as several roofs in a row rather than one wide smear.
  *
- * Each figure is set so that the outermost slot plus half a car still lands
- * near the tarmac. A car may overhang its space — the toy always does — but
- * one that hung off the road entirely would read as misplaced rather than as
- * parked.
+ * These used to be capped so the outermost slot plus half a car still landed
+ * near the tarmac — cars sharing a tile were squeezed until the whole stack
+ * stayed contained. That constraint has been deliberately dropped: cars
+ * parked together may now overhang past the road edge and onto a
+ * neighbouring tile, because every roofline, driver and plate staying
+ * readable matters more than the pile staying inside its printed bounds.
+ * The steps are still finite for a reason — the fan must read as one row of
+ * parked cars, not as tokens scattered off their space.
  */
-const SLOT_SPREAD_X: readonly number[] = [0, 0, 0.4, 0.46, 0.5]
-const SLOT_SPREAD_Y: readonly number[] = [0, 0, 0.35, 0.41, 0.54]
+const SLOT_SPREAD_X: readonly number[] = [0, 0, 0.62, 0.7, 0.8]
+const SLOT_SPREAD_Y: readonly number[] = [0, 0, 0.5, 0.58, 0.72]
 
 /**
  * Seconds a camera move takes: a considered one between turns, a brisk one that
@@ -223,12 +236,16 @@ export function Board({
   onSpacesLeftChange,
   introFlythrough = false,
   editionId,
+  difficulty,
 }: BoardProps): ReactElement {
   const rawId = useId()
   const uid = useMemo(() => rawId.replace(/:/g, ''), [rawId])
   const reduceMotion = usePrefersReducedMotion()
   const projection = useMemo(() => createProjection(board), [board])
   const spaces = useMemo(() => Object.values(board.spaces), [board])
+  /* Resolved here for the cars' wealth tiers: the banding is priced against
+     this edition's own economy, never a hardcoded dollar figure. */
+  const edition = useMemo(() => editionFor(editionId), [editionId])
 
   const captionSize = projection.tileSize * 0.34
 
@@ -239,7 +256,14 @@ export function Board({
   const coast = useMemo(() => coastline(board, projection), [board, projection])
   const pockets = useMemo(() => forkPockets(board, projection), [board, projection])
   const hills = useMemo(() => ridges(board, projection), [board, projection])
-  const scenery = useMemo(() => scatterScenery(board, projection, editionId), [board, projection, editionId])
+  /* Painted back to front, like the cars: a skyline piece standing high on
+     the map draws behind the streets below it, and a building never paints
+     over the foot of one standing in front of it. `scatterScenery` returns
+     placement order (the guaranteed skyline first), which is not depth. */
+  const scenery = useMemo(
+    () => [...scatterScenery(board, projection, editionId)].sort((a, b) => a.y - b.y),
+    [board, projection, editionId],
+  )
   const strands = useMemo(() => routeStrands(board, projection, lanes), [board, projection, lanes])
 
   const tiles = useMemo<readonly TileView[]>(() => {
@@ -1078,7 +1102,10 @@ export function Board({
                     isActive={index === currentPlayerIndex}
                     isMarried={player.isMarried}
                     childCount={player.children}
-                    face={player.face ?? 'classic'}
+                    // Recomputed on every render, which is the point: a
+                    // promotion or a bad month re-renders the board, and the
+                    // car's bodywork follows without anyone opening a menu.
+                    wealthTier={wealthTier(estimateNetWorth(player, difficulty, edition), edition.economy)}
                     size={pawnSize}
                   />
                 )

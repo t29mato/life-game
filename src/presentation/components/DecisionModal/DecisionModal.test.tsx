@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { Board, Decision, Space } from '@domain/model/types'
@@ -81,6 +81,55 @@ describe('DecisionModal', () => {
     expect(screen.getByRole('option', { name: /Pilot/ })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: /Artist/ })).toBeInTheDocument()
     expect(screen.getByText('$70,000')).toBeInTheDocument()
+  })
+
+  /*
+   * A player caught the alternative in the wild: a title, a narration line,
+   * and a description all naming the same tile, and the actual roll-to-
+   * outcome mapping flattened into one comma-joined sentence nobody could
+   * scan. `DecisionOption.table` exists so that mapping renders as an actual
+   * table instead.
+   */
+  it("renders an option's roll-to-outcome table, when it has one, as an actual table", () => {
+    const decision: Decision = {
+      kind: 'valueSpin',
+      prompt: 'Tuition Bill',
+      options: [
+        {
+          id: 'roll',
+          label: 'Roll',
+          description: 'Roll to find out what you owe.',
+          icon: 'space:tuition-bill',
+          table: [
+            { range: '1-2', amount: '$90,000' },
+            { range: '3-4', amount: '$52,000' },
+            { range: '5', amount: '$28,000' },
+            { range: '6', amount: 'Full ride' },
+          ],
+        },
+      ],
+    }
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <DecisionModal decision={decision} board={makeBoard()} onChoose={() => {}} />
+      </AudioProvider>,
+    )
+
+    const table = screen.getByRole('table')
+    expect(within(table).getByText('1-2')).toBeInTheDocument()
+    expect(within(table).getByText('$90,000')).toBeInTheDocument()
+    expect(within(table).getByText('Full ride')).toBeInTheDocument()
+    // The description stays short — it must not repeat what a row already says.
+    expect(screen.queryByText(/\$90,000.*\$52,000/)).not.toBeInTheDocument()
+  })
+
+  it('renders no table when an option has nothing to break down', () => {
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <DecisionModal decision={makeDecision()} board={makeBoard()} onChoose={() => {}} />
+      </AudioProvider>,
+    )
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 
   it('focuses the first option on mount', () => {

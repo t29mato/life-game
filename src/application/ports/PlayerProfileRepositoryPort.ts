@@ -1,13 +1,12 @@
-import type { DriverFace, PlayerColor } from '@domain/model/types'
+import type { PlayerColor } from '@domain/model/types'
 
 /**
- * One remembered person: the name they play under and the design they last
+ * One remembered person: the name they play under and the colour they last
  * played it in, so the next evening starts with one tap instead of four.
  */
 export interface PlayerProfile {
   readonly name: string
   readonly color: PlayerColor
-  readonly face: DriverFace
   /** ISO timestamp of the last game started under this name. Stamped by the
    *  adapter — the pure layers have no clock. */
   readonly lastUsedAt: string

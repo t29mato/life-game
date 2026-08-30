@@ -2,8 +2,8 @@
    The page shell: a linen table with a printed board on it.
    No boxed header strip — the masthead, the turn marker and the controls sit
    directly on the table, the way a scorepad and a box lid would. Everything
-   below is one grid: the board owns the left, one paper rail (wheel + seats)
-   stands on the right.
+   below is one column: the board owns the whole middle, and the seats sit
+   on one paper band across the foot of the screen (see PlayerStrip).
    ========================================================================== */
 
 .shell {
@@ -276,23 +276,19 @@
 }
 
 /* ---- Layout -------------------------------------------------------------
-   The board owns everything left of the one rail: wheel on top, seats
-   beneath, nothing else permanently on screen — the log is a drawer. */
+   The board owns everything between the header and the player strip. The
+   right-hand rail of seat cards is gone — the seats live on the strip at
+   the foot of the screen now, and nothing else is permanently on screen:
+   the log is a drawer, the full per-seat picture is a modal. */
 .main {
-  display: grid;
-  grid-template-columns:
-    minmax(0, 1fr)
-    clamp(280px, 24vw, 360px);
-  grid-template-areas: 'board controls';
-  gap: var(--stack);
-  align-items: stretch;
+  display: flex;
   flex: 1;
   min-height: 0;
 }
 
 /* The board is seated in the middle of the table, not pinned to its top edge. */
 .boardArea {
-  grid-area: board;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -319,27 +315,28 @@
   min-width: 0;
 }
 
-/* ---- The roll dock: the die, over the foot of the board -------------------
-   The die used to live at the top of the rail, on the far side of a wide
-   screen from wherever a cursor actually is — a trip across the whole page,
-   every single turn. It sits here instead: horizontally centred so it is a
-   short reach from anywhere, and pinned low so it stays clear of the tiles.
-   The camera holds the active car near the middle of the map, which is
-   precisely the part a control must not cover.
+/* ---- The roll dock: the die, dead centre of the screen --------------------
+   The die used to live at the top of the rail, then over the foot of the
+   board — and the owner said, twice, that the middle of the screen is where
+   it belongs. With the seats gone to the strip below, the board's stage
+   spans everything between the header and that strip, so centring in the
+   stage is centring on the screen a player actually looks at — the strip
+   claiming the bottom edge can never pull it off. The camera holds the
+   active car near this same spot; `.dieAside` below is what keeps the two
+   from fighting while the car is actually driving.
 
-   The dock itself is transparent to the pointer so a drag across the board
-   still pans it; only the controls inside take clicks. */
+   The dock itself spans the whole stage, transparent to the pointer so a
+   drag across the board still pans it; only the controls inside take
+   clicks. */
 .rollDock {
   position: absolute;
+  inset: 0;
   z-index: 2;
-  bottom: clamp(8px, 2.2vh, 22px);
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
-  max-width: calc(100% - 2rem);
   pointer-events: none;
 }
 
@@ -348,19 +345,44 @@
 }
 
 .dieDock {
+  position: relative;
   display: flex;
   justify-content: center;
+  transition: opacity var(--duration-base) var(--ease-out);
 }
 
-/* ---- The rail: every seat, and nothing else ------------------------------- */
+/* A felt mat under the die — the tile grid behind it is busy enough (a
+   board's worth of icons in every direction) that the die's own cream face
+   used to vanish into it for a beat before a player's eye found it. A real
+   thrown die gets a spot on the table that is unmistakably not the board:
+   a soft paper disc, lofted the same way any raised surface in this game
+   is, plus a wide, faint glow further out that dims the icons right behind
+   it without blocking them. Sized to clear the ready-halo ring (`Dice`'s
+   own `::before`) rather than crop it. */
+.dieDock::before {
+  content: '';
+  position: absolute;
+  inset: -34%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--surface) 0%,
+    color-mix(in srgb, var(--surface) 88%, transparent) 38%,
+    color-mix(in srgb, var(--surface) 45%, transparent) 62%,
+    transparent 82%
+  );
+  box-shadow: var(--elev-3);
+}
 
-.controlRail {
-  grid-area: controls;
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--stack) - 4px);
-  min-width: 0;
-  min-height: 0;
+/* Mid-move, the centre belongs to the car the camera is holding there. The
+   die's own animation is over by then (the pawn only rolls once the die has
+   settled), so it fades to nothing and gives the spot back until the move
+   resolves — leaving only the hop counter riding along. Pointer-events off
+   so the invisible die can never swallow a drag meant for the board. */
+.rollDock > .dieAside {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Named ahead of the press that settles it — a fork's own significance,
@@ -413,71 +435,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.playersBlock {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 0.35rem;
-  min-width: 0;
-  min-height: 0;
-}
-
-/* Section labels: small, faint, wide — they name a block without competing
-   with the money inside it. */
-.blockLabel {
-  flex: none;
-  margin: 0;
-  padding-left: 0.35rem;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-/* Every seat stays on screen at once: the stack centres in the height left
-   under the wheel and the cards themselves are dense enough to fit four.
-   `safe` keeps the first card reachable if a very short window does force an
-   overflow — scrolling is the escape hatch, never the design. */
-.players {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  justify-content: safe center;
-  gap: 0.5rem;
-  min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 4px 2px 8px;
-}
-
-/* Never let the flex algorithm squeeze a card to fit: a card clips its own
-   overflow (for the retirement hatching), so shrinking silently swallows the
-   chips row — facts vanish with no scrollbar to say so. Cards keep their
-   natural height and the rail scrolls instead, if it ever comes to that. */
-.players > * {
-  flex: none;
-}
-
-/* A short room on a wide desk — the 1280×800 laptop. The rail's chrome
-   slims down so four dense cards still clear the fold; the cards do their
-   own squeezing in PlayerPanel.module.css at the same breakpoint. */
-@media (max-height: 820px) and (min-width: 1000px) {
-  .controlRail {
-    gap: 8px;
-  }
-
-  .playersBlock {
-    gap: 0.22rem;
-  }
-
-  .players {
-    gap: 0.4rem;
-    padding-bottom: 6px;
-  }
-}
-
 /* ---- Log drawer -----------------------------------------------------------
    The feed is reference material, not a permanent fixture: it slides in over
    the table's right edge when summoned and gives its space back when not. */
@@ -518,8 +475,9 @@
 }
 
 /* ---- Wide screens ---------------------------------------------------------
-   The table fills the window exactly: masthead row on top, board and rail
-   below, nothing ever scrolling off the bottom. */
+   The table fills the window exactly: masthead row on top, the board in the
+   middle, the player strip at the foot, nothing ever scrolling off the
+   bottom. */
 
 @media (min-width: 1000px) and (min-height: 600px) {
   .shell {
@@ -547,36 +505,20 @@
 }
 
 /* ---- Stacked screens ------------------------------------------------------
-   Below the two-column threshold the table folds: board first, then the
-   spinner, then every player card in a grid. The log drawer becomes a
-   bottom sheet.
-
-   The board is the one thing here that stretches AND shrinks. The controls
-   row (`auto`) is sized to whatever the spinner and the player cards
-   actually need; the board row (`minmax(0, 1fr)`) gets whatever is left of
-   the shell's locked height, and — same trick as the desktop branch above,
-   now that the shell has a real height on every width — becomes a size
-   container so the board can measure that leftover room instead of guessing
-   a fraction of the viewport. */
+   Below the two-column threshold nothing folds any more — the layout is the
+   same board-over-strip column the desktop uses. What this block still owns:
+   the locked height (a phone game screen scrolls inside itself, never the
+   page around it), size containment so the board can measure its leftover
+   room instead of guessing a fraction of the viewport, and hiding the Space
+   hint — this width is presumed touch-first, and advertising a key a device
+   probably does not have is worse than silence. The old `50dvh` floor under
+   the board went with the rail: the strip is one short band, not a stack of
+   cards that could eat the board's share. */
 
 @media (max-width: 999px) {
   .shell {
     height: 100dvh;
     overflow: hidden;
-  }
-
-  .main {
-    grid-template-columns: minmax(0, 1fr);
-    /* The board used to take whatever the controls row left over, and the
-       controls row had no cap of its own — a bigger wheel (added for a
-       desktop complaint) quietly ate straight into the board's share on a
-       phone, until individual tiles rendered under 10px tall. `minmax(50dvh,
-       1fr)` puts a floor under it: the board always gets at least half the
-       screen, however tall the wheel and player cards below it want to be. */
-    grid-template-rows: minmax(50dvh, 1fr) auto;
-    grid-template-areas:
-      'board'
-      'controls';
   }
 
   .boardArea {
@@ -586,30 +528,6 @@
 
   .boardArea > * {
     width: 100%;
-  }
-
-  /* The rail is a full-width stack of seats here. The die is not in it —
-     it docks over the foot of the board (see `.rollDock`), which on a phone
-     is the nearest thumb-sized target there is. */
-  .controlRail {
-    flex: none;
-  }
-
-  .playersBlock {
-    flex: none;
-  }
-
-  /* A grid rather than the desktop's vertical stack, so two or three seats
-     read as a row instead of a taller and taller column — a phone has width
-     to spare and height to protect. Still capped by `max-height` with its
-     own scrollbar: the one seam left once the header and the board have
-     both already given up their slack, for the four-player case that would
-     otherwise still overflow. */
-  .players {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 236px), 1fr));
-    max-height: 32vh;
-    overflow-y: auto;
   }
 }
 
@@ -721,9 +639,5 @@
 
   .turnLabel {
     display: none;
-  }
-
-  .players {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 158px), 1fr));
   }
 }

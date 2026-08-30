@@ -227,6 +227,25 @@ describe('applyEffect', () => {
       }
     })
 
+    it('breaks the two offers into a table, keyed to the die\'s own halves, instead of a sentence', () => {
+      const player = fixturePlayer({ hasDegree: false })
+      const state = fixtureState({ players: [player] })
+      const space = fixtureSpace({ effect: { type: 'chooseCareer', pool: 'basic' } })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      const option = next.pendingDecision!.options[0]!
+      // The tile's own title and narration already say what this is —
+      // the description must not repeat a career name or a roll range.
+      expect(option.description).not.toMatch(/\d-\d/)
+      expect(option.table).toHaveLength(2)
+      expect(option.table![0]!.range).toBe('1-3')
+      expect(option.table![1]!.range).toBe('4-6')
+      const [firstId, secondId] = next.pendingDecision!.offeredCareerIds!
+      const firstCareer = BASIC_CAREERS.find((c) => c.id === firstId)!
+      const secondCareer = BASIC_CAREERS.find((c) => c.id === secondId)!
+      expect(option.table![0]!.amount).toContain(firstCareer.title)
+      expect(option.table![1]!.amount).toContain(secondCareer.title)
+    })
+
     it('offers from the graduate pool when the player has a degree', () => {
       const player = fixturePlayer({ hasDegree: true })
       const state = fixtureState({ players: [player] })
@@ -389,7 +408,7 @@ describe('applyEffect', () => {
   describe('tuition', () => {
     const BILL = { effect: { type: 'tuition', reason: 'College tuition' } } as const
 
-    it('holds for the player to spin themselves, naming every band before they do', () => {
+    it('holds for the player to spin themselves, naming every band before they do — as a table, not a sentence', () => {
       const player = fixturePlayer({ money: 100_000 })
       const state = fixtureState({ players: [player] })
       const random = createFakeRandom({ spins: [1] })
@@ -398,9 +417,17 @@ describe('applyEffect', () => {
       expect(random.calls.spins).toBe(0)
       expect(next.players[0]!.money).toBe(100_000)
       expect(next.pendingDecision?.kind).toBe('valueSpin')
+      // The description is the plain-language framing only — the tile's own
+      // title and narration already say what it is, so it must not repeat
+      // "College tuition" or "1 to 6" on top of them.
       const description = next.pendingDecision?.options[0]?.description ?? ''
+      expect(description).not.toMatch(/tuition/i)
+      expect(description).not.toMatch(/1 to \d/)
+      const table = next.pendingDecision?.options[0]?.table ?? []
+      expect(table).toHaveLength(USA_ECONOMY.tuition.outcomes.length)
       for (const band of USA_ECONOMY.tuition.outcomes) {
-        expect(description).toContain(band.cost === 0 ? 'full ride' : formatMoney(band.cost))
+        const amount = band.cost === 0 ? 'Full ride' : formatMoney(band.cost)
+        expect(table.some((row) => row.amount === amount)).toBe(true)
       }
     })
   })

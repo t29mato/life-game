@@ -50,13 +50,30 @@ export function applyPassedEvent(
         `applyPassedEvent: "${space.id}" raised a "${decision.kind}" decision with ${decision.options.length} option(s) — a tile passed mid-move must never need a real choice`,
       )
     }
+    // `resolveSpinOutcome` below throws this decision away the moment it
+    // picks a winner — grabbed here or it is gone. This is the same framing
+    // and the same table a landed tile's own press-the-die screen shows
+    // before the press; a swept tile deserves the same thing to hope for
+    // while its die turns.
+    const stakes = decision.options[0]?.description
+    const table = decision.options[0]?.table
     const edition = editionOf(state)
     const money = (amount: Money) => formatMoney(amount, edition.currency)
     const spinValue = deps.random.spin()
     finalState = resolveSpinOutcome(afterEffect, player, space, spinValue, edition, deps, money)
     // `resolved()` in choose.ts always sets this for every branch
     // `resolveSpinOutcome` can reach; the fallback only guards the type.
-    event = finalState.lastEvent ?? initialEvent
+    // Conditional spreads, not plain keys, because `exactOptionalPropertyTypes`
+    // means an explicit `undefined` is not the same thing as the key being
+    // absent — a decision's own description is effectively always present,
+    // but nothing here should assume it, and most decisions carry no table.
+    event = finalState.lastEvent
+      ? {
+          ...finalState.lastEvent,
+          ...(stakes === undefined ? {} : { stakes }),
+          ...(table === undefined ? {} : { table }),
+        }
+      : initialEvent
   }
 
   /*

@@ -201,20 +201,23 @@ function baseEvent(
 }
 
 /**
- * Every band of the tuition die, spelled out before anyone presses Roll —
- * "1-2: $90,000, 3-4: $52,000, 5: $28,000, 6: full ride" — built fresh
- * from whatever bands the edition actually defines, so a country that ever
- * ships a different number of them still reads correctly.
+ * Every band of the tuition die, as rows — "1-2 → $90,000", "6 → full ride"
+ * — built fresh from whatever bands the edition actually defines, so a
+ * country that ever ships a different number of them still reads correctly.
+ * Data, not a sentence: the presentation layer renders this as a table
+ * rather than a player having to parse a comma-joined string themselves.
  */
-function tuitionBandsNote(tuition: TuitionSpec, currency: CurrencySpec): string {
+function tuitionBands(
+  tuition: TuitionSpec,
+  currency: CurrencySpec,
+): readonly { readonly range: string; readonly amount: string }[] {
   const money = (amount: Money): string => formatMoney(amount, currency)
   let previousUpTo = 0
-  const bands = tuition.outcomes.map((band) => {
+  return tuition.outcomes.map((band) => {
     const range = band.upTo === previousUpTo + 1 ? `${band.upTo}` : `${previousUpTo + 1}-${band.upTo}`
     previousUpTo = band.upTo
-    return `${range}: ${band.cost === 0 ? 'full ride' : money(band.cost)}`
+    return { range, amount: band.cost === 0 ? 'Full ride' : money(band.cost) }
   })
-  return `Roll 1 to ${SPIN_FACES} to find out what you owe — ${bands.join(', ')}.`
 }
 
 /**
@@ -242,6 +245,24 @@ function careerOfferSummary(career: Career, currency: CurrencySpec, edition: Edi
   const rung =
     career.isCalling || !ladder || ladder.height === 1 ? '' : `, rung ${ladder.rung} of ${ladder.height}`
   return `${career.title} (${formatMoney(salaryRate(career.salary, currency), currency)}/${salaryPeriod(currency)}${rung})`
+}
+
+/**
+ * The two offers, as table rows instead of a sentence — `LOW_HALF`/
+ * `HIGH_HALF` name which side of the die each one is on, exactly the way
+ * `resolveForkBranch` splits a fork, so a player scans two rows rather than
+ * parsing "1-3: X. 4-6: Y." out of prose.
+ */
+function careerOfferTable(
+  first: Career,
+  second: Career,
+  currency: CurrencySpec,
+  edition: Edition,
+): readonly { readonly range: string; readonly amount: string }[] {
+  return [
+    { range: LOW_HALF, amount: careerOfferSummary(first, currency, edition) },
+    { range: HIGH_HALF, amount: careerOfferSummary(second, currency, edition) },
+  ]
 }
 
 function houseDecisionOptions(
@@ -469,8 +490,12 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
           {
             id: VALUE_SPIN_OPTION_ID,
             label: 'Roll',
-            description: `${effect.reason}. ${tuitionBandsNote(economy.tuition, currency)}`,
+            // The title and the narration above this have already said what
+            // tile this is; the table below says exactly what each face is
+            // worth. Nothing here needs to repeat either.
+            description: 'Roll to find out what you owe.',
             icon: 'space:tuition-bill',
+            table: tuitionBands(economy.tuition, currency),
           },
         ],
       }
@@ -618,8 +643,9 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
           {
             id: VALUE_SPIN_OPTION_ID,
             label: 'Roll',
-            description: `Roll 1 to ${SPIN_FACES} to see who hires you — ${LOW_HALF}: ${careerOfferSummary(first, currency, edition)}. ${HIGH_HALF}: ${careerOfferSummary(second, currency, edition)}.`,
+            description: 'Roll to see who hires you.',
             icon: space.icon,
+            table: careerOfferTable(first, second, currency, edition),
           },
         ],
         offeredCareerIds: [first.id, second.id],
@@ -982,9 +1008,14 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
        * free look at two jobs, and Company Road would never be worth taking.
        */
       const mayStay = player.career !== null && effect.compulsory !== true
-      const spinDescription = `Roll 1 to ${SPIN_FACES} to see which one you take — ${LOW_HALF}: ${careerOfferSummary(first, currency, edition)}. ${HIGH_HALF}: ${careerOfferSummary(second, currency, edition)}.`
       const options: DecisionOption[] = [
-        { id: VALUE_SPIN_OPTION_ID, label: 'Roll', description: spinDescription, icon: space.icon },
+        {
+          id: VALUE_SPIN_OPTION_ID,
+          label: 'Roll',
+          description: 'Roll to see which one you take.',
+          icon: space.icon,
+          table: careerOfferTable(first, second, currency, edition),
+        },
       ]
       if (mayStay && player.career) {
         options.push({

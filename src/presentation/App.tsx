@@ -26,15 +26,14 @@ import { DecisionModal } from './components/DecisionModal/DecisionModal'
 import { EventCard } from './components/EventCard/EventCard'
 import { EventSpinModal } from './components/EventSpinModal/EventSpinModal'
 import { GameLog } from './components/GameLog/GameLog'
-import { PlayerPanel } from './components/PlayerPanel/PlayerPanel'
 import { rankPlayers } from './components/PlayerPanel/rankPlayers'
+import { PlayerStrip } from './components/PlayerStrip/PlayerStrip'
 import { ResultsScreen } from './components/ResultsScreen/ResultsScreen'
 import { Dice } from './components/Dice/Dice'
 import { MoveCounter } from './components/MoveCounter/MoveCounter'
 import { TitleScreen } from './components/TitleScreen/TitleScreen'
 import { TurnHandoff } from './components/TurnHandoff/TurnHandoff'
 import { UpdateBanner } from './components/UpdateBanner/UpdateBanner'
-import { DEFAULT_DRIVER_FACE } from './components/Pawn/designs'
 import { AudioProvider } from './hooks/useAudio'
 import { useGameState } from './hooks/useGameState'
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
@@ -356,7 +355,6 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
         profiles.upsert({
           name: player.name,
           color: player.color,
-          face: player.face ?? DEFAULT_DRIVER_FACE,
         })
       }
       store.dispatch({ type: 'startGame', config })
@@ -457,7 +455,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
    * Space rolls the die from anywhere on the page. The die used to sit in
    * the rail on the far side of a wide desktop screen from wherever a
    * player's cursor actually is, and this was the answer to that; the die
-   * has since moved to the middle of the board, which is the better answer,
+   * has since moved to the centre of the screen, which is the better answer,
    * but a keyboard is still a keyboard. It backs off the moment focus is
    * already on some other control, so it can never double-fire alongside
    * that control's own native Enter/Space handling (the die's own button
@@ -497,6 +495,15 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
     pressable && state.phase === 'awaitingDistanceSpin' && state.chosenExit
       ? roadName(state.board, state.chosenExit)
       : undefined
+  /*
+   * The one window where the dock's centre seat costs something: the camera
+   * holds the active car near the middle of the screen, and mid-move that
+   * car is the whole show. The die is spent by then — `dieSettled` is what
+   * says its own animation has finished and the hops now running are the
+   * board's — so it fades out of the way and leaves the centre to the car
+   * and the hop counter until the move resolves.
+   */
+  const carDriving = state.phase === 'moving' && dieSettled
   useEffect(() => {
     if (!spinReady) return
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -532,10 +539,13 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
   }, [logOpen])
 
   // --- status modal --------------------------------------------------------
-  // The sidebar's own cards already carry every one of these facts, but
-  // shrink further with every seat added and hide net worth's own breakdown
-  // behind a hover tooltip — no help at all on a phone. A header control
-  // opens the same picture at a size meant to actually be read.
+  // The strip at the foot of the screen names each seat and its wallet and
+  // nothing more — a glance, on purpose. Everything else a seat used to
+  // spell out on its rail card (career, net worth's own breakdown, tiles,
+  // policies) lives here, and the strip itself is the way in: pressing
+  // anywhere on it opens the full picture at a size meant to be read. The
+  // header's old Status button is gone — an always-visible control that
+  // opens the same modal made it a second name for the same door.
   const [statusOpen, setStatusOpen] = useState(false)
 
   // --- opening camera sweep ----------------------------------------------
@@ -618,15 +628,6 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
             <ChunkyButton
               variant="secondary"
               size="sm"
-              icon="wallet"
-              aria-haspopup="dialog"
-              onClick={() => setStatusOpen(true)}
-            >
-              <span className={styles.btnLabel}>Status</span>
-            </ChunkyButton>
-            <ChunkyButton
-              variant="secondary"
-              size="sm"
               icon="folder"
               aria-expanded={logOpen}
               aria-controls="game-log-drawer"
@@ -697,17 +698,24 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                 onSpacesLeftChange={setSpacesLeft}
                 introFlythrough={introPending}
                 editionId={state.editionId}
+                difficulty={state.difficulty}
               />
 
-              {/* The die used to live in the rail on the far side of a wide
-                  screen, which meant a cursor trip across the whole page
-                  every single turn. It docks over the foot of the board
-                  instead: horizontally centred, so it is a short reach from
-                  anywhere, and low enough to stay off the tiles — the camera
-                  holds the active car near the middle of the map, which is
-                  exactly the part this must not cover. An event roll still
-                  gets the middle of the screen in `EventSpinModal`; only
-                  the movement roll lives here. */}
+              {/* The die sits at the true centre of the play area now — it
+                  moved once from the rail to the foot of the board, and the
+                  owner said that still was not central enough. With the
+                  seats gone to the strip below, the board's stage spans
+                  everything between the header and that strip, so centring
+                  in the stage *is* centring on the screen a player is
+                  actually looking at — the strip can never pull it
+                  off-centre. The camera holds the active car near this very
+                  spot, which is why the die steps aside — faded out, see
+                  `.dieAside` — while the car is actually driving; only the
+                  hop counter rides the centre then. The wrapper spans the
+                  whole stage but stays transparent to the pointer, so a
+                  drag across the board still pans it. An event roll still
+                  gets its own die in `EventSpinModal`; only the movement
+                  roll lives here. */}
               <div className={styles.rollDock}>
                 {forkAhead && !eventSpinVisible && (
                   <div
@@ -748,7 +756,10 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                     to move yet), and left findable it is a second control
                     named "Roll" a keyboard or screen-reader user would run
                     into for no reason. */}
-                <div className={styles.dieDock} aria-hidden={eventSpinVisible || undefined}>
+                <div
+                  className={carDriving ? `${styles.dieDock} ${styles.dieAside}` : styles.dieDock}
+                  aria-hidden={eventSpinVisible || undefined}
+                >
                   <Dice
                     result={state.lastSpin}
                     disabled={!SPIN_PHASES.includes(state.phase) || handoffVisible}
@@ -758,36 +769,25 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                     compact
                   />
                 </div>
+
               </div>
             </div>
           </section>
 
-          {/* The rail is every seat and nothing else now: the die that used
-              to sit on top of it docks over the board instead, where a
-              cursor can reach it without crossing the screen — see
-              `.rollDock`. */}
-          <aside className={styles.controlRail} aria-label="Players">
-            <section className={styles.playersBlock} aria-labelledby="players-heading">
-              <h2 className={styles.blockLabel} id="players-heading">
-                Players
-              </h2>
-              <div className={styles.players}>
-                {displayedPlayers.map((player, index) => (
-                  <PlayerPanel
-                    key={player.id}
-                    difficulty={state.difficulty}
-                    editionId={state.editionId}
-                    player={player}
-                    isActive={index === state.currentPlayerIndex}
-                    compact={displayedPlayers.length > 2}
-                    dense={displayedPlayers.length > 3}
-                    rank={standings.get(player.id)?.rank ?? displayedPlayers.length}
-                  />
-                ))}
-              </div>
-            </section>
-          </aside>
         </main>
+
+        {/* Every seat on one band at the foot of the screen — a glance, not
+            the old rail of full cards, and the whole band opens `StatusModal`
+            when pressed. Reads from `displayedPlayers` for the same
+            spoiler-proofing the board gets: a balance must not move while
+            the die is still tumbling towards the number that decides it. */}
+        <PlayerStrip
+          players={displayedPlayers}
+          currentPlayerIndex={state.currentPlayerIndex}
+          standings={standings}
+          editionId={state.editionId}
+          onOpenStatus={() => setStatusOpen(true)}
+        />
 
         {/* What the feed would have said still reaches assistive tech while
             the drawer is closed; the drawer carries its own live list when
@@ -839,6 +839,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
           <EventSpinModal
             prompt={displayedEventDecision.prompt}
             stakes={displayedEventDecision.options[0]?.description || displayedEventDecision.prompt}
+            table={displayedEventDecision.options[0]?.table}
             result={state.lastSpin}
             onSpin={handleValueSpin}
             onSpinComplete={handleSpinComplete}
@@ -856,7 +857,8 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
         {passedSpinVisible && passedEvent && (
           <EventSpinModal
             prompt={passedEvent.title}
-            stakes={passedEvent.description}
+            stakes={passedEvent.stakes ?? passedEvent.description}
+            table={passedEvent.table}
             result={passedRoll}
             onSpin={noPress}
             onSpinComplete={handlePassedSpinComplete}

@@ -72,14 +72,6 @@ export type PlayerColor =
   | 'charcoal'
   | 'cream'
 
-/**
- * The expression moulded onto the driver peg — the one at the wheel, the peg
- * that *is* the player. Passengers always keep the plain factory look, so a
- * face marks whose car this is at a glance. `classic` is that same plain
- * moulding, which is why an absent choice reads as it.
- */
-export type DriverFace = 'classic' | 'cheerful' | 'determined' | 'cool' | 'surprised' | 'sleepy'
-
 /** Palette token a space renders with. Presentation maps these to real colours. */
 export type SpaceTone = 'blue' | 'orange' | 'green' | 'pink' | 'purple' | 'gold' | 'slate'
 
@@ -404,13 +396,6 @@ export interface Player {
   readonly stocks: readonly StockHolding[]
   /** Policies held. Each waives its hazard and `life` pays out at retirement. */
   readonly insurance: readonly InsuranceKind[]
-  /**
-   * The expression this player chose for their driver peg. Absent reads as
-   * the plain factory moulding (`classic`) — which is also how a save
-   * written before designs existed reads back, the same bargain
-   * `carriedSeniority` below already strikes.
-   */
-  readonly face?: DriverFace
   /** True when the seat is played by the computer rather than a person. */
   readonly isCpu: boolean
   readonly isRetired: boolean
@@ -445,6 +430,18 @@ export interface DecisionOption {
   readonly icon: IconName
   /** Optional right-aligned detail, e.g. a price or salary. */
   readonly detail?: string
+  /**
+   * The die's own outcome table, when a roll decides more than one thing —
+   * "1-3: Warehouse Picker, $32,000" and "4-6: Line Cook, $28,000" as rows a
+   * player can actually scan, instead of a sentence folded into `description`
+   * that says the same names three times over by the time the title and the
+   * narration above it have already said them once each. Rendered as a real
+   * table; `description` stays the plain-language framing and must not repeat
+   * what a row here already says in full. Absent for a decision with nothing
+   * to break down — a flat charge, a single outcome, a real choice between
+   * named options that are not rolled for.
+   */
+  readonly table?: readonly { readonly range: string; readonly amount: string }[]
 }
 
 export interface Decision {
@@ -525,6 +522,22 @@ export interface LandingEvent {
    * moulding, so nothing that never touches the die has to change.
    */
   readonly rolled?: SpinValue
+  /**
+   * The plain-language framing a landed tile's own press-the-die screen
+   * already shows before the press ("Roll to find out what you owe."),
+   * carried over for a tile the move only swept past. Without it, the die
+   * thrown for a swept tile turns with nothing on screen to hope for or
+   * dread — a player watching it land deserves the same framing anyone who
+   * pressed for it themselves gets. Absent alongside `rolled` for exactly
+   * the same reason: no die, nothing riding on it.
+   */
+  readonly stakes?: string
+  /**
+   * The die's own outcome table, carried over the same way `stakes` is — see
+   * `DecisionOption.table` for what a row means. A swept tile's die deserves
+   * the same table a pressed one shows, not just the framing sentence.
+   */
+  readonly table?: readonly { readonly range: string; readonly amount: string }[]
 }
 
 export interface MoneyTransfer {
@@ -698,8 +711,6 @@ export interface PassedQueueItem {
 export interface NewGamePlayer {
   readonly name: string
   readonly color: PlayerColor
-  /** Omitted means `classic`, so a caller that predates designs still works. */
-  readonly face?: DriverFace
   /** A computer seat plays itself; the UI drives it on a timer. */
   readonly isCpu: boolean
 }

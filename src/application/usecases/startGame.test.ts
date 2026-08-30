@@ -77,27 +77,18 @@ describe('startGame', () => {
     expect(() => startGame({ players: [] }, deps)).toThrow(/2-4 players/)
   })
 
-  describe('player designs', () => {
-    it('carries a chosen face onto the player', () => {
-      const state = startGame(
-        {
-          players: [
-            { name: 'Alex', color: 'teal', face: 'cool', isCpu: false },
-            { name: 'Bo', color: 'pink', face: 'cheerful', isCpu: false },
-          ],
-        },
-        deps,
-      )
-      expect(state.players[0]).toMatchObject({ color: 'teal', face: 'cool' })
-      expect(state.players[1]).toMatchObject({ color: 'pink', face: 'cheerful' })
-    })
-
-    it('leaves an omitted design absent, the same way an old save reads', () => {
-      const state = startGame(config(['Alex', 'Bo']), deps)
-      // Absent, not `undefined`-with-a-key: `exactOptionalPropertyTypes`
-      // makes those different shapes, and absent is the one old saves have.
-      expect('face' in state.players[0]!).toBe(false)
-    })
+  it('carries a chosen colour onto the player', () => {
+    const state = startGame(
+      {
+        players: [
+          { name: 'Alex', color: 'teal', isCpu: false },
+          { name: 'Bo', color: 'pink', isCpu: false },
+        ],
+      },
+      deps,
+    )
+    expect(state.players[0]).toMatchObject({ color: 'teal' })
+    expect(state.players[1]).toMatchObject({ color: 'pink' })
   })
 
   describe('computer seats', () => {

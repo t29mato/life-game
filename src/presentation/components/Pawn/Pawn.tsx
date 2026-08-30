@@ -9,12 +9,11 @@ import {
   type ReactElement,
 } from 'react'
 import { animate, motion, useMotionValue, type AnimationPlaybackControls } from 'framer-motion'
-import type { DriverFace, PlayerColor } from '@domain/model/types'
+import type { PlayerColor } from '@domain/model/types'
 import { useAudio } from '../../hooks/useAudio'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
-import { DEFAULT_DRIVER_FACE } from './designs'
-import { FaceFeatures } from './FaceFeatures'
 import { childPegs, describeCar } from './passengers'
+import type { WealthTier } from './wealthTier'
 import styles from './Pawn.module.css'
 
 export interface PawnPoint {
@@ -52,8 +51,12 @@ export interface PawnProps {
   readonly isMarried?: boolean
   /** Small pegs in the back, one per child, capped and then badged. */
   readonly childCount?: number
-  /** The driver peg's expression. Only the driver — passengers stay plain. */
-  readonly face?: DriverFace
+  /**
+   * How prosperous the bodywork looks, battered (1) to grand (4). Earned
+   * from the player's live net worth, never chosen — see `wealthTier.ts`
+   * for the banding. Defaults to the familiar mid-tier roadster.
+   */
+  readonly wealthTier?: WealthTier
 }
 
 /**
@@ -61,27 +64,11 @@ export interface PawnProps {
  * Laid out as fractions of the car's length so it keeps its proportions at any
  * size, but drawn in the board's own units so its outline never scales with it.
  */
-function Peg({
-  u,
-  at,
-  lift,
-  scale,
-  face = 'classic',
-}: {
-  u: number
-  at: number
-  lift: number
-  scale: number
-  /** Only ever set on the driver peg; passengers keep the plain moulding. */
-  face?: DriverFace
-}): ReactElement {
+function Peg({ u, at, lift, scale }: { u: number; at: number; lift: number; scale: number }): ReactElement {
   return (
     <g className={styles.peg} transform={`translate(${at * u}, ${lift * u})`}>
       <ellipse className={styles.pegBody} cy={-0.28 * u * scale} rx={0.075 * u * scale} ry={0.19 * u * scale} />
       <circle className={styles.pegHead} cy={-0.47 * u * scale} r={0.082 * u * scale} />
-      <g transform={`translate(0, ${-0.47 * u * scale})`}>
-        <FaceFeatures face={face} r={0.082 * u * scale} />
-      </g>
       <circle
         className={styles.pegGloss}
         cx={-0.026 * u * scale}
@@ -102,6 +89,27 @@ const BODY_PATH =
   'M -0.49 0.14 L -0.49 -0.06 Q -0.47 -0.21 -0.32 -0.22 L 0.14 -0.22 Q 0.26 -0.22 0.32 -0.11 L 0.46 -0.05 Q 0.5 -0.03 0.5 0.03 L 0.5 0.14 Z'
 const GLASS_PATH = 'M 0.14 -0.22 Q 0.22 -0.23 0.27 -0.35 L 0.19 -0.35 Q 0.16 -0.25 0.12 -0.22 Z'
 const GLOSS_PATH = 'M -0.42 -0.09 Q -0.3 -0.17 -0.1 -0.17 L 0.12 -0.17'
+
+/* ---- Wealth-tier bodywork, all on the same unit car ----------------------- */
+
+/**
+ * The grand tourer's body: the identical rear deck and cockpit, with the
+ * bonnet run stretched to a longer nose — the one silhouette change that
+ * says "expensive" at board scale. Everything aft of the windscreen matches
+ * `BODY_PATH` point for point, so passengers, door roundel and shadow all
+ * sit exactly where every other tier puts them.
+ */
+const GRAND_BODY_PATH =
+  'M -0.49 0.14 L -0.49 -0.06 Q -0.47 -0.21 -0.32 -0.22 L 0.14 -0.22 Q 0.26 -0.22 0.32 -0.11 L 0.54 -0.05 Q 0.58 -0.03 0.58 0.03 L 0.58 0.14 Z'
+/** The lighter second colour laid over the long bonnet: a two-tone paint job. */
+const TWO_TONE_PATH =
+  'M 0.31 -0.11 L 0.54 -0.05 Q 0.58 -0.03 0.58 0.03 L 0.58 0.14 L 0.31 0.14 Z'
+/** A crease knocked into the rear wing, drawn as its own shaded crescent. */
+const DENT_PATH = 'M -0.44 -0.05 Q -0.36 -0.14 -0.28 -0.06 Q -0.36 -0.1 -0.44 -0.05 Z'
+/** A rust bloom low on the nose, where the road salt always gets in first. */
+const RUST_PATH = 'M 0.33 0.1 Q 0.37 0.05 0.42 0.09 Q 0.38 0.14 0.33 0.1 Z'
+/** Two key scratches along the rear door, the runabout's service record. */
+const SCRATCH_PATHS = ['M -0.45 0.05 L -0.31 0.02', 'M -0.43 0.09 L -0.35 0.07'] as const
 
 /**
  * A player's car: a moulded plastic roadster carrying peg passengers, which
@@ -131,7 +139,7 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
     isActive = false,
     isMarried = false,
     childCount = 0,
-    face = DEFAULT_DRIVER_FACE,
+    wealthTier = 2,
   },
   ref,
 ): ReactElement {
@@ -259,6 +267,16 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
   const { pegs, badge } = childPegs(childCount)
   const description = describeCar(name ?? label ?? 'Player', isMarried, childCount)
 
+  /* The grand tourer alone changes the silhouette — a longer nose, the front
+     axle pushed forward under it, the lamp out on the new wing. Every other
+     tier keeps the standard footprint exactly, so passengers and the door
+     roundel never move when a player's fortunes do. */
+  const grand = wealthTier === 4
+  const bodyPath = grand ? GRAND_BODY_PATH : BODY_PATH
+  const noseAt = grand ? 0.58 : 0.5
+  const frontWheelAt = grand ? 0.33 : 0.27
+  const lampAt = grand ? 0.53 : 0.45
+
   /* Back row first, so the grown-ups in front overlap them: the children's
      heads then peek over the seat backs the way they would in a real toy. */
   const childSeats = [-0.26, -0.12, 0.02]
@@ -272,7 +290,7 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
       data-active={isActive}
       data-married={isMarried}
       data-children={Math.max(0, Math.floor(childCount))}
-      data-face={face}
+      data-tier={wealthTier}
       role="img"
       aria-label={description}
     >
@@ -294,7 +312,7 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
         className={styles.shadow}
         cx={0}
         cy={size * 0.3}
-        rx={size * 0.56}
+        rx={size * (noseAt + 0.06)}
         ry={size * 0.15}
         fill={`url(#${castId})`}
         style={{ x, y: groundY, scaleX: shadowScale, scaleY: shadowScale, opacity: shadowOpacity }}
@@ -308,11 +326,21 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
           </>
         ) : null}
 
-        {/* Wheels, behind the bodywork they are bolted to. */}
-        {[-0.29, 0.27].map((cx) => (
+        {/* Wheels, behind the bodywork they are bolted to. A battered car has
+            lost the bright hub off its front wheel — the bald tyre reads from
+            across the table — and a polished one rings both in chrome. */}
+        {[-0.29, frontWheelAt].map((cx, wheel) => (
           <g key={cx}>
             <circle className={styles.tyre} cx={cx * u} cy={0.19 * u} r={0.125 * u} />
-            <circle className={styles.hub} cx={cx * u} cy={0.19 * u} r={0.052 * u} />
+            <circle
+              className={wealthTier === 1 && wheel === 1 ? styles.wornHub : styles.hub}
+              cx={cx * u}
+              cy={0.19 * u}
+              r={0.052 * u}
+            />
+            {wealthTier >= 3 ? (
+              <circle className={styles.hubRing} cx={cx * u} cy={0.19 * u} r={0.082 * u} />
+            ) : null}
           </g>
         ))}
 
@@ -343,28 +371,55 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
           </g>
         ) : null}
 
-        {/* At the wheel, and the seat beside it once there is a partner. Only
-            the driver wears the chosen face: that peg is the player. */}
+        {/* At the wheel, and the seat beside it once there is a partner. */}
         {isMarried ? <Peg u={u} at={-0.07} lift={0} scale={1} /> : null}
-        <Peg u={u} at={0.1} lift={0} scale={1} face={face} />
+        <Peg u={u} at={0.1} lift={0} scale={1} />
 
         {/* Chassis: the darker moulding the body sits on. */}
         <rect
           className={styles.chassis}
           x={-0.5 * u}
           y={-0.04 * u}
-          width={u}
+          width={(0.5 + noseAt) * u}
           height={0.28 * u}
           rx={0.11 * u}
         />
 
-        <path className={styles.body} d={scalePath(BODY_PATH, u)} />
-        <path className={styles.bodyShade} d={scalePath(BODY_PATH, u)} fill={`url(#${bodyId})`} />
+        <path className={styles.body} d={scalePath(bodyPath, u)} />
+        {grand ? <path className={styles.twoTone} d={scalePath(TWO_TONE_PATH, u)} /> : null}
+        <path className={styles.bodyShade} d={scalePath(bodyPath, u)} fill={`url(#${bodyId})`} />
 
         {/* Windscreen and lamp, the two details that fix which way it faces. */}
         <path className={styles.glass} d={scalePath(GLASS_PATH, u)} />
-        <circle className={styles.lamp} cx={0.45 * u} cy={-0.03 * u} r={0.042 * u} />
+        <circle className={styles.lamp} cx={lampAt * u} cy={-0.03 * u} r={0.042 * u} />
         <path className={styles.gloss} d={scalePath(GLOSS_PATH, u)} />
+
+        {/* The service record of a car that has seen better days: a creased
+            wing, key scratches, and rust blooming out of the nose. */}
+        {wealthTier === 1 ? (
+          <>
+            <path className={styles.dent} d={scalePath(DENT_PATH, u)} />
+            {SCRATCH_PATHS.map((scratch) => (
+              <path key={scratch} className={styles.scratch} d={scalePath(scratch, u)} />
+            ))}
+            <path className={styles.rust} d={scalePath(RUST_PATH, u)} />
+          </>
+        ) : null}
+
+        {/* Brightwork: the chrome speedline a well-off car carries along its
+            flank, and — on the grand tourer alone — the ornament on the nose. */}
+        {wealthTier >= 3 ? (
+          <path
+            className={styles.trim}
+            d={scalePath(grand ? 'M -0.44 0.09 L 0.5 0.09' : 'M -0.44 0.09 L 0.42 0.09', u)}
+          />
+        ) : null}
+        {grand ? (
+          <g>
+            <path className={styles.ornamentStem} d={scalePath('M 0.55 -0.05 L 0.55 -0.09', u)} />
+            <circle className={styles.ornamentHead} cx={0.55 * u} cy={-0.11 * u} r={0.022 * u} />
+          </g>
+        ) : null}
 
         {/* The door roundel: whose car this is, painted on the side. */}
         {label ? (

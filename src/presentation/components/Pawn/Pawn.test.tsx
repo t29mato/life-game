@@ -241,29 +241,41 @@ describe('Pawn', () => {
     })
   })
 
-  describe('the chosen design', () => {
+  describe('the earned look', () => {
+    // Scoped to its own render's container: several tests below park one car
+    // per tier side by side, which a document-wide getByTestId would trip on.
     function renderCar(props: Partial<PawnProps> = {}): HTMLElement {
       mockReducedMotion(true)
-      const { getByTestId } = render(
+      const { container } = render(
         <AudioProvider audio={createFakeAudioPort()}>
           <svg>
             <Pawn color="blue" restPosition={{ x: 0, y: 0 }} {...props} />
           </svg>
         </AudioProvider>,
       )
-      return getByTestId('pawn')
+      return container.querySelector('[data-testid="pawn"]') as HTMLElement
     }
 
-    it('defaults to the factory look: the classic face', () => {
+    it('defaults to the familiar mid-tier roadster', () => {
       const car = renderCar()
-      expect(car).toHaveAttribute('data-face', 'classic')
+      expect(car).toHaveAttribute('data-tier', '2')
     })
 
-    it('paints the chosen face on the driver peg alone', () => {
-      const car = renderCar({ face: 'cool', isMarried: true, childCount: 2 })
-      expect(car).toHaveAttribute('data-face', 'cool')
-      // One driver, one face — the partner and both children stay plain.
-      expect(car.querySelectorAll('[data-face="cool"]')).toHaveLength(1)
+    it('carries the wealth tier as data for the styling to draw off', () => {
+      expect(renderCar({ wealthTier: 1 })).toHaveAttribute('data-tier', '1')
+      expect(renderCar({ wealthTier: 4 })).toHaveAttribute('data-tier', '4')
+    })
+
+    it('draws more bodywork the further the tiers sit apart', () => {
+      // Not a pixel test — jsdom cannot render one — but the battered car
+      // must carry its damage (dent, scratches, rust) and the grand tourer
+      // its extras (two-tone, ornament, trim, hub rings), so each tier ends
+      // up with visibly more marks than the plain roadster's zero.
+      const plain = renderCar({ wealthTier: 2 }).querySelectorAll('path, circle').length
+      const battered = renderCar({ wealthTier: 1 }).querySelectorAll('path, circle').length
+      const grand = renderCar({ wealthTier: 4 }).querySelectorAll('path, circle').length
+      expect(battered).toBeGreaterThan(plain)
+      expect(grand).toBeGreaterThan(plain)
     })
   })
 

@@ -1,12 +1,6 @@
 import { useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import type { IconName } from '@domain/model/icons'
-import type {
-  Difficulty,
-  DriverFace,
-  EditionId,
-  NewGameConfig,
-  PlayerColor,
-} from '@domain/model/types'
+import type { Difficulty, EditionId, NewGameConfig, PlayerColor } from '@domain/model/types'
 import { DIFFICULTIES } from '@domain/rules/difficulty'
 import type { Edition } from '@domain/edition/types'
 import { allEditions, DEFAULT_EDITION_ID, editionFor } from '@domain/edition/registry'
@@ -19,8 +13,7 @@ import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { AudioToggle } from '../AudioToggle/AudioToggle'
 import { GameIcon } from '../../icons/GameIcon'
 import { UiIcon } from '../../icons/ui'
-import { DEFAULT_DRIVER_FACE, DRIVER_FACES, PLAYER_COLORS, faceLabel } from '../Pawn/designs'
-import { FaceFeatures } from '../Pawn/FaceFeatures'
+import { PLAYER_COLORS } from '../Pawn/designs'
 import { RecordsScreen } from '../RecordsScreen/RecordsScreen'
 import { ReleaseNotesScreen } from '../ReleaseNotes/ReleaseNotesScreen'
 import { estimatePlaytime } from './estimatePlaytime'
@@ -147,7 +140,6 @@ function editionBlurb(edition: Edition): string {
 interface DraftPlayer {
   readonly name: string
   readonly color: PlayerColor
-  readonly face: DriverFace
   readonly isCpu: boolean
 }
 
@@ -157,8 +149,8 @@ function nextAvailableColor(used: readonly PlayerColor[]): PlayerColor {
 
 function defaultPlayers(): DraftPlayer[] {
   return [
-    { name: 'Player 1', color: 'red', face: DEFAULT_DRIVER_FACE, isCpu: false },
-    { name: 'Player 2', color: 'blue', face: DEFAULT_DRIVER_FACE, isCpu: false },
+    { name: 'Player 1', color: 'red', isCpu: false },
+    { name: 'Player 2', color: 'blue', isCpu: false },
   ]
 }
 
@@ -198,16 +190,12 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
     })
   }
 
-  const updateFace = (index: number, face: DriverFace): void => {
-    setPlayers((prev) => prev.map((p, i) => (i === index ? { ...p, face } : p)))
-  }
-
   const updateIsCpu = (index: number, isCpu: boolean): void => {
     setPlayers((prev) => prev.map((p, i) => (i === index ? { ...p, isCpu } : p)))
   }
 
   /**
-   * One tap fills the whole row from a remembered player: name, colour, face.
+   * One tap fills the whole row from a remembered player: name and colour.
    * The saved colour yields if a rival is already holding it — two regulars
    * who both saved red still get a legal table, and the one who tapped
    * second keeps the colour their row already had.
@@ -221,7 +209,6 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
               ...p,
               name: profile.name,
               color: usedByOthers.includes(profile.color) ? p.color : profile.color,
-              face: profile.face,
             }
           : p,
       )
@@ -235,7 +222,6 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
       {
         name: `Player ${prev.length + 1}`,
         color: nextAvailableColor(prev.map((p) => p.color)),
-        face: DEFAULT_DRIVER_FACE,
         isCpu: false,
       },
     ])
@@ -252,7 +238,6 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
       players: players.map((p, i) => ({
         name: p.name.trim() || `Player ${i + 1}`,
         color: p.color,
-        face: p.face,
         isCpu: p.isCpu,
       })),
       difficulty,
@@ -362,13 +347,7 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
                 }
               >
                 <span className={`${styles.pawn} ${player.isCpu ? styles.pawnCpu : ''}`} aria-hidden="true">
-                  <span className={styles.pawnHead}>
-                    {/* The tray pawn wears the chosen face, so the row previews
-                        the pick without a second illustration. */}
-                    <svg className={styles.pawnFace} viewBox="-10 -10 20 20">
-                      <FaceFeatures face={player.face} r={8.5} />
-                    </svg>
-                  </span>
+                  <span className={styles.pawnHead} />
                   <span className={styles.pawnBase} />
                   {player.isCpu ? <span className={styles.cpuChip}>CPU</span> : null}
                 </span>
@@ -409,31 +388,7 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
                     </div>
                   </div>
 
-                  {/* The rest of the look, in the swatches' own language:
-                      small pressed chips, one per face. */}
-                  <div
-                    className={styles.chipGroup}
-                    role="group"
-                    aria-label={`Player ${index + 1} face`}
-                  >
-                    {DRIVER_FACES.map((face) => (
-                      <button
-                        key={face}
-                        type="button"
-                        className={`${styles.designChip} ${player.face === face ? styles.designChipSelected : ''}`}
-                        aria-label={faceLabel(face)}
-                        aria-pressed={player.face === face}
-                        onClick={() => updateFace(index, face)}
-                      >
-                        <svg className={styles.chipGlyph} viewBox="-11 -11 22 22" aria-hidden="true">
-                          <circle className={styles.chipHead} r={9} />
-                          <FaceFeatures face={face} r={9} />
-                        </svg>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* One tap re-seats a regular: name, colour, face. Absent
+                  {/* One tap re-seats a regular: name and colour. Absent
                       entirely on a first-ever run — a strip of nobody is
                       noise — and on a computer seat, which has no owner to
                       remember or recall. */}

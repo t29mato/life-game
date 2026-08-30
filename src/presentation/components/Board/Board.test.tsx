@@ -594,6 +594,34 @@ describe('Board', () => {
     })
   })
 
+  describe('fortunes on the board', () => {
+    /**
+     * A car's bodywork is earned from its player's live net worth, banded
+     * against the (default USA) edition's own economy — see `wealthTier.ts`.
+     * Recomputed on plain re-render, so a promotion or a bad month changes
+     * the car the moment the state does, with no menu in between.
+     */
+    it('dresses each car for its own net worth: debt battered, a fortune grand', () => {
+      mockReducedMotion(true)
+      const { container } = renderBoard({
+        players: [
+          makePlayer({ id: 'p1', name: 'Alice', money: -20_000 }),
+          makePlayer({ id: 'p2', name: 'Bo', color: 'red', money: 10_000 }),
+          makePlayer({ id: 'p3', name: 'Cass', color: 'green', money: 300_000 }),
+        ],
+      })
+
+      const tierOf = (name: string): string | null =>
+        [...container.querySelectorAll('[data-testid="pawn"]')]
+          .find((car) => car.getAttribute('aria-label')?.startsWith(name))
+          ?.getAttribute('data-tier') ?? null
+
+      expect(tierOf('Alice')).toBe('1')
+      expect(tierOf('Bo')).toBe('2')
+      expect(tierOf('Cass')).toBe('4')
+    })
+  })
+
   describe('stacking and overtaking', () => {
     /**
      * Several cars can share a space. The active player's car is drawn last so

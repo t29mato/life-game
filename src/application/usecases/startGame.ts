@@ -40,12 +40,8 @@ export function startGame(config: NewGameConfig, _deps: UseCaseDeps): GameState 
   const editionId = config.editionId ?? DEFAULT_EDITION_ID
   const edition = editionFor(editionId)
   const board = createBoard(difficulty, edition)
-  // The chosen design rides on top of the freshly created player. Spread
-  // conditionally rather than written as `face: entry.face`, so an omitted
-  // choice stays *absent* — exactly how a save written before designs
-  // existed reads — instead of becoming an explicit `undefined`.
-  const players: Player[] = config.players.map((entry, index) => ({
-    ...createPlayer(
+  const players: Player[] = config.players.map((entry, index) =>
+    createPlayer(
       `player-${index + 1}`,
       entry.name.trim(),
       entry.color,
@@ -53,8 +49,7 @@ export function startGame(config: NewGameConfig, _deps: UseCaseDeps): GameState 
       entry.isCpu,
       edition.economy,
     ),
-    ...(entry.face === undefined ? {} : { face: entry.face }),
-  }))
+  )
 
   const empty: GameState = {
     board,
