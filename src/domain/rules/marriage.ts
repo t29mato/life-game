@@ -1,4 +1,5 @@
 import type { Money, SpinValue } from '../model/types'
+import { SPIN_FACES } from '../model/constants'
 import type { EconomyConstants, MarriageOutcome } from '../edition/types'
 
 /**
@@ -17,10 +18,10 @@ import type { EconomyConstants, MarriageOutcome } from '../edition/types'
 /**
  * Which band of `MarriageSpec.outcomes` a spin landed in.
  *
- * Bands are written worst-first and named by the highest spin they cover, so the
- * first one the spin does not exceed is the answer. The last band catches
+ * Bands are written worst-first and named by the highest roll they cover, so the
+ * first one the roll does not exceed is the answer. The last band catches
  * anything an edition forgot to cover, which is the only sane reading of a table
- * that does not reach ten.
+ * that does not reach the top face.
  */
 export function marriageBandFor(
   outcomes: readonly MarriageOutcome[],
@@ -38,8 +39,11 @@ export function marriageOutcomeValue(
   return economy.weddingGift * outcome.giftMultiplier * rivals + outcome.windfall - outcome.cost
 }
 
-/** Every face of the wheel, so an average is an average and not an estimate. */
-const EVERY_SPIN: readonly SpinValue[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+/** Every face of the die, so an average is an average and not an estimate. */
+const EVERY_SPIN: readonly SpinValue[] = Array.from(
+  { length: SPIN_FACES },
+  (_, index) => (index + 1) as SpinValue,
+)
 
 /**
  * What marrying is worth on average, before anybody turns the wheel.
@@ -60,7 +64,7 @@ const EVERY_SPIN: readonly SpinValue[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
  */
 export function expectedMarriageValue(economy: EconomyConstants, rivals: number): Money {
   const { marriage } = economy
-  const secondAskOdds = (11 - marriage.secondAskSpin) / 10
+  const secondAskOdds = (SPIN_FACES + 1 - marriage.secondAskSpin) / SPIN_FACES
 
   return (
     EVERY_SPIN.reduce((sum, spun) => {

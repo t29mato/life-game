@@ -11,7 +11,12 @@ import type { GameRecord } from './ports/StatsRepositoryPort'
 export type GameCommand =
   /** Build a fresh game and move to `awaitingSpin`. */
   | { readonly type: 'startGame'; readonly config: NewGameConfig }
-  /** Spin for the current player. Valid only in `awaitingSpin`. */
+  /**
+   * Press the die for the current player — the road out of a fork
+   * (`awaitingSpin`, standing on one) or the distance travelled
+   * (`awaitingDistanceSpin`, and every ordinary turn's `awaitingSpin`).
+   * One command either way: a press is a press.
+   */
   | { readonly type: 'spin' }
   /**
    * The UI has finished animating the pawn along `movementPath`. Applies the

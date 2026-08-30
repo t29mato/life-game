@@ -1,8 +1,11 @@
 import type { GameState, SpinValue } from '@domain/model/types'
+import { SPIN_FACES } from '@domain/model/constants'
 import type { RandomPort } from '../ports/RandomPort'
 import type { GameRepositoryPort, SaveSlotInfo } from '../ports/GameRepositoryPort'
 import { SAVE_SLOT_COUNT } from '../ports/GameRepositoryPort'
 import type { GameRecord, StatsRepositoryPort } from '../ports/StatsRepositoryPort'
+import type { PlayerProfile, PlayerProfileRepositoryPort } from '../ports/PlayerProfileRepositoryPort'
+import { PROFILE_LIST_CAP } from '../ports/PlayerProfileRepositoryPort'
 
 /** Values a `createFakeRandom` port will replay, in call order, cycling once exhausted. */
 export interface FakeRandomScript {
@@ -95,7 +98,7 @@ export function createSeededRandom(seed: number): RandomPort {
 
   return {
     spin(): SpinValue {
-      return nextInt(1, 10) as SpinValue
+      return nextInt(1, SPIN_FACES) as SpinValue
     },
     int(min: number, max: number): number {
       return nextInt(min, max)
@@ -173,6 +176,32 @@ export function createInMemoryRepository(): GameRepositoryPort {
           editionId: entry.state.editionId ?? null,
         }
       })
+    },
+  }
+}
+
+/**
+ * A `PlayerProfileRepositoryPort` backed by an in-memory array: same
+ * case-insensitive upsert and LRU cap as the real adapter, counting clock
+ * instead of a wall one.
+ */
+export function createInMemoryProfileRepository(): PlayerProfileRepositoryPort {
+  let profiles: PlayerProfile[] = []
+  const now = createFakeClock()
+
+  return {
+    list(): readonly PlayerProfile[] {
+      return profiles
+    },
+    upsert(profile: Omit<PlayerProfile, 'lastUsedAt'>): void {
+      const key = profile.name.trim().toLowerCase()
+      profiles = [
+        { ...profile, lastUsedAt: now() },
+        ...profiles.filter((entry) => entry.name.trim().toLowerCase() !== key),
+      ].slice(0, PROFILE_LIST_CAP)
+    },
+    clear(): void {
+      profiles = []
     },
   }
 }

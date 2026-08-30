@@ -38,8 +38,8 @@ function cashOutStocks(player: Player, rollStock: (stock: Stock) => Money, editi
  * What every child grew up to be, spun one at a time.
  *
  * A flat figure per child made the whole family arc arithmetic — and cheap
- * arithmetic at that. Each child gets its own spin: most do decently, and one
- * in ten turns out to be a star worth more than the rest of the scoring lines
+ * arithmetic at that. Each child gets its own roll: most do decently, and one
+ * in six turns out to be a star worth more than the rest of the scoring lines
  * put together. The bills on Family Lane are what keep it a gamble rather than
  * free money, and they are already paid by the time this runs.
  *

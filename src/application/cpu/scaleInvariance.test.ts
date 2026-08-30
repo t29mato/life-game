@@ -67,7 +67,6 @@ const cpuTranscript = (seed: number, scaled: boolean, difficulty: 'normal' | 'ha
   const deps = { random: createSeededRandom(seed) }
   let state = startGame(
     {
-      boardLength: 'standard',
       difficulty,
       editionId: EDITION_USA.id,
       players: COLORS.map((color, i) => ({ name: `Player ${i + 1}`, color, isCpu: true })),

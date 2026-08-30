@@ -172,8 +172,8 @@ export interface EconomyConstants {
    * Per pip of the spin that realises the fund a player retires on.
    *
    * Paid as `firePayoutPerPip × spin` against a stake of `fireNumber`, so a
-   * five or below is a fund that came back smaller than the money that went
-   * into it and a nine is a life-changing one. Priced so that the expected
+   * two or below is a fund that came back smaller than the money that went
+   * into it and a six is a life-changing one. Priced so that the expected
    * payout, plus the retirement place jumped, is worth about what the last act
    * of the board pays a player who keeps working — which is what makes
    * stopping an argument rather than an answer.

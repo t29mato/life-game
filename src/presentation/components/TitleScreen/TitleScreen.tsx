@@ -1,29 +1,40 @@
 import { useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import type { IconName } from '@domain/model/icons'
-import type { BoardLength, Difficulty, EditionId, NewGameConfig, PlayerColor } from '@domain/model/types'
+import type {
+  Difficulty,
+  DriverFace,
+  EditionId,
+  NewGameConfig,
+  PlayerColor,
+} from '@domain/model/types'
 import { DIFFICULTIES } from '@domain/rules/difficulty'
 import type { Edition } from '@domain/edition/types'
 import { allEditions, DEFAULT_EDITION_ID, editionFor } from '@domain/edition/registry'
 import { AUTOSAVE_SLOT, type SaveSlotInfo } from '@application/ports/GameRepositoryPort'
 import type { GameRecord } from '@application/ports/StatsRepositoryPort'
+import type { PlayerProfile } from '@application/ports/PlayerProfileRepositoryPort'
 import { editionDisplayName, formatMoney, salaryPeriod, salaryRate } from '../../format'
 import { useAudio } from '../../hooks/useAudio'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { AudioToggle } from '../AudioToggle/AudioToggle'
 import { GameIcon } from '../../icons/GameIcon'
 import { UiIcon } from '../../icons/ui'
+import { DEFAULT_DRIVER_FACE, DRIVER_FACES, PLAYER_COLORS, faceLabel } from '../Pawn/designs'
+import { FaceFeatures } from '../Pawn/FaceFeatures'
 import { RecordsScreen } from '../RecordsScreen/RecordsScreen'
 import { ReleaseNotesScreen } from '../ReleaseNotes/ReleaseNotesScreen'
+import { estimatePlaytime } from './estimatePlaytime'
 import styles from './TitleScreen.module.css'
 
 export interface TitleScreenProps {
   readonly slots: readonly SaveSlotInfo[]
   readonly records: readonly GameRecord[]
+  /** The remembered regulars, most recent first. Empty on a first-ever run. */
+  readonly profiles: readonly PlayerProfile[]
   readonly onStart: (config: NewGameConfig) => void
   readonly onContinue: (slot: number) => void
 }
 
-const ALL_COLORS: readonly PlayerColor[] = ['red', 'blue', 'green', 'yellow', 'purple', 'orange']
 const MIN_PLAYERS = 2
 const MAX_PLAYERS = 4
 
@@ -59,19 +70,9 @@ const DRIFTERS = [
   { tone: 'grape', size: '12rem', top: '36%', left: '88%', delay: '4s' },
 ]
 
-const BOARD_LENGTH_OPTIONS: readonly {
-  readonly value: BoardLength
-  readonly label: string
-  readonly hint: string
-}[] = [
-  { value: 'short', label: 'Short', hint: '~15 min' },
-  { value: 'standard', label: 'Standard', hint: '~30 min' },
-  { value: 'long', label: 'Long', hint: '~45 min' },
-]
-
 /**
  * The difference between difficulties is dramatic — measured over seeded
- * games, median retirements go roughly $495k → $297k → $29k, and on Very Hard
+ * games, median retirements go roughly $591k → $349k → $40k, and on Very Hard
  * close to half the table finishes in the red. The copy here says so plainly:
  * a player should choose that fate, never discover it thirty minutes in.
  * `aria` carries the same warning on the control itself for screen readers.
@@ -96,8 +97,8 @@ const DIFFICULTY_COPY: Record<
   hard: {
     label: 'Hard',
     hint: 'money runs tight',
-    detail: 'Twice the setbacks of Normal — about one player in eight retires in the red.',
-    aria: 'Hard difficulty: twice the setbacks, about one player in eight retires in the red',
+    detail: 'Twice the setbacks of Normal — about one player in ten retires in the red.',
+    aria: 'Hard difficulty: twice the setbacks, about one player in ten retires in the red',
     tone: 'tangerine',
   },
   veryHard: {
@@ -146,17 +147,18 @@ function editionBlurb(edition: Edition): string {
 interface DraftPlayer {
   readonly name: string
   readonly color: PlayerColor
+  readonly face: DriverFace
   readonly isCpu: boolean
 }
 
 function nextAvailableColor(used: readonly PlayerColor[]): PlayerColor {
-  return ALL_COLORS.find((color) => !used.includes(color)) ?? (ALL_COLORS[0] as PlayerColor)
+  return PLAYER_COLORS.find((color) => !used.includes(color)) ?? (PLAYER_COLORS[0] as PlayerColor)
 }
 
 function defaultPlayers(): DraftPlayer[] {
   return [
-    { name: 'Player 1', color: 'red', isCpu: false },
-    { name: 'Player 2', color: 'blue', isCpu: false },
+    { name: 'Player 1', color: 'red', face: DEFAULT_DRIVER_FACE, isCpu: false },
+    { name: 'Player 2', color: 'blue', face: DEFAULT_DRIVER_FACE, isCpu: false },
   ]
 }
 
@@ -168,11 +170,10 @@ function formatSlotTimestamp(savedAt: string): string {
 }
 
 /** `phase === 'setup'`: the wordmark, player setup, save slots, and the start CTA. */
-export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreenProps): ReactElement {
+export function TitleScreen({ slots, records, profiles, onStart, onContinue }: TitleScreenProps): ReactElement {
   const audio = useAudio()
   const unlockedRef = useRef(false)
   const [players, setPlayers] = useState<DraftPlayer[]>(defaultPlayers)
-  const [boardLength, setBoardLength] = useState<BoardLength>('standard')
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
   const [editionId, setEditionId] = useState<EditionId>(DEFAULT_EDITION_ID)
   const editions = editionOptions()
@@ -197,15 +198,46 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
     })
   }
 
+  const updateFace = (index: number, face: DriverFace): void => {
+    setPlayers((prev) => prev.map((p, i) => (i === index ? { ...p, face } : p)))
+  }
+
   const updateIsCpu = (index: number, isCpu: boolean): void => {
     setPlayers((prev) => prev.map((p, i) => (i === index ? { ...p, isCpu } : p)))
+  }
+
+  /**
+   * One tap fills the whole row from a remembered player: name, colour, face.
+   * The saved colour yields if a rival is already holding it — two regulars
+   * who both saved red still get a legal table, and the one who tapped
+   * second keeps the colour their row already had.
+   */
+  const applyProfile = (index: number, profile: PlayerProfile): void => {
+    setPlayers((prev) => {
+      const usedByOthers = prev.filter((_, i) => i !== index).map((p) => p.color)
+      return prev.map((p, i) =>
+        i === index
+          ? {
+              ...p,
+              name: profile.name,
+              color: usedByOthers.includes(profile.color) ? p.color : profile.color,
+              face: profile.face,
+            }
+          : p,
+      )
+    })
   }
 
   const addPlayer = (): void => {
     if (players.length >= MAX_PLAYERS) return
     setPlayers((prev) => [
       ...prev,
-      { name: `Player ${prev.length + 1}`, color: nextAvailableColor(prev.map((p) => p.color)), isCpu: false },
+      {
+        name: `Player ${prev.length + 1}`,
+        color: nextAvailableColor(prev.map((p) => p.color)),
+        face: DEFAULT_DRIVER_FACE,
+        isCpu: false,
+      },
     ])
   }
 
@@ -220,9 +252,9 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
       players: players.map((p, i) => ({
         name: p.name.trim() || `Player ${i + 1}`,
         color: p.color,
+        face: p.face,
         isCpu: p.isCpu,
       })),
-      boardLength,
       difficulty,
       editionId,
     }
@@ -303,7 +335,7 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
         <h1 className={styles.wordmark} data-text="LIFE JOURNEY">
           LIFE JOURNEY
         </h1>
-        <p className={styles.tagline}>Spin, hop, and build a life worth bragging about.</p>
+        <p className={styles.tagline}>Roll, hop, and build a life worth bragging about.</p>
       </div>
 
       <section className={styles.setup} aria-label="Player setup">
@@ -330,7 +362,13 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
                 }
               >
                 <span className={`${styles.pawn} ${player.isCpu ? styles.pawnCpu : ''}`} aria-hidden="true">
-                  <span className={styles.pawnHead} />
+                  <span className={styles.pawnHead}>
+                    {/* The tray pawn wears the chosen face, so the row previews
+                        the pick without a second illustration. */}
+                    <svg className={styles.pawnFace} viewBox="-10 -10 20 20">
+                      <FaceFeatures face={player.face} r={8.5} />
+                    </svg>
+                  </span>
                   <span className={styles.pawnBase} />
                   {player.isCpu ? <span className={styles.cpuChip}>CPU</span> : null}
                 </span>
@@ -350,7 +388,7 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
                       role="group"
                       aria-label={`Player ${index + 1} colour`}
                     >
-                      {ALL_COLORS.map((color) => (
+                      {PLAYER_COLORS.map((color) => (
                         <button
                           key={color}
                           type="button"
@@ -370,6 +408,63 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
                       ))}
                     </div>
                   </div>
+
+                  {/* The rest of the look, in the swatches' own language:
+                      small pressed chips, one per face. */}
+                  <div
+                    className={styles.chipGroup}
+                    role="group"
+                    aria-label={`Player ${index + 1} face`}
+                  >
+                    {DRIVER_FACES.map((face) => (
+                      <button
+                        key={face}
+                        type="button"
+                        className={`${styles.designChip} ${player.face === face ? styles.designChipSelected : ''}`}
+                        aria-label={faceLabel(face)}
+                        aria-pressed={player.face === face}
+                        onClick={() => updateFace(index, face)}
+                      >
+                        <svg className={styles.chipGlyph} viewBox="-11 -11 22 22" aria-hidden="true">
+                          <circle className={styles.chipHead} r={9} />
+                          <FaceFeatures face={face} r={9} />
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* One tap re-seats a regular: name, colour, face. Absent
+                      entirely on a first-ever run — a strip of nobody is
+                      noise — and on a computer seat, which has no owner to
+                      remember or recall. */}
+                  {profiles.length > 0 && !player.isCpu ? (
+                    <div
+                      className={styles.recentRow}
+                      role="group"
+                      aria-label={`Player ${index + 1} recent players`}
+                    >
+                      <span className={styles.recentLabel} aria-hidden="true">
+                        Recent
+                      </span>
+                      {profiles.map((profile) => (
+                        <button
+                          key={profile.name.trim().toLowerCase()}
+                          type="button"
+                          className={styles.recentChip}
+                          style={
+                            {
+                              '--chip-base': `var(--player-${profile.color})`,
+                              '--chip-dark': `var(--player-${profile.color}-dark)`,
+                            } as CSSProperties
+                          }
+                          onClick={() => applyProfile(index, profile)}
+                        >
+                          <span className={styles.recentDot} aria-hidden="true" />
+                          {profile.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
 
                   <div
                     className={styles.seatToggle}
@@ -453,31 +548,6 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
         </section>
       ) : null}
 
-      <section className={styles.lengthSection} aria-label="Session length">
-        <div className={styles.setupHeading}>
-          <span className={styles.setupLabel}>Session length</span>
-        </div>
-        <div className={styles.lengthGroup} role="group" aria-label="Session length">
-          {BOARD_LENGTH_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={`${styles.lengthOption} ${boardLength === option.value ? styles.lengthSelected : ''}`}
-              aria-pressed={boardLength === option.value}
-              aria-label={`${option.label} game, about ${option.hint.replace('~', '')} to play`}
-              onClick={() => setBoardLength(option.value)}
-            >
-              <span className={styles.lengthLabel} aria-hidden="true">
-                {option.label}
-              </span>
-              <span className={styles.lengthHint} aria-hidden="true">
-                {option.hint}
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
-
       <section className={styles.difficultySection} aria-label="Difficulty">
         <div className={styles.setupHeading}>
           <span className={styles.setupLabel}>Difficulty</span>
@@ -521,6 +591,17 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
       </section>
 
       <div className={styles.cta}>
+        {/* Roughly how long this table will sit, priced from the seat mix and
+            difficulty — see estimatePlaytime.ts for where every figure comes
+            from. Recomputed on render, so it tracks each row and picker the
+            way the difficulty detail line does. */}
+        <p className={styles.playtimeHint}>
+          {estimatePlaytime(
+            players.filter((p) => !p.isCpu).length,
+            players.filter((p) => p.isCpu).length,
+            difficulty,
+          )}
+        </p>
         <ChunkyButton variant="primary" size="lg" icon="rocket" fullWidth onClick={handleStart}>
           Start Game
         </ChunkyButton>
@@ -549,10 +630,7 @@ export function TitleScreen({ slots, records, onStart, onContinue }: TitleScreen
                 aria-label={label}
                 onClick={() => handleContinue(slot)}
               >
-                <span className={styles.slotTitle}>
-                  {title}
-                  {isAutosave ? <span className={styles.slotAutosaveTag}>Auto</span> : null}
-                </span>
+                <span className={styles.slotTitle}>{title}</span>
                 {slot.occupied ? (
                   <>
                     <span className={styles.slotPlayers}>{slot.playerNames.join(' & ')}</span>

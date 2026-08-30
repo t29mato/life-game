@@ -71,7 +71,7 @@ errors whose root cause is in someone else's files.
 
 `src/domain/model/constants.ts` gained `INSURANCE_PREMIUM`,
 `LIFE_INSURANCE_PAYOUT`, `EARLY_LOAN_REPAYMENT`, `SHARES_PER_PURCHASE`,
-`BOARD_LENGTH_SCALE`.
+`BOARD_LENGTH_SCALE` (since removed — see "Board lengths" below).
 
 `src/domain/model/icons.ts` gained the `finance:*` and `stock:*` families and
 eleven new `space:*` subjects. AGENT-ART draws all of them.
@@ -202,10 +202,16 @@ Board({ board, players, currentPlayerIndex, phase, movementPath, onMovementCompl
   held; the old house is credited back at its `price`. A player with no house
   gets the ordinary `buyHouse` offer instead.
 
-## Board lengths
+## Board lengths — shipped, then removed
 
-`createBoard('standard')` keeps roughly today's route. `'short'` is about 60 %
-of the trunk (a ~15 minute game), `'long'` about 150 %. Branch structure,
-milestone stops (graduation, first job, marriage, home buying, retirement) and
-the layout invariants in `boardLayout.ts` hold at every length. `BOARD_LENGTH_SCALE`
-carries the ratios.
+This round shipped three lengths: `'standard'` kept roughly the route of the
+day, `'short'` was about 60 % of the trunk (a ~15 minute game) and `'long'`
+about 150 %, with `BOARD_LENGTH_SCALE` carrying the ratios.
+
+**None of that exists any more.** A later round cut the game down to the one
+fifteen-minute session — what `'short'` used to build — on the grounds that a
+game running past a quarter of an hour is a game the table abandons. The tier
+machinery that made one route definition produce three boards went with it, as
+did every space only the longer boards carried. `createBoard` now takes a
+difficulty and an edition, and nothing else. What survived unchanged is the
+board `'short'` used to build, tile for tile and coordinate for coordinate.

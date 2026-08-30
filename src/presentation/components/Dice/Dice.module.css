@@ -1,0 +1,229 @@
+/* ==========================================================================
+   Dice — a real moulded plastic cube, and the press that throws it.
+   Layers, bottom to top: the cast shadow on the table, the 3D scene the cube
+   tumbles in, and the specular sheen where the lamp is — which stays put
+   however far the die turns or flies.
+
+   The material language here is the one `Pawn` and `ChunkyButton` already
+   speak — cast shadow, a press that physically steps down, a gradient rather
+   than a fill — so it sits on the same table as everything else.
+   ========================================================================== */
+
+/* The wrap owns the die's footprint. It has to: every layer inside the
+   button — shadow, scene, sheen — is absolutely positioned so the cube can
+   fly without disturbing layout, which leaves the button with no intrinsic
+   size of its own to offer a shrink-wrapping dock. */
+.wrap {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 132px;
+  max-width: 100%;
+}
+
+.die {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 26%;
+  cursor: pointer;
+  transition: transform var(--duration-fast, 0.15s) var(--ease-out);
+}
+
+/* While it is this player's turn to roll, a printed amber target ring
+   breathes gently around the die — an invitation, not a glow. Same figure
+   the wheel used, because it is the same promise. */
+.die::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  z-index: 0;
+  border-radius: 30%;
+  border: 3px solid color-mix(in srgb, var(--candy-sun) 70%, transparent);
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-out);
+  pointer-events: none;
+}
+
+.ready::before {
+  opacity: 0.55;
+  animation: halo 2.6s var(--ease-in-out) infinite;
+}
+
+@keyframes halo {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.985);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.02);
+  }
+}
+
+.die:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+}
+
+/* The control physically steps down, the same way `ChunkyButton` does. */
+.die:active:not(:disabled) {
+  transform: translateY(3px) scale(0.97);
+}
+
+.die:disabled {
+  cursor: default;
+  filter: saturate(0.72) brightness(0.97);
+}
+
+.die:focus-visible {
+  outline: 3px solid var(--candy-sun);
+  outline-offset: 5px;
+}
+
+/* The shadow the cube casts on the table — its own layer, not a box-shadow,
+   because a thrown cube leaves its shadow behind: it stays on the surface,
+   tracking the ground under the flight while the body arcs above it, and
+   shrinks at the peak exactly the way `Pawn`'s hop shadow does. */
+.castShadow {
+  position: absolute;
+  z-index: 0;
+  left: 5%;
+  right: 5%;
+  bottom: -8%;
+  height: 20%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(92, 70, 34, 0.44) 0%,
+    rgba(92, 70, 34, 0.26) 55%,
+    rgba(92, 70, 34, 0) 100%
+  );
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* The 3D stage the cube tumbles in. A size container, so the faces can push
+   themselves out by half the cube's width in `cqw` — the one way CSS can say
+   "half of me" to a translateZ, and what lets the same cube be 64px in a
+   phone dock and 132px in the modal without measuring anything in JS.
+   Pointer-transparent: the press target is the button, never the flying body,
+   and the board under the flight path must stay pannable. */
+.scene {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  container-type: size;
+  perspective: 560px;
+  pointer-events: none;
+}
+
+.cube {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* One side of the cube. The solid rounded slab behind each printed face is
+   the moulding itself: the drawing's own corners are cut round, and without
+   a body behind them an edge-on face would show daylight straight through
+   the cube. Slightly deeper than the face gradient's foot, so a side caught
+   mid-tumble reads as the same plastic turned away from the lamp. */
+.face {
+  position: absolute;
+  inset: 0;
+  border-radius: 22%;
+  background: linear-gradient(180deg, #f0e0bd 0%, #d9c294 100%);
+  backface-visibility: hidden;
+}
+
+.faceArt {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The cut edge of the moulding, showing under the printed face. */
+.lip {
+  fill: color-mix(in srgb, var(--ink) 62%, var(--candy-sun));
+  opacity: 0.55;
+}
+
+.emboss {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 2;
+}
+
+/* A pip is a drilled well, not a printed dot. Three marks sell the hole: the
+   cut edge's shadow on the face above it, the bowl catching the lamp below
+   it, and a crisp dark rim where the drill broke the surface. */
+.pipRim {
+  fill: rgba(59, 46, 23, 0.3);
+}
+
+.pipWell {
+  fill: rgba(255, 255, 255, 0.92);
+}
+
+.pip {
+  stroke: rgba(30, 24, 12, 0.5);
+  stroke-width: 0.9;
+}
+
+/* The one specular the lamp leaves on the domed face: a narrow lens along
+   the top edge, above the pip rows. It used to be a broad ellipse reaching a
+   third of the way down the face, and on a landed 3 or 5 it sat squarely on
+   the top-left pip and bleached it grey — a misprint, not lighting. */
+.sheen {
+  position: absolute;
+  z-index: 2;
+  top: 7%;
+  left: 15%;
+  right: 15%;
+  height: 10%;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  transition: opacity var(--duration-fast, 0.15s) var(--ease-out);
+}
+
+/* Mid-throw the die has left the dock, and the lamp's reflection cannot
+   follow it — the sheen waits on the empty spot for the die to roll back. */
+.rolling .sheen {
+  opacity: 0;
+}
+
+.compact {
+  width: 116px;
+}
+
+/* A phone gives the board every pixel it can, and the die floats on top of
+   it — so it shrinks with the screen rather than eating into the map. The
+   flatter perspective keeps a small cube from fisheye-ing at close range. */
+@media (max-width: 999px) {
+  .compact {
+    width: clamp(64px, 17vw, 88px);
+  }
+
+  .compact .scene {
+    perspective: 420px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ready::before {
+    animation: none;
+    opacity: 0.5;
+  }
+
+  .die {
+    transition: none;
+  }
+}

@@ -44,22 +44,22 @@ export const INDIA_ECONOMY: EconomyConstants = {
   tuition: {
     outcomes: [
       {
-        upTo: 3,
+        upTo: 2,
         note: 'The management-quota seat costs what the prospectus never printed, and a refresher year of coaching gets added on top.',
         cost: 9_000_000,
       },
       {
-        upTo: 7,
+        upTo: 4,
         note: 'Coaching, entrance attempts and the seat itself come to exactly what was budgeted.',
         cost: 5_200_000,
       },
       {
-        upTo: 9,
+        upTo: 5,
         note: 'A merit-cum-means scholarship covers more of the four years than you expected.',
-        cost: 2_100_000,
+        cost: 2_800_000,
       },
       {
-        upTo: 10,
+        upTo: 6,
         note: 'An AIR good enough for a full fee waiver — the kind of result relatives never stop mentioning.',
         cost: 0,
       },
@@ -95,10 +95,10 @@ export const INDIA_ECONOMY: EconomyConstants = {
    * is the constraint that matters: children hang off this tile.
    */
   marriage: {
-    proposalSpin: 3,
+    proposalSpin: 2,
     secondAskSpin: 2,
     rescued: {
-      upTo: 10,
+      upTo: 6,
       note: 'They said yes the second time — and moved in with three maxed credit cards, an EMI on a phone from two phones ago, and a very relaxed attitude to both.',
       giftMultiplier: 1,
       cost: 1_200_000,
@@ -106,28 +106,28 @@ export const INDIA_ECONOMY: EconomyConstants = {
     },
     outcomes: [
       {
-        upTo: 4,
+        upTo: 2,
         note: 'The wedding grew a function a week: the engagement, the music night, the cocktail evening, the horse, the brass band, and both families insisting on the bigger hall.',
         giftMultiplier: 1,
         cost: 800_000,
         windfall: 0,
       },
       {
-        upTo: 7,
+        upTo: 4,
         note: 'A temple ceremony at dawn and one good lunch. Sixty guests, one uncle\'s speech that lands, and the envelopes covered it.',
         giftMultiplier: 1,
         cost: 0,
         windfall: 0,
       },
       {
-        upTo: 9,
+        upTo: 5,
         note: 'Two salaries under one roof, and the rent on the two-bedroom flat suddenly looks like half of what it was.',
         giftMultiplier: 1,
         cost: 0,
         windfall: 2_000_000,
       },
       {
-        upTo: 10,
+        upTo: 6,
         note: 'Three villages\' worth of guests turn up, everybody is generous, and your partner turns out to have been quietly running a recurring deposit since their first salary.',
         giftMultiplier: 1.5,
         cost: 0,
@@ -137,8 +137,8 @@ export const INDIA_ECONOMY: EconomyConstants = {
   },
   /** Counts, not money: the joint account swings the same either side of a five. */
   household: {
-    breakEvenSpin: 5,
-    shareOfPayday: 0.6,
+    breakEvenSpin: 3,
+    shareOfPayday: 1,
   },
   /**
    * What a grown-up child hands back at retirement: a share of the parent's
@@ -147,12 +147,12 @@ export const INDIA_ECONOMY: EconomyConstants = {
    * the delivery rider's child cracking the big exam is still the better story.
    */
   childOutcome: {
-    perPipOfPayday: 0.14,
-    starSpin: 10,
-    starPayout: 25_000_000,
+    perPipOfPayday: 0.25,
+    starSpin: 6,
+    starPayout: 15_000_000,
   },
   firstRetirementBonus: 8_000_000,
-  casualWagePerPip: 90_000,
+  casualWagePerPip: 140_000,
   insurancePremium: {
     home: 2_500_000,
     auto: 2_000_000,
@@ -166,6 +166,6 @@ export const INDIA_ECONOMY: EconomyConstants = {
    * two and a half — and the tile that offers it quotes the forwards.
    */
   fireNumber: 25_000_000,
-  firePayoutPerPip: 6_400_000,
+  firePayoutPerPip: 10_000_000,
   bigMoney: 5_000_000,
 }

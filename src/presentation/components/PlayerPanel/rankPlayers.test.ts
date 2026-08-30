@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Player } from '@domain/model/types'
+import { editionFor } from '@domain/edition/registry'
+import { estimateNetWorth } from '@domain/rules/scoring'
 import { rankPlayers } from './rankPlayers'
 
 // This helper only needs to trust whatever `estimateNetWorth` reports — its
@@ -7,7 +9,7 @@ import { rankPlayers } from './rankPlayers'
 // suite decoupled from the real formula (house/stocks/loans), which the
 // domain owns and tests itself.
 vi.mock('@domain/rules/scoring', () => ({
-  estimateNetWorth: (player: Player) => player.money,
+  estimateNetWorth: vi.fn((player: Player) => player.money),
 }))
 
 function makePlayer(overrides: Partial<Player> = {}): Player {
@@ -64,5 +66,14 @@ describe('rankPlayers', () => {
     ]
     const ranks = rankPlayers(players, 'normal')
     expect([...ranks.keys()].sort()).toEqual(['p1', 'p2'])
+  })
+
+  it("prices net worth in the game's own edition", () => {
+    rankPlayers([makePlayer({ id: 'p1' })], 'normal', 'japan')
+    expect(vi.mocked(estimateNetWorth)).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: 'p1' }),
+      'normal',
+      editionFor('japan'),
+    )
   })
 })

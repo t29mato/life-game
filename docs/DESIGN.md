@@ -29,7 +29,7 @@ Three material families, used consistently:
 | Family | Where | Reads as |
 | --- | --- | --- |
 | **Board stock** | the play surface, tiles | thick printed card with an embossed lip |
-| **Moulded plastic** | pawns, spinner, buttons | glossy, domed, with a specular highlight and a darker lip beneath |
+| **Moulded plastic** | pawns, the die, buttons | glossy, domed, with a specular highlight and a darker lip beneath |
 | **Paper** | panels, log, modals | matte card stock, softly shadowed, slightly warm |
 
 ## 2. Depth is mandatory

@@ -5,7 +5,7 @@ import type { SpinValue } from '@domain/model/types'
  * makes the use cases fully testable.
  */
 export interface RandomPort {
-  /** A spinner result in 1–10. */
+  /** One throw of the die, 1–6. */
   spin(): SpinValue
   /** An integer in [min, max], both inclusive. */
   int(min: number, max: number): number

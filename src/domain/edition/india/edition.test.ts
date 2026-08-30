@@ -7,12 +7,12 @@ import { EDITION_INDIA } from './index'
 
 /**
  * The India edition's founding bargain, asserted so it cannot drift: the
- * *mechanical* board is the measured USA board at ×100 — same tiers, same
+ * *mechanical* board is the measured USA board at ×100 — same gates, same
  * stops, same hardships, same hazard tags, same paydays, every sum a hundred
  * times over — and everything a player reads is Indian. The USA board is two
  * years of measured balance; the mirror is what lets this edition inherit all
  * of it, and this file is what stops a well-meaning copy edit from quietly
- * moving a tier or dropping a hazard and unpicking the inheritance. Unlike the
+ * moving a gate or dropping a hazard and unpicking the inheritance. Unlike the
  * yen board, even the house catalogue mirrors exactly: Indian property
  * appreciates, so the USA ladder's gentle appreciation is the honest story
  * here and there is no sanctioned deviation at all.
@@ -126,7 +126,6 @@ describe('the india route is the measured skeleton, tile for tile', () => {
       const at = `${ind.id} (mirrors ${us.id})`
 
       expect(ind.kind, at).toBe(us.kind)
-      expect(ind.tier, at).toBe(us.tier)
       expect(ind.appearsFrom, at).toBe(us.appearsFrom)
       expect(ind.unscaled, at).toBe(us.unscaled)
       expect(ind.amountFrom, at).toBe(us.amountFrom)

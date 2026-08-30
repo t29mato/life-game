@@ -303,7 +303,56 @@
   width: 100%;
 }
 
-/* ---- The rail: wheel on top, seats beneath -------------------------------- */
+/* The board and everything docked over it share one positioned stage, so the
+   dock can be placed against the board's own edges rather than the column's. */
+.boardStage {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.boardStage > :first-child {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ---- The roll dock: the die, over the foot of the board -------------------
+   The die used to live at the top of the rail, on the far side of a wide
+   screen from wherever a cursor actually is — a trip across the whole page,
+   every single turn. It sits here instead: horizontally centred so it is a
+   short reach from anywhere, and pinned low so it stays clear of the tiles.
+   The camera holds the active car near the middle of the map, which is
+   precisely the part a control must not cover.
+
+   The dock itself is transparent to the pointer so a drag across the board
+   still pans it; only the controls inside take clicks. */
+.rollDock {
+  position: absolute;
+  z-index: 2;
+  bottom: clamp(8px, 2.2vh, 22px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: calc(100% - 2rem);
+  pointer-events: none;
+}
+
+.rollDock > * {
+  pointer-events: auto;
+}
+
+.dieDock {
+  display: flex;
+  justify-content: center;
+}
+
+/* ---- The rail: every seat, and nothing else ------------------------------- */
 
 .controlRail {
   grid-area: controls;
@@ -314,48 +363,24 @@
   min-height: 0;
 }
 
-/* A shallow paper tray the wheel sits in — the movement roll's wheel now,
-   and only the movement roll's. An event spin (tuition, a promotion
-   review, a marriage proposal, career choice) shows its own wheel in
-   `EventSpinModal`, front and centre, since the tile position this rail
-   sits beside means nothing to a spin like that. */
-.spinnerCard {
-  display: flex;
-  flex: none;
-  justify-content: center;
-  padding: clamp(8px, 1vw, 14px);
-  border-radius: var(--radius-xl);
-  background: var(--surface-grad);
-  box-shadow: var(--elev-2);
-}
-
 /* Named ahead of the press that settles it — a fork's own significance,
-   otherwise invisible until the log line after the wheel has already
-   stopped. See `forkRoadNames` in `branch.ts`. Sits directly on top of the
-   wheel it belongs to, sized to be the first thing read on the rail, not a
-   caption underneath everything else. */
+   otherwise invisible until the log line after the die has already stopped.
+   See `forkRoadNames` in `branch.ts`. Rides in the dock directly above the
+   die it belongs to, so the roads and the thing that picks between them are
+   read as one object. */
 .forkAhead {
   flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  margin: 0 0 -0.15rem;
-  padding: 0.65rem 0.85rem 0.75rem;
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  gap: 0.25rem;
+  max-width: 100%;
+  padding: 0.5rem 0.85rem 0.55rem;
+  border-radius: var(--radius-xl);
   background: linear-gradient(180deg, var(--candy-sun) 0%, var(--candy-tangerine) 100%);
   box-shadow: var(--elev-2);
   color: #3a2405;
   text-align: center;
-  position: relative;
-  z-index: 1;
-}
-
-.forkAheadLabel {
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  opacity: 0.85;
 }
 
 .forkAheadRoad {
@@ -363,9 +388,19 @@
   align-items: baseline;
   justify-content: center;
   gap: 0.45rem;
-  font-size: clamp(1rem, 3.4vw, 1.2rem);
+  font-size: clamp(0.85rem, 2.6vw, 1.05rem);
   font-weight: 800;
   line-height: 1.25;
+}
+
+/* The line under a road already settled, where the 1–3/4–6 pills sat while it
+   was still being decided: quieter than the road's own name, because the name
+   is the news and this is only what to do about it. */
+.forkAheadHint {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  opacity: 0.8;
 }
 
 .forkAheadRange {
@@ -431,10 +466,6 @@
 @media (max-height: 820px) and (min-width: 1000px) {
   .controlRail {
     gap: 8px;
-  }
-
-  .spinnerCard {
-    padding: 6px 10px;
   }
 
   .playersBlock {
@@ -557,16 +588,9 @@
     width: 100%;
   }
 
-  /* The rail is a full-width stack here; the wheel keeps a card of its own
-     width so it reads as an instrument, not a banner. Under ~500px of card
-     the container query in Spinner.module.css lays the wheel and its trigger
-     side by side, which is exactly what a phone wants. */
-  .spinnerCard {
-    align-self: center;
-    width: min(100%, 460px);
-    flex: none;
-  }
-
+  /* The rail is a full-width stack of seats here. The die is not in it —
+     it docks over the foot of the board (see `.rollDock`), which on a phone
+     is the nearest thumb-sized target there is. */
   .controlRail {
     flex: none;
   }

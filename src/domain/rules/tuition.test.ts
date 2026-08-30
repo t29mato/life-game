@@ -11,29 +11,29 @@ const band = (upTo: number, over: Partial<TuitionOutcome> = {}): TuitionOutcome 
 })
 
 describe('tuitionBandFor', () => {
-  const bands = [band(3, { note: 'steep' }), band(7, { note: 'standard' }), band(10, { note: 'waived' })]
+  const bands = [band(2, { note: 'steep' }), band(4, { note: 'standard' }), band(6, { note: 'waived' })]
 
-  it('picks the first band the spin does not exceed', () => {
+  it('picks the first band the roll does not exceed', () => {
     expect(tuitionBandFor(bands, 1).note).toBe('steep')
-    expect(tuitionBandFor(bands, 3).note).toBe('steep')
+    expect(tuitionBandFor(bands, 2).note).toBe('steep')
+    expect(tuitionBandFor(bands, 3).note).toBe('standard')
     expect(tuitionBandFor(bands, 4).note).toBe('standard')
-    expect(tuitionBandFor(bands, 7).note).toBe('standard')
-    expect(tuitionBandFor(bands, 8).note).toBe('waived')
-    expect(tuitionBandFor(bands, 10).note).toBe('waived')
+    expect(tuitionBandFor(bands, 5).note).toBe('waived')
+    expect(tuitionBandFor(bands, 6).note).toBe('waived')
   })
 
-  it('falls back to the last band for a table that does not reach ten', () => {
-    // An edition that forgets the top of the wheel gets its best band, rather
+  it('falls back to the last band for a table that does not reach the top face', () => {
+    // An edition that forgets the top of the die gets its best band, rather
     // than a crash in the middle of somebody's enrolment.
     const short = [band(3, { note: 'only one' })]
-    expect(tuitionBandFor(short, 10).note).toBe('only one')
+    expect(tuitionBandFor(short, 6).note).toBe('only one')
   })
 })
 
 describe('expectedTuitionCost', () => {
   it('averages every band, weighted by how many spins land in it', () => {
-    const bands = [band(5, { cost: 100 }), band(10, { cost: 0 })]
-    // Five spins (1-5) at 100, five spins (6-10) at 0.
+    const bands = [band(3, { cost: 100 }), band(6, { cost: 0 })]
+    // Three rolls (1-3) at 100, three rolls (4-6) at 0.
     expect(expectedTuitionCost({ outcomes: bands })).toBe(50)
   })
 

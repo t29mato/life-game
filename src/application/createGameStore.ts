@@ -22,7 +22,6 @@ export interface GameStoreDeps {
 function buildInitialState(): GameState {
   return {
     board: createBoard(),
-    boardLength: 'standard',
     editionId: DEFAULT_EDITION_ID,
     difficulty: 'normal',
     players: [],
@@ -31,6 +30,7 @@ function buildInitialState(): GameState {
     pendingDecision: null,
     lastSpin: null,
     movementPath: [],
+    pendingPath: [],
     stepsRemaining: 0,
     chosenExit: null,
     lastEvent: null,

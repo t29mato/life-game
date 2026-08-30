@@ -1,12 +1,13 @@
 import type { RandomPort } from '@application/ports/RandomPort'
 import type { SpinValue } from '@domain/model/types'
+import { SPIN_FACES } from '@domain/model/constants'
 
 /** `RandomPort` backed by `Math.random`, used for real gameplay. */
 export function createMathRandom(): RandomPort {
   const int = (min: number, max: number): number =>
     Math.floor(Math.random() * (max - min + 1)) + min
 
-  const spin = (): SpinValue => int(1, 10) as SpinValue
+  const spin = (): SpinValue => int(1, SPIN_FACES) as SpinValue
 
   const pick = <T>(items: readonly T[]): T => {
     if (items.length === 0) {

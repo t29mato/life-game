@@ -93,7 +93,7 @@ export function passedPaydayLine(
 
   const spins = describeSpins(collection.packets)
   if (collection.kind === 'casual') {
-    return `${playerName} picks up shifts passing payday${count}, spinning ${spins}: ${money}${balance}`
+    return `${playerName} picks up shifts passing payday${count}, rolling ${spins}: ${money}${balance}`
   }
-  return `${playerName} passes payday${count}, spinning ${spins}: ${money}${balance}`
+  return `${playerName} passes payday${count}, rolling ${spins}: ${money}${balance}`
 }

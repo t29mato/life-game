@@ -8,7 +8,6 @@ function makeState(phase: GameState['phase']): GameState {
   return {
     board: { spaces: {}, startSpaceId: 'start', retirementSpaceId: 'end', width: 100, height: 100 },
     editionId: 'usa',
-    boardLength: 'standard',
     difficulty: 'normal',
     players: [],
     currentPlayerIndex: 0,
@@ -16,6 +15,7 @@ function makeState(phase: GameState['phase']): GameState {
     pendingDecision: null,
     lastSpin: null,
     movementPath: [],
+    pendingPath: [],
     stepsRemaining: 0,
     chosenExit: null,
     lastEvent: null,

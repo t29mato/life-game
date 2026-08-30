@@ -37,6 +37,42 @@
   --pawn-dark: var(--player-orange-dark);
 }
 
+.token[data-color='teal'] {
+  --pawn-light: var(--player-teal-light);
+  --pawn-base: var(--player-teal);
+  --pawn-dark: var(--player-teal-dark);
+}
+
+.token[data-color='pink'] {
+  --pawn-light: var(--player-pink-light);
+  --pawn-base: var(--player-pink);
+  --pawn-dark: var(--player-pink-dark);
+}
+
+.token[data-color='navy'] {
+  --pawn-light: var(--player-navy-light);
+  --pawn-base: var(--player-navy);
+  --pawn-dark: var(--player-navy-dark);
+}
+
+.token[data-color='brown'] {
+  --pawn-light: var(--player-brown-light);
+  --pawn-base: var(--player-brown);
+  --pawn-dark: var(--player-brown-dark);
+}
+
+.token[data-color='charcoal'] {
+  --pawn-light: var(--player-charcoal-light);
+  --pawn-base: var(--player-charcoal);
+  --pawn-dark: var(--player-charcoal-dark);
+}
+
+.token[data-color='cream'] {
+  --pawn-light: var(--player-cream-light);
+  --pawn-base: var(--player-cream);
+  --pawn-dark: var(--player-cream-dark);
+}
+
 .token {
   --pawn-lip: color-mix(in srgb, var(--pawn-dark) 82%, #0b0722);
 }
@@ -133,6 +169,22 @@
 .pegGloss {
   fill: #ffffff;
   opacity: 0.75;
+}
+
+/* The driver's expression: a few strokes in the tyres' own dark ink, which
+   holds on every head tint because heads are always a light mix. */
+.face {
+  pointer-events: none;
+}
+
+.faceInk {
+  fill: #241d3f;
+}
+
+.faceStroke {
+  fill: none;
+  stroke: #241d3f;
+  stroke-linecap: round;
 }
 
 /* Past the cap the back seat carries a count instead of more heads. */

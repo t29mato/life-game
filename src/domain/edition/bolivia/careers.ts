@@ -43,8 +43,8 @@ import type { Career } from '../../model/types'
  * is not. Same two numbers as every edition, because they are the engine's
  * statement about ladders, not a country's.
  */
-const FIRST_STEP = 4 as const
-const TOP_STEP = 8 as const
+const FIRST_STEP = 3 as const
+const TOP_STEP = 5 as const
 
 /**
  * Trades open from the first morning at the market, no degree needed — plus
@@ -54,7 +54,7 @@ const TOP_STEP = 8 as const
  * whole shopping arcade, and the tallest ladders take two climbs nobody is
  * promised. The `payPerPip` rungs are the businesses whose weeks genuinely
  * differ — a stall's foot traffic, a fare-caller's passengers, a brass
- * band's fiesta season — and `salary` is exactly `payPerPip × 5.5`, so the
+ * band's fiesta season — and `salary` is exactly `payPerPip × 3.5`, so the
  * wage the panel quotes is what the work really pays over a game.
  */
 export const BASIC_CAREERS: readonly Career[] = [
@@ -62,8 +62,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-market-runner',
     title: 'Market Runner',
-    salary: 29_700,
-    payPerPip: 5_400,
+    salary: 29_750,
+    payPerPip: 8_500,
     raiseStep: 3_100,
     requiresDegree: false,
     icon: 'space:new-skills',
@@ -74,8 +74,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-stall-holder',
     title: 'Stall Holder',
-    salary: 49_500,
-    payPerPip: 9_000,
+    salary: 49_350,
+    payPerPip: 14_100,
     raiseStep: 5_200,
     requiresDegree: false,
     icon: 'space:grocery-run',
@@ -86,8 +86,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-market-matriarch',
     title: 'Market Row Matriarch',
-    salary: 104_500,
-    payPerPip: 19_000,
+    salary: 104_650,
+    payPerPip: 29_900,
     raiseStep: 10_600,
     requiresDegree: false,
     icon: 'space:garage-sale',
@@ -129,8 +129,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-grill-hand',
     title: 'Grill Hand',
-    salary: 55_000,
-    payPerPip: 10_000,
+    salary: 54_950,
+    payPerPip: 15_700,
     raiseStep: 5_600,
     requiresDegree: false,
     icon: 'space:overtime-shift',
@@ -141,8 +141,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-anticucho-cart',
     title: 'Anticucho Cart Owner',
-    salary: 68_200,
-    payPerPip: 12_400,
+    salary: 68_250,
+    payPerPip: 19_500,
     raiseStep: 7_000,
     requiresDegree: false,
     icon: 'career:food-truck-owner',
@@ -153,8 +153,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-lunch-house-owner',
     title: 'Lunch House Owner',
-    salary: 121_000,
-    payPerPip: 22_000,
+    salary: 121_100,
+    payPerPip: 34_600,
     raiseStep: 12_400,
     requiresDegree: false,
     icon: 'career:food-truck-owner',
@@ -196,8 +196,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-fare-caller',
     title: 'Minibus Fare Caller',
-    salary: 31_900,
-    payPerPip: 5_800,
+    salary: 31_850,
+    payPerPip: 9_100,
     raiseStep: 3_300,
     requiresDegree: false,
     icon: 'career:delivery-courier',
@@ -261,8 +261,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-band-trumpeter',
     title: 'Brass Band Trumpeter',
-    salary: 26_400,
-    payPerPip: 4_800,
+    salary: 26_250,
+    payPerPip: 7_500,
     raiseStep: 2_800,
     requiresDegree: false,
     icon: 'tile:indie-album',
@@ -273,8 +273,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-touring-band',
     title: 'Touring Band Player',
-    salary: 44_000,
-    payPerPip: 8_000,
+    salary: 44_100,
+    payPerPip: 12_600,
     raiseStep: 4_600,
     requiresDegree: false,
     icon: 'tile:indie-album',
@@ -285,8 +285,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-bandleader',
     title: 'Bandleader',
-    salary: 81_400,
-    payPerPip: 14_800,
+    salary: 81_550,
+    payPerPip: 23_300,
     raiseStep: 8_400,
     requiresDegree: false,
     icon: 'tile:indie-album',
@@ -328,8 +328,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-second-shooter',
     title: 'Second Shooter',
-    salary: 26_400,
-    payPerPip: 4_800,
+    salary: 26_250,
+    payPerPip: 7_500,
     raiseStep: 2_800,
     requiresDegree: false,
     icon: 'space:family-portrait',
@@ -340,8 +340,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-fiesta-photographer',
     title: 'Fiesta Photographer',
-    salary: 42_900,
-    payPerPip: 7_800,
+    salary: 43_050,
+    payPerPip: 12_300,
     raiseStep: 4_400,
     requiresDegree: false,
     icon: 'space:family-portrait',
@@ -351,8 +351,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-import-stall-trader',
     title: 'Import Stall Trader',
-    salary: 62_700,
-    payPerPip: 11_400,
+    salary: 62_650,
+    payPerPip: 17_900,
     raiseStep: 6_600,
     requiresDegree: false,
     icon: 'space:side-hustle',
@@ -363,8 +363,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-container-importer',
     title: 'Container Importer',
-    salary: 74_250,
-    payPerPip: 13_500,
+    salary: 74_200,
+    payPerPip: 21_200,
     raiseStep: 7_600,
     requiresDegree: false,
     icon: 'finance:trading-floor',
@@ -375,8 +375,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-galleria-owner',
     title: 'Shopping Arcade Owner',
-    salary: 148_500,
-    payPerPip: 27_000,
+    salary: 148_400,
+    payPerPip: 42_400,
     raiseStep: 15_200,
     requiresDegree: false,
     icon: 'space:corner-office',
@@ -451,7 +451,7 @@ export const BASIC_CAREERS: readonly Career[] = [
  * Careers unlocked only by a degree — the professional card.
  *
  * Two rungs, a tight entry band, a tight top band, and a first climb that
- * lands seven times in ten: a graduate almost always ends the game holding a
+ * lands four times in six: a graduate almost always ends the game holding a
  * good title and almost never owning the building. These are the payroll
  * jobs — the pension, the Christmas double wage, the framed certificate on
  * the wall — and losing one hurts far more than losing a trade, because a
@@ -646,8 +646,8 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-stringer-journalist',
     title: 'Stringer Journalist',
-    salary: 55_000,
-    payPerPip: 10_000,
+    salary: 54_950,
+    payPerPip: 15_700,
     raiseStep: 5_200,
     requiresDegree: true,
     icon: 'tile:novel',
@@ -658,8 +658,8 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-bo-foreign-correspondent',
     title: 'Foreign Correspondent',
-    salary: 64_900,
-    payPerPip: 11_800,
+    salary: 64_750,
+    payPerPip: 18_500,
     raiseStep: 6_800,
     requiresDegree: true,
     icon: 'tile:novel',

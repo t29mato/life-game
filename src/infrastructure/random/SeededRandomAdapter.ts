@@ -1,5 +1,6 @@
 import type { RandomPort } from '@application/ports/RandomPort'
 import type { SpinValue } from '@domain/model/types'
+import { SPIN_FACES } from '@domain/model/constants'
 
 /**
  * mulberry32 — a tiny, fast, well-distributed 32-bit PRNG. Good enough for a
@@ -25,7 +26,7 @@ export function createSeededRandom(seed: number): RandomPort {
   const int = (min: number, max: number): number =>
     Math.floor(next() * (max - min + 1)) + min
 
-  const spin = (): SpinValue => int(1, 10) as SpinValue
+  const spin = (): SpinValue => int(1, SPIN_FACES) as SpinValue
 
   const pick = <T>(items: readonly T[]): T => {
     if (items.length === 0) {

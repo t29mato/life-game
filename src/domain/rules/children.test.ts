@@ -21,7 +21,7 @@ describe('childReturnFor', () => {
   it('pays more for a better life, at every wage', () => {
     for (const salary of [24_000, 70_000, 148_500]) {
       const parent = earner(salary)
-      expect(childReturnFor(parent, 9)).toBeGreaterThan(childReturnFor(parent, 1))
+      expect(childReturnFor(parent, 5)).toBeGreaterThan(childReturnFor(parent, 1))
     }
   })
 
@@ -39,9 +39,9 @@ describe('childReturnFor', () => {
   it('is worth far more to a poor family as a star than as an ordinary life', () => {
     // The flat star is what keeps the lane a lottery worth entering from the
     // bottom: on the lowest wage on the board it is worth more than every
-    // ordinary life on the wheel put together.
+    // ordinary life on the die put together.
     const parent = earner(24_000)
-    const everyOrdinaryLife = ([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).reduce(
+    const everyOrdinaryLife = ([1, 2, 3, 4, 5] as const).reduce(
       (sum, spin) => sum + childReturnFor(parent, spin),
       0,
     )
@@ -70,10 +70,10 @@ describe('expectedChildValue', () => {
     expect(expectedChildValue(parent)).toBeLessThan(starPayout)
   })
 
-  it('is the average of the ten faces the wheel actually has', () => {
+  it('is the average of the six faces the die actually has', () => {
     const parent = earner(70_000)
-    const faces = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const
-    const byHand = faces.reduce((sum, spin) => sum + childReturnFor(parent, spin), 0) / 10
+    const faces = [1, 2, 3, 4, 5, 6] as const
+    const byHand = faces.reduce((sum, spin) => sum + childReturnFor(parent, spin), 0) / 6
     expect(expectedChildValue(parent)).toBeCloseTo(byHand, 0)
   })
 

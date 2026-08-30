@@ -18,6 +18,9 @@ function decision(kind: Decision['kind'], optionCount = 1): Decision {
 describe('spinOriginOf', () => {
   it('is "movement" whenever the phase is awaiting the ordinary roll, decision or not', () => {
     expect(spinOriginOf('awaitingSpin', null)).toBe('movement')
+    // A fork's second press moves the pawn as surely as any other roll, so it
+    // belongs over the board in the dock, not in the middle of the screen.
+    expect(spinOriginOf('awaitingDistanceSpin', null)).toBe('movement')
   })
 
   it('is "event" for a value-spin decision, whether it offers one option or two', () => {

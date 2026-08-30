@@ -62,7 +62,6 @@ function fixtureState(overrides: Partial<GameState> = {}): GameState {
   return {
     board: fixtureBoard,
     editionId: 'usa',
-    boardLength: 'standard',
     difficulty: 'normal',
     players: [fixturePlayer()],
     currentPlayerIndex: 0,
@@ -70,6 +69,7 @@ function fixtureState(overrides: Partial<GameState> = {}): GameState {
     pendingDecision: null,
     lastSpin: null,
     movementPath: [],
+    pendingPath: [],
     stepsRemaining: 0,
     chosenExit: null,
     lastEvent: null,
@@ -181,10 +181,10 @@ describe('createLocalStorageGameRepository', () => {
     expect(repo.load(0)).toBeNull()
   })
 
-  it('returns null when the state is missing boardLength (a pre-round-2 shape)', () => {
+  it('returns null when the state is missing difficulty (a half-written shape)', () => {
     const storage = createMemoryStorage()
     const broken: Record<string, unknown> = { ...fixtureState() }
-    delete broken.boardLength
+    delete broken.difficulty
     storage.setItem(
       `${SAVE_KEY_PREFIX}0`,
       JSON.stringify({ version: SAVE_VERSION, savedAt: new Date().toISOString(), state: broken }),

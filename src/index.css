@@ -97,6 +97,28 @@
   --player-orange-light: #ffc899;
   --player-orange: #ec8834;
   --player-orange-dark: #a5560f;
+  /* The second tray of six. Hues picked to stay tellable-apart from the
+     first tray *and* from the semantic candy trio (mint/coral/sky), whose
+     hues the original six already own — so these lean cooler, deeper, or
+     more neutral: no second green, no second bright red. */
+  --player-teal-light: #97e0d4;
+  --player-teal: #27a08f;
+  --player-teal-dark: #0f685c;
+  --player-pink-light: #ffbcd7;
+  --player-pink: #e8639f;
+  --player-pink-dark: #ad2f68;
+  --player-navy-light: #aab6e9;
+  --player-navy: #4a5cb8;
+  --player-navy-dark: #2a3878;
+  --player-brown-light: #d8b48c;
+  --player-brown: #9c6b41;
+  --player-brown-dark: #64401c;
+  --player-charcoal-light: #b6b1c1;
+  --player-charcoal: #5d5768;
+  --player-charcoal-dark: #332e3e;
+  --player-cream-light: #fffbec;
+  --player-cream: #f0dfae;
+  --player-cream-dark: #ab8c55;
 
   /* ---- Space tones ------------------------------------------------------
      Printed card stock: soft pastel face, deep legible ink, a slightly

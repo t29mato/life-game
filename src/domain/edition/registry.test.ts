@@ -82,7 +82,7 @@ describe('the USA edition is the game that was already here', () => {
       earlyLoanRepayment: { normal: 22_000, hard: 28_000, veryHard: 34_000 },
       weddingGift: 10_000,
       firstRetirementBonus: 80_000,
-      casualWagePerPip: 900,
+      casualWagePerPip: 1_400,
       insurancePremium: { home: 25_000, auto: 20_000, life: 50_000 },
       lifeInsurancePayout: 100_000,
       bigMoney: 50_000,
@@ -104,9 +104,9 @@ describe('the USA edition is the game that was already here', () => {
    */
   it('holds the prices the rework put on children and on stopping early', () => {
     expect(EDITION_USA.economy).toMatchObject({
-      childOutcome: { perPipOfPayday: 0.14, starSpin: 10, starPayout: 250_000 },
+      childOutcome: { perPipOfPayday: 0.25, starSpin: 6, starPayout: 150_000 },
       fireNumber: 250_000,
-      firePayoutPerPip: 64_000,
+      firePayoutPerPip: 100_000,
     })
   })
 
@@ -118,10 +118,10 @@ describe('the USA edition is the game that was already here', () => {
      * Work is built on — see `children.ts`.
      */
     const groomer = fixtureEarner(34_000)
-    const owner = fixtureEarner(148_500)
+    const owner = fixtureEarner(148_400)
     expect(childReturnFor(owner, 5)).toBeGreaterThan(childReturnFor(groomer, 5) * 2)
-    expect(childReturnFor(groomer, 10)).toBe(childReturnFor(owner, 10))
-    expect(childReturnFor(groomer, 10)).toBe(EDITION_USA.economy.childOutcome.starPayout)
+    expect(childReturnFor(groomer, 6)).toBe(childReturnFor(owner, 6))
+    expect(childReturnFor(groomer, 6)).toBe(EDITION_USA.economy.childOutcome.starPayout)
   })
 
   it('makes a child worth a real share of a working life, and more of a good one', () => {

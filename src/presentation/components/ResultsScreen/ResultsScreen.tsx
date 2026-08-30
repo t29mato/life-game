@@ -193,7 +193,6 @@ export function ResultsScreen({ results, records, onPlayAgain, editionId }: Resu
         <h1 className={styles.heading} data-text="Game Over">
           Game Over
         </h1>
-        <p className={styles.subheading}>Here&rsquo;s how everyone&rsquo;s journey turned out.</p>
         {winnerLanded && recordNote ? (
           <p className={styles.recordNote} aria-live="polite">
             {recordNote}

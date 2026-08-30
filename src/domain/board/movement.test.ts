@@ -80,8 +80,7 @@ describe('planMovement', () => {
       destinationId: 'c',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -92,8 +91,7 @@ describe('planMovement', () => {
       destinationId: 'b',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -106,8 +104,7 @@ describe('planMovement', () => {
       destinationId: 'fork',
       stepsRemaining: 3,
       stoppedBy: 'fork',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -118,8 +115,7 @@ describe('planMovement', () => {
       destinationId: 'fork',
       stepsRemaining: 3,
       stoppedBy: 'fork',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -136,8 +132,7 @@ describe('planMovement', () => {
       destinationId: 'd',
       stepsRemaining: 0,
       stoppedBy: 'forcedStop',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -148,8 +143,7 @@ describe('planMovement', () => {
       destinationId: 'c',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: ['b'],
-    eventsPassed: [],
+      passed: [{ kind: 'payday', spaceId: 'b' }],
     })
 
     const landedOn = planMovement(paydayStopBoard(), 'a', 1)
@@ -158,8 +152,7 @@ describe('planMovement', () => {
       destinationId: 'b',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -170,8 +163,7 @@ describe('planMovement', () => {
       destinationId: 'f',
       stepsRemaining: 0,
       stoppedBy: 'terminal',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -182,8 +174,7 @@ describe('planMovement', () => {
       destinationId: 'e',
       stepsRemaining: 0,
       stoppedBy: 'terminal',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -192,7 +183,7 @@ describe('planMovement', () => {
     // a -> b(payday, passed) -> c -> d(stop) halts forced stop before payday e
     expect(plan.stoppedBy).toBe('forcedStop')
     expect(plan.destinationId).toBe('d')
-    expect(plan.paydaysPassed).toEqual(['b'])
+    expect(plan.passed).toEqual([{ kind: 'payday', spaceId: 'b' }])
   })
 })
 
@@ -208,8 +199,7 @@ describe('planMovementVia', () => {
       destinationId: 'd',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -220,8 +210,7 @@ describe('planMovementVia', () => {
       destinationId: 'e',
       stepsRemaining: 0,
       stoppedBy: 'terminal',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -232,8 +221,7 @@ describe('planMovementVia', () => {
       destinationId: 'c2',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -246,8 +234,7 @@ describe('planMovementVia', () => {
       destinationId: 'd',
       stepsRemaining: 0,
       stoppedBy: 'forcedStop',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -258,8 +245,7 @@ describe('planMovementVia', () => {
       destinationId: 'f',
       stepsRemaining: 0,
       stoppedBy: 'terminal',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -271,8 +257,7 @@ describe('planMovementVia', () => {
       destinationId: 'c',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: ['b'],
-    eventsPassed: [],
+      passed: [{ kind: 'payday', spaceId: 'b' }],
     })
 
     const landedOn = planMovementVia(board, 'a', 'b', 1)
@@ -281,8 +266,7 @@ describe('planMovementVia', () => {
       destinationId: 'b',
       stepsRemaining: 0,
       stoppedBy: 'stepsExhausted',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 
@@ -309,8 +293,7 @@ describe('planMovementVia', () => {
       destinationId: 'fork2',
       stepsRemaining: 1,
       stoppedBy: 'fork',
-      paydaysPassed: [],
-    eventsPassed: [],
+      passed: [],
     })
   })
 })

@@ -75,7 +75,7 @@ describe('applyEffect', () => {
     it('holds for the player to spin themselves when there is a real rung to win, quoting the bar', () => {
       const career = BASIC_CAREERS[0]!
       const state = fixtureState({ players: [fixturePlayer({ career })] })
-      const random = createFakeRandom({ spins: [10] })
+      const random = createFakeRandom({ spins: [6] })
       const { state: next } = applyEffect(state, fixtureSpace({ effect: { type: 'promotion', reason: 'Review time' } }), {
         random,
       })
@@ -120,7 +120,7 @@ describe('applyEffect', () => {
       const player = fixturePlayer({ money: 1_000, career })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'payday' } })
-      const random = createFakeRandom({ spins: [9] })
+      const random = createFakeRandom({ spins: [5] })
       const { state: next, event } = applyEffect(state, space, { random })
       expect(next.players[0]!.money).toBe(1_000 + career.salary)
       expect(event.moneyDelta).toBe(career.salary)
@@ -132,7 +132,7 @@ describe('applyEffect', () => {
       const player = fixturePlayer({ money: 1_000, career: null })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'payday' } })
-      const random = createFakeRandom({ spins: [7] })
+      const random = createFakeRandom({ spins: [4] })
       const { state: next } = applyEffect(state, space, { random })
       expect(next.players[0]!.money).toBe(1_000)
       expect(random.calls.spins).toBe(0)
@@ -148,7 +148,7 @@ describe('applyEffect', () => {
       const description = next.pendingDecision?.options[0]?.description ?? ''
       expect(description).toContain('pick up shifts')
       expect(description).toContain(`$${CASUAL_WAGE_PER_PIP.toLocaleString('en-US')}`)
-      expect(next.log[0]!.message).toContain('payday spin')
+      expect(next.log[0]!.message).toContain('payday roll')
     })
 
     it('holds an unsteady career payday for a spin too, quoting its own per-pip rate rather than casual pay', () => {
@@ -167,12 +167,12 @@ describe('applyEffect', () => {
       const player = fixturePlayer({ money: 0, career })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'payday' } })
-      const random = createFakeRandom({ spins: [10] })
+      const random = createFakeRandom({ spins: [6] })
 
       const { event } = applyEffect(state, space, { random })
 
       expect(event.moneyDelta).toBe(career.salary)
-      expect(event.notes.join(' ')).not.toContain('Spun')
+      expect(event.notes.join(' ')).not.toContain('Rolled')
       expect(random.calls.spins).toBe(0)
     })
   })
@@ -280,7 +280,7 @@ describe('applyEffect', () => {
         ],
         currentPlayerIndex: 0,
       })
-      const random = createFakeRandom({ spins: [10] })
+      const random = createFakeRandom({ spins: [6] })
       const { state: next } = applyEffect(state, fixtureSpace(MARRIAGE_SPACE), { random })
 
       expect(random.calls.spins).toBe(0)
@@ -294,7 +294,7 @@ describe('applyEffect', () => {
     it('is a no-op for a player who is already married', () => {
       const state = fixtureState({ players: [fixturePlayer({ isMarried: true, money: 50_000 })] })
       const space = fixtureSpace(MARRIAGE_SPACE)
-      const random = createFakeRandom({ spins: [10] })
+      const random = createFakeRandom({ spins: [6] })
       const { state: next, event } = applyEffect(state, space, { random })
 
       expect(next.players[0]!.money).toBe(50_000)
@@ -410,7 +410,7 @@ describe('applyEffect', () => {
       const player = fixturePlayer({ children: 1 })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'haveChildren', count: 2, celebrationPerPip: 500 } })
-      const random = createFakeRandom({ spins: [7] })
+      const random = createFakeRandom({ spins: [4] })
       const { state: next, event } = applyEffect(state, space, { random })
       expect(next.players[0]!.children).toBe(3)
       expect(event.moneyDelta).toBe(0)
@@ -505,7 +505,7 @@ describe('applyEffect', () => {
       const player = fixturePlayer({ money: 0 })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'spinForMoney', perPip: 100, reason: 'Lucky roll' } })
-      const random = createFakeRandom({ spins: [7] })
+      const random = createFakeRandom({ spins: [4] })
       const { state: next } = applyEffect(state, space, { random })
       expect(next.players[0]!.money).toBe(0)
       expect(random.calls.spins).toBe(0)

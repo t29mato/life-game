@@ -1,4 +1,5 @@
 import type { Money, SpinValue } from '../model/types'
+import { SPIN_FACES } from '../model/constants'
 import type { TuitionOutcome, TuitionSpec } from '../edition/types'
 
 /**
@@ -14,17 +15,20 @@ import type { TuitionOutcome, TuitionSpec } from '../edition/types'
 /**
  * Which band of `TuitionSpec.outcomes` a spin landed in.
  *
- * Bands are written worst-first and named by the highest spin they cover, so
- * the first one the spin does not exceed is the answer. The last band catches
+ * Bands are written worst-first and named by the highest roll they cover, so
+ * the first one the roll does not exceed is the answer. The last band catches
  * anything an edition forgot to cover, which is the only sane reading of a
- * table that does not reach ten.
+ * table that does not reach the top face.
  */
 export function tuitionBandFor(outcomes: readonly TuitionOutcome[], spun: SpinValue): TuitionOutcome {
   return outcomes.find((band) => spun <= band.upTo) ?? (outcomes[outcomes.length - 1] as TuitionOutcome)
 }
 
-/** Every face of the wheel, so an average is an average and not an estimate. */
-const EVERY_SPIN: readonly SpinValue[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+/** Every face of the die, so an average is an average and not an estimate. */
+const EVERY_SPIN: readonly SpinValue[] = Array.from(
+  { length: SPIN_FACES },
+  (_, index) => (index + 1) as SpinValue,
+)
 
 /**
  * What the tuition bill costs on average, before anybody turns the wheel.

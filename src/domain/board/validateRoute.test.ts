@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Board, Space, SpaceId } from '../model/types'
+import type { Board, Difficulty, Space, SpaceId } from '../model/types'
 import { allEditions } from '../edition/registry'
 import { EDITION_USA } from '../edition/usa'
 import { createBoard } from './createBoard'
@@ -44,18 +44,21 @@ const mapSpaces = (
   terminal: fn(route.terminal),
 })
 
-/** Retiers every space in one lane, by the name it is known by — the classic thinning mistake. */
-const retierLane = (route: RouteDefinition, laneName: string, tier: 0 | 1 | 2): RouteDefinition => ({
+/** Gates every space in one lane, by the name it is known by — the classic emptying mistake. */
+const gateLane = (route: RouteDefinition, laneName: string, appearsFrom: Difficulty): RouteDefinition => ({
   segments: route.segments.map((segment) => {
     if (segment.kind === 'run') {
       if (segment.lane.name !== laneName) return segment
-      return { ...segment, lane: { ...segment.lane, spaces: segment.lane.spaces.map((s) => ({ ...s, tier })) } }
+      return {
+        ...segment,
+        lane: { ...segment.lane, spaces: segment.lane.spaces.map((s) => ({ ...s, appearsFrom })) },
+      }
     }
     return {
       ...segment,
       branches: segment.branches.map((branch) =>
         branch.identity.name === laneName
-          ? { ...branch, spaces: branch.spaces.map((s) => ({ ...s, tier })) }
+          ? { ...branch, spaces: branch.spaces.map((s) => ({ ...s, appearsFrom })) }
           : branch,
       ) as unknown as readonly [RouteBranch, RouteBranch],
     }
@@ -107,39 +110,30 @@ describe('every shipped route is sound', () => {
   })
 })
 
-describe('a lane that cannot survive the thinning', () => {
-  it('names the lane and the board it empties on', () => {
-    // The mistake: someone decides Safe Street's tiles are all scenery and
-    // promotes the lot to tier 1. The standard and long boards still work, so
-    // it passes a casual look; the short board has a fork pointing at nothing.
-    const broken = retierLane(EDITION_USA.route, 'Safe Street', 1)
+describe('a lane that cannot survive the gating', () => {
+  it('names the lane and the setting it empties on', () => {
+    // The mistake: someone decides Safe Street is a hard-mode road and gates
+    // the lot at `hard`. Hard and Very Hard still work, so it passes a casual
+    // look; Normal — the setting most likely to be play-tested last — has a
+    // fork pointing at nothing.
+    const broken = gateLane(EDITION_USA.route, 'Safe Street', 'hard')
     const problems = complains(broken, 'Safe Street')
 
     expect(problems.length).toBeGreaterThan(0)
-    expect(problems.join('\n')).toContain('short')
-    expect(problems.every((p) => !p.includes('[long/'))).toBe(true)
+    expect(problems.join('\n')).toContain('normal')
+    expect(problems.every((p) => !p.includes('[veryHard]'))).toBe(true)
   })
 
   it('says which fork is left pointing at nothing', () => {
-    const broken = retierLane(EDITION_USA.route, 'Risky Road', 2)
+    const broken = gateLane(EDITION_USA.route, 'Risky Road', 'veryHard')
     expect(complains(broken, 'home-buying').join('\n')).toMatch(/Risky Road/)
   })
 
   it('names a trunk run by its own name rather than a fork it does not belong to', () => {
-    const broken = retierLane(EDITION_USA.route, 'midtown', 2)
+    const broken = gateLane(EDITION_USA.route, 'midtown', 'veryHard')
     const problems = complains(broken, 'midtown')
     expect(problems.length).toBeGreaterThan(0)
-    expect(problems.join('\n')).toContain('[short/normal]')
-  })
-
-  it('catches a lane that only disappears on the easier settings', () => {
-    // `appearsFrom` runs the opposite way to tiers: a lane whose every tile is
-    // gated at `hard` is missing from the *gentlest* board, which is the one
-    // most likely to be play-tested last.
-    const broken = mapSpaces(EDITION_USA.route, (space) =>
-      space.id.startsWith('midtown') ? { ...space, appearsFrom: 'hard' } : space,
-    )
-    expect(complains(broken, '[standard/normal]').join('\n')).toContain('midtown')
+    expect(problems.join('\n')).toContain('[normal]')
   })
 })
 
@@ -217,11 +211,11 @@ describe('the two roads out of a fork', () => {
 })
 
 describe('the milestones the engine cannot do without', () => {
-  it('notices a degree that only exists on the long board', () => {
-    const broken = editSpace(EDITION_USA.route, 'college-8', { tier: 2 })
+  it('notices a degree that only exists on the harshest setting', () => {
+    const broken = editSpace(EDITION_USA.route, 'college-8', { appearsFrom: 'veryHard' })
     const problems = complains(broken, 'graduate')
     expect(problems.length).toBeGreaterThan(0)
-    expect(problems.join('\n')).toContain('[short/normal]')
+    expect(problems.join('\n')).toContain('[normal]')
   })
 
   it('notices a wedding nobody has to stop for', () => {
@@ -267,13 +261,6 @@ describe('the shape of the route itself', () => {
     expect(complains(broken, 'retirement').length).toBeGreaterThan(0)
   })
 
-  it('rejects a junction that the thinning would delete', () => {
-    // A fork tile is never thinned, so a tier on one is not a smaller board —
-    // it is a number that silently does nothing, which is worse.
-    const broken = editSpace(EDITION_USA.route, 'marriage', { tier: 2 })
-    expect(complains(broken, 'marriage').join('\n')).toMatch(/tier|thinn/i)
-  })
-
   it('rejects the same tile used twice', () => {
     const broken = mapSpaces(EDITION_USA.route, (space) =>
       space.id === 'safe-3' ? { ...space, id: 'main-bank' } : space,
@@ -297,7 +284,7 @@ describe('the shape of the route itself', () => {
  * one day break one.
  */
 describe('the board a route builds', () => {
-  const healthy = createBoard('standard', 'normal')
+  const healthy = createBoard('normal')
 
   const withSpaces = (edit: (spaces: Record<SpaceId, Space>) => void): Board => {
     const spaces: Record<SpaceId, Space> = {}
@@ -380,7 +367,7 @@ describe('the board a route builds', () => {
  */
 describe('a route shape no shipped edition has', () => {
   const tile = (id: SpaceId, title: string): SpaceContent =>
-    flavour(0, id, title, `Something happens on the way through ${title}.`, 'slate', 'space:side-hustle')
+    flavour(id, title, `Something happens on the way through ${title}.`, 'slate', 'space:side-hustle')
 
   const withMiniFork = (): RouteDefinition => {
     const segments = [...EDITION_USA.route.segments]
@@ -415,22 +402,20 @@ describe('a route shape no shipped edition has', () => {
   })
 
   it('builds a board with four forks, every road named', () => {
-    for (const length of ['short', 'standard', 'long'] as const) {
-      const board = createBoard(length, 'normal', { ...EDITION_USA, route })
-      const forks = Object.values(board.spaces).filter((space) => space.next.length > 1)
-      // Four on the shipped route, and this one makes five.
-      expect(forks, `${length} board`).toHaveLength(5)
-      for (const forked of forks) {
-        for (const headId of forked.next) {
-          expect(board.spaces[headId]?.lane?.name, `${forked.id} -> ${headId}`).toBeTruthy()
-        }
+    const board = createBoard('normal', { ...EDITION_USA, route })
+    const forks = Object.values(board.spaces).filter((space) => space.next.length > 1)
+    // Four on the shipped route, and this one makes five.
+    expect(forks).toHaveLength(5)
+    for (const forked of forks) {
+      for (const headId of forked.next) {
+        expect(board.spaces[headId]?.lane?.name, `${forked.id} -> ${headId}`).toBeTruthy()
       }
     }
   })
 
   it('leaves the shipped board untouched', () => {
     // Building a variant must not mutate the edition everyone else is playing.
-    expect(createBoard('standard')).toEqual(createBoard('standard', 'normal', EDITION_USA))
-    expect(Object.keys(createBoard('standard').spaces)).not.toContain('mini-fork')
+    expect(createBoard()).toEqual(createBoard('normal', EDITION_USA))
+    expect(Object.keys(createBoard().spaces)).not.toContain('mini-fork')
   })
 })

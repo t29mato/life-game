@@ -12,7 +12,7 @@ import { BOLIVIA_CURRENCY, BOLIVIA_ECONOMY } from './economy'
  * house that grows a floor at a time, the savings pool, the godparent
  * obligations, and a cholet at the top of the housing ladder.
  *
- * The board's measured skeleton (tiers, stops, hardships, hazard density,
+ * The board's measured skeleton (stops, hardships, hazard density,
  * payday placement) is the shipped one at ×1 — the exchange rate and the
  * income gap between the two countries almost exactly cancel, so the dollar
  * board's numerals already read as boliviano sums (see `economy.ts`). The

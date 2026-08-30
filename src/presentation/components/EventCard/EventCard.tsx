@@ -84,10 +84,15 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event, isMilestone, isCutIn, reduceMotion])
 
-  const direction = event.moneyDelta > 0 ? 'up' : event.moneyDelta < 0 ? 'down' : 'flat'
-  const deltaClassName =
-    direction === 'up' ? styles.deltaPositive : direction === 'down' ? styles.deltaNegative : styles.deltaZero
-  const arrow = direction === 'up' ? '▲' : direction === 'down' ? '▼' : '—'
+  // A pill that always read "$0" told a player their landing had a dollar
+  // figure attached and then that figure was always nothing — clutter, not
+  // information. Skipped entirely rather than shown in a neutral tone; the
+  // rest of the card (title, narration, description, tiles, notes) still
+  // renders in full regardless.
+  const hasMoneyDelta = event.moneyDelta !== 0
+  const direction = event.moneyDelta > 0 ? 'up' : 'down'
+  const deltaClassName = direction === 'up' ? styles.deltaPositive : styles.deltaNegative
+  const arrow = direction === 'up' ? '▲' : '▼'
 
   // The tone tints the whole card: header band, medallion ring, edge stripe.
   const toneVars = {
@@ -148,18 +153,20 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
           {event.narration ? <p className={styles.narration}>&ldquo;{event.narration}&rdquo;</p> : null}
           <p className={styles.description}>{event.description}</p>
 
-          <div className={`${styles.deltaPlate} ${deltaClassName}`}>
-            <CoinBurst burstKey={coinTick} kind={event.moneyDelta >= 0 ? 'gain' : 'lose'} />
-            <span className={styles.deltaArrow} aria-hidden="true">
-              {arrow}
-            </span>
-            <RollingNumber
-              className={`${styles.delta} tabular-num`}
-              value={revealed ? event.moneyDelta : 0}
-              format={moneyDelta}
-              duration={0.7}
-            />
-          </div>
+          {hasMoneyDelta ? (
+            <div className={`${styles.deltaPlate} ${deltaClassName}`}>
+              <CoinBurst burstKey={coinTick} kind={event.moneyDelta >= 0 ? 'gain' : 'lose'} />
+              <span className={styles.deltaArrow} aria-hidden="true">
+                {arrow}
+              </span>
+              <RollingNumber
+                className={`${styles.delta} tabular-num`}
+                value={revealed ? event.moneyDelta : 0}
+                format={moneyDelta}
+                duration={0.7}
+              />
+            </div>
+          ) : null}
 
           {event.transfers && event.transfers.length > 0 ? (
             <div className={styles.transferLanes}>

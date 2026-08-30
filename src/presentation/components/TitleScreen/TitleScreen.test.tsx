@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { SaveSlotInfo } from '@application/ports/GameRepositoryPort'
 import type { GameRecord } from '@application/ports/StatsRepositoryPort'
+import type { PlayerProfile } from '@application/ports/PlayerProfileRepositoryPort'
 import { registerEdition } from '@domain/edition/registry'
 import { EDITION_JAPAN } from '@domain/edition/japan'
 import { AudioProvider } from '../../hooks/useAudio'
@@ -20,6 +21,7 @@ function renderTitleScreen(overrides: Partial<TitleScreenProps> = {}) {
   const props: TitleScreenProps = {
     slots: emptySlots(),
     records: [],
+    profiles: [],
     onStart,
     onContinue,
     ...overrides,
@@ -87,6 +89,58 @@ describe('TitleScreen', () => {
     expect(redSwatch).toBeDisabled()
   })
 
+  describe('faces', () => {
+    it('defaults every seat to the factory look: the classic face', () => {
+      renderTitleScreen()
+      const faces = screen.getByRole('group', { name: 'Player 1 face' })
+      expect(faces.querySelector('[aria-pressed="true"]')).toHaveAccessibleName('Classic face')
+    })
+
+    it('sends a chosen face with the start config', async () => {
+      const user = userEvent.setup()
+      const { onStart } = renderTitleScreen()
+
+      const faces = screen.getByRole('group', { name: 'Player 1 face' })
+      await user.click(within(faces).getByRole('button', { name: /cool face/i }))
+
+      await user.click(screen.getByRole('button', { name: /start game/i }))
+      expect(onStart).toHaveBeenCalledWith(
+        expect.objectContaining({
+          players: [
+            expect.objectContaining({ face: 'cool' }),
+            expect.objectContaining({ face: 'classic' }),
+          ],
+        }),
+      )
+    })
+
+    it('lets two players share a face — only colours are exclusive', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      for (const index of [1, 2]) {
+        const faces = screen.getByRole('group', { name: `Player ${index} face` })
+        await user.click(within(faces).getByRole('button', { name: /cheerful face/i }))
+      }
+      for (const index of [1, 2]) {
+        const faces = screen.getByRole('group', { name: `Player ${index} face` })
+        expect(within(faces).getByRole('button', { name: /cheerful face/i })).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        )
+      }
+    })
+  })
+
+  it('offers twelve colours, none of them twice', () => {
+    renderTitleScreen()
+    const group = screen.getByRole('group', { name: 'Player 1 colour' })
+    const labels = within(group)
+      .getAllByRole('button')
+      .map((button) => button.getAttribute('aria-label'))
+    expect(labels).toHaveLength(12)
+    expect(new Set(labels).size).toBe(12)
+  })
+
   it('toggles a seat to CPU', async () => {
     const user = userEvent.setup()
     renderTitleScreen()
@@ -107,26 +161,16 @@ describe('TitleScreen', () => {
     const group2 = screen.getByRole('group', { name: 'Player 2 seat type' })
     await user.click(within(group2).getByRole('button', { name: 'CPU' }))
 
-    await user.click(screen.getByRole('button', { name: /long game/i }))
-
     await user.click(screen.getByRole('button', { name: /start game/i }))
 
     expect(onStart).toHaveBeenCalledWith({
       players: [
-        { name: 'Zoe', color: 'red', isCpu: false },
-        { name: 'Player 2', color: 'blue', isCpu: true },
+        { name: 'Zoe', color: 'red', face: 'classic', isCpu: false },
+        { name: 'Player 2', color: 'blue', face: 'classic', isCpu: true },
       ],
-      boardLength: 'long',
       difficulty: 'normal',
       editionId: 'usa',
     })
-  })
-
-  it('defaults the board length to standard', async () => {
-    const user = userEvent.setup()
-    const { onStart } = renderTitleScreen()
-    await user.click(screen.getByRole('button', { name: /start game/i }))
-    expect(onStart).toHaveBeenCalledWith(expect.objectContaining({ boardLength: 'standard' }))
   })
 
   it('defaults the difficulty to normal', async () => {
@@ -288,6 +332,100 @@ describe('TitleScreen', () => {
       const { onContinue } = renderTitleScreen({ slots })
       await user.click(screen.getByRole('button', { name: /continue slot 1/i }))
       expect(onContinue).toHaveBeenCalledWith(1)
+    })
+  })
+
+  describe('recent players', () => {
+    const zoe: PlayerProfile = {
+      name: 'Zoe',
+      color: 'teal',
+      face: 'cool',
+      lastUsedAt: '2026-08-01T12:00:00.000Z',
+    }
+
+    it('shows no strip at all on a first-ever run — a strip of nobody is noise', () => {
+      renderTitleScreen({ profiles: [] })
+      expect(screen.queryByText('Recent')).not.toBeInTheDocument()
+    })
+
+    it('fills a whole row from one tap: name, colour and face', async () => {
+      const user = userEvent.setup()
+      const { onStart } = renderTitleScreen({ profiles: [zoe] })
+
+      const strip = screen.getByRole('group', { name: 'Player 1 recent players' })
+      await user.click(within(strip).getByRole('button', { name: 'Zoe' }))
+
+      expect(screen.getByLabelText('Player 1 name')).toHaveValue('Zoe')
+      await user.click(screen.getByRole('button', { name: /start game/i }))
+      expect(onStart).toHaveBeenCalledWith(
+        expect.objectContaining({
+          players: [
+            expect.objectContaining({ name: 'Zoe', color: 'teal', face: 'cool' }),
+            expect.objectContaining({ name: 'Player 2' }),
+          ],
+        }),
+      )
+    })
+
+    it('keeps the row colour when a rival is already holding the saved one', async () => {
+      const user = userEvent.setup()
+      const { onStart } = renderTitleScreen({
+        profiles: [{ ...zoe, color: 'blue' }],
+      })
+
+      // Player 2 already holds blue; Zoe's saved blue must yield, not clash.
+      const strip = screen.getByRole('group', { name: 'Player 1 recent players' })
+      await user.click(within(strip).getByRole('button', { name: 'Zoe' }))
+
+      await user.click(screen.getByRole('button', { name: /start game/i }))
+      expect(onStart).toHaveBeenCalledWith(
+        expect.objectContaining({
+          players: [
+            expect.objectContaining({ name: 'Zoe', color: 'red' }),
+            expect.objectContaining({ color: 'blue' }),
+          ],
+        }),
+      )
+    })
+
+    it('offers no strip on a computer seat — it has no owner to recall', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen({ profiles: [zoe] })
+
+      const group2 = screen.getByRole('group', { name: 'Player 2 seat type' })
+      await user.click(within(group2).getByRole('button', { name: 'CPU' }))
+
+      expect(screen.getByRole('group', { name: 'Player 1 recent players' })).toBeInTheDocument()
+      expect(screen.queryByRole('group', { name: 'Player 2 recent players' })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('playtime estimate', () => {
+    it('says up front roughly how long the default table will take', () => {
+      renderTitleScreen()
+      expect(screen.getByText('About 10–20 min for 2 human seats.')).toBeInTheDocument()
+    })
+
+    it('tracks the player rows and the difficulty as they change', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+
+      // A third human seat means a third more table time per round.
+      await user.click(screen.getByRole('button', { name: /add player/i }))
+      expect(screen.getByText('About 20–25 min for 3 human seats.')).toBeInTheDocument()
+
+      // Handing a seat to the computer shortens it — a CPU turn takes seconds.
+      const group3 = screen.getByRole('group', { name: 'Player 3 seat type' })
+      await user.click(within(group3).getByRole('button', { name: 'CPU' }))
+      expect(
+        screen.getByText('About 15–20 min for 2 human seats and 1 CPU seat.'),
+      ).toBeInTheDocument()
+
+      // Harder games run a few more rounds, so the estimate follows.
+      await user.click(screen.getByRole('button', { name: /very hard/i }))
+      expect(
+        screen.getByText('About 15–25 min for 2 human seats and 1 CPU seat.'),
+      ).toBeInTheDocument()
     })
   })
 

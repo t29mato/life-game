@@ -1,7 +1,6 @@
 import type { CSSProperties, ReactElement } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { IconName } from '@domain/model/icons'
-import type { Career, InsuranceKind, Player, Difficulty, EditionId } from '@domain/model/types'
+import type { Career, Player, Difficulty, EditionId } from '@domain/model/types'
 import type { CurrencySpec } from '@domain/edition/types'
 import { editionFor } from '@domain/edition/registry'
 import { loanRepaymentFor } from '@domain/rules/difficulty'
@@ -9,6 +8,7 @@ import { estimateNetWorth } from '@domain/rules/scoring'
 import { formatMoney, formatOrdinal, formatSalary } from '../../format'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { GameIcon } from '../../icons/GameIcon'
+import { INSURANCE_ICON, INSURANCE_LABEL } from '../../icons/insurance'
 import { UiIcon, type UiIconName } from '../../icons/ui'
 import { RollingNumber } from '../RollingNumber/RollingNumber'
 import styles from './PlayerPanel.module.css'
@@ -47,23 +47,11 @@ export interface PlayerPanelProps {
   readonly editionId?: EditionId
 }
 
-const INSURANCE_ICON: Record<InsuranceKind, IconName> = {
-  home: 'finance:policy-home',
-  auto: 'finance:policy-auto',
-  life: 'finance:policy-life',
-}
-
-const INSURANCE_LABEL: Record<InsuranceKind, string> = {
-  home: 'Home',
-  auto: 'Auto',
-  life: 'Life',
-}
-
 /** The tooltip a wage carries: what decides it, in the player's own terms. */
 function variablePayNote(career: Career, currency: CurrencySpec): string {
   return career.payPerPip === undefined
     ? `${career.title}: the same packet every payday.`
-    : `${career.title}: every payday pays ${formatMoney(career.payPerPip, currency)} for each pip you spin.`
+    : `${career.title}: every payday pays ${formatMoney(career.payPerPip, currency)} for each pip you roll.`
 }
 
 const MEDAL_ICON: Record<1 | 2 | 3, UiIconName> = {
@@ -166,7 +154,7 @@ export function PlayerPanel({
         ) : (
           <span
             className={styles.salary}
-            title={`Between jobs: every payday pays ${money(economy.casualWagePerPip)} for each pip you spin.`}
+            title={`Between jobs: every payday pays ${money(economy.casualWagePerPip)} for each pip you roll.`}
           >
             Casual shifts: {money(economy.casualWagePerPip)} a pip
           </span>

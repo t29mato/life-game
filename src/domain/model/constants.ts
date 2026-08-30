@@ -1,4 +1,4 @@
-import type { BoardLength, InsuranceKind, Money } from './types'
+import type { InsuranceKind, Money } from './types'
 import { USA_ECONOMY } from '../edition/usa/economy'
 
 /**
@@ -58,9 +58,13 @@ export const EARLY_LOAN_REPAYMENT: Money = USA_ECONOMY.earlyLoanRepayment.normal
 /** Shares bought per purchase at a stock space. */
 export const SHARES_PER_PURCHASE = 1
 
-/** Spaces on the trunk route for each session length, before branches. */
-export const BOARD_LENGTH_SCALE: Record<BoardLength, number> = {
-  short: 0.6,
-  standard: 1,
-  long: 1.5,
-}
+/**
+ * How many faces the die has — every roll in the game is one throw of it.
+ *
+ * Written once because half a dozen rules average over the faces rather than
+ * over a hypothesis: an expected child, an expected marriage, an expected
+ * tuition bill. Each of those used to sum a hand-written `[1..10]`, and ten
+ * hand-written copies of a fact are ten places for it to go stale the day the
+ * wheel became a die.
+ */
+export const SPIN_FACES = 6

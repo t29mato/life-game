@@ -1,7 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
-  BoardLength,
   Board as BoardModel,
   Player,
   Space,
@@ -80,7 +79,11 @@ function renderBoard(props: Partial<BoardProps> = {}) {
         currentPlayerIndex={props.currentPlayerIndex ?? 0}
         phase={props.phase ?? 'awaitingSpin'}
         movementPath={props.movementPath ?? []}
+        pendingHops={props.pendingHops ?? 0}
         onMovementComplete={props.onMovementComplete ?? (() => {})}
+        {...(props.onSpacesLeftChange === undefined
+          ? {}
+          : { onSpacesLeftChange: props.onSpacesLeftChange })}
         {...(props.introFlythrough === undefined
           ? {}
           : { introFlythrough: props.introFlythrough })}
@@ -327,6 +330,110 @@ describe('Board', () => {
     })
   })
 
+  /*
+   * A move is walked one leg at a time now — see `nextMovementLeg` — so the
+   * board is handed the road as far as the next tile that owes a card, then
+   * handed the rest once that card has been read. Two things have to survive
+   * being cut in half: the countdown, which counts *spaces* and not hops of
+   * the current leg, and the car, which must stay parked where the leg left
+   * it for as long as the card is up.
+   */
+  describe('a move cut short at a tile that owes a card', () => {
+    it('counts the spaces still to travel, including the ones held back', async () => {
+      mockReducedMotion(true)
+      const onSpacesLeftChange = vi.fn()
+      renderBoard({
+        phase: 'moving',
+        players: [makePlayer({ id: 'p1', spaceId: 'b' })],
+        movementPath: ['b'],
+        pendingHops: 2,
+        onSpacesLeftChange,
+      })
+
+      // Three spaces owed: this leg's one hop plus the two still held back.
+      await waitFor(() => expect(onSpacesLeftChange).toHaveBeenCalledWith(2))
+      expect(onSpacesLeftChange.mock.calls.map(([n]) => n)).toEqual([3, 2])
+    })
+
+    it('keeps counting down through the pause rather than restarting', async () => {
+      mockReducedMotion(true)
+      const onSpacesLeftChange = vi.fn()
+      const { rerender } = renderBoard({
+        phase: 'moving',
+        players: [makePlayer({ id: 'p1', spaceId: 'c' })],
+        movementPath: ['b'],
+        pendingHops: 1,
+        onSpacesLeftChange,
+      })
+      await waitFor(() => expect(onSpacesLeftChange).toHaveBeenCalledWith(1))
+
+      const board = makeBoard()
+      const renderWith = (phase: BoardProps['phase'], path: string[], pending: number) =>
+        rerender(
+          <AudioProvider audio={createFakeAudioPort()}>
+            <Board
+              board={board}
+              players={[makePlayer({ id: 'p1', spaceId: 'c' })]}
+              currentPlayerIndex={0}
+              phase={phase}
+              movementPath={path}
+              pendingHops={pending}
+              onMovementComplete={() => {}}
+              onSpacesLeftChange={onSpacesLeftChange}
+            />
+          </AudioProvider>,
+        )
+
+      // The card goes up: nothing hops, and nothing is re-counted.
+      renderWith('passingEvent', [], 1)
+      // Dismissed: the last leg runs and the count reaches nought.
+      renderWith('moving', ['c'], 0)
+
+      await waitFor(() => expect(onSpacesLeftChange).toHaveBeenCalledWith(0))
+      expect(onSpacesLeftChange.mock.calls.map(([n]) => n)).toEqual([2, 1, 1, 0])
+    })
+
+    it('leaves the car parked on the tile whose card is up, not on its destination', async () => {
+      mockReducedMotion(true)
+      const carPosition = (car: Element): { x: number; y: number } => {
+        const body = car.querySelector(':scope > g')
+        const style = body?.getAttribute('style') ?? ''
+        return {
+          x: Number(/translateX\(([-\d.]+)px\)/.exec(style)?.[1] ?? '0'),
+          y: Number(/translateY\(([-\d.]+)px\)/.exec(style)?.[1] ?? '0'),
+        }
+      }
+
+      const { container, rerender } = renderBoard({
+        phase: 'awaitingSpin',
+        players: [makePlayer({ id: 'p1', spaceId: 'start' })],
+        movementPath: [],
+      })
+      const parked = carPosition(container.querySelector('[data-testid="pawn"]') as Element)
+
+      // The store already knows the destination is 'c' — a move commits
+      // atomically — but the car has only hopped as far as 'b', where a card
+      // is now up. Its resting spot must not jump on ahead of it.
+      rerender(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <Board
+            board={makeBoard()}
+            players={[makePlayer({ id: 'p1', spaceId: 'c' })]}
+            currentPlayerIndex={0}
+            phase="passingEvent"
+            movementPath={[]}
+            onMovementComplete={() => {}}
+          />
+        </AudioProvider>,
+      )
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60))
+      })
+
+      expect(carPosition(container.querySelector('[data-testid="pawn"]') as Element)).toEqual(parked)
+    })
+  })
+
   it('does not animate when movementPath is empty', () => {
     mockReducedMotion(true)
     const onMovementComplete = vi.fn()
@@ -420,35 +527,12 @@ describe('Board', () => {
    * browser, not for jsdom.
    */
   describe('filling the space it is given', () => {
-    const lengths: readonly BoardLength[] = ['short', 'standard', 'long']
-
-    /**
-     * The worst case, and the reason nothing here can assume a landscape
-     * viewBox: the longest board is taller than it is wide.
+    /*
+     * A board is a column of rows that gets longer as the route grows (see
+     * COLUMN_MAX in createBoard.ts), so nothing below may assume an
+     * orientation: today's route comes out landscape, and a handful of tiles
+     * added to the trunk turns it portrait without touching this file.
      */
-    it('reports the long board as taller than it is wide', () => {
-      const projection = createProjection(createBoard('long'))
-
-      expect(projection.viewWidth / projection.viewHeight).toBeLessThan(1)
-    })
-
-    it('grows taller, never wider, as the route gets longer', () => {
-      const aspects = lengths.map((length) => {
-        const projection = createProjection(createBoard(length))
-        return projection.viewWidth / projection.viewHeight
-      })
-
-      // A small tolerance, not a strict decrease: the serpentine layout wraps
-      // at a fixed column width, so the exact row count — and so the aspect
-      // ratio — moves in discrete steps as a board's total tile count crosses
-      // a wrap boundary. The stop-spacing pass added the same few flavour
-      // tiles to every length, which happened to land standard and long on
-      // opposite sides of one such boundary. Long (0.87) is still a far
-      // taller board than short (1.10), which is what this guards against.
-      for (let i = 1; i < aspects.length; i += 1) {
-        expect(aspects[i] as number).toBeLessThan((aspects[i - 1] as number) * 1.1)
-      }
-    })
 
     /**
      * `slice` fills the box by cropping the drawing to cover it; `meet`
@@ -457,7 +541,7 @@ describe('Board', () => {
      */
     it('scales the drawing to cover its box rather than fitting inside it', () => {
       mockReducedMotion(true)
-      renderBoard({ board: createBoard('long') })
+      renderBoard({ board: createBoard() })
 
       expect(screen.getByRole('img', { name: 'Game board' })).toHaveAttribute(
         'preserveAspectRatio',
@@ -467,7 +551,7 @@ describe('Board', () => {
 
     it('draws the whole projection, never a trimmed viewBox', () => {
       mockReducedMotion(true)
-      const model = createBoard('long')
+      const model = createBoard()
       const projection = createProjection(model)
       renderBoard({ board: model })
 

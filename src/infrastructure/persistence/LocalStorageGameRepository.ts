@@ -6,9 +6,12 @@ export const SAVE_KEY_PREFIX = 'life-journey:save:'
 /**
  * Bumped whenever the persisted `GameState` shape changes. Round 2 added
  * `boardLength` to `GameState` and `stocks`/`insurance`/`isCpu` to `Player`,
- * so a version-1 snapshot is half-shaped and must never be loaded.
+ * so a version-1 snapshot is half-shaped and must never be loaded. Round 3
+ * took `boardLength` away again — a session is one length now — and with it
+ * every space a longer board carried, so a version-2 snapshot is a game whose
+ * pawns stand on tiles this build cannot draw.
  */
-export const SAVE_VERSION = 2
+export const SAVE_VERSION = 3
 
 function keyFor(slot: number): string {
   return `${SAVE_KEY_PREFIX}${slot}`
@@ -25,7 +28,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /** The minimal shape check that keeps a corrupt or half-written snapshot from producing a broken game. */
 function isPlausibleGameState(value: unknown): value is GameState {
   if (!isRecord(value)) return false
-  return Array.isArray(value.players) && isRecord(value.board) && typeof value.boardLength === 'string'
+  return Array.isArray(value.players) && isRecord(value.board) && typeof value.difficulty === 'string'
 }
 
 function isLoadableSnapshot(value: unknown): value is GameSnapshot {

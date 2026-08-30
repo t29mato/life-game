@@ -9,7 +9,7 @@ import {
   createInMemoryStatsRepository,
   createSeededRandom,
 } from '../../../application/testing/fakes'
-import type { Board, BoardLength, Difficulty, GameState, PlayerColor, SpaceId, SpinValue } from '../../model/types'
+import type { Board, Difficulty, GameState, PlayerColor, SpaceId, SpinValue } from '../../model/types'
 
 /**
  * A fork is the wheel's own call now (see `spin.ts`), so pinning a seat to a
@@ -66,7 +66,6 @@ function laneRoll(board: Board, spaceId: SpaceId, wanted: string, entropy: numbe
 const DISPATCH_LIMIT = 5_000
 
 interface PlayOptions {
-  readonly boardLength?: BoardLength
   readonly cpuSeats?: number
   readonly difficulty?: Difficulty
   readonly laneBySeat?: readonly string[]
@@ -97,7 +96,6 @@ const playGame = (
   store.dispatch({
     type: 'startGame',
     config: {
-      boardLength: options.boardLength ?? 'standard',
       editionId: 'japan',
       ...(options.difficulty ? { difficulty: options.difficulty } : {}),
       players: Array.from({ length: playerCount }, (_, i) => ({
@@ -131,6 +129,12 @@ const playGame = (
         store.dispatch({ type: 'spin' })
         break
       }
+      // The fork's second press: the road above is settled, and this is the
+      // roll for how far down it. Nothing to force — a lane is a choice, a
+      // distance never was. See `spin.ts`.
+      case 'awaitingDistanceSpin':
+        store.dispatch({ type: 'spin' })
+        break
       case 'moving':
       case 'passingEvent':
         store.dispatch({ type: 'settle' })
@@ -172,16 +176,13 @@ describe('every japan game reaches a conclusion', () => {
     }
   })
 
-  it('finishes at every board length and difficulty', () => {
-    for (const boardLength of ['short', 'standard', 'long'] as const) {
-      for (const difficulty of ['normal', 'hard', 'veryHard'] as const) {
-        for (const seed of [5, 23]) {
-          const { finalState, dispatches } = playGame(seed, 3, seed, { boardLength, difficulty })
-          expect(finalState.phase, `${boardLength}/${difficulty} seed ${seed}`).toBe('gameOver')
-          expect(dispatches).toBeLessThan(DISPATCH_LIMIT)
-          expect(finalState.boardLength).toBe(boardLength)
-          expect(finalState.difficulty).toBe(difficulty)
-        }
+  it('finishes at every difficulty', () => {
+    for (const difficulty of ['normal', 'hard', 'veryHard'] as const) {
+      for (const seed of [5, 23]) {
+        const { finalState, dispatches } = playGame(seed, 3, seed, { difficulty })
+        expect(finalState.phase, `${difficulty} seed ${seed}`).toBe('gameOver')
+        expect(dispatches).toBeLessThan(DISPATCH_LIMIT)
+        expect(finalState.difficulty).toBe(difficulty)
       }
     }
   })
@@ -206,7 +207,11 @@ describe('the yen economy stays in a playable band', () => {
   const bustShare = (totals: number[]) => totals.filter((t) => t < 0).length / totals.length
 
   it('keeps normal comfortably profitable — the USA band, in yen', () => {
-    // Measured: mean ¥65.9M, median ¥64.4M over these 60 games — the USA
+    // Re-measured on the six-face die, which averages 3.5 where the wheel
+    // averaged 5.5: half again as many landings per game, against paydays
+    // repriced to the same worth. See `src/test/gameBalance.test.ts` for the
+    // same measurement in dollars.
+    // Measured before the die: mean ¥65.9M, median ¥64.4M over these 60 games — the USA
     // board's band ×100, a touch leaner for the house tilt, and nobody ever
     // bust on normal.
     expect(mean(normal.totals)).toBeGreaterThan(40_000_000)
@@ -280,12 +285,16 @@ describe('neither opening lane is the right answer, in yen either', () => {
   }
 
   const MANY = Array.from({ length: 240 }, (_, i) => i + 1)
-  const standard = splitOf(MANY)
+  const sample = splitOf(MANY)
 
-  it('splits the wins between the two lanes on the standard board', () => {
-    // Measured at 53.8% over these 240 games.
-    expect(standard.universityWinRate).toBeGreaterThan(0.45)
-    expect(standard.universityWinRate).toBeLessThan(0.55)
+  it('splits the wins between the two lanes', () => {
+    // Measured at 57.5% over these 240 games, against 53.8% while the longer
+    // boards existed. The band is the wider one this file already held the
+    // fifteen-minute board to: every fork on the route is the wheel's own call
+    // now, and the shortest session has the fewest turns for the mid-career and
+    // later forks' own roulette to average back out.
+    expect(sample.universityWinRate).toBeGreaterThan(0.33)
+    expect(sample.universityWinRate).toBeLessThan(0.62)
   })
 
   it('does not let either opening lane run away with all the volatility', () => {
@@ -294,19 +303,17 @@ describe('neither opening lane is the right answer, in yen either', () => {
     // (a career re-draw taken *deliberately*, disproportionately, by whoever
     // chose the volatile lane) stopped existing once every fork, that one
     // included, became the wheel's own call. Re-measured at a ratio of 0.87.
-    const ratio = spread(standard.work) / spread(standard.university)
+    const ratio = spread(sample.work) / spread(sample.university)
     expect(ratio).toBeGreaterThan(0.7)
     expect(ratio).toBeLessThan(1.4)
   })
 
   it('leaves neither lane the obvious money play', () => {
-    const gap = Math.abs(mean(standard.university) - mean(standard.work))
-    expect(gap / mean(standard.university)).toBeLessThan(0.15)
+    const gap = Math.abs(mean(sample.university) - mean(sample.work))
+    expect(gap / mean(sample.university)).toBeLessThan(0.15)
   })
 
   it.each([
-    ['short board', { boardLength: 'short' } as PlayOptions],
-    ['long board', { boardLength: 'long' } as PlayOptions],
     ['hard', { difficulty: 'hard' } as PlayOptions],
     ['very hard', { difficulty: 'veryHard' } as PlayOptions],
   ])('stays an even fork on the %s', (_label, options) => {
@@ -333,7 +340,6 @@ describe('the computer can play the japan board unaided', () => {
     store.dispatch({
       type: 'startGame',
       config: {
-        boardLength: 'standard',
         editionId: 'japan',
         players: Array.from({ length: 4 }, (_, i) => ({
           name: `CPU ${i + 1}`,
@@ -383,8 +389,8 @@ describe('the computer can play the japan board unaided', () => {
   })
 })
 
-describe('insurance pays off about twice a game, in yen', () => {
-  it('bounces roughly two hazard bills per player per standard game', () => {
+describe('insurance pays off, rarely but really, in yen', () => {
+  it('bounces hazard bills off a policy often enough to matter', () => {
     const landings: SpaceId[] = []
     const seeds = Array.from({ length: 80 }, (_, i) => i + 1)
     for (const seed of seeds) {
@@ -396,8 +402,18 @@ describe('insurance pays off about twice a game, in yen', () => {
       return effect?.type === 'payMoney' && effect.hazard !== undefined
     })
     const rate = covered.length / (seeds.length * 2)
-    // Measured at 1.81 — the same hazard density the mirror promised.
-    expect(rate).toBeGreaterThan(1.4)
-    expect(rate).toBeLessThan(3)
+    /*
+     * Measured at 0.28, down from the 1.81 this test held while the longer
+     * boards existed. Almost every hazard-tagged bill on the route was scenery
+     * a longer session had room for, so pruning the board to one length took
+     * them with it and left the two the milestones carry. A policy is a much
+     * rarer payoff on this board than the mirror once promised — the number is
+     * pinned here rather than dropped so the next person to weigh a premium
+     * against it is arguing with a measurement.
+     */
+    // Re-measured at 0.49 on the die — see `src/test/gameBalance.test.ts`
+    // for why a shorter roll lands a pawn on a hazard tile so much oftener.
+    expect(rate).toBeGreaterThan(0.3)
+    expect(rate).toBeLessThan(0.7)
   })
 })

@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import type { BoardLength, NewGameConfig } from '@domain/model/types'
+import type { NewGameConfig } from '@domain/model/types'
 import { createFakeRandom } from '../testing/fakes'
 import { startGame } from './startGame'
 
 const deps = { random: createFakeRandom() }
 
-function config(names: string[], boardLength: BoardLength = 'standard'): NewGameConfig {
+function config(names: string[]): NewGameConfig {
   const colors = ['red', 'blue', 'green', 'yellow'] as const
   return {
     players: names.map((name, i) => ({ name, color: colors[i % colors.length]!, isCpu: false })),
-    boardLength,
   }
 }
 
@@ -75,24 +74,29 @@ describe('startGame', () => {
   })
 
   it('rejects an empty roster', () => {
-    expect(() => startGame({ players: [], boardLength: 'standard' }, deps)).toThrow(/2-4 players/)
+    expect(() => startGame({ players: [] }, deps)).toThrow(/2-4 players/)
   })
 
-  describe('board length', () => {
-    it('records the chosen length on the state', () => {
-      for (const length of ['short', 'standard', 'long'] as const) {
-        expect(startGame(config(['Alex', 'Bo'], length), deps).boardLength).toBe(length)
-      }
+  describe('player designs', () => {
+    it('carries a chosen face onto the player', () => {
+      const state = startGame(
+        {
+          players: [
+            { name: 'Alex', color: 'teal', face: 'cool', isCpu: false },
+            { name: 'Bo', color: 'pink', face: 'cheerful', isCpu: false },
+          ],
+        },
+        deps,
+      )
+      expect(state.players[0]).toMatchObject({ color: 'teal', face: 'cool' })
+      expect(state.players[1]).toMatchObject({ color: 'pink', face: 'cheerful' })
     })
 
-    it('builds a shorter board for a shorter session', () => {
-      const short = startGame(config(['Alex', 'Bo'], 'short'), deps)
-      const standard = startGame(config(['Alex', 'Bo'], 'standard'), deps)
-      const long = startGame(config(['Alex', 'Bo'], 'long'), deps)
-
-      const size = (state: typeof short) => Object.keys(state.board.spaces).length
-      expect(size(short)).toBeLessThan(size(standard))
-      expect(size(long)).toBeGreaterThan(size(standard))
+    it('leaves an omitted design absent, the same way an old save reads', () => {
+      const state = startGame(config(['Alex', 'Bo']), deps)
+      // Absent, not `undefined`-with-a-key: `exactOptionalPropertyTypes`
+      // makes those different shapes, and absent is the one old saves have.
+      expect('face' in state.players[0]!).toBe(false)
     })
   })
 
@@ -104,7 +108,6 @@ describe('startGame', () => {
             { name: 'Alex', color: 'red', isCpu: false },
             { name: 'Botly', color: 'blue', isCpu: true },
           ],
-          boardLength: 'standard',
         },
         deps,
       )
@@ -119,7 +122,6 @@ describe('startGame', () => {
             { name: 'Circuit', color: 'blue', isCpu: true },
             { name: 'Dot', color: 'green', isCpu: true },
           ],
-          boardLength: 'standard',
         },
         deps,
       )

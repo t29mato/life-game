@@ -103,7 +103,9 @@ describe('choose', () => {
       const next = choose(state, 'longBranch', { random: createFakeRandom() })
 
       expect(next.phase).toBe('moving')
-      expect(next.movementPath).toEqual(['longBranch', 'mid', 'merge'])
+      // Cut at `mid`, the payday it sweeps past — see `nextMovementLeg`.
+      expect(next.movementPath).toEqual(['longBranch', 'mid'])
+      expect(next.pendingPath).toEqual(['merge'])
       expect(next.stepsRemaining).toBe(0)
       expect(next.players[0]!.spaceId).toBe('merge')
       // Queued for `settle` to pay out as its own card, not paid the instant
@@ -123,7 +125,7 @@ describe('choose', () => {
         pendingDecision: {
           kind: 'valueSpin',
           prompt: 'Choose your career path',
-          options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Spin', description: '', icon: 'space:payday' }],
+          options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Roll', description: '', icon: 'space:payday' }],
           offeredCareerIds: [first.id, second.id],
         },
       })
@@ -134,7 +136,7 @@ describe('choose', () => {
       expect(low.pendingDecision).toBeNull()
       expect(low.lastEvent).not.toBeNull()
 
-      const high = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [8] }) })
+      const high = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [5] }) })
       expect(high.players[0]!.career).toEqual(second)
     })
 
@@ -149,7 +151,7 @@ describe('choose', () => {
           kind: 'valueSpin',
           prompt: 'Two other trades would take you at the level you are on.',
           options: [
-            { id: VALUE_SPIN_OPTION_ID, label: 'Spin', description: '', icon: 'space:payday' },
+            { id: VALUE_SPIN_OPTION_ID, label: 'Roll', description: '', icon: 'space:payday' },
             { id: CAREER_STAY_OPTION_ID, label: 'Stay', description: '', icon: 'space:payday' },
           ],
           offeredCareerIds: [first.id, second.id],
@@ -401,15 +403,15 @@ describe('choose', () => {
         pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
       })
 
-      const random = createFakeRandom({ spins: [7] })
+      const random = createFakeRandom({ spins: [5] })
       const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
 
       expect(random.calls.spins).toBe(1)
       expect(next.phase).toBe('resolved')
       expect(next.pendingDecision).toBeNull()
-      expect(next.players[0]!.money).toBe(700)
-      expect(next.lastEvent!.moneyDelta).toBe(700)
-      expect(next.lastEvent!.notes.join(' ')).toContain('Rolled a 7')
+      expect(next.players[0]!.money).toBe(500)
+      expect(next.lastEvent!.moneyDelta).toBe(500)
+      expect(next.lastEvent!.notes.join(' ')).toContain('Rolled a 5')
     })
 
     it('spins for a casual payday, paying by the roll rather than nothing', () => {
@@ -424,7 +426,7 @@ describe('choose', () => {
 
       expect(random.calls.spins).toBe(1)
       expect(next.players[0]!.money).toBe(1_000 + CASUAL_WAGE_PER_PIP * 4)
-      expect(next.lastEvent!.notes.join(' ')).toContain('Spun 4')
+      expect(next.lastEvent!.notes.join(' ')).toContain('Rolled 4')
     })
 
     it('spins for an unsteady career payday at its own rate, not the casual one', () => {
@@ -435,10 +437,10 @@ describe('choose', () => {
         pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
       })
 
-      const random = createFakeRandom({ spins: [9] })
+      const random = createFakeRandom({ spins: [5] })
       const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
 
-      expect(next.players[0]!.money).toBe(career.payPerPip! * 9)
+      expect(next.players[0]!.money).toBe(career.payPerPip! * 5)
     })
 
     it('rejects an option id the wheel never offered', () => {
@@ -465,7 +467,7 @@ describe('choose', () => {
           pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
         })
 
-        const needed = career.promotionSpin ?? 5
+        const needed = career.promotionSpin ?? 4
         const random = createFakeRandom({ spins: [(needed - 1) as typeof needed] })
         const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
 
@@ -484,14 +486,14 @@ describe('choose', () => {
           pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
         })
 
-        const random = createFakeRandom({ spins: [career.promotionSpin ?? 5] })
+        const random = createFakeRandom({ spins: [career.promotionSpin ?? 4] })
         const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
 
         expect(next.players[0]!.career?.id).toBe(career.promotesTo)
         expect(next.lastEvent!.emphasis).toBe('milestone')
       })
 
-      it('skips a whole rung on a perfect ten', () => {
+      it('skips a whole rung on a perfect six', () => {
         const career = BASIC_CAREERS[0]!
         const player = fixturePlayer({ spaceId: 'a', career })
         const state = decisionState({
@@ -500,7 +502,7 @@ describe('choose', () => {
           pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
         })
 
-        const random = createFakeRandom({ spins: [10] })
+        const random = createFakeRandom({ spins: [6] })
         const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
 
         const skipped = BASIC_CAREERS.find((c) => c.id === career.promotesTo)!
@@ -524,7 +526,7 @@ describe('choose', () => {
           pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
         })
 
-        const random = createFakeRandom({ spins: [6] })
+        const random = createFakeRandom({ spins: [4] })
         const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
 
         expect(random.calls.spins).toBe(1)
@@ -602,7 +604,7 @@ describe('choose', () => {
           pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
         })
 
-        const random = createFakeRandom({ spins: [10] })
+        const random = createFakeRandom({ spins: [6] })
         const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
 
         expect(next.players[0]!.money).toBeGreaterThan(100_000)
@@ -716,7 +718,7 @@ describe('choose', () => {
         pendingDecision: {
           kind: 'valueSpin',
           prompt: 'Choose your career path',
-          options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Spin', description: '', icon: 'space:payday' }],
+          options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Roll', description: '', icon: 'space:payday' }],
           offeredCareerIds: [career.id, BASIC_CAREERS[1]!.id],
         },
       })
@@ -761,7 +763,7 @@ describe('a fork is chosen before the wheel is spun', () => {
     const board = fixtureMovementBoard()
     const decision = branchDecision(board, 'fork', null)
     expect(decision.prompt).not.toMatch(/\d+\s+space/)
-    expect(decision.prompt).toContain('then spin')
+    expect(decision.prompt).toContain('then roll')
   })
 
   it('still resolves a fork reached mid-move, where the distance is known', () => {
@@ -779,5 +781,45 @@ describe('a fork is chosen before the wheel is spun', () => {
 
     expect(next.phase).toBe('moving')
     expect(next.chosenExit).toBeNull()
+  })
+})
+
+/*
+ * A number that simply appeared in prose was the complaint. A tile a move
+ * only swept past resolved its die out of sight and handed over a card
+ * reading "Rolled a 3." — true, and about something the player never saw
+ * happen. The card carries the die that decided it now, so the shell can put
+ * that roll back on screen; every wheel-decided outcome flows through
+ * `resolveSpinOutcome`, so the mark is stamped there rather than tile by
+ * tile, and it never changes what was decided.
+ */
+describe('the die that decided a card', () => {
+  it('is stamped on whatever a value spin resolves into', () => {
+    const player = fixturePlayer({ spaceId: 'a', career: null })
+    const state = decisionState({
+      players: [player],
+      pendingDecision: {
+        kind: 'valueSpin',
+        prompt: 'Choose your career path',
+        options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Roll', description: '', icon: 'space:payday' }],
+        offeredCareerIds: [BASIC_CAREERS[0]!.id, BASIC_CAREERS[1]!.id],
+      },
+    })
+
+    const next = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [5] }) })
+
+    expect(next.lastEvent!.rolled).toBe(5)
+    expect(next.lastSpin).toBe(5)
+  })
+
+  it('is absent from an answer that never touched the die', () => {
+    const state = decisionState({
+      players: [fixturePlayer({ spaceId: 'a' })],
+      pendingDecision: decision('bank', BANK_DECLINE_OPTION_ID),
+    })
+
+    const next = choose(state, BANK_DECLINE_OPTION_ID, { random: createFakeRandom() })
+
+    expect(next.lastEvent!.rolled).toBeUndefined()
   })
 })

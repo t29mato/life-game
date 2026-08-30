@@ -61,6 +61,10 @@ describe('CPU_THINK_MS', () => {
   it('paces every phase the CPU acts in, slowly enough to follow', () => {
     expect(Object.keys(CPU_THINK_MS).sort()).toEqual([
       'awaitingDecision',
+      // A fork's second press is a beat of its own: the road has just been
+      // named, and the throw for how far down it comes after a pause a person
+      // can read the name in.
+      'awaitingDistanceSpin',
       'awaitingSpin',
       'passingEvent',
       'resolved',
@@ -107,6 +111,13 @@ describe('decideCpuCommand — who acts', () => {
 describe('decideCpuCommand — phases', () => {
   it('spins when a spin is owed', () => {
     const state = fixtureState({ players: [cpu()], phase: 'awaitingSpin' })
+    expect(decideCpuCommand(state)).toEqual({ type: 'spin' })
+  })
+
+  it('spins again for the distance once a fork has settled its road', () => {
+    // Nobody has to click a computer seat through the second half of its own
+    // fork: it throws for the distance exactly as it threw for the road.
+    const state = fixtureState({ players: [cpu()], phase: 'awaitingDistanceSpin', chosenExit: 'somewhere' })
     expect(decideCpuCommand(state)).toEqual({ type: 'spin' })
   })
 

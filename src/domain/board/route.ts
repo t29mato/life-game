@@ -7,32 +7,17 @@ import type { EconomyAmountKey } from '../edition/types'
  *
  * A route is the shape of a life: where the road splits, what the two sides
  * are called, and which tile sits where in between. It is data. `createBoard`
- * is the walker that turns it into a board — it thins each lane to the length
- * being played, rewrites tiles for the difficulty, lays the whole thing out on
- * a serpentine grid and wires it up, and it does all of that without knowing
- * that any particular country's road is called Main Street.
+ * is the walker that turns it into a board — it rewrites tiles for the
+ * difficulty, lays the whole thing out on a serpentine grid and wires it up,
+ * and it does all of that without knowing that any particular country's road
+ * is called Main Street.
  *
- * Everything an edition author writes lives in this file: the tiers, the
- * hardships, the `appearsFrom` gate, and the four helpers that make a lane
- * readable as prose. None of it is new — it is the machinery the USA board was
- * already built out of, which is exactly why it is worth handing over intact.
- * It is a good difficulty API, and it was only ever private by accident.
+ * Everything an edition author writes lives in this file: the hardships, the
+ * `appearsFrom` gate, and the four helpers that make a lane readable as prose.
+ * None of it is new — it is the machinery the USA board was already built out
+ * of, which is exactly why it is worth handing over intact. It is a good
+ * difficulty API, and it was only ever private by accident.
  */
-
-/**
- * Which board lengths a space appears on.
- *
- * Every lane is written once, at its longest, and then thinned: tier 0 is the
- * skeleton every game needs, tier 1 fleshes it out to the standard route, and
- * tier 2 is the extra scenery a long session has room for. Writing it this way
- * means the three boards cannot drift apart — a milestone is tier 0 exactly
- * once and is therefore on all three by construction.
- */
-export type Tier = 0 | 1 | 2
-
-export const EVERY_BOARD: Tier = 0
-export const STANDARD_UP: Tier = 1
-export const LONG_ONLY: Tier = 2
 
 /**
  * The bad day a space has once the difficulty is turned up.
@@ -73,7 +58,6 @@ export interface SpaceContent {
   readonly effect: SpaceEffect
   readonly tone: SpaceTone
   readonly icon: IconName
-  readonly tier: Tier
   /**
    * Lowest difficulty this space exists on at all. Absent means every
    * difficulty. This is the frequency dial: a Very Hard route genuinely has
@@ -108,7 +92,6 @@ export interface SpaceContent {
 
 /** A space that exists purely as a beat in the story, with nothing to resolve. */
 export function flavour(
-  tier: Tier,
   id: SpaceId,
   title: string,
   description: string,
@@ -124,7 +107,6 @@ export function flavour(
     effect: { type: 'none' },
     tone,
     icon,
-    tier,
     ...(harsher ? { harsher } : {}),
   }
 }
@@ -139,7 +121,6 @@ export function flavour(
  */
 export function setback(
   appearsFrom: Difficulty,
-  tier: Tier,
   id: SpaceId,
   title: string,
   description: string,
@@ -147,11 +128,11 @@ export function setback(
   tone: SpaceTone,
   icon: IconName,
 ): SpaceContent {
-  return { id, kind: 'normal', title, description, effect, tone, icon, tier, appearsFrom }
+  return { id, kind: 'normal', title, description, effect, tone, icon, appearsFrom }
 }
 
 /** A payday tile. There are a lot of these, and they all read the same. */
-export function payday(tier: Tier, id: SpaceId, description: string, harsher?: Hardship): SpaceContent {
+export function payday(id: SpaceId, description: string, harsher?: Hardship): SpaceContent {
   return {
     id,
     kind: 'payday',
@@ -160,7 +141,6 @@ export function payday(tier: Tier, id: SpaceId, description: string, harsher?: H
     effect: { type: 'payday' },
     tone: 'green',
     icon: 'space:payday',
-    tier,
     ...(harsher ? { harsher } : {}),
   }
 }
@@ -193,12 +173,12 @@ export function missedPayday(
 // ---------------------------------------------------------------------------
 
 /**
- * A stretch of trunk, written at its longest and thinned to fit the board.
+ * A stretch of trunk.
  *
  * The `name` is not shown to players; nobody chooses to walk down Main Street,
- * they simply arrive on it. It exists for the author who has just retiered the
- * run's last tier-0 space and needs to be told which run, on which board, they
- * emptied.
+ * they simply arrive on it. It exists for the author who has just gated the
+ * run's last ungated space behind a difficulty and needs to be told which run,
+ * on which board, they emptied.
  */
 export interface RouteLane {
   readonly name: string
@@ -213,8 +193,8 @@ export interface RouteLane {
  * tile instead — "Move-In Day" where it meant "College Lane". That name is
  * also what the author is told about when something goes wrong with the lane,
  * so a branch has one name rather than two. The identity is stamped on
- * whichever space survives the thinning to the head of the lane, so a fork
- * keeps naming the road on every board length.
+ * whichever space survives the difficulty gating to the head of the lane, so a
+ * fork keeps naming the road at every setting.
  */
 export interface RouteBranch {
   readonly identity: LaneIdentity
@@ -278,7 +258,7 @@ export function fork(at: SpaceContent, a: RouteBranch, b: RouteBranch): RouteSeg
   return { kind: 'fork', at, branches: [a, b] }
 }
 
-/** Every space a route names, thinning aside: junctions, lanes and terminal. */
+/** Every space a route names, gating aside: junctions, lanes and terminal. */
 export function spacesOf(route: RouteDefinition): readonly SpaceContent[] {
   const spaces: SpaceContent[] = []
   for (const segment of route.segments) {

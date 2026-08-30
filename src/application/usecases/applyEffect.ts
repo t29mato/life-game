@@ -15,6 +15,7 @@ import type {
   Stock,
 } from '@domain/model/types'
 import type { IconName } from '@domain/model/icons'
+import { SPIN_FACES } from '@domain/model/constants'
 import type { CurrencySpec, EconomyConstants, Edition, TuitionSpec } from '@domain/edition/types'
 import { USA_ECONOMY } from '@domain/edition/usa'
 import { editionOf } from '@domain/edition/registry'
@@ -131,10 +132,20 @@ export function emphasisForMoney(delta: Money, economy: EconomyConstants = USA_E
  * an edition that writes a ladder and forgets to price it, and a coin flip is
  * the honest default for "somebody did not decide".
  */
-const DEFAULT_PROMOTION_SPIN = 5
+const DEFAULT_PROMOTION_SPIN = 4
 
-/** A perfect spin at a review carries you two rungs, when there are two to carry. */
-const DOUBLE_PROMOTION_SPIN = 10
+/** A perfect roll at a review carries you two rungs, when there are two to carry. */
+const DOUBLE_PROMOTION_SPIN = SPIN_FACES
+
+/**
+ * The two halves of the die, written out — "1-3" and "4-6".
+ *
+ * Every tile that deals two outcomes splits them down the middle of the die,
+ * the same way `resolveForkBranch` splits a fork, so the ranges are derived
+ * from the number of faces rather than printed by hand in four places.
+ */
+const LOW_HALF = `1-${SPIN_FACES / 2}`
+const HIGH_HALF = `${SPIN_FACES / 2 + 1}-${SPIN_FACES}`
 
 const INSURANCE_LABELS: Record<InsuranceKind, string> = {
   home: 'Home Policy',
@@ -190,8 +201,8 @@ function baseEvent(
 }
 
 /**
- * Every band of the tuition wheel, spelled out before anyone presses Spin —
- * "1-3: $90,000, 4-7: $52,000, 8-9: $21,000, 10: full ride" — built fresh
+ * Every band of the tuition die, spelled out before anyone presses Roll —
+ * "1-2: $90,000, 3-4: $52,000, 5: $28,000, 6: full ride" — built fresh
  * from whatever bands the edition actually defines, so a country that ever
  * ships a different number of them still reads correctly.
  */
@@ -203,7 +214,7 @@ function tuitionBandsNote(tuition: TuitionSpec, currency: CurrencySpec): string 
     previousUpTo = band.upTo
     return `${range}: ${band.cost === 0 ? 'full ride' : money(band.cost)}`
   })
-  return `Spin 1 to 10 to find out what you owe — ${bands.join(', ')}.`
+  return `Roll 1 to ${SPIN_FACES} to find out what you owe — ${bands.join(', ')}.`
 }
 
 /**
@@ -398,15 +409,15 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         : economy.casualWagePerPip
       const description =
         kind === 'casual'
-          ? `Between jobs, so you pick up shifts. ${money(rate)} a pip you roll, 1 to 10 — higher is always better.`
-          : `${player.career?.title ?? 'Your trade'} — no two weeks pay the same. ${money(rate)} a pip you roll, 1 to 10 — higher is always better.`
+          ? `Between jobs, so you pick up shifts. ${money(rate)} a pip you roll, 1 to ${SPIN_FACES} — higher is always better.`
+          : `${player.career?.title ?? 'Your trade'} — no two weeks pay the same. ${money(rate)} a pip you roll, 1 to ${SPIN_FACES} — higher is always better.`
       const decision: Decision = {
         kind: 'valueSpin',
         prompt: space.title,
-        options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Spin', description, icon: 'space:payday' }],
+        options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Roll', description, icon: 'space:payday' }],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up to spin for the week's pay.`)
-      const log = appendLog(state, player.id, `${player.name} is up for a payday spin.`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up to roll for the week's pay.`)
+      const log = appendLog(state, player.id, `${player.name} is up for a payday roll.`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -445,7 +456,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
     case 'tuition': {
       /*
        * Deferred to `resolveValueSpin` in `choose.ts`, same as every other
-       * wheel-decided tile — but named in full before anyone presses Spin,
+       * wheel-decided tile — but named in full before anyone presses Roll,
        * not just the bar to clear: a tuition bill is the single largest
        * charge on the board, and "spin and find out" without the bands in
        * front of you first is a worse version of the surprise-fee bill this
@@ -457,14 +468,14 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
-            label: 'Spin',
+            label: 'Roll',
             description: `${effect.reason}. ${tuitionBandsNote(economy.tuition, currency)}`,
             icon: 'space:tuition-bill',
           },
         ],
       }
       const event = baseEvent(space, 0, [], 'normal', `${player.name} opens the tuition bill.`)
-      const log = appendLog(state, player.id, `${player.name} is up for the wheel: what does tuition come to?`, 'event')
+      const log = appendLog(state, player.id, `${player.name} is up for the roll: what does tuition come to?`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -546,7 +557,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
        * `choose.ts`, same as `spinForMoney` and an unsteady payday, and for
        * the same reason: the game already knew the number before this card
        * existed, which is a worse feeling than not knowing at all. The bar to
-       * clear is named up front so pressing Spin is an informed bet, not a
+       * clear is named up front so pressing Roll is an informed bet, not a
        * blind one.
        */
       const needed = career.promotionSpin ?? DEFAULT_PROMOTION_SPIN
@@ -556,8 +567,8 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
-            label: 'Spin',
-            description: `${effect.reason} You need a ${needed} or higher (out of 10) to move up to ${next.title}. Miss it and you still take a raise.`,
+            label: 'Roll',
+            description: `${effect.reason} You need a ${needed} or higher (out of ${SPIN_FACES}) to move up to ${next.title}. Miss it and you still take a raise.`,
             icon: 'space:pay-raise-talk',
           },
         ],
@@ -593,7 +604,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
 
       /*
        * Which offer lands is deferred to `resolveValueSpin` in `choose.ts`,
-       * same as every other value-spin tile — 1-5 for the first offer, 6-10
+       * same as every other value-spin tile — 1-3 for the first offer, 4-6
        * for the second, both named up front so the press means something.
        * `offeredCareerIds` carries the pair across, since the space's own
        * `effect` is static route data and cannot hold a per-instance draw.
@@ -606,15 +617,15 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
-            label: 'Spin',
-            description: `Spin 1 to 10 to see who hires you — 1-5: ${careerOfferSummary(first, currency, edition)}. 6-10: ${careerOfferSummary(second, currency, edition)}.`,
+            label: 'Roll',
+            description: `Roll 1 to ${SPIN_FACES} to see who hires you — ${LOW_HALF}: ${careerOfferSummary(first, currency, edition)}. ${HIGH_HALF}: ${careerOfferSummary(second, currency, edition)}.`,
             icon: space.icon,
           },
         ],
         offeredCareerIds: [first.id, second.id],
       }
-      const event = baseEvent(space, 0, [], 'normal', `Two offers on the table — spin to see which one is yours, ${player.name}!`)
-      const log = appendLog(state, player.id, `${player.name} spins for a career.`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', `Two offers on the table — roll to see which one is yours, ${player.name}!`)
+      const log = appendLog(state, player.id, `${player.name} rolls for a career.`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -659,14 +670,14 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
-            label: 'Spin',
-            description: `Spin — a ${marriage.proposalSpin} or higher (out of 10) and it's a yes outright. Lower gets a kinder second ask before it's a no.`,
+            label: 'Roll',
+            description: `Roll — a ${marriage.proposalSpin} or higher (out of ${SPIN_FACES}) and it's a yes outright. Lower gets a kinder second ask before it's a no.`,
             icon: 'space:wedding-day',
           },
         ],
       }
       const event = baseEvent(space, 0, [], 'normal', `${player.name} takes a knee.`)
-      const log = appendLog(state, player.id, `${player.name} is up for the wheel: will they marry?`, 'event')
+      const log = appendLog(state, player.id, `${player.name} is up for the roll: will they marry?`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -700,14 +711,14 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
-            label: 'Spin',
+            label: 'Roll',
             description: `${effect.reason} Below a ${household.breakEvenSpin} and the spending outran the account; at or above it, two incomes carried the month.`,
             icon: 'finance:bank-visit',
           },
         ],
       }
       const event = baseEvent(space, 0, [], 'normal', `${player.name} opens the joint statement.`)
-      const log = appendLog(state, player.id, `${player.name} is up for the wheel: how did the joint account do?`, 'event')
+      const log = appendLog(state, player.id, `${player.name} is up for the roll: how did the joint account do?`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -728,8 +739,8 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
-            label: 'Spin',
-            description: `Spin for the gift envelopes — ${money(effect.celebrationPerPip)} a pip you roll, 1 to 10.`,
+            label: 'Roll',
+            description: `Roll for the gift envelopes — ${money(effect.celebrationPerPip)} a pip you roll, 1 to ${SPIN_FACES}.`,
             icon: 'space:new-baby',
           },
         ],
@@ -844,14 +855,14 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
-            label: 'Spin',
-            description: `${effect.reason} ${money(effect.perPip)} a pip you roll, 1 to 10 — higher is always better.`,
+            label: 'Roll',
+            description: `${effect.reason} ${money(effect.perPip)} a pip you roll, 1 to ${SPIN_FACES} — higher is always better.`,
             icon: 'space:payday',
           },
         ],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up for the spin.`)
-      const log = appendLog(state, player.id, `${player.name} is up for a spin: ${effect.reason.toLowerCase()}`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up for the roll.`)
+      const log = appendLog(state, player.id, `${player.name} is up for a roll: ${effect.reason.toLowerCase()}`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -877,7 +888,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         options.push({
           id: FIRE_RETIRE_OPTION_ID,
           label: 'Call it a life',
-          description: `Put ${money(fireNumber)} into the fund and stop working today. One spin decides what it comes back as — anything from ${money(firePayoutPerPip)} to ${money(firePayoutPerPip * 10)} — and you take the next retirement place, forfeiting every payday still on the road.`,
+          description: `Put ${money(fireNumber)} into the fund and stop working today. One roll decides what it comes back as — anything from ${money(firePayoutPerPip)} to ${money(firePayoutPerPip * SPIN_FACES)} — and you take the next retirement place, forfeiting every payday still on the road.`,
           icon: 'space:retirement-fund',
           detail: `-${money(fireNumber)}`,
         })
@@ -901,7 +912,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         space,
         0,
         affordable
-          ? [`The fund costs ${money(fireNumber)}, and one spin decides what it comes back as.`]
+          ? [`The fund costs ${money(fireNumber)}, and one roll decides what it comes back as.`]
           : [`You need ${money(fireNumber)} in hand to buy your way out here.`],
         'normal',
         affordable
@@ -971,9 +982,9 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
        * free look at two jobs, and Company Road would never be worth taking.
        */
       const mayStay = player.career !== null && effect.compulsory !== true
-      const spinDescription = `Spin 1 to 10 to see which one you take — 1-5: ${careerOfferSummary(first, currency, edition)}. 6-10: ${careerOfferSummary(second, currency, edition)}.`
+      const spinDescription = `Roll 1 to ${SPIN_FACES} to see which one you take — ${LOW_HALF}: ${careerOfferSummary(first, currency, edition)}. ${HIGH_HALF}: ${careerOfferSummary(second, currency, edition)}.`
       const options: DecisionOption[] = [
-        { id: VALUE_SPIN_OPTION_ID, label: 'Spin', description: spinDescription, icon: space.icon },
+        { id: VALUE_SPIN_OPTION_ID, label: 'Roll', description: spinDescription, icon: space.icon },
       ]
       if (mayStay && player.career) {
         options.push({

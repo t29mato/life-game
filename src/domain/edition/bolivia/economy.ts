@@ -54,22 +54,22 @@ export const BOLIVIA_ECONOMY: EconomyConstants = {
   tuition: {
     outcomes: [
       {
-        upTo: 3,
+        upTo: 2,
         note: 'The entrance-exam academy takes a second attempt to actually work, and the extra year of materials and living costs lands on top.',
         cost: 90_000,
       },
       {
-        upTo: 7,
+        upTo: 4,
         note: 'Five years of academy, photocopies, materials and the thesis defence come to exactly what was budgeted.',
         cost: 52_000,
       },
       {
-        upTo: 9,
+        upTo: 5,
         note: 'A public-university beca covers more of the five years than you expected.',
-        cost: 21_000,
+        cost: 28_000,
       },
       {
-        upTo: 10,
+        upTo: 6,
         note: 'Beca completa — the whole five years, waived, and the family throws the party anyway.',
         cost: 0,
       },
@@ -104,10 +104,10 @@ export const BOLIVIA_ECONOMY: EconomyConstants = {
    * constraint that matters: children hang off this tile.
    */
   marriage: {
-    proposalSpin: 3,
+    proposalSpin: 2,
     secondAskSpin: 2,
     rescued: {
-      upTo: 10,
+      upTo: 6,
       note: 'They said yes the second time — and moved in with the instalments still owing on an imported pickup, and a very relaxed attitude to both.',
       giftMultiplier: 1,
       cost: 12_000,
@@ -115,28 +115,28 @@ export const BOLIVIA_ECONOMY: EconomyConstants = {
     },
     outcomes: [
       {
-        upTo: 4,
+        upTo: 2,
         note: 'The fiesta ran to a second day and a second brass band, and the sponsors\' generosity ran out somewhere around the fireworks.',
         giftMultiplier: 1,
         cost: 8_000,
         windfall: 0,
       },
       {
-        upTo: 7,
+        upTo: 4,
         note: 'A civil ceremony, a church blessing, and one long lunch. The godparents covered the cake, the band and the hall, and the envelopes covered the rest.',
         giftMultiplier: 1,
         cost: 0,
         windfall: 0,
       },
       {
-        upTo: 9,
+        upTo: 5,
         note: 'Two incomes under one roof — and your partner\'s market stall, it turns out, quietly clears more than your salary.',
         giftMultiplier: 1,
         cost: 0,
         windfall: 20_000,
       },
       {
-        upTo: 10,
+        upTo: 6,
         note: 'The whole town comes down from the countryside, every sponsor outdoes the last, and your partner has been running a savings pool with an iron hand since school.',
         giftMultiplier: 1.5,
         cost: 0,
@@ -146,8 +146,8 @@ export const BOLIVIA_ECONOMY: EconomyConstants = {
   },
   /** Counts, not money: the shared purse swings the same either side of a five. */
   household: {
-    breakEvenSpin: 5,
-    shareOfPayday: 0.6,
+    breakEvenSpin: 3,
+    shareOfPayday: 1,
   },
   /**
    * What a grown-up child hands back at retirement: a share of the parent's
@@ -157,9 +157,9 @@ export const BOLIVIA_ECONOMY: EconomyConstants = {
    * story.
    */
   childOutcome: {
-    perPipOfPayday: 0.14,
-    starSpin: 10,
-    starPayout: 250_000,
+    perPipOfPayday: 0.25,
+    starSpin: 6,
+    starPayout: 150_000,
   },
   firstRetirementBonus: 80_000,
   /**
@@ -167,7 +167,7 @@ export const BOLIVIA_ECONOMY: EconomyConstants = {
    * stall, a day on somebody's building site. The wheel decides how good the
    * week was, and it keeps you fed rather than rich.
    */
-  casualWagePerPip: 900,
+  casualWagePerPip: 1_400,
   insurancePremium: {
     home: 25_000,
     auto: 20_000,
@@ -181,6 +181,6 @@ export const BOLIVIA_ECONOMY: EconomyConstants = {
    * roughly half the table is offered the choice at all.
    */
   fireNumber: 250_000,
-  firePayoutPerPip: 64_000,
+  firePayoutPerPip: 100_000,
   bigMoney: 50_000,
 }

@@ -1,4 +1,5 @@
 import type { Money, Player, SpinValue } from '../model/types'
+import { SPIN_FACES } from '../model/constants'
 import type { EconomyConstants } from '../edition/types'
 import { USA_ECONOMY } from '../edition/usa/economy'
 import { expectedPayday } from './player'
@@ -58,11 +59,14 @@ export function childReturnFor(
  */
 export function expectedChildValue(parent: Player, economy: EconomyConstants = USA_ECONOMY): Money {
   const { perPipOfPayday, starSpin, starPayout } = economy.childOutcome
-  // Worked out in closed form rather than by summing the ten faces: rounding
-  // each face first would make the average drift by a unit, and an edition
-  // counting in a hundred-times unit would then disagree with this one by a
-  // hundred. `scaleInvariance.test.ts` is what noticed.
+  // Worked out in closed form rather than by summing the faces one at a time:
+  // rounding each face first would make the average drift by a unit, and an
+  // edition counting in a hundred-times unit would then disagree with this one
+  // by a hundred. `scaleInvariance.test.ts` is what noticed.
   const ordinarySpinTotal = ((starSpin - 1) * starSpin) / 2
-  const starWedges = 11 - starSpin
-  return (ordinarySpinTotal * perPipOfPayday * expectedPayday(parent, economy) + starWedges * starPayout) / 10
+  const starFaces = SPIN_FACES + 1 - starSpin
+  return (
+    (ordinarySpinTotal * perPipOfPayday * expectedPayday(parent, economy) + starFaces * starPayout) /
+    SPIN_FACES
+  )
 }

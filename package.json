@@ -14,7 +14,8 @@
     "coverage": "vitest run --coverage",
     "typecheck": "tsc -b --noEmit",
     "test:e2e": "playwright test",
-    "deploy": "APP_VERSION=\"$(git describe --tags --always --dirty)\" vercel --prod --yes --build-env APP_VERSION=\"$(git describe --tags --always --dirty)\""
+    "deploy": "APP_VERSION=\"$(git describe --tags --always --dirty)\" vercel --prod --yes --build-env APP_VERSION=\"$(git describe --tags --always --dirty)\"",
+    "deploy:preview": "APP_VERSION=\"$(git describe --tags --always --dirty)\" vercel --yes --build-env APP_VERSION=\"$(git describe --tags --always --dirty)\""
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

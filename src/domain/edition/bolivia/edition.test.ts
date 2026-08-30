@@ -9,13 +9,13 @@ import { EDITION_BOLIVIA } from './index'
 
 /**
  * The Bolivia edition's founding bargain, asserted so it cannot drift: the
- * *mechanical* board is the measured USA board at ×1 — same tiers, same
+ * *mechanical* board is the measured USA board at ×1 — same gates, same
  * stops, same hardships, same hazard tags, same paydays, every sum
  * unchanged, because the exchange rate and the income gap cancel and the
  * dollar numerals already read as bolivianos — and everything a player reads
  * is Bolivian. The USA board is two years of measured balance; the mirror is
  * what lets this edition inherit all of it, and this file is what stops a
- * well-meaning copy edit from quietly moving a tier or dropping a hazard and
+ * well-meaning copy edit from quietly moving a gate or dropping a hazard and
  * unpicking the inheritance. Unlike Japan, there is no sanctioned deviation:
  * the house ladder appreciates exactly as the USA one does, which happens to
  * be how Bolivian brick genuinely behaves.
@@ -133,7 +133,6 @@ describe('the bolivia route is the measured skeleton, tile for tile', () => {
       const at = `${bo.id} (mirrors ${us.id})`
 
       expect(bo.kind, at).toBe(us.kind)
-      expect(bo.tier, at).toBe(us.tier)
       expect(bo.appearsFrom, at).toBe(us.appearsFrom)
       expect(bo.unscaled, at).toBe(us.unscaled)
       expect(bo.amountFrom, at).toBe(us.amountFrom)

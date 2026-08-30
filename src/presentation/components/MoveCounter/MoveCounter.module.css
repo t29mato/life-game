@@ -1,0 +1,43 @@
+/* ==========================================================================
+   MoveCounter — a moulded plastic tab above the die, reading how many spaces
+   the car still has to travel. Same three-layer depth every raised object on
+   this table carries, plus the bottom hairline that gives card its thickness;
+   the number is display-faced and money-sized, because it is the loudest
+   thing this tab has to say.
+   ========================================================================== */
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.28rem 0.8rem 0.34rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--candy-sun) 0%, var(--candy-tangerine) 100%);
+  color: #3a2405;
+  box-shadow:
+    0 2px 3px rgba(92, 70, 34, 0.3),
+    0 10px 20px -8px rgba(92, 70, 34, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(92, 70, 34, 0.25);
+  white-space: nowrap;
+}
+
+.count {
+  display: inline-block;
+  min-width: 1ch;
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 3.4vw, 1.55rem);
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  text-align: center;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}

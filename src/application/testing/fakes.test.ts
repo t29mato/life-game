@@ -10,9 +10,9 @@ import {
 
 describe('createFakeRandom', () => {
   it('replays scripted spins in order and cycles once exhausted', () => {
-    const random = createFakeRandom({ spins: [3, 7] })
+    const random = createFakeRandom({ spins: [3, 6] })
     expect(random.spin()).toBe(3)
-    expect(random.spin()).toBe(7)
+    expect(random.spin()).toBe(6)
     expect(random.spin()).toBe(3)
     expect(random.calls.spins).toBe(3)
   })

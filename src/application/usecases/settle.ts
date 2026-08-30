@@ -1,9 +1,9 @@
-import type { GameState, PassedQueueItem, Player, SpinValue } from '@domain/model/types'
-import { planMovementVia } from '@domain/board/movement'
+import type { GameState, Player, SpinValue } from '@domain/model/types'
+import { nextMovementLeg, planMovementVia } from '@domain/board/movement'
 import { movePlayerTo } from '@domain/rules/player'
 import { applyEffect } from './applyEffect'
 import { appendLog } from './logging'
-import { branchDecision, resolveForkBranch } from './branch'
+import { branchDecision, resolveForkBranch, roadName } from './branch'
 import { applyPassedEvent } from './passedEvents'
 import type { UseCaseDeps } from './types'
 
@@ -24,12 +24,34 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
   if (!player) throw new Error('settle: no current player')
 
   /*
+   * A card just dismissed, with road still owed: hand back the next leg and
+   * let the pawn carry on before anything else is resolved.
+   *
+   * This is what makes the sweep read as a journey rather than a stack of
+   * receipts. The pawn is standing *on* the tile whose card was just read —
+   * it stopped there, which is the whole point — so the next thing that has
+   * to happen is the hop onward, not the next card. `phase` goes back to
+   * `moving`, the board animates, and `onMovementComplete` calls straight
+   * back in here for whatever is owed at the far end of it.
+   */
+  if (state.phase === 'passingEvent' && state.pendingPath.length > 0) {
+    const { leg, rest } = nextMovementLeg(state.pendingPath, state.pendingPassedItems)
+    return {
+      ...state,
+      activePassedEvent: null,
+      movementPath: leg,
+      pendingPath: rest,
+      phase: 'moving',
+    }
+  }
+
+  /*
    * The queue drains before anything else does — a payday or an `event`
    * tile this move already crossed, each getting its own card, named for
    * the tile it actually happened on, before play can reach the fork
    * choice or the landing still further down the road. `movementPath`
-   * clears here: the pawn has already finished the hop that crossed this
-   * queue, and showing a card is not a moment that hops it anywhere else.
+   * clears here: the pawn has just finished the leg that ends *on* this
+   * tile, and showing its card is not a moment that hops it anywhere else.
    */
   if (state.pendingPassedItems.length > 0) {
     const [next, ...rest] = state.pendingPassedItems
@@ -52,10 +74,18 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
   /*
    * A fork reached with distance still owed — a longer roll that started a
    * few tiles back rather than the ordinary case of standing on one already
-   * (see `spin.ts`). Resolved the same way, with the *same* roll: the
-   * distance still owed is what decides the road and carries the player
-   * down it, so nothing about a fork depends on where in a move it happens
-   * to land. Whatever this next leg itself sweeps past joins the queue
+   * (see `spin.ts`). Resolved with the *same* roll here: the distance still
+   * owed is what decides the road and carries the player down it.
+   *
+   * Which means this path still carries the tension `spin.ts` has since
+   * split in two — a road entered on a 4 is entered four tiles in — and
+   * that is deliberate rather than overlooked. There is no second press to
+   * make here: the player is already mid-flight on a number that was rolled
+   * turns-of-the-hourglass ago and is owed as travel, so "roll again for the
+   * distance" would be rolling for a distance the board has already
+   * promised them. Fixing it is a different shape of problem, and this is
+   * the rarer half of the case besides — every opening fork in the game is
+   * `spin.ts`'s. Whatever this next leg itself sweeps past joins the queue
    * rather than resolving here, same as the first leg did in `spin.ts`.
    */
   if (state.stepsRemaining > 0 && space.next.length > 1) {
@@ -73,22 +103,19 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
 
     const plan = planMovementVia(state.board, space.id, branchTaken, roll)
     const movedPlayer = movePlayerTo(player, plan.destinationId)
-    const target = state.board.spaces[branchTaken]
-    const label = target?.lane?.name ?? target?.title ?? 'a new road'
+    const label = roadName(state.board, branchTaken)
     const log = appendLog(state, player.id, `${player.name}'s roll carries them onto ${label}.`, 'info')
     const players: readonly Player[] = state.players.map((candidate) =>
       candidate.id === movedPlayer.id ? movedPlayer : candidate,
     )
-    const pendingPassedItems: PassedQueueItem[] = [
-      ...plan.paydaysPassed.map((spaceId): PassedQueueItem => ({ kind: 'payday', spaceId })),
-      ...plan.eventsPassed.map((spaceId): PassedQueueItem => ({ kind: 'event', spaceId })),
-    ]
+    const { leg, rest } = nextMovementLeg(plan.path, plan.passed)
 
     return {
       ...state,
       players,
-      pendingPassedItems,
-      movementPath: plan.path,
+      pendingPassedItems: plan.passed,
+      movementPath: leg,
+      pendingPath: rest,
       stepsRemaining: plan.stepsRemaining,
       phase: 'moving',
       log,
@@ -102,6 +129,7 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
       ...nextState,
       phase: 'awaitingDecision',
       movementPath: [],
+      pendingPath: [],
       stepsRemaining: 0,
     }
   }
@@ -111,6 +139,7 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
     lastEvent: event,
     phase: 'resolved',
     movementPath: [],
+    pendingPath: [],
     stepsRemaining: 0,
   }
 }

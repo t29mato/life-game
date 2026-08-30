@@ -10,7 +10,7 @@ import { JAPAN_CURRENCY, JAPAN_ECONOMY } from './economy'
  * The Japan edition: the first country after the seam was cut, and the proof
  * the seam holds — an edition is a data file, and this is the whole file.
  *
- * The board's measured skeleton (tiers, stops, hardships, hazard density,
+ * The board's measured skeleton (stops, hardships, hazard density,
  * payday placement) is the shipped one, at ×100; the life on it is Japanese
  * from the exam hall to the bouquet on the last desk. `validateRoute` checks
  * the route on every length and difficulty because it is registered, and

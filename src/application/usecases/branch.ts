@@ -1,4 +1,5 @@
 import type { Board, Decision, DecisionOption, GameState, SpaceId, SpinValue } from '@domain/model/types'
+import { SPIN_FACES } from '@domain/model/constants'
 
 /**
  * Choosing which road to take — the wheel's, not the player's.
@@ -6,9 +7,14 @@ import type { Board, Decision, DecisionOption, GameState, SpaceId, SpinValue } f
  * A fork used to be a choice a player made deliberately, which experience
  * could load: whoever already knew which road paid better always took it,
  * an advantage a first-time player never had. `resolveForkBranch` is what a
- * fork is now instead — the same roll that decides how far a player travels
- * also decides *which* road they travel it down, 1-5 the first, 6-10 the
+ * fork is now instead — a roll decides *which* road, 1-3 the first, 4-6 the
  * second, so a fork costs nobody a choice to get right or wrong.
+ *
+ * That roll settles the road and nothing else: a second press decides how far
+ * down it the player actually travels. One roll doing both jobs meant the far
+ * road could only ever be entered on a 4, 5 or 6 — which is also four, five or
+ * six tiles of it swept past unseen, so its opening tiles were unreachable by
+ * construction. See `spin.ts`, where the two presses live.
  */
 
 export function isFork(board: Board, spaceId: SpaceId): boolean {
@@ -16,8 +22,19 @@ export function isFork(board: Board, spaceId: SpaceId): boolean {
 }
 
 /**
- * The two road names a fork at `spaceId` leads to, in roll order (1-5 the
- * first, 6-10 the second) — or `undefined` when `spaceId` isn't a fork.
+ * What a road calls itself: the lane's own name where it has one, and the
+ * first tile's title where it does not, which is all an unnamed branch has to
+ * offer. Every place that has to say which way somebody went — the log, the
+ * dock, the fork rail — says it in exactly these words.
+ */
+export function roadName(board: Board, spaceId: SpaceId): string {
+  const target = board.spaces[spaceId]
+  return target?.lane?.name ?? target?.title ?? 'a new road'
+}
+
+/**
+ * The two road names a fork at `spaceId` leads to, in roll order (1-3 the
+ * first, 4-6 the second) — or `undefined` when `spaceId` isn't a fork.
  *
  * A fork's own significance went dark the moment `turnStart` stopped raising
  * a `branch` decision for it: the player used to be told "which way do you
@@ -32,23 +49,23 @@ export function forkRoadNames(board: Board, spaceId: SpaceId): readonly [string,
   const space = board.spaces[spaceId]
   if (!space || space.next.length < 2) return undefined
   const [firstId, secondId] = space.next
-  const nameOf = (id: SpaceId): string => {
-    const target = board.spaces[id]
-    return target?.lane?.name ?? target?.title ?? 'a new road'
-  }
-  return [nameOf(firstId!), nameOf(secondId!)]
+  return [roadName(board, firstId!), roadName(board, secondId!)]
 }
 
 /**
  * The road `roll` sends a player at `spaceId` down, or `undefined` when
  * `spaceId` is not a fork at all. Shared by `spin` (the ordinary case: a
- * player standing on a fork at the top of their turn) and `settle` (the
- * rarer one: a longer roll started elsewhere and reaches the fork with
- * distance still owed) so both resolve a fork exactly the same way.
+ * player standing on a fork at the top of their turn, where this roll is
+ * spent on the road alone) and `settle` (the rarer one: a longer roll
+ * started elsewhere and reaches the fork with distance still owed, where it
+ * still doubles as the distance) so both split the six faces the same way.
  */
 export function resolveForkBranch(board: Board, spaceId: SpaceId, roll: SpinValue): SpaceId | undefined {
   const space = board.spaces[spaceId]
-  return space?.next[roll <= 5 ? 0 : 1]
+  // An even split over the die's six faces: the low half takes the first road,
+  // the high half the second, exactly as the low and high halves of the old
+  // ten-wedge wheel did.
+  return space?.next[roll <= SPIN_FACES / 2 ? 0 : 1]
 }
 
 /**
@@ -75,7 +92,7 @@ export function branchDecision(board: Board, spaceId: SpaceId, steps: number | n
 
   const prompt =
     steps === null
-      ? 'Which way do you go? Choose your road, then spin.'
+      ? 'Which way do you go? Choose your road, then roll.'
       : steps > 0
         ? `Which way do you go? You'll travel ${steps} space${steps === 1 ? '' : 's'} down it.`
         : 'Which way do you go?'

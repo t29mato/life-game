@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { BoardLength, GamePhase, GameState, NewGameConfig } from '@domain/model/types'
+import type { GamePhase, GameState, NewGameConfig } from '@domain/model/types'
 import { decideCpuCommand } from './cpu/decideCpuCommand'
 import { createSeededRandom, createInMemoryRepository, createInMemoryStatsRepository } from './testing/fakes'
 import { createGameStore } from './createGameStore'
@@ -11,7 +11,6 @@ const config: NewGameConfig = {
     { name: 'Bo', color: 'blue', isCpu: false },
     { name: 'Cy', color: 'green', isCpu: false },
   ],
-  boardLength: 'standard',
 }
 
 const MAX_ITERATIONS = 20_000
@@ -85,7 +84,10 @@ describe('full game integration', () => {
       const phase: GamePhase = state.phase
 
       switch (phase) {
+        // Two presses at a fork, one everywhere else — the same command
+        // either way, because a press is a press. See `spin.ts`.
         case 'awaitingSpin':
+        case 'awaitingDistanceSpin':
           store.dispatch({ type: 'spin' })
           break
         case 'moving':
@@ -112,22 +114,21 @@ describe('full game integration', () => {
     expectWellFormedGameOver(store.getState(), 3)
   })
 
-  it('plays a complete game at every board length', () => {
-    for (const boardLength of ['short', 'standard', 'long'] as BoardLength[]) {
-      const store = buildStore(2_024)
-      store.dispatch({ type: 'startGame', config: { ...config, boardLength } })
+  it('plays a complete game from a fixed seed', () => {
+    const store = buildStore(2_024)
+    store.dispatch({ type: 'startGame', config })
 
-      for (let guard = 0; guard < MAX_ITERATIONS && store.getState().phase !== 'gameOver'; guard += 1) {
-        const state = store.getState()
-        if (state.phase === 'awaitingSpin') store.dispatch({ type: 'spin' })
-        else if (state.phase === 'moving' || state.phase === 'passingEvent') store.dispatch({ type: 'settle' })
-        else if (state.phase === 'awaitingDecision') {
-          store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
-        } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })
-      }
-
-      expectWellFormedGameOver(store.getState(), 3)
+    for (let guard = 0; guard < MAX_ITERATIONS && store.getState().phase !== 'gameOver'; guard += 1) {
+      const state = store.getState()
+      if (state.phase === 'awaitingSpin' || state.phase === 'awaitingDistanceSpin') {
+        store.dispatch({ type: 'spin' })
+      } else if (state.phase === 'moving' || state.phase === 'passingEvent') store.dispatch({ type: 'settle' })
+      else if (state.phase === 'awaitingDecision') {
+        store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
+      } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })
     }
+
+    expectWellFormedGameOver(store.getState(), 3)
   })
 })
 
@@ -145,7 +146,6 @@ describe('all-computer game', () => {
       { name: 'Dot', color: 'green', isCpu: true },
       { name: 'Ember', color: 'yellow', isCpu: true },
     ],
-    boardLength: 'standard',
   }
 
   it('reaches a well-formed game over with no human input at all', () => {
@@ -210,7 +210,6 @@ describe('all-computer game', () => {
           { name: 'Alex', color: 'red', isCpu: false },
           { name: 'Botly', color: 'blue', isCpu: true },
         ],
-        boardLength: 'short',
       },
     })
 
@@ -232,8 +231,9 @@ describe('all-computer game', () => {
 
       // The human seat: the CPU must keep its hands off it entirely.
       expect(decideCpuCommand(state)).toBeNull()
-      if (state.phase === 'awaitingSpin') store.dispatch({ type: 'spin' })
-      else if (state.phase === 'awaitingDecision') {
+      if (state.phase === 'awaitingSpin' || state.phase === 'awaitingDistanceSpin') {
+        store.dispatch({ type: 'spin' })
+      } else if (state.phase === 'awaitingDecision') {
         store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
       } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })
     }

@@ -271,20 +271,20 @@ describe('EventCard', () => {
       expect(container.querySelector(`.${styles.deltaZero}`)).toBeNull()
     })
 
-    it('gives a zero delta a neutral treatment, never the loss styling', async () => {
+    it('skips the money plate entirely for a zero delta — a "$0" pill is clutter, not information', async () => {
       mockReducedMotion(true)
       const { container } = render(
         <AudioProvider audio={createFakeAudioPort()}>
-          <EventCard event={makeEvent({ moneyDelta: 0, tone: 'blue' })} onDismiss={() => {}} />
+          <EventCard event={makeEvent({ moneyDelta: 0, tone: 'blue', title: 'Graduation Day' })} onDismiss={() => {}} />
         </AudioProvider>,
       )
-      await waitFor(() => expect(screen.getByText('$0')).toBeInTheDocument())
-      expect(screen.getByText('—')).toBeInTheDocument()
+      // The rest of the card still renders in full.
+      await waitFor(() => expect(screen.getByText('Graduation Day')).toBeInTheDocument())
+      expect(screen.queryByText('$0')).not.toBeInTheDocument()
+      expect(screen.queryByText('—')).not.toBeInTheDocument()
       expect(screen.queryByText('▼')).not.toBeInTheDocument()
       expect(screen.queryByText('▲')).not.toBeInTheDocument()
-      expect(container.querySelector(`.${styles.deltaZero}`)).not.toBeNull()
-      expect(container.querySelector(`.${styles.deltaNegative}`)).toBeNull()
-      expect(container.querySelector(`.${styles.deltaPositive}`)).toBeNull()
+      expect(container.querySelector(`.${styles.deltaPlate}`)).toBeNull()
     })
 
     it('does not burst confetti for a zero-delta, non-milestone event', async () => {

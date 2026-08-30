@@ -7,12 +7,12 @@ import { EDITION_JAPAN } from './index'
 
 /**
  * The Japan edition's founding bargain, asserted so it cannot drift: the
- * *mechanical* board is the measured USA board at ×100 — same tiers, same
+ * *mechanical* board is the measured USA board at ×100 — same gates, same
  * stops, same hardships, same hazard tags, same paydays, every sum a hundred
  * times over — and everything a player reads is Japanese. The USA board is two
  * years of measured balance; the mirror is what lets this edition inherit all
  * of it, and this file is what stops a well-meaning copy edit from quietly
- * moving a tier or dropping a hazard and unpicking the inheritance. The one
+ * moving a gate or dropping a hazard and unpicking the inheritance. The one
  * sanctioned deviation is the house catalogue's resale tilt, argued and
  * asserted in `houses.test.ts`.
  */
@@ -129,7 +129,6 @@ describe('the japan route is the measured skeleton, tile for tile', () => {
       const at = `${jp.id} (mirrors ${us.id})`
 
       expect(jp.kind, at).toBe(us.kind)
-      expect(jp.tier, at).toBe(us.tier)
       expect(jp.appearsFrom, at).toBe(us.appearsFrom)
       expect(jp.unscaled, at).toBe(us.unscaled)
       expect(jp.amountFrom, at).toBe(us.amountFrom)

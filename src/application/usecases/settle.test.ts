@@ -57,12 +57,17 @@ describe('settle', () => {
       pendingPassedItems: [{ kind: 'payday', spaceId: 'payday1' }],
     })
 
-    const next = settle(state, { random: createFakeRandom() })
+    const next = settle(state, { random: createFakeRandom({ spins: [4] }) })
 
     // The queue drains before the fork it was standing on even gets a look —
     // "Fork" itself is never mentioned in this card.
     expect(next.phase).toBe('passingEvent')
     expect(next.activePassedEvent?.title).toBe('Payday')
+    // Nobody pressed anything for this tile, so the card carries the die that
+    // paid it — that is what lets the shell throw the roll on screen before
+    // the card is readable, rather than leaving it as a line of prose about
+    // a number the player never watched arrive.
+    expect(next.activePassedEvent?.rolled).toBe(4)
     expect(next.pendingPassedItems).toEqual([])
     expect(next.movementPath).toEqual([])
     // Not resolved yet: the fork this move was still owed is still owed.
@@ -92,6 +97,9 @@ describe('settle', () => {
     const afterSecond = settle(afterFirst, { random: createFakeRandom() })
     expect(afterSecond.phase).toBe('passingEvent')
     expect(afterSecond.pendingPassedItems).toEqual([])
+    // `stopBranch` pays a flat bonus: no die was consulted, so there is none
+    // to show, and the card arrives complete exactly as it always has.
+    expect(afterSecond.activePassedEvent?.rolled).toBeUndefined()
 
     const afterQueue = settle(afterSecond, { random: createFakeRandom() })
     expect(afterQueue.phase).toBe('moving')
@@ -140,7 +148,7 @@ describe('a fork mid-move keeps the pawn moving, never stalls it on a question',
       players: [fixturePlayer({ id: 'p1', spaceId: 'fork' })],
       currentPlayerIndex: 0,
       phase: 'moving',
-      stepsRemaining: 4,
+      stepsRemaining: 3,
       movementPath: [],
     })
 
@@ -148,7 +156,7 @@ describe('a fork mid-move keeps the pawn moving, never stalls it on a question',
 
     expect(next.phase).toBe('moving')
     expect(next.pendingDecision).toBeNull()
-    // stopBranch is a forced stop, so all 4 owed steps land the player
+    // stopBranch is a forced stop, so all 3 owed steps land the player
     // exactly there regardless — see the second test for a roll that
     // actually has room to show its distance.
     expect(next.movementPath).toEqual(['stopBranch'])
@@ -167,9 +175,66 @@ describe('a fork mid-move keeps the pawn moving, never stalls it on a question',
     const next = settle(state, { random: createFakeRandom() })
 
     expect(next.phase).toBe('moving')
-    // longBranch → mid → merge → final → retirement: none of the four are a
+    // longBranch → mid → merge → final → retirement: none of the four is a
     // forced stop, so all 6 owed steps carry the player the whole way to the
-    // terminal space in one go.
-    expect(next.movementPath).toEqual(['longBranch', 'mid', 'merge', 'final', 'retirement'])
+    // terminal space — but `mid` is a payday, so the hop is cut there and
+    // the rest of it waits in `pendingPath` for that card to be read.
+    expect(next.movementPath).toEqual(['longBranch', 'mid'])
+    expect(next.pendingPath).toEqual(['merge', 'final', 'retirement'])
+    expect(next.pendingPassedItems).toEqual([{ kind: 'payday', spaceId: 'mid' }])
+  })
+
+  /*
+   * The pause, and then the carrying on. This is the whole of what a sweep
+   * past a payday looks like now: hop to it, stop on it, read the card, and
+   * only then hop onward — where before the pawn crossed the entire distance
+   * in one uninterrupted sweep and was handed the cards afterwards, standing
+   * on a tile that had nothing to do with any of them.
+   */
+  it('hands back the rest of the road once a swept-past card is dismissed', () => {
+    const state = fixtureState({
+      board: fixtureMovementBoard(),
+      players: [fixturePlayer({ id: 'p1', spaceId: 'fork' })],
+      currentPlayerIndex: 0,
+      phase: 'moving',
+      stepsRemaining: 6,
+      movementPath: [],
+    })
+
+    // The first leg, and the card it ends on.
+    const moving = settle(state, { random: createFakeRandom() })
+    const carded = settle(moving, { random: createFakeRandom() })
+    expect(carded.phase).toBe('passingEvent')
+    expect(carded.activePassedEvent).not.toBeNull()
+    // Nothing hops while a card is up.
+    expect(carded.movementPath).toEqual([])
+    expect(carded.pendingPath).toEqual(['merge', 'final', 'retirement'])
+
+    // Dismissed: the pawn carries on, and with nothing else queued the rest
+    // of the road is one last leg.
+    const onward = settle(carded, { random: createFakeRandom() })
+    expect(onward.phase).toBe('moving')
+    expect(onward.activePassedEvent).toBeNull()
+    expect(onward.movementPath).toEqual(['merge', 'final', 'retirement'])
+    expect(onward.pendingPath).toEqual([])
+  })
+
+  it('animates a move that sweeps past nothing in one uninterrupted hop', () => {
+    const state = fixtureState({
+      board: fixtureMovementBoard(),
+      players: [fixturePlayer({ id: 'p1', spaceId: 'fork' })],
+      currentPlayerIndex: 0,
+      phase: 'moving',
+      stepsRemaining: 3,
+      movementPath: [],
+    })
+
+    const next = settle(state, { random: createFakeRandom() })
+
+    // stopBranch halts the move outright, so there is nothing to sweep past
+    // and nothing to cut: exactly the hop this has always been.
+    expect(next.movementPath).toEqual(['stopBranch'])
+    expect(next.pendingPath).toEqual([])
+    expect(next.pendingPassedItems).toEqual([])
   })
 })

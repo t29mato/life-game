@@ -1,21 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { Board, BoardLength, Difficulty, Space, SpaceEffect, SpaceId } from '../model/types'
+import type { Board, Space, SpaceEffect, SpaceId } from '../model/types'
 import { ALL_ICON_NAMES } from '../model/icons'
-import { BOARD_LENGTH_SCALE } from '../model/constants'
 import { DIFFICULTIES } from '../rules/difficulty'
 import { createBoard } from './createBoard'
-
-const LENGTHS: readonly BoardLength[] = ['short', 'standard', 'long']
-
-/**
- * Difficulty adds and rewrites spaces, which means it can break the board in
- * every way a length can: an orphaned tile, a lane that no longer reads as a
- * lane, a layoff with no way back. So the structural suite runs over the whole
- * grid rather than over lengths alone — nine boards, one set of rules.
- */
-const SETTINGS: readonly (readonly [BoardLength, Difficulty])[] = LENGTHS.flatMap((length) =>
-  DIFFICULTIES.map((difficulty) => [length, difficulty] as const),
-)
 
 function reachableFrom(board: Board, id: SpaceId): Set<SpaceId> {
   const seen = new Set<SpaceId>()
@@ -53,29 +40,14 @@ const effectTypes = (board: Board): Set<SpaceEffect['type']> =>
   new Set(Object.values(board.spaces).map((space) => space.effect.type))
 
 /**
- * The route one player actually walks, always taking branch `pick`. That —
- * not the total tile count — is what decides how long a session runs.
+ * The invariants below hold at *every* difficulty. Difficulty adds and rewrites
+ * spaces, so it can break the board every way there is to break one: an
+ * orphaned tile, a lane that no longer reads as a lane, a layoff with no way
+ * back. A rule that only holds on Normal is not a rule, it is a coincidence —
+ * so the whole suite runs three times.
  */
-function routeLength(board: Board, pick: 0 | 1): number {
-  let cursor = board.spaces[board.startSpaceId] as Space
-  const seen = new Set<SpaceId>()
-  let travelled = 1
-  while (cursor.next.length > 0 && !seen.has(cursor.id)) {
-    seen.add(cursor.id)
-    const nextId = cursor.next[Math.min(pick, cursor.next.length - 1)] as SpaceId
-    cursor = board.spaces[nextId] as Space
-    travelled += 1
-  }
-  return travelled
-}
-
-/**
- * The invariants below hold at *every* board length. A rule that only holds on
- * the standard board is not a rule, it is a coincidence — so the whole suite
- * runs three times.
- */
-describe.each(SETTINGS)('createBoard(%s, %s)', (length, difficulty) => {
-  const board = createBoard(length, difficulty)
+describe.each(DIFFICULTIES)('createBoard(%s)', (difficulty) => {
+  const board = createBoard(difficulty)
 
   it('has no duplicate ids', () => {
     const ids = Object.values(board.spaces).map((s) => s.id)
@@ -152,7 +124,7 @@ describe.each(SETTINGS)('createBoard(%s, %s)', (length, difficulty) => {
     const milestones: readonly SpaceEffect['type'][] = ['graduate', 'chooseCareer', 'getMarried', 'buyHouse', 'retire']
     for (const type of milestones) {
       const found = Object.values(board.spaces).filter((s) => s.effect.type === type)
-      expect(found.length, `no "${type}" space on the ${length} board`).toBeGreaterThan(0)
+      expect(found.length, `no "${type}" space on the board`).toBeGreaterThan(0)
       for (const space of found) {
         expect(reachable.has(space.id), `"${space.id}" is unreachable`).toBe(true)
       }
@@ -305,83 +277,14 @@ describe.each(SETTINGS)('createBoard(%s, %s)', (length, difficulty) => {
   })
 
   it('produces the same board on repeated calls (pure, deterministic)', () => {
-    const again = createBoard(length, difficulty)
+    const again = createBoard(difficulty)
     expect(again).toEqual(board)
   })
 })
 
 describe('createBoard defaults', () => {
-  it('builds the standard board when no length is given', () => {
-    expect(createBoard()).toEqual(createBoard('standard'))
-  })
-
   it('plays on normal when no difficulty is given', () => {
-    for (const length of LENGTHS) {
-      expect(createBoard(length)).toEqual(createBoard(length, 'normal'))
-    }
-  })
-})
-
-describe('board lengths', () => {
-  const boards = Object.fromEntries(LENGTHS.map((l) => [l, createBoard(l)])) as Record<BoardLength, Board>
-  const size = (length: BoardLength): number => Object.keys(boards[length].spaces).length
-
-  it('scales the tile count roughly by BOARD_LENGTH_SCALE', () => {
-    const standard = size('standard')
-    for (const length of LENGTHS) {
-      const ratio = size(length) / standard
-      const target = BOARD_LENGTH_SCALE[length]
-      expect(Math.abs(ratio - target), `${length} is ${ratio.toFixed(2)}x, wanted ~${target}x`).toBeLessThan(0.1)
-    }
-  })
-
-  it('scales the route a single player walks by the same ratios', () => {
-    const standard = routeLength(boards.standard, 0)
-    for (const length of LENGTHS) {
-      const ratio = routeLength(boards[length], 0) / standard
-      expect(Math.abs(ratio - BOARD_LENGTH_SCALE[length])).toBeLessThan(0.12)
-    }
-  })
-
-  /*
-   * Measured on the road walked rather than on the tiles drawn, and the band is
-   * the one this test has always held.
-   *
-   * The two are the same number only on a board whose forks you can count on
-   * one hand. A fork draws two roads and a player walks one, so every fork
-   * added widens the gap between "tiles printed" and "tiles a session actually
-   * costs" — the fourth fork put twenty-odd tiles on the board that no single
-   * player will ever stand on. The thing worth pinning was never the printing
-   * bill; it is the length of somebody's evening, which is what `routeLength`
-   * measures and what the comment on it has said all along.
-   */
-  it('keeps the standard board close to a sixty-to-ninety tile session', () => {
-    for (const pick of [0, 1] as const) {
-      expect(routeLength(boards.standard, pick)).toBeGreaterThanOrEqual(60)
-      expect(routeLength(boards.standard, pick)).toBeLessThanOrEqual(90)
-    }
-  })
-
-  it('builds a strictly longer board for each step up', () => {
-    expect(size('short')).toBeLessThan(size('standard'))
-    expect(size('standard')).toBeLessThan(size('long'))
-  })
-
-  it('keeps the short board a subset of the standard one, and that of the long one', () => {
-    const shortIds = new Set(Object.keys(boards.short.spaces))
-    const standardIds = new Set(Object.keys(boards.standard.spaces))
-    const longIds = new Set(Object.keys(boards.long.spaces))
-    for (const id of shortIds) expect(standardIds.has(id), `${id} missing from standard`).toBe(true)
-    for (const id of standardIds) expect(longIds.has(id), `${id} missing from long`).toBe(true)
-  })
-
-  it('keeps the shared spaces identical apart from where they sit', () => {
-    for (const [id, space] of Object.entries(boards.short.spaces)) {
-      const onStandard = boards.standard.spaces[id]!
-      expect(onStandard.title).toBe(space.title)
-      expect(onStandard.effect).toEqual(space.effect)
-      expect(onStandard.icon).toBe(space.icon)
-    }
+    expect(createBoard()).toEqual(createBoard('normal'))
   })
 })
 
@@ -391,8 +294,7 @@ describe('board lengths', () => {
  * often*, not merely to cost more, so frequency is asserted first and hardest.
  */
 describe('difficulty makes the board itself unkinder', () => {
-  const boardsFor = (length: BoardLength) =>
-    DIFFICULTIES.map((difficulty) => createBoard(length, difficulty))
+  const boards = DIFFICULTIES.map((difficulty) => createBoard(difficulty))
 
   /** Spaces that take money off the player, or take their job away. */
   const setbacks = (board: Board): Space[] =>
@@ -407,28 +309,28 @@ describe('difficulty makes the board itself unkinder', () => {
       0,
     )
 
-  it.each(LENGTHS)('%s: every step up puts more setbacks on the route', (length) => {
-    const counts = boardsFor(length).map((board) => setbacks(board).length)
+  it('every step up puts more setbacks on the route', () => {
+    const counts = boards.map((board) => setbacks(board).length)
     expect(counts[1]).toBeGreaterThan(counts[0]!)
     expect(counts[2]).toBeGreaterThan(counts[1]!)
   })
 
-  it.each(LENGTHS)('%s: every step up raises the share of tiles that bite', (length) => {
-    const shares = boardsFor(length).map(
+  it('every step up raises the share of tiles that bite', () => {
+    const shares = boards.map(
       (board) => setbacks(board).length / Object.keys(board.spaces).length,
     )
     expect(shares[1]).toBeGreaterThan(shares[0]!)
     expect(shares[2]).toBeGreaterThan(shares[1]!)
   })
 
-  it.each(LENGTHS)('%s: every step up asks for more money in total', (length) => {
-    const totals = boardsFor(length).map(billTotal)
+  it('every step up asks for more money in total', () => {
+    const totals = boards.map(billTotal)
     expect(totals[1]).toBeGreaterThan(totals[0]! * 1.5)
     expect(totals[2]).toBeGreaterThan(totals[1]! * 1.5)
   })
 
-  it.each(LENGTHS)('%s: every step up thins what the board hands out', (length) => {
-    const handouts = boardsFor(length).map((board) =>
+  it('every step up thins what the board hands out', () => {
+    const handouts = boards.map((board) =>
       Object.values(board.spaces).reduce(
         (sum, space) => (space.effect.type === 'gainMoney' ? sum + space.effect.amount : sum),
         0,
@@ -438,11 +340,11 @@ describe('difficulty makes the board itself unkinder', () => {
     expect(handouts[2]).toBeLessThan(handouts[1]!)
   })
 
-  it.each(LENGTHS)('%s: takes paydays off the route as it climbs', (length) => {
+  it('takes paydays off the route as it climbs', () => {
     // Passing a payday pays; every other tile has to be landed on. So a missed
     // payroll is the only single change on the board heavy enough to move a
     // final total, and the harder settings spend a couple of them.
-    const paydays = boardsFor(length).map(
+    const paydays = boards.map(
       (board) => Object.values(board.spaces).filter((space) => space.kind === 'payday').length,
     )
     expect(paydays[1]).toBeLessThan(paydays[0]!)
@@ -451,8 +353,8 @@ describe('difficulty makes the board itself unkinder', () => {
     expect(paydays[2]).toBeGreaterThan(paydays[0]! / 2)
   })
 
-  it.each(LENGTHS)('%s: turns a lost payday into a tile that explains itself', (length) => {
-    const [normal, , veryHard] = boardsFor(length) as [Board, Board, Board]
+  it('turns a lost payday into a tile that explains itself', () => {
+    const [normal, , veryHard] = boards as [Board, Board, Board]
     const lost = Object.values(normal.spaces).filter(
       (space) => space.kind === 'payday' && veryHard.spaces[space.id]!.kind !== 'payday',
     )
@@ -466,17 +368,17 @@ describe('difficulty makes the board itself unkinder', () => {
     }
   })
 
-  it.each(LENGTHS)('%s: never takes a pay rise away — the career stays the player own', (length) => {
+  it('never takes a pay rise away — the career stays the player own', () => {
     // Salary is what the player picked and grew. A harder board makes living
     // expensive; it does not reach into the payslip and cut the rate.
-    const raises = boardsFor(length).map(
+    const raises = boards.map(
       (board) => Object.values(board.spaces).filter((space) => space.effect.type === 'payRaise').length,
     )
     expect(new Set(raises).size).toBe(1)
   })
 
-  it.each(LENGTHS)('%s: keeps every easier board a subset of the harder one', (length) => {
-    const [normal, hard, veryHard] = boardsFor(length) as [Board, Board, Board]
+  it('keeps every easier board a subset of the harder one', () => {
+    const [normal, hard, veryHard] = boards as [Board, Board, Board]
     for (const id of Object.keys(normal.spaces)) {
       expect(hard.spaces[id], `${id} vanished on hard`).toBeDefined()
     }
@@ -488,8 +390,8 @@ describe('difficulty makes the board itself unkinder', () => {
   it('rewrites a tile rather than charging silently behind its back', () => {
     // Move-In Day is scenery on normal and a deposit on hard. The sentence on
     // the card has to change with the effect, or the tile is lying to the table.
-    const easy = createBoard('standard', 'normal').spaces['college-1']!
-    const harsh = createBoard('standard', 'hard').spaces['college-1']!
+    const easy = createBoard('normal').spaces['college-1']!
+    const harsh = createBoard('hard').spaces['college-1']!
     expect(easy.effect).toEqual({ type: 'none' })
     expect(harsh.effect.type).toBe('payMoney')
     expect(harsh.description).not.toBe(easy.description)
@@ -497,8 +399,8 @@ describe('difficulty makes the board itself unkinder', () => {
   })
 
   it('adds real, readable spaces rather than invisible ones', () => {
-    const normalIds = new Set(Object.keys(createBoard('standard', 'normal').spaces))
-    const veryHard = createBoard('standard', 'veryHard')
+    const normalIds = new Set(Object.keys(createBoard('normal').spaces))
+    const veryHard = createBoard('veryHard')
     const added = Object.values(veryHard.spaces).filter((space) => !normalIds.has(space.id))
 
     expect(added.length).toBeGreaterThan(8)
@@ -510,26 +412,14 @@ describe('difficulty makes the board itself unkinder', () => {
     }
   })
 
-  it('keeps the three lengths in proportion at every difficulty', () => {
-    for (const difficulty of DIFFICULTIES) {
-      const standard = Object.keys(createBoard('standard', difficulty).spaces).length
-      for (const length of LENGTHS) {
-        const ratio = Object.keys(createBoard(length, difficulty).spaces).length / standard
-        expect(
-          Math.abs(ratio - BOARD_LENGTH_SCALE[length]),
-          `${length} on ${difficulty} is ${ratio.toFixed(2)}x`,
-        ).toBeLessThan(0.12)
-      }
-    }
-  })
 })
 
 /**
  * Every mechanic the game knows about has to be somewhere a player can land on
- * it, on every board they can choose. A variant that only exists on the long
- * board is a feature most sessions never see.
+ * it, at every setting they can choose. A variant that only exists on Very Hard
+ * is a feature most sessions never see.
  */
-describe('every mechanic is on the board at every length', () => {
+describe('every mechanic is on the board at every difficulty', () => {
   const REQUIRED: readonly SpaceEffect['type'][] = [
     'gainMoney', 'payMoney', 'payday', 'payRaise', 'gainLifeTiles', 'chooseCareer',
     'graduate', 'getMarried', 'haveChildren', 'buyHouse', 'collectFromEach', 'payEach',
@@ -538,22 +428,22 @@ describe('every mechanic is on the board at every length', () => {
     'stealLifeTile', 'upgradeHouse',
   ]
 
-  it.each(SETTINGS)('%s / %s covers every SpaceEffect variant', (length, difficulty) => {
-    const present = effectTypes(createBoard(length, difficulty))
+  it.each(DIFFICULTIES)('%s covers every SpaceEffect variant', (difficulty) => {
+    const present = effectTypes(createBoard(difficulty))
     for (const type of REQUIRED) {
-      expect(present.has(type), `the ${length} board has no "${type}" space`).toBe(true)
+      expect(present.has(type), `the board has no "${type}" space`).toBe(true)
     }
   })
 
-  it.each(SETTINGS)('%s / %s carries both hazards, so insurance is worth buying', (length, difficulty) => {
-    const hazards = Object.values(createBoard(length, difficulty).spaces)
+  it.each(DIFFICULTIES)('%s carries both hazards, so insurance is worth buying', (difficulty) => {
+    const hazards = Object.values(createBoard(difficulty).spaces)
       .map((s) => (s.effect.type === 'payMoney' ? s.effect.hazard : undefined))
       .filter((h): h is 'fire' | 'accident' => h !== undefined)
     expect(new Set(hazards)).toEqual(new Set(['fire', 'accident']))
   })
 
-  it.each(SETTINGS)('%s / %s offers insurance before the first hazard can bite', (length, difficulty) => {
-    const board = createBoard(length, difficulty)
+  it.each(DIFFICULTIES)('%s offers insurance before the first hazard can bite', (difficulty) => {
+    const board = createBoard(difficulty)
     const depth = distanceFromStart(board)
     const firstOffice = Math.min(
       ...Object.values(board.spaces)
@@ -574,19 +464,17 @@ describe('every mechanic is on the board at every length', () => {
    * A home policy costs $25,000 and the board used to carry two hazard-tagged
    * bills in total, one of them on a lane half the table never walks. Landed on
    * about once every three games between them, which made insurance a purchase
-   * whose payoff most players simply never saw — accounting, not a moment. The
-   * standard board carries fifteen of them now, ten or eleven of which sit on
-   * the road any one player walks, and `gameBalance` measures what that is
-   * worth in play: about two bills bounce off a policy per game.
+   * whose payoff most players simply never saw — accounting, not a moment.
    *
    * Counted per *road walked* rather than per board, because a hazard on a lane
-   * you did not choose has never insured anything.
+   * you did not choose has never insured anything. The floor is two rather than
+   * a spread: the board has room for the milestones and very little else, and
+   * both policies still have to be worth buying, which is the assertion below
+   * that actually does the work here.
    */
-  it.each(SETTINGS)('%s / %s puts enough hazards on one road to make a policy pay', (length, difficulty) => {
-    const board = createBoard(length, difficulty)
-    // The short board is the exception, and deliberately: it has room for the
-    // milestones and very little else, so its hazards are the two tier-0 ones.
-    const wanted = length === 'short' ? 2 : 9
+  it.each(DIFFICULTIES)('%s puts enough hazards on one road to make a policy pay', (difficulty) => {
+    const board = createBoard(difficulty)
+    const wanted = 2
 
     for (const pick of [0, 1] as const) {
       let cursor = board.spaces[board.startSpaceId]!
@@ -599,10 +487,10 @@ describe('every mechanic is on the board at every length', () => {
         .map((id) => board.spaces[id]!.effect)
         .filter((effect) => effect.type === 'payMoney' && effect.hazard !== undefined)
 
-      expect(hazards.length, `${length}/${difficulty} road ${pick}`).toBeGreaterThanOrEqual(wanted)
+      expect(hazards.length, `${difficulty} road ${pick}`).toBeGreaterThanOrEqual(wanted)
       // And both policies have to be worth buying, not just the home one.
       const kinds = new Set(hazards.map((effect) => (effect.type === 'payMoney' ? effect.hazard : undefined)))
-      expect(kinds, `${length}/${difficulty} road ${pick}`).toEqual(new Set(['fire', 'accident']))
+      expect(kinds, `${difficulty} road ${pick}`).toEqual(new Set(['fire', 'accident']))
     }
   })
 })
@@ -631,8 +519,8 @@ function distanceFromStart(board: Board): Map<SpaceId, number> {
 describe('the endgame is where the game is decided', () => {
   const LATE: readonly SpaceEffect['type'][] = ['swapMoneyWithLeader', 'stealLifeTile', 'upgradeHouse']
 
-  it.each(SETTINGS)('%s / %s keeps every upset in the last third of the route', (length, difficulty) => {
-    const board = createBoard(length, difficulty)
+  it.each(DIFFICULTIES)('%s keeps every upset in the last third of the route', (difficulty) => {
+    const board = createBoard(difficulty)
     const depth = distanceFromStart(board)
     const deepest = Math.max(...depth.values())
 
@@ -643,8 +531,8 @@ describe('the endgame is where the game is decided', () => {
     }
   })
 
-  it.each(SETTINGS)('%s / %s puts its biggest swings late', (length, difficulty) => {
-    const board = createBoard(length, difficulty)
+  it.each(DIFFICULTIES)('%s puts its biggest swings late', (difficulty) => {
+    const board = createBoard(difficulty)
     const depth = distanceFromStart(board)
     const deepest = Math.max(...depth.values())
 
@@ -671,8 +559,8 @@ describe('the endgame is where the game is decided', () => {
     }
   })
 
-  it.each(SETTINGS)('%s / %s pays out more often in its second half than its first', (length, difficulty) => {
-    const board = createBoard(length, difficulty)
+  it.each(DIFFICULTIES)('%s pays out more often in its second half than its first', (difficulty) => {
+    const board = createBoard(difficulty)
     const depth = distanceFromStart(board)
     const deepest = Math.max(...depth.values())
     // Payouts only. A review is deliberately *not* one: it is an investment in
@@ -681,12 +569,11 @@ describe('the endgame is where the game is decided', () => {
       (s) => s.effect.type === 'payday' || s.effect.type === 'payRaise',
     )
     const late = income.filter((s) => (depth.get(s.id) ?? 0) / deepest > 0.5)
-    // `>=`, not `>`: the Job Hopper Alley payday is EVERY_BOARD tier now (see
-    // hopper-bonus) so a short board never leaves a career change without a
-    // wage before the next one — and that payday necessarily sits early,
-    // since the whole mid-career fork it belongs to is itself early on a
-    // short board. Short/normal ties at 8-8; every other setting still skews
-    // late.
+    // `>=`, not `>`: the Job Hopper Alley payday (see hopper-bonus) is what
+    // stops a career change being left without a wage before the next one —
+    // and that payday necessarily sits early, since the whole mid-career fork
+    // it belongs to is itself early on the route. Normal ties at 8-8; the
+    // harder settings still skew late.
     expect(late.length).toBeGreaterThanOrEqual(income.length - late.length)
   })
 
@@ -698,7 +585,7 @@ describe('the endgame is where the game is decided', () => {
      * rung instead. Counting only `payRaise` would say the board lost income
      * events when what it actually did was make them worth playing for.
      */
-    const board = createBoard('standard')
+    const board = createBoard()
     const spaces = Object.values(board.spaces)
     const raises = spaces.filter((s) => s.effect.type === 'payRaise' || s.effect.type === 'promotion')
     expect(spaces.filter((s) => s.effect.type === 'payday').length).toBeGreaterThan(5)
@@ -725,11 +612,11 @@ describe('the board rewards the career you chose, and makes you talk to people',
    * The engine has always had the mechanism — nothing says a `payday` tile has
    * to be called Payday — and the board simply never used it.
    */
-  it.each(SETTINGS)('%s / %s pays at least one windfall in salary rather than in dollars', (length, difficulty) => {
-    const bonuses = Object.values(createBoard(length, difficulty).spaces).filter(
+  it.each(DIFFICULTIES)('%s pays at least one windfall in salary rather than in dollars', (difficulty) => {
+    const bonuses = Object.values(createBoard(difficulty).spaces).filter(
       (space) => space.kind === 'payday' && space.title !== 'Payday',
     )
-    expect(bonuses.length, `${length}/${difficulty} has no bonus payday`).toBeGreaterThan(0)
+    expect(bonuses.length, `${difficulty} has no bonus payday`).toBeGreaterThan(0)
     for (const bonus of bonuses) {
       // It has to read as an event, not as payroll wearing a hat.
       expect(bonus.description.toLowerCase()).not.toContain('direct deposit')
@@ -743,18 +630,17 @@ describe('the board rewards the career you chose, and makes you talk to people',
    * entirely on Risky Road — everywhere else, a cost was a solitary
    * transaction with the bank while everybody else checked their phone.
    */
-  it.each(SETTINGS)('%s / %s spends its social obligations outside Risky Road', (length, difficulty) => {
-    const social = Object.values(createBoard(length, difficulty).spaces).filter(
+  it.each(DIFFICULTIES)('%s spends its social obligations outside Risky Road', (difficulty) => {
+    const social = Object.values(createBoard(difficulty).spaces).filter(
       (space) => space.effect.type === 'payEach' || space.effect.type === 'collectFromEach',
     )
-    // The short board has room for the milestones and very little else, so it
-    // gets one obligation off Risky Road rather than a spread of them.
-    const wanted = length === 'short' ? 3 : 5
-    expect(social.length, `${length}/${difficulty}`).toBeGreaterThanOrEqual(wanted)
+    // The board has room for the milestones and very little else, so it gets
+    // one obligation off Risky Road rather than a spread of them.
+    expect(social.length, `${difficulty}`).toBeGreaterThanOrEqual(3)
     expect(
       social.filter((space) => !space.id.startsWith('risky-')).length,
-      `${length}/${difficulty} keeps every obligation on Risky Road`,
-    ).toBeGreaterThanOrEqual(length === 'short' ? 1 : 3)
+      `${difficulty} keeps every obligation on Risky Road`,
+    ).toBeGreaterThanOrEqual(1)
   })
 
   /*
@@ -762,8 +648,8 @@ describe('the board rewards the career you chose, and makes you talk to people',
    * summary has to be long enough to make a case and different enough from its
    * opposite number to be disagreed with.
    */
-  it.each(SETTINGS)('%s / %s gives every fork two roads worth arguing about', (length, difficulty) => {
-    const board = createBoard(length, difficulty)
+  it.each(DIFFICULTIES)('%s gives every fork two roads worth arguing about', (difficulty) => {
+    const board = createBoard(difficulty)
     const forks = Object.values(board.spaces).filter((space) => space.next.length > 1)
     expect(forks.length).toBeGreaterThanOrEqual(4)
 
@@ -813,12 +699,12 @@ describe('nobody can be laid off with no way back', () => {
     return escapes
   }
 
-  it.each(SETTINGS)('%s / %s puts a re-hire on every route from a layoff to retirement', (length, difficulty) => {
-    const board = createBoard(length, difficulty)
+  it.each(DIFFICULTIES)('%s puts a re-hire on every route from a layoff to retirement', (difficulty) => {
+    const board = createBoard(difficulty)
     const escapes = buildEscapeCheck(board)
 
     const layoffs = Object.values(board.spaces).filter((s) => s.effect.type === 'loseCareer')
-    expect(layoffs.length, `the ${length} board has no layoff to check`).toBeGreaterThan(0)
+    expect(layoffs.length, `the board has no layoff to check`).toBeGreaterThan(0)
 
     for (const layoff of layoffs) {
       const stranded = layoff.next.filter((nextId) => escapes(nextId))
@@ -829,14 +715,14 @@ describe('nobody can be laid off with no way back', () => {
     }
   })
 
-  it.each(SETTINGS)('%s / %s starts every career at a stop, so nobody begins unemployed', (length, difficulty) => {
-    const board = createBoard(length, difficulty)
+  it.each(DIFFICULTIES)('%s starts every career at a stop, so nobody begins unemployed', (difficulty) => {
+    const board = createBoard(difficulty)
     const escapes = buildEscapeCheck(board)
     expect(escapes(board.startSpaceId)).toBe(false)
   })
 
-  it.each(SETTINGS)('%s / %s offers a re-hire that a player cannot spin past', (length, difficulty) => {
-    const rehires = Object.values(createBoard(length, difficulty).spaces).filter(isGuaranteedRehire)
+  it.each(DIFFICULTIES)('%s offers a re-hire that a player cannot spin past', (difficulty) => {
+    const rehires = Object.values(createBoard(difficulty).spaces).filter(isGuaranteedRehire)
     expect(rehires.length).toBeGreaterThanOrEqual(2)
   })
 })
@@ -846,8 +732,8 @@ describe('nobody can be laid off with no way back', () => {
  * line, so the *geometry* of the layout is what decides whether the route reads
  * as a path or as a cat's cradle. These are the tests that keep it readable.
  */
-describe.each(SETTINGS)('createBoard(%s, %s) layout geometry', (length, difficulty) => {
-  const board = createBoard(length, difficulty)
+describe.each(DIFFICULTIES)('createBoard(%s) layout geometry', (difficulty) => {
+  const board = createBoard(difficulty)
 
   const edges = (): { from: Space; to: Space; length: number }[] => {
     const list: { from: Space; to: Space; length: number }[] = []
@@ -956,8 +842,8 @@ describe('a fork names the road, not the first tile on it', () => {
    * particular id would silently stop appearing on the shorter boards, and the
    * fork would go back to offering "Move-In Day" instead of "College Lane".
    */
-  it.each(SETTINGS)('%s / %s names every lane a fork can lead into', (length, difficulty) => {
-    const board = createBoard(length, difficulty)
+  it.each(DIFFICULTIES)('%s names every lane a fork can lead into', (difficulty) => {
+    const board = createBoard(difficulty)
     const forks = Object.values(board.spaces).filter((space) => space.next.length > 1)
     expect(forks.length).toBeGreaterThan(0)
 
@@ -971,8 +857,8 @@ describe('a fork names the road, not the first tile on it', () => {
     }
   })
 
-  it.each(SETTINGS)('%s / %s gives the two roads out of a fork different names', (length, difficulty) => {
-    const board = createBoard(length, difficulty)
+  it.each(DIFFICULTIES)('%s gives the two roads out of a fork different names', (difficulty) => {
+    const board = createBoard(difficulty)
     for (const fork of Object.values(board.spaces).filter((s) => s.next.length > 1)) {
       const names = fork.next.map((id) => board.spaces[id]?.lane?.name)
       expect(new Set(names).size, `fork "${fork.id}" offers the same name twice`).toBe(names.length)
@@ -980,7 +866,7 @@ describe('a fork names the road, not the first tile on it', () => {
   })
 
   it('never labels a space that does not begin a lane', () => {
-    const board = createBoard('standard')
+    const board = createBoard()
     const laneHeads = new Set(
       Object.values(board.spaces).flatMap((s) => (s.next.length > 1 ? [...s.next] : [])),
     )

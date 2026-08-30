@@ -8,12 +8,12 @@ import { EDITION_FRANCE } from './index'
 
 /**
  * The France edition's founding bargain, asserted so it cannot drift: the
- * *mechanical* board is the measured USA board at ×1 — same tiers, same
+ * *mechanical* board is the measured USA board at ×1 — same gates, same
  * stops, same hardships, same hazard tags, same paydays, every sum unchanged
  * because the euro sits close enough to the dollar that only the symbol moves
  * — and everything a player reads is French. The USA board is the measured
  * balance; the mirror is what lets this edition inherit all of it, and this
- * file is what stops a well-meaning copy edit from quietly moving a tier or
+ * file is what stops a well-meaning copy edit from quietly moving a gate or
  * dropping a hazard and unpicking the inheritance.
  *
  * Unlike Japan, this edition takes no house-catalogue deviation: the French
@@ -129,7 +129,6 @@ describe('the france route is the measured skeleton, tile for tile', () => {
       const at = `${fr.id} (mirrors ${us.id})`
 
       expect(fr.kind, at).toBe(us.kind)
-      expect(fr.tier, at).toBe(us.tier)
       expect(fr.appearsFrom, at).toBe(us.appearsFrom)
       expect(fr.unscaled, at).toBe(us.unscaled)
       expect(fr.amountFrom, at).toBe(us.amountFrom)

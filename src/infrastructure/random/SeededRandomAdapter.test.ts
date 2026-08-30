@@ -18,17 +18,17 @@ describe('createSeededRandom', () => {
     expect(sequenceA).not.toEqual(sequenceB)
   })
 
-  it('covers all ten spinner faces with no value outside 1-10 over 10,000 spins', () => {
+  it('covers all six die faces with no value outside 1-6 over 10,000 rolls', () => {
     const random = createSeededRandom(42)
     const seen = new Set<number>()
     for (let i = 0; i < 10_000; i++) {
       const value = random.spin()
       expect(value).toBeGreaterThanOrEqual(1)
-      expect(value).toBeLessThanOrEqual(10)
+      expect(value).toBeLessThanOrEqual(6)
       expect(Number.isInteger(value)).toBe(true)
       seen.add(value)
     }
-    expect(seen.size).toBe(10)
+    expect(seen.size).toBe(6)
   })
 
   it('produces int(min, max) inclusive at both ends over many draws', () => {

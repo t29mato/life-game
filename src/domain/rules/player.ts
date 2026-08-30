@@ -13,6 +13,7 @@ import type {
   SpinValue,
   Stock,
 } from '../model/types'
+import { SPIN_FACES } from '../model/constants'
 import type { EconomyConstants } from '../edition/types'
 import { USA_ECONOMY } from '../edition/usa/economy'
 
@@ -89,8 +90,8 @@ export function setMoney(player: Player, amount: Money): Player {
   return { ...player, money: amount }
 }
 
-/** The mean of a 1–10 wheel: what one pip is worth over a whole game. */
-export const AVERAGE_SPIN = 5.5
+/** The mean of one throw of the die: what a pip is worth over a whole game. */
+export const AVERAGE_SPIN = (SPIN_FACES + 1) / 2
 
 /**
  * How a player's next packet is decided.

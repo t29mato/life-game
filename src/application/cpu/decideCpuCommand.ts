@@ -45,9 +45,13 @@ import {
  * "decide"; short enough that three CPU seats never feel like a cutscene.
  */
 export const CPU_THINK_MS: Readonly<
-  Record<'awaitingSpin' | 'awaitingDecision' | 'resolved' | 'passingEvent', number>
+  Record<'awaitingSpin' | 'awaitingDistanceSpin' | 'awaitingDecision' | 'resolved' | 'passingEvent', number>
 > = {
   awaitingSpin: 700,
+  // The second half of one fork press, not a fresh decision: long enough to
+  // read the road that was just settled, short enough that the two throws
+  // still read as one turn rather than two.
+  awaitingDistanceSpin: 700,
   awaitingDecision: 1_100,
   resolved: 900,
   // A card for a tile the pawn only passed, not one it stopped on — same
@@ -866,6 +870,9 @@ export function decideCpuCommand(state: GameState): GameCommand | null {
 
   switch (state.phase) {
     case 'awaitingSpin':
+    // A fork's second press: the road is settled, the distance is not. A
+    // computer seat throws for it exactly the way it threw for the road.
+    case 'awaitingDistanceSpin':
       return { type: 'spin' }
     case 'resolved':
       return { type: 'endTurn' }

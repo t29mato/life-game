@@ -56,8 +56,21 @@ export interface BoardProps {
   readonly currentPlayerIndex: number
   readonly phase: GamePhase
   readonly movementPath: readonly SpaceId[]
+  /**
+   * Hops still owed *after* `movementPath` ends — the length of the store's
+   * `pendingPath`. Only the counter reads it: a leg cut short at a swept-past
+   * tile must not make the countdown say the move is nearly over when three
+   * more tiles are still coming.
+   */
+  readonly pendingHops?: number
   /** Fired once the active pawn has hopped through the whole `movementPath`. */
   readonly onMovementComplete: () => void
+  /**
+   * How many spaces the mover still has to travel, reported as each hop
+   * lands and `null` once the move is over. Driven from in here because this
+   * is the only place that knows when a hop has actually finished.
+   */
+  readonly onSpacesLeftChange?: (spacesLeft: number | null) => void
   /** Sweeps the camera along the route once before the first turn. */
   readonly introFlythrough?: boolean
   /** Which country's map pigments to paint the terrain in — see `.frame`'s `[data-edition]` overrides. */
@@ -68,13 +81,13 @@ export interface BoardProps {
  * Car length and how far apart parked cars sit, both as fractions of a tile,
  * indexed by how many players are in the game.
  *
- * A single car is drawn almost as long as its space — the toy overhangs the
+ * A single car is drawn as long as its space — the toy overhangs the
  * board, and that is what makes it read as a physical object sitting on the
  * tile rather than as an icon printed inside it. Each extra player shortens
  * every car and widens the echelon, so a full stack still fits on one space
  * with every roofline and every passenger in view.
  */
-const PAWN_SCALE: readonly number[] = [0.9, 0.9, 0.86, 0.75, 0.67]
+const PAWN_SCALE: readonly number[] = [1.04, 1.04, 0.99, 0.86, 0.77]
 
 /**
  * The echelon reaches further sideways than it does back, because a car is
@@ -205,7 +218,9 @@ export function Board({
   currentPlayerIndex,
   phase,
   movementPath,
+  pendingHops = 0,
   onMovementComplete,
+  onSpacesLeftChange,
   introFlythrough = false,
   editionId,
 }: BoardProps): ReactElement {
@@ -320,12 +335,19 @@ export function Board({
    * player's spot tracks `player.spaceId` on every render exactly as before,
    * so a rival's fan slot still reacts the instant its own occupancy actually
    * changes.
+   *
+   * `passingEvent` is frozen for the same reason and it matters more there.
+   * A move is walked one leg at a time now, so a car showing a swept-past
+   * tile's card is parked *on that tile*, several hops short of where
+   * `player.spaceId` already says it ends up — thawing here would teleport it
+   * to the destination the instant the card appeared and hop it backwards
+   * when the card was dismissed.
    */
   const visualSpaceIds = useRef<Map<string, SpaceId | undefined>>(new Map())
   const visualSpaceId = useCallback(
     (player: Player, index: number): SpaceId | undefined => {
-      const frozen =
-        index === currentPlayerIndex && phase === 'moving' && visualSpaceIds.current.has(player.id)
+      const midMove = phase === 'moving' || phase === 'passingEvent'
+      const frozen = index === currentPlayerIndex && midMove && visualSpaceIds.current.has(player.id)
       if (!frozen) visualSpaceIds.current.set(player.id, player.spaceId)
       return visualSpaceIds.current.get(player.id)
     },
@@ -594,10 +616,16 @@ export function Board({
    * would otherwise cost. Reduced motion always collapses straight to the
    * final rest shot: the wide establishing beat is motion, not information,
    * and the rest shot alone already answers "where am I and what's next".
+   *
+   * `passingEvent` is left alone along with `moving`: the car is parked
+   * mid-move on the tile whose card is up, and every shot below is framed on
+   * `activeSpaceId` — which by then is the *destination*, several hops
+   * further on. The movement effect has already framed the tile the card is
+   * actually about, so the right thing to do here is nothing.
    */
   const previousRestPlayerId = useRef<string | null>(null)
   useEffect(() => {
-    if (flyingRef.current || phase === 'moving') return
+    if (flyingRef.current || phase === 'moving' || phase === 'passingEvent') return
     const space = activeSpaceId ? board.spaces[activeSpaceId] : undefined
 
     if (phase === 'awaitingDecision' || phase === 'resolved') {
@@ -632,6 +660,14 @@ export function Board({
     }
   }, [phase, activeSpaceId, activePlayer?.id, board, projection, applyShot, reduceMotion])
 
+  /* Read through refs inside the movement effect, which is deliberately keyed
+     on the leg alone: a fresh callback identity from the parent must never
+     restart a hop that is already running. */
+  const onSpacesLeftChangeRef = useRef(onSpacesLeftChange)
+  onSpacesLeftChangeRef.current = onSpacesLeftChange
+  const pendingHopsRef = useRef(pendingHops)
+  pendingHopsRef.current = pendingHops
+
   useEffect(() => {
     if (phase !== 'moving' || movementPath.length === 0 || movingRef.current) return
     const mover = activePlayer
@@ -642,6 +678,12 @@ export function Board({
     const run = async (): Promise<void> => {
       const total = movementPath.length
       const closest = arrivalZoom(board, movementPath[total - 1])
+      /* The counter counts *spaces*, not legs: what is owed after this leg
+         ends counts too, so pausing on a swept-past tile ticks the number
+         down through the pause rather than resetting it. Reported before the
+         first hop so it reads the full distance the moment the die lands. */
+      let spacesLeft = total + pendingHopsRef.current
+      onSpacesLeftChangeRef.current?.(spacesLeft)
       for (let step = 0; step < total; step += 1) {
         /* Recomputed per step, not once for the whole hop: which players are
            already parked differs from stop to stop along the path, and the
@@ -661,14 +703,23 @@ export function Board({
           reduceMotion ? 0 : FOLLOW_SECONDS,
         )
         await ref?.hopThrough([target])
+        spacesLeft -= 1
+        onSpacesLeftChangeRef.current?.(spacesLeft)
       }
       movingRef.current = false
       onMovementComplete()
     }
     void run()
     // Deliberately keyed on phase/movementPath alone: this must run exactly
-    // once per move, regardless of prop identity churn elsewhere.
+    // once per leg, regardless of prop identity churn elsewhere.
   }, [phase, movementPath])
+
+  /* The counter belongs to a move, so it is cleared when the next turn opens
+     rather than the instant the last hop lands — a player who reads "0" as
+     the car settles is reading the thing it was put there to say. */
+  useEffect(() => {
+    if (phase === 'awaitingSpin' || phase === 'setup') onSpacesLeftChangeRef.current?.(null)
+  }, [phase])
 
   /**
    * Back to front. Cars nearer the bottom of the board are nearer the eye and
@@ -1027,6 +1078,7 @@ export function Board({
                     isActive={index === currentPlayerIndex}
                     isMarried={player.isMarried}
                     childCount={player.children}
+                    face={player.face ?? 'classic'}
                     size={pawnSize}
                   />
                 )

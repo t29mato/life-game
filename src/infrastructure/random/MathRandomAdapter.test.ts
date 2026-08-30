@@ -12,18 +12,18 @@ describe('createMathRandom', () => {
       expect(createMathRandom().spin()).toBe(1)
     })
 
-    it('maps a draw just under 1 to 10', () => {
+    it('maps a draw just under 1 to the top face', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.999999999)
-      expect(createMathRandom().spin()).toBe(10)
+      expect(createMathRandom().spin()).toBe(6)
     })
 
-    it('never returns a value outside 1-10 across the full range of draws', () => {
+    it('never returns a value outside 1-6 across the full range of draws', () => {
       const random = createMathRandom()
       for (let step = 0; step < 100; step++) {
         vi.spyOn(Math, 'random').mockReturnValue(step / 100)
         const value = random.spin()
         expect(value).toBeGreaterThanOrEqual(1)
-        expect(value).toBeLessThanOrEqual(10)
+        expect(value).toBeLessThanOrEqual(6)
         expect(Number.isInteger(value)).toBe(true)
       }
     })

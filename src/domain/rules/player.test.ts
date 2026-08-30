@@ -53,8 +53,8 @@ const CAREER: Career = {
 const UNSTEADY_CAREER: Career = {
   id: 'career-test-unsteady',
   title: 'Test Unsteady Career',
-  salary: 44_000,
-  payPerPip: 8_000,
+  salary: 44_100,
+  payPerPip: 12_600,
   raiseStep: 5_500,
   requiresDegree: false,
   icon: 'space:payday',
@@ -433,23 +433,23 @@ describe('paydayPayFor', () => {
   it('ignores the spin for a salaried job', () => {
     const player = basePlayer({ career: CAREER })
     expect(paydayPayFor(player, 1)).toBe(CAREER.salary)
-    expect(paydayPayFor(player, 10)).toBe(CAREER.salary)
+    expect(paydayPayFor(player, 6)).toBe(CAREER.salary)
   })
 
   it('multiplies pay per pip by the spin for unsteady work', () => {
     const player = basePlayer({ career: UNSTEADY_CAREER })
     expect(paydayPayFor(player, 3)).toBe(UNSTEADY_CAREER.payPerPip! * 3)
-    expect(paydayPayFor(player, 10)).toBe(UNSTEADY_CAREER.payPerPip! * 10)
+    expect(paydayPayFor(player, 6)).toBe(UNSTEADY_CAREER.payPerPip! * 6)
   })
 
   it('pays the casual wage per pip while between jobs', () => {
     const player = basePlayer({ career: null })
-    expect(paydayPayFor(player, 7)).toBe(CASUAL_WAGE_PER_PIP * 7)
+    expect(paydayPayFor(player, 5)).toBe(CASUAL_WAGE_PER_PIP * 5)
   })
 
   it('never pays nothing, whatever the spin and whoever the player is', () => {
     for (const career of [CAREER, UNSTEADY_CAREER, null]) {
-      for (const spin of [1, 5, 10] as const) {
+      for (const spin of [1, 3, 6] as const) {
         expect(paydayPayFor(basePlayer({ career }), spin)).toBeGreaterThan(0)
       }
     }

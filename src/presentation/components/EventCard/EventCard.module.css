@@ -361,14 +361,6 @@
   --plate-ink: #ffffff;
 }
 
-.deltaZero {
-  --plate-light: color-mix(in srgb, #fff 30%, var(--tone-slate-edge));
-  --plate: var(--tone-slate-edge);
-  --plate-dark: color-mix(in srgb, var(--tone-slate-ink) 40%, var(--tone-slate-edge));
-  --plate-lip: color-mix(in srgb, var(--tone-slate-ink) 60%, var(--tone-slate-edge));
-  --plate-ink: var(--tone-slate-ink);
-}
-
 /* ---- Life tiles & notes -------------------------------------------------- */
 .tiles {
   display: flex;

@@ -9,9 +9,11 @@ import {
   type ReactElement,
 } from 'react'
 import { animate, motion, useMotionValue, type AnimationPlaybackControls } from 'framer-motion'
-import type { PlayerColor } from '@domain/model/types'
+import type { DriverFace, PlayerColor } from '@domain/model/types'
 import { useAudio } from '../../hooks/useAudio'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { DEFAULT_DRIVER_FACE } from './designs'
+import { FaceFeatures } from './FaceFeatures'
 import { childPegs, describeCar } from './passengers'
 import styles from './Pawn.module.css'
 
@@ -50,6 +52,8 @@ export interface PawnProps {
   readonly isMarried?: boolean
   /** Small pegs in the back, one per child, capped and then badged. */
   readonly childCount?: number
+  /** The driver peg's expression. Only the driver — passengers stay plain. */
+  readonly face?: DriverFace
 }
 
 /**
@@ -57,11 +61,27 @@ export interface PawnProps {
  * Laid out as fractions of the car's length so it keeps its proportions at any
  * size, but drawn in the board's own units so its outline never scales with it.
  */
-function Peg({ u, at, lift, scale }: { u: number; at: number; lift: number; scale: number }): ReactElement {
+function Peg({
+  u,
+  at,
+  lift,
+  scale,
+  face = 'classic',
+}: {
+  u: number
+  at: number
+  lift: number
+  scale: number
+  /** Only ever set on the driver peg; passengers keep the plain moulding. */
+  face?: DriverFace
+}): ReactElement {
   return (
     <g className={styles.peg} transform={`translate(${at * u}, ${lift * u})`}>
       <ellipse className={styles.pegBody} cy={-0.28 * u * scale} rx={0.075 * u * scale} ry={0.19 * u * scale} />
       <circle className={styles.pegHead} cy={-0.47 * u * scale} r={0.082 * u * scale} />
+      <g transform={`translate(0, ${-0.47 * u * scale})`}>
+        <FaceFeatures face={face} r={0.082 * u * scale} />
+      </g>
       <circle
         className={styles.pegGloss}
         cx={-0.026 * u * scale}
@@ -111,6 +131,7 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
     isActive = false,
     isMarried = false,
     childCount = 0,
+    face = DEFAULT_DRIVER_FACE,
   },
   ref,
 ): ReactElement {
@@ -251,6 +272,7 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
       data-active={isActive}
       data-married={isMarried}
       data-children={Math.max(0, Math.floor(childCount))}
+      data-face={face}
       role="img"
       aria-label={description}
     >
@@ -321,9 +343,10 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
           </g>
         ) : null}
 
-        {/* At the wheel, and the seat beside it once there is a partner. */}
+        {/* At the wheel, and the seat beside it once there is a partner. Only
+            the driver wears the chosen face: that peg is the player. */}
         {isMarried ? <Peg u={u} at={-0.07} lift={0} scale={1} /> : null}
-        <Peg u={u} at={0.1} lift={0} scale={1} />
+        <Peg u={u} at={0.1} lift={0} scale={1} face={face} />
 
         {/* Chassis: the darker moulding the body sits on. */}
         <rect

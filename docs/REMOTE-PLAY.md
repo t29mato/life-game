@@ -115,7 +115,7 @@ obviously correct.
 |---|---|---|
 | `seed` | `1739284471` | the shared RNG seed; a 32-bit integer, because that is what `mulberry32` takes |
 | `buildId` | `a3f91c2` | git SHA or Vite build hash — see §3.7 |
-| `config` | `{players:[…], boardLength, difficulty, editionId}` | the `NewGameConfig` the game will start from |
+| `config` | `{players:[…], difficulty, editionId}` | the `NewGameConfig` the game will start from |
 | `hostClientId` | `uuid` | who owns CPU seats and `settle` fallbacks |
 | `seats` | `{"player-1":"uuid-a", …}` | seat → device claims |
 | `status` | `lobby` \| `playing` \| `over` | gates joining |
@@ -559,7 +559,7 @@ player will write 200 autosaves. Gate them on "this fold caught up to the head".
 The board is generated from `src/domain/edition/usa/route.ts`, which is under
 active development by other agents right now. Two phones on two different
 cached bundles produce two different boards from the same
-`{editionId, boardLength, difficulty}`, and diverge on the first command.
+`{editionId, difficulty}`, and diverge on the first command.
 
 This is not a subtle bug — it is catastrophic and immediate — but it is easy to
 misdiagnose as an RNG problem, and it *will* happen, because a phone that
@@ -810,7 +810,7 @@ What that means concretely:
 
 Genuinely new UI, and the only substantial new screen: room code display, share
 button, seat list with claim/release, host-only Start, and the settings
-(`boardLength`, `difficulty`, `editionId`) shown read-only to non-hosts. Budget
+(`difficulty`, `editionId`) shown read-only to non-hosts. Budget
 this properly — it is the first thing every player sees and a confusing lobby
 will sink the feature regardless of how good the sync is.
 

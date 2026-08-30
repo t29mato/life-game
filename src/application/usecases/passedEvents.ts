@@ -22,6 +22,11 @@ import type { UseCaseDeps } from './types'
  * answers it itself, through the exact same `resolveSpinOutcome` a manual
  * press would reach — no second implementation of what a tuition band or a
  * week's pay is worth to drift out of step with the one a landing shows.
+ *
+ * That roll leaves a mark on the card it produces (`LandingEvent.rolled`),
+ * which is what lets the shell throw the die on screen before the card is
+ * readable. A player who was never asked to press anything still gets to
+ * watch the number arrive rather than read about it afterwards.
  */
 export function applyPassedEvent(
   state: GameState,

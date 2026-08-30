@@ -1,39 +1,80 @@
-import { type ReactElement } from 'react'
+import { useEffect, useState, type ReactElement } from 'react'
 import { motion } from 'framer-motion'
-import type { Decision, SpinValue } from '@domain/model/types'
+import type { SpinValue } from '@domain/model/types'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
-import { Spinner } from '../Spinner/Spinner'
+import { Dice } from '../Dice/Dice'
 import styles from './EventSpinModal.module.css'
 
 export interface EventSpinModalProps {
-  /** The event's own value-spin decision — named stakes, one Spin option. */
-  readonly decision: Decision
+  /** What the roll is for — the tile's own name, or the decision's prompt. */
+  readonly prompt: string
+  /** One line on what is riding on it, read before the die is thrown. */
+  readonly stakes: string
   readonly result: SpinValue | null
   readonly onSpin: () => void
   readonly onSpinComplete: () => void
-  readonly autoSpinToken: number
+  /** Bumped by the shell to throw the die for a computer seat. */
+  readonly autoSpinToken?: number
+  /**
+   * The hidden roll behind a tile the move only swept past, replayed on the
+   * number it already produced — as opposed to an ordinary roll a player
+   * pressed for directly. Only affects the header's wording; whether a press
+   * is actually required is `unattended`'s job, and the two are independent —
+   * a computer seat still throws a *landed* tile's roll unattended, and a
+   * person still presses a *passed* tile's roll for themselves.
+   */
+  readonly passedThrough?: boolean
+  /**
+   * True when nobody is going to press this: a computer seat's own turn, on
+   * either kind of roll. The die throws itself the moment it is on screen
+   * rather than waiting on a click nobody is going to make.
+   */
+  readonly unattended?: boolean
 }
 
 /**
- * Where an event-driven spin lands — tuition, a promotion review, a
- * marriage proposal, career choice, the joint account. The tile the pawn
- * is standing on has nothing to do with any of these; the movement roll
- * that gets a pawn from one tile to the next is the only spin that does,
- * which is why that one stays beside the board and this one does not. A
- * question with no bearing on where the pawn sits gets the middle of the
- * screen instead, the same way the choice cards already do.
+ * Where an event-driven roll lands — tuition, a promotion review, a
+ * marriage proposal, career choice, the joint account. It shows the same die
+ * the movement roll does, deliberately: one object and one contract, so a
+ * player never has to learn a second way of asking the game for a number.
+ * What differs is only where it sits. The tile the pawn is standing on has
+ * nothing to do with any of these, so this one gets the middle of the screen
+ * with its stakes written above it, the same way the choice cards already do.
+ *
+ * It covers a passed-through tile's roll too — a move swept past it, and its
+ * own die already turned inside `applyPassedEvent` — and the player deserves
+ * to watch that land rather than read the number off the card afterwards.
+ * Same object, same die, same place on the screen; only a computer seat gets
+ * to skip the press, on either kind of roll.
  */
 export function EventSpinModal({
-  decision,
+  prompt,
+  stakes,
   result,
   onSpin,
   onSpinComplete,
-  autoSpinToken,
+  autoSpinToken = 0,
+  passedThrough = false,
+  unattended = false,
 }: EventSpinModalProps): ReactElement {
   const containerRef = useModalFocusTrap<HTMLDivElement>()
   const reduceMotion = usePrefersReducedMotion()
-  const stakes = decision.options[0]?.description || decision.prompt
+
+  /*
+   * The throw for a roll nobody was asked for, made through the very
+   * `autoRollToken` a computer seat's own roll already goes through — one
+   * arming path, not two, so the die can never be handed a result it was
+   * never told to expect. `Dice` reacts to a *change* in that token rather
+   * than to its value, which is why it is raised from an effect after mount
+   * instead of arriving already raised; raising it to the same 1 again is a
+   * no-op React bails out of, so the die is thrown exactly once however
+   * often this re-renders.
+   */
+  const [selfToken, setSelfToken] = useState(0)
+  useEffect(() => {
+    if (unattended) setSelfToken(1)
+  }, [unattended])
 
   const entrance = reduceMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 }, transition: { duration: 0 } }
@@ -56,19 +97,23 @@ export function EventSpinModal({
         transition={entrance.transition}
       >
         <header className={styles.header}>
-          <span className={styles.kind}>The wheel</span>
+          {/* Named for what it is: a tile driven over is not a tile stopped
+              at, and a player who never chose to stop here should be told
+              why a die is turning for them — whether they are the one
+              throwing it or, on a computer seat, only watching it land. */}
+          <span className={styles.kind}>{passedThrough ? 'Passing through' : 'The die'}</span>
           <h2 id="event-spin-prompt" className={styles.prompt}>
-            {decision.prompt}
+            {prompt}
           </h2>
           <p className={styles.stakes}>{stakes}</p>
         </header>
 
-        <Spinner
+        <Dice
           result={result}
           disabled={false}
-          onSpin={onSpin}
-          onSpinComplete={onSpinComplete}
-          autoSpinToken={autoSpinToken}
+          onRoll={onSpin}
+          onRollComplete={onSpinComplete}
+          autoRollToken={unattended ? selfToken : autoSpinToken}
         />
       </motion.div>
     </div>

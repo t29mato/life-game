@@ -48,22 +48,22 @@ export const JAPAN_ECONOMY: EconomyConstants = {
   tuition: {
     outcomes: [
       {
-        upTo: 3,
+        upTo: 2,
         note: 'The scholarship application gets lost in a stack of paperwork, and a second year of cram school gets added on top of the bill.',
         cost: 9_000_000,
       },
       {
-        upTo: 7,
+        upTo: 4,
         note: "Tuition and entrance fees come to exactly what the university's brochure promised.",
         cost: 5_200_000,
       },
       {
-        upTo: 9,
+        upTo: 5,
         note: 'A prefectural scholarship covers more of the four years than you budgeted for.',
-        cost: 2_100_000,
+        cost: 2_800_000,
       },
       {
-        upTo: 10,
+        upTo: 6,
         note: 'A full tuition waiver — the kind of transcript a family frames.',
         cost: 0,
       },
@@ -96,10 +96,10 @@ export const JAPAN_ECONOMY: EconomyConstants = {
    * constraint that matters: children hang off this tile.
    */
   marriage: {
-    proposalSpin: 3,
+    proposalSpin: 2,
     secondAskSpin: 2,
     rescued: {
-      upTo: 10,
+      upTo: 6,
       note: 'They said yes the second time — and moved in with a revolving card balance, a parking space for a car they no longer own, and a very relaxed attitude to both.',
       giftMultiplier: 1,
       cost: 1_200_000,
@@ -107,28 +107,28 @@ export const JAPAN_ECONOMY: EconomyConstants = {
     },
     outcomes: [
       {
-        upTo: 4,
+        upTo: 2,
         note: 'The hotel banquet ran away with itself: two gown changes, a dry-ice entrance, and both families ordering the good sake.',
         giftMultiplier: 1,
         cost: 800_000,
         windfall: 0,
       },
       {
-        upTo: 7,
+        upTo: 4,
         note: 'A small shrine ceremony and one good restaurant. Forty guests, one speech that lands, and the envelopes covered it.',
         giftMultiplier: 1,
         cost: 0,
         windfall: 0,
       },
       {
-        upTo: 9,
+        upTo: 5,
         note: 'Two incomes under one roof, and the rent on the 2LDK suddenly looks like half of what it was.',
         giftMultiplier: 1,
         cost: 0,
         windfall: 2_000_000,
       },
       {
-        upTo: 10,
+        upTo: 6,
         note: 'The whole hometown turns up, everybody is generous, and your partner turns out to have been quietly filling a postal savings book since high school.',
         giftMultiplier: 1.5,
         cost: 0,
@@ -138,8 +138,8 @@ export const JAPAN_ECONOMY: EconomyConstants = {
   },
   /** Counts, not money: the joint account swings the same either side of a five. */
   household: {
-    breakEvenSpin: 5,
-    shareOfPayday: 0.6,
+    breakEvenSpin: 3,
+    shareOfPayday: 1,
   },
   /**
    * What a grown-up child hands back at retirement: a share of the parent's
@@ -148,12 +148,12 @@ export const JAPAN_ECONOMY: EconomyConstants = {
    * a courier's child making it big is still the better story.
    */
   childOutcome: {
-    perPipOfPayday: 0.14,
-    starSpin: 10,
-    starPayout: 25_000_000,
+    perPipOfPayday: 0.25,
+    starSpin: 6,
+    starPayout: 15_000_000,
   },
   firstRetirementBonus: 8_000_000,
-  casualWagePerPip: 90_000,
+  casualWagePerPip: 140_000,
   insurancePremium: {
     home: 2_500_000,
     auto: 2_000_000,
@@ -167,6 +167,6 @@ export const JAPAN_ECONOMY: EconomyConstants = {
    * tile that offers it quotes the report.
    */
   fireNumber: 25_000_000,
-  firePayoutPerPip: 6_400_000,
+  firePayoutPerPip: 10_000_000,
   bigMoney: 5_000_000,
 }

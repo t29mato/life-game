@@ -1,7 +1,7 @@
-import type { Board, BoardLength, Difficulty, Space, SpaceEffect, SpaceId } from '../model/types'
+import type { Board, Difficulty, Space, SpaceEffect, SpaceId } from '../model/types'
 import type { Edition } from '../edition/types'
 import { DIFFICULTIES } from '../rules/difficulty'
-import { HIGHEST_TIER, createBoard, laneFor } from './createBoard'
+import { createBoard, laneFor } from './createBoard'
 import type { AnyLane, RouteDefinition, SpaceContent } from './route'
 import { laneNameOf, spacesOf } from './route'
 
@@ -10,10 +10,10 @@ import { laneNameOf, spacesOf } from './route'
  *
  * Until now every one of these invariants held by construction. There was one
  * route; it was hand-wired by whoever wrote the layout engine; a lane could not
- * be emptied by a thinning rule because the thinning rule and the lane were
- * fifty lines apart in the same file, and the person editing one was reading
- * the other. That is not a property of the invariants. It is a property of
- * there having been exactly one author.
+ * be emptied by a difficulty gate because the gate and the lane were fifty
+ * lines apart in the same file, and the person editing one was reading the
+ * other. That is not a property of the invariants. It is a property of there
+ * having been exactly one author.
  *
  * A route is data now, and the next four countries will be written by people
  * who have never opened `createBoard.ts` and should not have to. Every rule
@@ -25,8 +25,6 @@ import { laneNameOf, spacesOf } from './route'
  * registered edition — because a route is fixed at build time and a check that
  * runs in the player's browser is a check that ran too late.
  */
-
-const LENGTHS: readonly BoardLength[] = ['short', 'standard', 'long']
 
 /**
  * The milestones every board needs, and needs to make unskippable.
@@ -94,8 +92,8 @@ const reachableFrom = (board: Board, from: SpaceId): Set<SpaceId> => {
  * is a fact about the layout engine's arithmetic on this particular set of
  * lane lengths, and the only way to know is to build it and look. `label` is
  * the board being checked — every problem carries it, because "a tile is
- * unreachable" is not actionable until you know it is unreachable on the short
- * board at normal and nowhere else.
+ * unreachable" is not actionable until you know it is unreachable at normal
+ * and nowhere else.
  */
 export function boardProblems(board: Board, label: string): readonly string[] {
   const problems: string[] = []
@@ -201,11 +199,10 @@ export function boardProblems(board: Board, label: string): readonly string[] {
  *
  * Losing a job is a good swing; losing it with no re-hire ahead is a seat that
  * spends the rest of the game collecting casual wages, and because it depends
- * on which lane and which board length a player happened to take, it shows up
- * as a statistic rather than as a bug. Only a `stop` or an `event` guarantees
- * anything — an ordinary tile's effect is only ever certain for whoever lands
- * on it exactly — so an ordinary `careerChange` tile on the way is no
- * guarantee at all.
+ * on which lane a player happened to take, it shows up as a statistic rather
+ * than as a bug. Only a `stop` or an `event` guarantees anything — an ordinary
+ * tile's effect is only ever certain for whoever lands on it exactly — so an
+ * ordinary `careerChange` tile on the way is no guarantee at all.
  */
 function strandedByALayoff(board: Board): readonly string[] {
   const hires = (space: Space): boolean =>
@@ -296,18 +293,13 @@ export function validateRoute(route: RouteDefinition, edition: Edition): readonl
     }
   }
 
-  // --- junctions and the terminal are never thinned ------------------------
+  // --- junctions and the terminal are never gated away ---------------------
 
-  const unthinned: readonly SpaceContent[] = [
+  const ungated: readonly SpaceContent[] = [
     ...route.segments.flatMap((segment) => (segment.kind === 'fork' ? [segment.at] : [])),
     terminal,
   ]
-  for (const space of unthinned) {
-    if (space.tier !== 0) {
-      say(
-        `"${space.id}" is tier ${space.tier}, but junctions and the terminal are never thinned — the tier does nothing, and a shorter board keeps the tile anyway`,
-      )
-    }
+  for (const space of ungated) {
     if (space.appearsFrom) {
       say(
         `"${space.id}" is gated at "${space.appearsFrom}", but junctions and the terminal are never gated — the gate does nothing`,
@@ -339,27 +331,24 @@ export function validateRoute(route: RouteDefinition, edition: Edition): readonl
 
   // --- every board this route can be asked for ----------------------------
 
-  for (const length of LENGTHS) {
-    for (const difficulty of DIFFICULTIES) {
-      problems.push(...problemsOn(route, edition, length, difficulty))
-    }
+  for (const difficulty of DIFFICULTIES) {
+    problems.push(...problemsOn(route, edition, difficulty))
   }
 
   return problems
 }
 
-/** Everything wrong with the route once it has been thinned for one board. */
+/** Everything wrong with the route once it has been gated for one board. */
 function problemsOn(
   route: RouteDefinition,
   edition: Edition,
-  length: BoardLength,
   difficulty: Difficulty,
 ): readonly string[] {
-  const label = `${length}/${difficulty}`
+  const label = difficulty
   const problems: string[] = []
   const say = (message: string): void => void problems.push(`[${label}] ${message}`)
 
-  // A lane thinned to nothing leaves the wiring pointing at a road with no
+  // A lane gated down to nothing leaves the wiring pointing at a road with no
   // tiles on it, so this is checked before anything tries to build the board.
   const survivors = new Map<AnyLane, readonly SpaceContent[]>()
   let empty = false
@@ -367,7 +356,7 @@ function problemsOn(
     const lanes: readonly AnyLane[] = segment.kind === 'run' ? [segment.lane] : [...segment.branches]
     for (const lane of lanes) {
       try {
-        survivors.set(lane, laneFor(lane, length, difficulty))
+        survivors.set(lane, laneFor(lane, difficulty))
       } catch {
         empty = true
         const where =
@@ -375,7 +364,7 @@ function problemsOn(
             ? `the road out of fork "${segment.at.id}" toward "${laneNameOf(lane)}"`
             : `the "${laneNameOf(lane)}" run`
         say(
-          `${where} has no tiles left: every space on it is either above tier ${HIGHEST_TIER[length]} or gated above "${difficulty}". A lane needs one tier-0, ungated space to survive every board.`,
+          `${where} has no tiles left: every space on it is gated above "${difficulty}". A lane needs one ungated space to survive every board.`,
         )
       }
     }
@@ -428,7 +417,7 @@ function problemsOn(
   try {
     // Built from the route under test rather than from `edition.route`: a
     // candidate route is usually not the one its edition ships yet.
-    board = createBoard(length, difficulty, { ...edition, route })
+    board = createBoard(difficulty, { ...edition, route })
   } catch (error) {
     say(`the board cannot be built: ${error instanceof Error ? error.message : String(error)}`)
     return problems

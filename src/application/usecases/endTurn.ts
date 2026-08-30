@@ -18,6 +18,7 @@ export function endTurn(state: GameState, deps: UseCaseDeps): GameState {
     lastEvent: null,
     lastSpin: null,
     movementPath: [],
+    pendingPath: [],
   }
 
   const edition = editionOf(state)

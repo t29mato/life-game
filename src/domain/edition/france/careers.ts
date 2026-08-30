@@ -29,8 +29,8 @@ import type { Career } from '../../model/types'
  * is not. Same two numbers as every edition, because they are the engine's
  * statement about ladders, not a country's.
  */
-const FIRST_STEP = 4 as const
-const TOP_STEP = 8 as const
+const FIRST_STEP = 3 as const
+const TOP_STEP = 5 as const
 
 /**
  * Trades open from Apprenticeship Day, no degree needed — plus every rung
@@ -40,7 +40,7 @@ const TOP_STEP = 8 as const
  * property agency, and the tallest ladders take two reviews nobody is
  * promised. The `payPerPip` rungs are the trades whose weeks genuinely differ
  * — a crêpe stand's market crowd, a courier's December, a photographer's
- * wedding season — and `salary` is exactly `payPerPip × 5.5` so the wage the
+ * wedding season — and `salary` is exactly `payPerPip × 3.5` so the wage the
  * panel quotes is what the job really pays over a game.
  */
 export const BASIC_CAREERS: readonly Career[] = [
@@ -48,8 +48,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-salon-apprentice',
     title: 'Salon Apprentice',
-    salary: 29_700,
-    payPerPip: 5_400,
+    salary: 29_750,
+    payPerPip: 8_500,
     raiseStep: 3_100,
     requiresDegree: false,
     icon: 'space:new-skills',
@@ -60,8 +60,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-stylist',
     title: 'Stylist',
-    salary: 49_500,
-    payPerPip: 9_000,
+    salary: 49_350,
+    payPerPip: 14_100,
     raiseStep: 5_200,
     requiresDegree: false,
     icon: 'career:salon-owner',
@@ -72,8 +72,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-salon-owner',
     title: 'Salon Owner',
-    salary: 104_500,
-    payPerPip: 19_000,
+    salary: 104_650,
+    payPerPip: 29_900,
     raiseStep: 10_600,
     requiresDegree: false,
     icon: 'career:salon-owner',
@@ -115,8 +115,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-commis-chef',
     title: 'Commis Chef',
-    salary: 55_000,
-    payPerPip: 10_000,
+    salary: 54_950,
+    payPerPip: 15_700,
     raiseStep: 5_600,
     requiresDegree: false,
     icon: 'space:overtime-shift',
@@ -127,8 +127,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-crepe-stand-owner',
     title: 'Crêpe Stand Owner',
-    salary: 68_200,
-    payPerPip: 12_400,
+    salary: 68_250,
+    payPerPip: 19_500,
     raiseStep: 7_000,
     requiresDegree: false,
     icon: 'career:food-truck-owner',
@@ -139,8 +139,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-bistro-owner',
     title: 'Bistro Owner',
-    salary: 121_000,
-    payPerPip: 22_000,
+    salary: 121_100,
+    payPerPip: 34_600,
     raiseStep: 12_400,
     requiresDegree: false,
     icon: 'career:food-truck-owner',
@@ -182,8 +182,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-delivery-courier',
     title: 'Delivery Courier',
-    salary: 31_900,
-    payPerPip: 5_800,
+    salary: 31_850,
+    payPerPip: 9_100,
     raiseStep: 3_300,
     requiresDegree: false,
     icon: 'career:delivery-courier',
@@ -247,8 +247,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-session-musician',
     title: 'Session Musician',
-    salary: 26_400,
-    payPerPip: 4_800,
+    salary: 26_250,
+    payPerPip: 7_500,
     raiseStep: 2_800,
     requiresDegree: false,
     icon: 'tile:indie-album',
@@ -259,8 +259,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-touring-player',
     title: 'Touring Player',
-    salary: 44_000,
-    payPerPip: 8_000,
+    salary: 44_100,
+    payPerPip: 12_600,
     raiseStep: 4_600,
     requiresDegree: false,
     icon: 'tile:indie-album',
@@ -271,8 +271,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-record-producer',
     title: 'Record Producer',
-    salary: 81_400,
-    payPerPip: 14_800,
+    salary: 81_550,
+    payPerPip: 23_300,
     raiseStep: 8_400,
     requiresDegree: false,
     icon: 'tile:indie-album',
@@ -314,8 +314,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-second-shooter',
     title: 'Second Shooter',
-    salary: 26_400,
-    payPerPip: 4_800,
+    salary: 26_250,
+    payPerPip: 7_500,
     raiseStep: 2_800,
     requiresDegree: false,
     icon: 'space:family-portrait',
@@ -326,8 +326,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-wedding-photographer',
     title: 'Wedding Photographer',
-    salary: 42_900,
-    payPerPip: 7_800,
+    salary: 43_050,
+    payPerPip: 12_300,
     raiseStep: 4_400,
     requiresDegree: false,
     icon: 'space:family-portrait',
@@ -337,8 +337,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-lettings-negotiator',
     title: 'Lettings Negotiator',
-    salary: 62_700,
-    payPerPip: 11_400,
+    salary: 62_650,
+    payPerPip: 17_900,
     raiseStep: 6_600,
     requiresDegree: false,
     icon: 'space:apartment-hunt',
@@ -349,8 +349,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-estate-agent',
     title: 'Estate Agent',
-    salary: 74_250,
-    payPerPip: 13_500,
+    salary: 74_200,
+    payPerPip: 21_200,
     raiseStep: 7_600,
     requiresDegree: false,
     icon: 'space:house-hunting',
@@ -361,8 +361,8 @@ export const BASIC_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-agency-owner',
     title: 'Agency Owner',
-    salary: 148_500,
-    payPerPip: 27_000,
+    salary: 148_400,
+    payPerPip: 42_400,
     raiseStep: 15_200,
     requiresDegree: false,
     icon: 'space:house-hunting',
@@ -437,7 +437,7 @@ export const BASIC_CAREERS: readonly Career[] = [
  * Careers unlocked only by a degree — the grande-école prize pool.
  *
  * Two rungs, a tight entry band, a tight top band, and a first climb that
- * lands seven times in ten: a graduate almost always ends the game running a
+ * lands four times in six: a graduate almost always ends the game running a
  * good career and almost never anything bigger. Losing one hurts far more
  * than losing a trade, because a layoff costs the ladder as well as the wage.
  *
@@ -630,8 +630,8 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-jobbing-writer',
     title: 'Jobbing Writer',
-    salary: 55_000,
-    payPerPip: 10_000,
+    salary: 54_950,
+    payPerPip: 15_700,
     raiseStep: 5_200,
     requiresDegree: true,
     icon: 'tile:novel',
@@ -642,8 +642,8 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   {
     id: 'career-fr-novelist',
     title: 'Novelist',
-    salary: 64_900,
-    payPerPip: 11_800,
+    salary: 64_750,
+    payPerPip: 18_500,
     raiseStep: 6_800,
     requiresDegree: true,
     icon: 'tile:novel',

@@ -4,14 +4,13 @@ import type {
   LandingEvent,
   LogTone,
   Money,
-  PassedQueueItem,
   Player,
   Space,
   SpinValue,
 } from '@domain/model/types'
 import type { CurrencySpec } from '@domain/edition/types'
-import { SHARES_PER_PURCHASE } from '@domain/model/constants'
-import { planMovementVia } from '@domain/board/movement'
+import { SHARES_PER_PURCHASE, SPIN_FACES } from '@domain/model/constants'
+import { nextMovementLeg, planMovementVia } from '@domain/board/movement'
 import { editionOf } from '@domain/edition/registry'
 import { findCareer, findHouse, findStock, nextRungOf } from '@domain/edition/lookup'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
@@ -101,6 +100,7 @@ function resolved(state: GameState, players: readonly Player[], event: LandingEv
     lastEvent: event,
     phase: 'resolved',
     movementPath: [],
+    pendingPath: [],
     stepsRemaining: 0,
     log: appendLog(state, player?.id ?? null, logMessage, tone),
   }
@@ -130,6 +130,7 @@ function resolveBranch(state: GameState, optionId: string, _deps: UseCaseDeps): 
       chosenExit: optionId,
       phase: 'awaitingSpin',
       movementPath: [],
+      pendingPath: [],
       log,
     }
   }
@@ -145,17 +146,15 @@ function resolveBranch(state: GameState, optionId: string, _deps: UseCaseDeps): 
    * more — see `branch.ts`), kept only as the same defensive fallback
    * `settle.ts`'s own dead branch is.
    */
-  const pendingPassedItems: PassedQueueItem[] = [
-    ...plan.paydaysPassed.map((spaceId): PassedQueueItem => ({ kind: 'payday', spaceId })),
-    ...plan.eventsPassed.map((spaceId): PassedQueueItem => ({ kind: 'event', spaceId })),
-  ]
+  const { leg, rest } = nextMovementLeg(plan.path, plan.passed)
 
   return {
     ...state,
     players: replacePlayer(state.players, movedPlayer),
     pendingDecision: null,
-    pendingPassedItems,
-    movementPath: plan.path,
+    pendingPassedItems: plan.passed,
+    movementPath: leg,
+    pendingPath: rest,
     stepsRemaining: plan.stepsRemaining,
     phase: 'moving',
     log,
@@ -193,8 +192,8 @@ function resolveCareerStay(
 }
 
 /**
- * Which of the two offers `applyEffect` dealt — 1-5 for the first,
- * 6-10 for the second, both read off `offeredCareerIds` since the space's
+ * Which of the two offers `applyEffect` dealt — the low half of the die for
+ * the first, the high half for the second, both read off `offeredCareerIds` since the space's
  * own `effect` is static route data and cannot hold a per-instance draw.
  */
 function resolveCareerSpin(
@@ -207,7 +206,7 @@ function resolveCareerSpin(
 ): GameState {
   const offeredIds = state.pendingDecision?.offeredCareerIds
   if (!offeredIds) throw new Error('choose: career spin with no offers on the table')
-  const pickedId = spinValue <= 5 ? offeredIds[0] : offeredIds[1]
+  const pickedId = spinValue <= SPIN_FACES / 2 ? offeredIds[0] : offeredIds[1]
   const career = findCareer(pickedId, edition)
   if (!career) throw new Error(`choose: unknown career option "${pickedId}"`)
 
@@ -228,7 +227,7 @@ function resolveCareerSpin(
    * ceiling. That is a real question and it costs the economy nothing.
    */
   const notes = [
-    `Spun a ${spinValue}.`,
+    `Rolled a ${spinValue}.`,
     `${player.name} becomes a ${taken.title}!`,
     `${money(salaryRate(taken.salary, edition.currency))} every ${salaryPeriod(edition.currency)}.`,
   ]
@@ -242,7 +241,7 @@ function resolveCareerSpin(
     state,
     replacePlayer(state.players, updated),
     event,
-    `${player.name} spins a ${spinValue} and becomes a ${taken.title}.`,
+    `${player.name} rolls a ${spinValue} and becomes a ${taken.title}.`,
     'milestone',
   )
 }
@@ -513,7 +512,7 @@ function resolveTuitionSpin(
   const delta = updated.money - player.money
 
   const notes = [
-    `Spun a ${spinValue} — ${band.note}`,
+    `Rolled a ${spinValue} — ${band.note}`,
     band.cost > 0 ? `Tuition: ${money(band.cost)}` : 'No tuition due — a full ride.',
   ]
   const narration = `A ${spinValue} for ${player.name}. ${band.note}${
@@ -525,7 +524,7 @@ function resolveTuitionSpin(
     state,
     replacePlayer(state.players, updated),
     event,
-    `${player.name} spins a ${spinValue} for tuition: ${band.cost > 0 ? money(band.cost) : 'a full ride'}.`,
+    `${player.name} rolls a ${spinValue} for tuition: ${band.cost > 0 ? money(band.cost) : 'a full ride'}.`,
     band.cost > 0 ? 'money-out' : 'event',
   )
 }
@@ -555,7 +554,7 @@ function resolvePromotionSpin(
       'Review',
       0,
       [
-        `Spun a ${spinValue}, and ${needed} was the bar — the ${next.title} job goes to somebody else.`,
+        `Rolled a ${spinValue}, and ${needed} was the bar — the ${next.title} job goes to somebody else.`,
         edition.currency.salaryDisplay
           ? raiseNote(career.salary, newSalary, edition.currency)
           : `A raise anyway: ${money(newSalary)}`,
@@ -567,7 +566,7 @@ function resolvePromotionSpin(
       state,
       replacePlayer(state.players, raised),
       event,
-      `${player.name} spins a ${spinValue} and is passed over for ${next.title}, taking a rise to ${money(salaryRate(newSalary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
+      `${player.name} rolls a ${spinValue} and is passed over for ${next.title}, taking a rise to ${money(salaryRate(newSalary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
       'event',
     )
   }
@@ -577,7 +576,7 @@ function resolvePromotionSpin(
   if (twoAtOnce) promoted = promoteCareer(promoted, twoAtOnce)
   const arrived = promoted.career ?? next
   const notes = [
-    `Spun a ${spinValue} against a bar of ${needed}.`,
+    `Rolled a ${spinValue} against a bar of ${needed}.`,
     twoAtOnce
       ? `Two rungs in one morning: ${career.title} straight to ${arrived.title}.`
       : `${career.title} no longer — you are a ${arrived.title}.`,
@@ -591,14 +590,14 @@ function resolvePromotionSpin(
     notes,
     'milestone',
     twoAtOnce
-      ? `A ten! They skip a whole rung — ${player.name} is a ${arrived.title}, and the room is not sure what just happened.`
+      ? `A ${spinValue} — the top of the die! They skip a whole rung: ${player.name} is a ${arrived.title}, and the room is not sure what just happened.`
       : `Promoted! ${player.name} is a ${arrived.title} now, on ${money(salaryRate(arrived.salary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
   )
   return resolved(
     state,
     replacePlayer(state.players, promoted),
     event,
-    `${player.name} spins a ${spinValue} and is promoted to ${arrived.title}: ${money(salaryRate(arrived.salary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
+    `${player.name} rolls a ${spinValue} and is promoted to ${arrived.title}: ${money(salaryRate(arrived.salary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
     'milestone',
   )
 }
@@ -628,7 +627,7 @@ function resolveMarriageSpin(
         'Wedding Day',
         0,
         [
-          `Spun a ${asked}, then a ${askedAgain} — not this year, and not next year either.`,
+          `Rolled a ${asked}, then a ${askedAgain} — not this year, and not next year either.`,
           'Single, and the road ahead is entirely yours: children, Family Lane and every bonus on it are still open.',
           ...tiles.map((tile) => tile.title),
         ],
@@ -641,7 +640,7 @@ function resolveMarriageSpin(
       state,
       replacePlayer(state.players, updated),
       event,
-      `${player.name} spins a ${asked} and a ${askedAgain}: no wedding, but a LIFE tile out of the year.`,
+      `${player.name} rolls a ${asked} and a ${askedAgain}: no wedding, but a LIFE tile out of the year.`,
       'event',
     )
   }
@@ -660,8 +659,8 @@ function resolveMarriageSpin(
   let mover = marryPlayer(player)
   const notes: string[] = [
     askedAgain !== null
-      ? `Spun a ${asked}, asked again, spun a ${askedAgain} — and this time, yes.`
-      : `Spun a ${asked}.`,
+      ? `Rolled a ${asked}, asked again, rolled a ${askedAgain} — and this time, yes.`
+      : `Rolled a ${asked}.`,
     outcome.note,
   ]
 
@@ -720,10 +719,10 @@ function resolveHouseholdSpin(
 
   const notes =
     amount < 0
-      ? [`Spun a ${spinValue} — the spending outran the account: ${money(delta)}`]
+      ? [`Rolled a ${spinValue} — the spending outran the account: ${money(delta)}`]
       : amount === 0
-        ? [`Spun a ${spinValue} — the account comes out exactly level.`]
-        : [`Spun a ${spinValue} — two incomes carried it: ${money(delta)}`]
+        ? [`Rolled a ${spinValue} — the account comes out exactly level.`]
+        : [`Rolled a ${spinValue} — two incomes carried it: ${money(delta)}`]
   const narration =
     amount < 0
       ? `A ${spinValue}, and your partner has been shopping, ${player.name}. ${money(delta)}.`
@@ -737,8 +736,8 @@ function resolveHouseholdSpin(
     replacePlayer(state.players, updated),
     event,
     amount < 0
-      ? `${player.name}'s joint account takes a hit, spinning a ${spinValue}: ${money(delta)}.`
-      : `${player.name}'s household comes out ahead, spinning a ${spinValue}: ${money(delta)}.`,
+      ? `${player.name}'s joint account takes a hit, rolling a ${spinValue}: ${money(delta)}.`
+      : `${player.name}'s household comes out ahead, rolling a ${spinValue}: ${money(delta)}.`,
     amount < 0 ? 'money-out' : 'money-in',
   )
 }
@@ -783,8 +782,32 @@ function resolveValueSpin(state: GameState, optionId: string, deps: UseCaseDeps)
  * Everything a value-spin decision resolves into, once a `SpinValue` exists
  * for it — exported so `passedEvents.ts` can settle the same tile the same
  * way for a roll that only swept past it, without a press to answer.
+ *
+ * The die that decided it is stamped onto the card here rather than inside
+ * each branch below, because this is the one funnel every wheel-decided
+ * outcome already passes through — landed on or swept past — so a value-spin
+ * tile added later carries the mark without anyone having to remember it.
+ * What the presentation layer does with it depends on where the roll
+ * happened: a landing has already shown its die by the time this card
+ * exists, a tile crossed mid-move has not. See `LandingEvent.rolled`.
  */
 export function resolveSpinOutcome(
+  state: GameState,
+  player: Player,
+  space: Space | undefined,
+  spinValue: SpinValue,
+  edition: ReturnType<typeof editionOf>,
+  deps: UseCaseDeps,
+  money: (amount: Money) => string,
+): GameState {
+  const outcome = spinOutcome(state, player, space, spinValue, edition, deps, money)
+  // `resolved()` sets `lastEvent` on every branch `spinOutcome` can reach;
+  // the fallback only guards the type.
+  if (!outcome.lastEvent) return outcome
+  return { ...outcome, lastEvent: { ...outcome.lastEvent, rolled: spinValue } }
+}
+
+function spinOutcome(
   state: GameState,
   player: Player,
   space: Space | undefined,
@@ -809,17 +832,17 @@ export function resolveSpinOutcome(
     const event = outcomeEvent(
       space,
       player,
-      'Spin',
+      'Roll',
       delta,
       [space.effect.reason, `Rolled a ${spinValue} → ${money(gain)}`],
       emphasisForMoney(delta, economy),
-      `${player.name} spins a ${spinValue} — and that is worth ${money(gain)}!`,
+      `${player.name} rolls a ${spinValue} — and that is worth ${money(gain)}!`,
     )
     return resolved(
       state,
       replacePlayer(state.players, updated),
       event,
-      `${space.effect.reason} ${player.name} spins a ${spinValue}: ${money(gain)}.`,
+      `${space.effect.reason} ${player.name} rolls a ${spinValue}: ${money(gain)}.`,
       gain >= 0 ? 'money-in' : 'money-out',
     )
   }
@@ -857,7 +880,7 @@ export function resolveSpinOutcome(
       state,
       replacePlayer(state.players, updated),
       event,
-      `${player.name} spins ${spinValue} for the gift envelopes: ${money(gain)}.`,
+      `${player.name} rolls ${spinValue} for the gift envelopes: ${money(gain)}.`,
       'money-in',
     )
   }
@@ -870,16 +893,16 @@ export function resolveSpinOutcome(
   const kind = paydayKindOf(player)
   const notes =
     kind === 'casual'
-      ? ['Between jobs, so you pick up shifts.', `Spun ${spinValue} → ${money(amount)}`]
-      : [`${player.career?.title ?? 'Your trade'} — no two weeks pay the same.`, `Spun ${spinValue} → ${money(amount)}`]
+      ? ['Between jobs, so you pick up shifts.', `Rolled ${spinValue} → ${money(amount)}`]
+      : [`${player.career?.title ?? 'Your trade'} — no two weeks pay the same.`, `Rolled ${spinValue} → ${money(amount)}`]
   const narration =
     kind === 'casual'
-      ? `No job, but no wasted week either — ${player.name} picks up shifts and spins ${spinValue} for ${money(amount)}.`
-      : `A ${spinValue} on the wheel, and that is what the week was worth: ${money(amount)} for ${player.name}.`
+      ? `No job, but no wasted week either — ${player.name} picks up shifts and rolls ${spinValue} for ${money(amount)}.`
+      : `A ${spinValue} on the die, and that is what the week was worth: ${money(amount)} for ${player.name}.`
   const logMessage =
     kind === 'casual'
-      ? `${player.name} picks up casual shifts, spinning ${spinValue}: ${money(amount)}.`
-      : `${player.name} collects payday, spinning ${spinValue}: ${money(amount)}.`
+      ? `${player.name} picks up casual shifts, rolling ${spinValue}: ${money(amount)}.`
+      : `${player.name} collects payday, rolling ${spinValue}: ${money(amount)}.`
   const event = outcomeEvent(space, player, 'Payday', delta, notes, emphasisForMoney(delta, economy), narration)
   return resolved(state, replacePlayer(state.players, updated), event, logMessage, 'money-in')
 }
@@ -944,14 +967,14 @@ function resolveRetireEarly(state: GameState, optionId: string, deps: UseCaseDep
     'The Number',
     delta,
     [
-      `Bonus: ${money(payout)} (spun a ${spin}).`,
+      `Bonus: ${money(payout)} (rolled a ${spin}).`,
       `${money(economy.fireNumber)} went into the fund to get there.`,
       `Retirement rank #${rank}, and every payday still on the road belongs to somebody else now.`,
     ],
     'milestone',
-    spin >= 8
+    spin >= 5
       ? `A ${spin}! The fund comes back at ${money(payout)} and ${player.name} never works another day. That is how it is done.`
-      : spin <= 4
+      : spin <= 2
         ? `A ${spin}. The fund comes back at ${money(payout)} — less than went into it. ${player.name} stopped a year too soon, and there is no going back.`
         : `${player.name} stops working for good. The fund returns ${money(payout)}, and that is retirement place number ${rank}.`,
   )
@@ -960,7 +983,7 @@ function resolveRetireEarly(state: GameState, optionId: string, deps: UseCaseDep
     state,
     replacePlayer(state.players, updated),
     event,
-    `${player.name} retires early: ${money(economy.fireNumber)} into the fund, a spin of ${spin}, ${money(payout)} back.`,
+    `${player.name} retires early: ${money(economy.fireNumber)} into the fund, a roll of ${spin}, ${money(payout)} back.`,
     'milestone',
   )
 }

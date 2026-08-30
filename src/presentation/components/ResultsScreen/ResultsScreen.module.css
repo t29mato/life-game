@@ -82,12 +82,6 @@
   }
 }
 
-.subheading {
-  color: var(--ink-soft);
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
 /* Where this game sits against the hall of records — appears once the
    winner has landed, so it never upstages the reveal itself. */
 .recordNote {

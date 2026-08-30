@@ -11,7 +11,6 @@ const config: NewGameConfig = {
     { name: 'Alex', color: 'red', isCpu: false },
     { name: 'Bo', color: 'blue', isCpu: false },
   ],
-  boardLength: 'short',
 }
 
 function buildStore(
@@ -26,7 +25,10 @@ function playToGameOver(store: ReturnType<typeof createGameStore>): GameState {
   for (let guard = 0; guard < 20_000; guard += 1) {
     const state = store.getState()
     switch (state.phase) {
+      // A fork asks for two presses of the same die — the road, then how far
+      // down it — so both spin phases dispatch the same command.
       case 'awaitingSpin':
+      case 'awaitingDistanceSpin':
         store.dispatch({ type: 'spin' })
         break
       case 'moving':
@@ -54,7 +56,6 @@ describe('createGameStore', () => {
     expect(state.players).toEqual([])
     expect(state.board).toBeTruthy()
     expect(state.board.spaces).toBeTruthy()
-    expect(state.boardLength).toBe('standard')
   })
 
   it('notifies subscribers on every state change', () => {
@@ -82,12 +83,6 @@ describe('createGameStore', () => {
     const after = store.getState()
     expect(after).not.toBe(before)
     expect(store.getState()).toBe(after)
-  })
-
-  it('carries the configured board length onto the state', () => {
-    const { store } = buildStore()
-    store.dispatch({ type: 'startGame', config })
-    expect(store.getState().boardLength).toBe('short')
   })
 
   it('ignores an invalid command for the current phase instead of throwing', () => {
@@ -163,11 +158,13 @@ describe('createGameStore', () => {
       expect(repository.has(AUTOSAVE_SLOT)).toBe(false)
 
       // Walk the turn out to `resolved`, whatever the board throws in the way —
-      // starting with the opening fork, which is answered before any spin.
+      // starting with the opening fork, which spends a press of its own on the
+      // road before the press that actually moves anybody.
       for (let guard = 0; guard < 50 && store.getState().phase !== 'resolved'; guard += 1) {
         const state = store.getState()
-        if (state.phase === 'awaitingSpin') store.dispatch({ type: 'spin' })
-        else if (state.phase === 'moving' || state.phase === 'passingEvent') store.dispatch({ type: 'settle' })
+        if (state.phase === 'awaitingSpin' || state.phase === 'awaitingDistanceSpin') {
+          store.dispatch({ type: 'spin' })
+        } else if (state.phase === 'moving' || state.phase === 'passingEvent') store.dispatch({ type: 'settle' })
         else if (state.phase === 'awaitingDecision') {
           store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
         } else break
@@ -227,7 +224,6 @@ describe('createGameStore', () => {
             { name: 'Alex', color: 'red', isCpu: false },
             { name: 'Botly', color: 'blue', isCpu: true },
           ],
-          boardLength: 'short',
         },
       })
       playToGameOver(store)

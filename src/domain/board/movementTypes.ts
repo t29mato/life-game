@@ -1,4 +1,4 @@
-import type { SpaceId } from '../model/types'
+import type { PassedQueueItem, SpaceId } from '../model/types'
 
 export type MovementStopReason =
   /** The player used up every step. */
@@ -23,19 +23,22 @@ export interface MovementPlan {
   readonly stepsRemaining: number
   readonly stoppedBy: MovementStopReason
   /**
-   * Payday spaces passed *through*, in the order they were crossed. Excludes
-   * the destination, whose own effect pays out, so that landing on a payday
-   * never pays twice. Tracked by id, the same as `eventsPassed`, rather than
-   * as a bare count — each has its own name (`Signing Bonus`, `Spot Bonus`,
-   * ...) and the presentation layer names it when it pays out mid-move,
-   * exactly as a landing does.
+   * Every payday and `event`-kind space passed *through*, in the order the
+   * road actually crossed them. Excludes the destination, whose own effect
+   * resolves through the ordinary landing path, so neither a payday nor a
+   * milestone ever fires twice for a roll that ends exactly on it.
+   *
+   * One list rather than a pair of them, and the order is the load-bearing
+   * part. These used to be two arrays — every payday, then every event — and
+   * the concatenation quietly reordered a move that swept an event tile
+   * *before* a payday. Nothing noticed while the whole hop animated in one go
+   * and the cards were dealt afterwards; the moment the pawn started stopping
+   * on each of these tiles in turn (see `nextMovementLeg`), a queue in the
+   * wrong order was a pawn hopping backwards.
+   *
+   * Tracked by id rather than as a count because each has its own name
+   * (`Signing Bonus`, `Spot Bonus`, ...) and the card names the tile it
+   * happened on, exactly as a landing does.
    */
-  readonly paydaysPassed: readonly SpaceId[]
-  /**
-   * `event`-kind spaces passed *through*, in the order they were crossed.
-   * Excludes the destination, whose own effect resolves through the ordinary
-   * landing path — same rule as `paydaysPassed`, so a milestone never fires
-   * twice for a roll that happens to end exactly on it.
-   */
-  readonly eventsPassed: readonly SpaceId[]
+  readonly passed: readonly PassedQueueItem[]
 }

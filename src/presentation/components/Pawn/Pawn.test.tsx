@@ -3,7 +3,7 @@ import { createRef } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AudioProvider } from '../../hooks/useAudio'
 import { createFakeAudioPort } from '../../dev/fakeAudio'
-import { Pawn, type PawnHandle } from './Pawn'
+import { Pawn, type PawnHandle, type PawnProps } from './Pawn'
 
 function mockReducedMotion(matches: boolean): void {
   window.matchMedia = vi.fn().mockReturnValue({
@@ -238,6 +238,32 @@ describe('Pawn', () => {
       await hop
 
       expect(position(getByTestId('pawn'))).toEqual({ x: 100, y: 0 })
+    })
+  })
+
+  describe('the chosen design', () => {
+    function renderCar(props: Partial<PawnProps> = {}): HTMLElement {
+      mockReducedMotion(true)
+      const { getByTestId } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <svg>
+            <Pawn color="blue" restPosition={{ x: 0, y: 0 }} {...props} />
+          </svg>
+        </AudioProvider>,
+      )
+      return getByTestId('pawn')
+    }
+
+    it('defaults to the factory look: the classic face', () => {
+      const car = renderCar()
+      expect(car).toHaveAttribute('data-face', 'classic')
+    })
+
+    it('paints the chosen face on the driver peg alone', () => {
+      const car = renderCar({ face: 'cool', isMarried: true, childCount: 2 })
+      expect(car).toHaveAttribute('data-face', 'cool')
+      // One driver, one face — the partner and both children stay plain.
+      expect(car.querySelectorAll('[data-face="cool"]')).toHaveLength(1)
     })
   })
 

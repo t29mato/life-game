@@ -322,7 +322,7 @@ describe('DecisionModal', () => {
       options: [
         {
           id: 'value-spin',
-          label: 'Spin',
+          label: 'Roll',
           description: 'What the crêpe van took $2,000 a pip you roll, 1 to 10 — higher is always better.',
           icon: 'space:payday',
         },
@@ -334,10 +334,10 @@ describe('DecisionModal', () => {
         <DecisionModal decision={decision} board={makeBoard()} onChoose={onChoose} />
       </AudioProvider>,
     )
-    expect(screen.getByText('The wheel')).toBeInTheDocument()
+    expect(screen.getByText('The die')).toBeInTheDocument()
     expect(screen.getByText('The Crêpe Van Bet')).toBeInTheDocument()
     expect(screen.getByText(/higher is always better/)).toBeInTheDocument()
-    await user.click(screen.getByRole('option', { name: /spin/i }))
+    await user.click(screen.getByRole('option', { name: /roll/i }))
     expect(onChoose).toHaveBeenCalledWith('value-spin')
   })
 })

@@ -13,22 +13,22 @@ const band = (upTo: number, over: Partial<MarriageOutcome> = {}): MarriageOutcom
 })
 
 describe('marriageBandFor', () => {
-  const bands = [band(4, { note: 'cheap' }), band(7, { note: 'middling' }), band(10, { note: 'grand' })]
+  const bands = [band(2, { note: 'cheap' }), band(4, { note: 'middling' }), band(6, { note: 'grand' })]
 
-  it('picks the first band the spin does not exceed', () => {
+  it('picks the first band the roll does not exceed', () => {
     expect(marriageBandFor(bands, 1).note).toBe('cheap')
-    expect(marriageBandFor(bands, 4).note).toBe('cheap')
-    expect(marriageBandFor(bands, 5).note).toBe('middling')
-    expect(marriageBandFor(bands, 7).note).toBe('middling')
-    expect(marriageBandFor(bands, 8).note).toBe('grand')
-    expect(marriageBandFor(bands, 10).note).toBe('grand')
+    expect(marriageBandFor(bands, 2).note).toBe('cheap')
+    expect(marriageBandFor(bands, 3).note).toBe('middling')
+    expect(marriageBandFor(bands, 4).note).toBe('middling')
+    expect(marriageBandFor(bands, 5).note).toBe('grand')
+    expect(marriageBandFor(bands, 6).note).toBe('grand')
   })
 
-  it('falls back to the last band for a table that does not reach ten', () => {
-    // An edition that forgets the top of the wheel gets its best band, rather
+  it('falls back to the last band for a table that does not reach the top face', () => {
+    // An edition that forgets the top of the die gets its best band, rather
     // than a crash in the middle of somebody's wedding.
     const short = [band(3, { note: 'only one' })]
-    expect(marriageBandFor(short, 10).note).toBe('only one')
+    expect(marriageBandFor(short, 6).note).toBe('only one')
   })
 })
 
@@ -83,13 +83,15 @@ describe('expectedMarriageValue', () => {
     // figure the computer compares against dollars.
     const alwaysRefused: EconomyConstants = {
       ...USA_ECONOMY,
-      marriage: { ...USA_ECONOMY.marriage, proposalSpin: 10, secondAskSpin: 10 },
+      marriage: { ...USA_ECONOMY.marriage, proposalSpin: 6, secondAskSpin: 6 },
     }
     const spec = alwaysRefused.marriage
-    // Only a 10 marries; every other spin fails both asks and pays nothing.
+    // Only a 6 marries; every other roll fails both asks and pays nothing.
     const top = spec.outcomes[spec.outcomes.length - 1]!
     expect(expectedMarriageValue(alwaysRefused, 1)).toBeCloseTo(
-      (marriageOutcomeValue(top, alwaysRefused, 1) + 9 * 0.1 * marriageOutcomeValue(spec.rescued, alwaysRefused, 1)) / 10,
+      (marriageOutcomeValue(top, alwaysRefused, 1) +
+        5 * (1 / 6) * marriageOutcomeValue(spec.rescued, alwaysRefused, 1)) /
+        6,
       6,
     )
   })

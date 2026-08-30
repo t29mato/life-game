@@ -40,7 +40,14 @@ describe('spin', () => {
     // having passed through (not landed on) payday1.
     const next = spin(state, { random: createFakeRandom({ spins: [4] }) })
 
-    expect(next.movementPath).toEqual(['a', 'payday1', 'fork'])
+    /*
+     * Cut at `payday1`, not handed over whole: the pawn hops as far as the
+     * tile that owes it a card and stops *on* it, and the rest of the road
+     * waits in `pendingPath` for `settle` to hand back once that card has
+     * been read. See `nextMovementLeg`.
+     */
+    expect(next.movementPath).toEqual(['a', 'payday1'])
+    expect(next.pendingPath).toEqual(['fork'])
     expect(next.stepsRemaining).toBe(1)
     /*
      * Queued for `settle` to pay out as its own card — named for `payday1`
@@ -62,6 +69,62 @@ describe('spin', () => {
 
     expect(next.players[0]!.spaceId).toBe('payday1')
     expect(next.players[0]!.money).toBe(0)
+  })
+
+  /*
+   * The two presses a fork asks for. One roll used to answer both questions,
+   * which put the far road's opening tiles out of reach entirely: nothing
+   * under a 4 goes down it, and a 4 is already four tiles past the first of
+   * them. `longBranch` is that first tile here — the fixture's stand-in for
+   * Straight to Work's own career fair.
+   */
+  describe('standing on a fork', () => {
+    const onTheFork = () =>
+      fixtureState({
+        board: fixtureMovementBoard(),
+        players: [fixturePlayer({ spaceId: 'fork' })],
+        phase: 'awaitingSpin',
+      })
+
+    it('spends the first roll on the road alone, and moves nobody', () => {
+      const state = onTheFork()
+
+      const next = spin(state, { random: createFakeRandom({ spins: [5] }) })
+
+      expect(next.phase).toBe('awaitingDistanceSpin')
+      expect(next.chosenExit).toBe('longBranch')
+      expect(next.lastSpin).toBe(5)
+      // Still on the fork, with nothing to animate: the car has been pointed
+      // down a road, not sent along it.
+      expect(next.players[0]!.spaceId).toBe('fork')
+      expect(next.movementPath).toEqual([])
+      expect(next.log[next.log.length - 1]!.message).toContain('Long Branch')
+    })
+
+    it("travels the second roll's own number, not the one that picked the road", () => {
+      const picked = spin(onTheFork(), { random: createFakeRandom({ spins: [5] }) })
+
+      const next = spin(picked, { random: createFakeRandom({ spins: [1] }) })
+
+      // A 1 down a road only a 4, 5 or 6 could reach: the first tile of the
+      // lane, which no single-roll fork could ever have landed on.
+      expect(next.phase).toBe('moving')
+      expect(next.lastSpin).toBe(1)
+      expect(next.movementPath).toEqual(['longBranch'])
+      expect(next.players[0]!.spaceId).toBe('longBranch')
+      expect(next.chosenExit).toBeNull()
+    })
+
+    it('sends a low first roll down the other road, and travels that roll too', () => {
+      const picked = spin(onTheFork(), { random: createFakeRandom({ spins: [2] }) })
+      expect(picked.chosenExit).toBe('stopBranch')
+
+      const next = spin(picked, { random: createFakeRandom({ spins: [6] }) })
+
+      // `stopBranch` is a `stop`, so six steps still halt on it — the fork
+      // being settled separately changes nothing about the road itself.
+      expect(next.players[0]!.spaceId).toBe('stopBranch')
+    })
   })
 
   it('logs the spin', () => {

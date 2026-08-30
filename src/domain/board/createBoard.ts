@@ -1,17 +1,9 @@
-import type {
-  Board,
-  BoardLength,
-  Difficulty,
-  Space,
-  SpaceEffect,
-  SpaceId,
-  SpaceLayout,
-} from '../model/types'
+import type { Board, Difficulty, Space, SpaceEffect, SpaceId, SpaceLayout } from '../model/types'
 import type { Edition, EconomyAmountKey } from '../edition/types'
 import { EDITION_USA } from '../edition/usa'
 import { harshenEffect } from '../rules/difficulty'
-import type { AnyLane, RouteDefinition, SpaceContent, Tier } from './route'
-import { EVERY_BOARD, LONG_ONLY, STANDARD_UP, identityOf, laneNameOf } from './route'
+import type { AnyLane, RouteDefinition, SpaceContent } from './route'
+import { identityOf, laneNameOf } from './route'
 
 /**
  * The route walker.
@@ -19,7 +11,7 @@ import { EVERY_BOARD, LONG_ONLY, STANDARD_UP, identityOf, laneNameOf } from './r
  * Every tile, lane and fork this file used to hold is now an edition's
  * `RouteDefinition` (`./route.ts` is the contract, `edition/usa/route.ts` the
  * first one written to it). What is left here is the part that is the same in
- * every country: thin each lane to the length being played, rewrite what the
+ * every country: keep the spaces this difficulty calls for, rewrite what the
  * difficulty rewrites, lay the whole thing out on a serpentine grid, wire it
  * up, and hand back a `Board`.
  *
@@ -27,22 +19,14 @@ import { EVERY_BOARD, LONG_ONLY, STANDARD_UP, identityOf, laneNameOf } from './r
  */
 
 // ---------------------------------------------------------------------------
-// Length selection: thin every lane down to the tiers this board wants.
+// Difficulty selection: keep the spaces this setting is unkind enough to have.
 // ---------------------------------------------------------------------------
-
-/** The richest tier each board length has room for. */
-export const HIGHEST_TIER: Record<BoardLength, Tier> = {
-  short: EVERY_BOARD,
-  standard: STANDARD_UP,
-  long: LONG_ONLY,
-}
 
 /** How unkind each setting is, so "this difficulty or worse" is a comparison. */
 const CRUELTY: Record<Difficulty, number> = { normal: 0, hard: 1, veryHard: 2 }
 
 /** Whether a space exists at all on this board, before its hardship is applied. */
-function appearsOn(content: SpaceContent, length: BoardLength, difficulty: Difficulty): boolean {
-  if (content.tier > HIGHEST_TIER[length]) return false
+function appearsOn(content: SpaceContent, difficulty: Difficulty): boolean {
   return !content.appearsFrom || CRUELTY[difficulty] >= CRUELTY[content.appearsFrom]
 }
 
@@ -62,30 +46,25 @@ function atDifficulty(content: SpaceContent, difficulty: Difficulty): SpaceConte
 }
 
 /**
- * Every lane has to survive the thinning with at least one space in it: the
+ * Every lane has to come out of the gating with at least one space in it: the
  * wiring joins lanes head to tail, so an empty one would leave a fork pointing
- * at nothing. Anyone retiering a lane's last tier-0 space finds out here rather
+ * at nothing. Anyone gating a lane's last ungated space finds out here rather
  * than three layers up — and `validateRoute` finds out before they ship it.
  */
-export function laneFor(
-  lane: AnyLane,
-  length: BoardLength,
-  difficulty: Difficulty,
-): readonly SpaceContent[] {
+export function laneFor(lane: AnyLane, difficulty: Difficulty): readonly SpaceContent[] {
   const kept = lane.spaces
-    .filter((content) => appearsOn(content, length, difficulty))
+    .filter((content) => appearsOn(content, difficulty))
     .map((content) => atDifficulty(content, difficulty))
   if (kept.length === 0) {
-    throw new Error(`The ${laneNameOf(lane)} lane is empty on the ${length} board — it needs a tier-0 space`)
+    throw new Error(`The ${laneNameOf(lane)} lane is empty at ${difficulty} — it needs an ungated space`)
   }
   const identity = identityOf(lane)
   if (!identity) return kept
   /*
    * Stamped on whichever space survives to the head of the lane, never on a
-   * fixed id: thinning legitimately removes the written first tile — the
-   * college lane opens on `college-1` at standard and on the tuition bill at
-   * short — and a fork that named a space no longer on the board would fall
-   * back to naming a tile instead of the road.
+   * fixed id: a setback written at the top of a lane legitimately becomes its
+   * first tile on the harder settings, and a fork that named a space not on
+   * this board would fall back to naming a tile instead of the road.
    */
   return [{ ...kept[0]!, lane: identity }, ...kept.slice(1)]
 }
@@ -95,10 +74,11 @@ export function laneFor(
 // ---------------------------------------------------------------------------
 
 /**
- * A segment once it has been thinned for this board.
+ * A segment once it has been gated for this board.
  *
- * The junction of a fork is not thinned — a route without its wedding is not a
- * shorter route, it is a broken one — so it carries only its hardship rewrite.
+ * The junction of a fork is never gated away — a route without its wedding is
+ * not a harder route, it is a broken one — so it carries only its hardship
+ * rewrite.
  */
 type WalkedSegment =
   | { readonly kind: 'run'; readonly spaces: readonly SpaceContent[] }
@@ -108,20 +88,16 @@ type WalkedSegment =
       readonly branches: readonly [readonly SpaceContent[], readonly SpaceContent[]]
     }
 
-function walkRoute(
-  route: RouteDefinition,
-  length: BoardLength,
-  difficulty: Difficulty,
-): readonly WalkedSegment[] {
+function walkRoute(route: RouteDefinition, difficulty: Difficulty): readonly WalkedSegment[] {
   return route.segments.map((segment): WalkedSegment => {
     if (segment.kind === 'run') {
-      return { kind: 'run', spaces: laneFor(segment.lane, length, difficulty) }
+      return { kind: 'run', spaces: laneFor(segment.lane, difficulty) }
     }
     const [a, b] = segment.branches
     return {
       kind: 'fork',
       at: atDifficulty(segment.at, difficulty),
-      branches: [laneFor(a, length, difficulty), laneFor(b, length, difficulty)],
+      branches: [laneFor(a, difficulty), laneFor(b, difficulty)],
     }
   })
 }
@@ -151,25 +127,20 @@ const COLUMN_MIN = 1
 /**
  * How wide a row runs before the serpentine turns back.
  *
- * A board is a column of rows that gets longer; it is never a wider board. The
- * route grew through the careers rework until the widest fork no longer fitted
- * a row, and every fork that ran out of room pushed the right-hand bound
- * further out instead of taking another row — so the *longest* board came out
- * landscape, 33 columns against 18 rows, wider than the standard board it is
- * supposed to be a longer version of. A phone renders that as a smear.
- *
- * Narrowing the row is what turns the extra tiles back into rows: the long
- * board comes out 29x21 here and each length is squarer than the one below it.
- * `Board.test.tsx` is what actually holds that promise.
+ * A board is a column of rows that gets longer; it is never a wider board. A
+ * fork that runs out of room pushes the right-hand bound further out instead
+ * of taking another row, so a row set too wide comes out landscape — and a
+ * phone renders that as a smear. Narrowing the row is what turns tiles back
+ * into rows. `Board.test.tsx` is what actually holds that promise.
  *
  * The value is load-bearing rather than arbitrary, and not monotonic either —
  * it is worth knowing that before nudging it. A row wide enough to swallow the
  * home-buying fork whole stops adding rows at all, and a row *too* narrow makes
  * every wide fork widen the board instead, which is the same failure from the
  * other side. Adding tiles to the trunk moves where the cursor meets that fork,
- * so a route change can push the long board back out of shape without touching
- * this line: when it does, re-measure across a range rather than stepping down
- * by one, because 19 and 21 are both worse here than 20.
+ * so a route change can push the board back out of shape without touching this
+ * line: when it does, re-measure across a range rather than stepping down by
+ * one, because 19 and 21 are both worse here than 20.
  */
 const COLUMN_MAX = 20
 const ROW_STEP = 3
@@ -179,11 +150,11 @@ interface Cursor {
   y: number
   dir: 1 | -1
   /**
-   * The serpentine's turning points. They are not constants because a long
-   * board's branches can be wider than a standard row: rather than break a
-   * lane across two rows, the cursor widens the board and every row after it
-   * simply has more room. Bounds only ever grow, so a row is never asked to
-   * turn back at a column the previous row ran past.
+   * The serpentine's turning points. They are not constants because a branch
+   * can come out wider than a row: rather than break a lane across two rows,
+   * the cursor widens the board and every row after it simply has more room.
+   * Bounds only ever grow, so a row is never asked to turn back at a column
+   * the previous row ran past.
    */
   min: number
   max: number
@@ -216,10 +187,10 @@ function roomAhead(cursor: Cursor): number {
  * A fork's two branches have to sit on one row each, running alongside the
  * trunk, so the cursor drops to a fresh row rather than splitting near an edge.
  *
- * Dropping a row is usually enough. When it is not — a long board with wide
- * branches, or a trunk run that happened to stop mid-row — the row itself is
- * widened instead of splitting the lane, because a branch broken over two rows
- * stops reading as a lane at all.
+ * Dropping a row is usually enough. When it is not — wide branches, or a trunk
+ * run that happened to stop mid-row — the row itself is widened instead of
+ * splitting the lane, because a branch broken over two rows stops reading as a
+ * lane at all.
  */
 function ensureRoom(cursor: Cursor, needed: number): void {
   if (roomAhead(cursor) >= needed) return
@@ -366,13 +337,9 @@ function priced(effect: SpaceEffect, amountFrom: EconomyAmountKey | undefined, e
   throw new Error(`createBoard: "${amountFrom}" cannot price a ${effect.type} effect`)
 }
 
-export function createBoard(
-  length: BoardLength = 'standard',
-  difficulty: Difficulty = 'normal',
-  edition: Edition = EDITION_USA,
-): Board {
+export function createBoard(difficulty: Difficulty = 'normal', edition: Edition = EDITION_USA): Board {
   const route = edition.route
-  const walked = walkRoute(route, length, difficulty)
+  const walked = walkRoute(route, difficulty)
   const first = walked[0]
   if (first === undefined) throw new Error(`The ${edition.id} route has no segments`)
 

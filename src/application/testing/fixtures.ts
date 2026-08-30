@@ -121,7 +121,6 @@ export function fixtureState(overrides: Partial<GameState> = {}): GameState {
   const player = fixturePlayer()
   return {
     board,
-    boardLength: 'standard',
     editionId: 'usa',
     difficulty: 'normal',
     players: [player],
@@ -130,6 +129,7 @@ export function fixtureState(overrides: Partial<GameState> = {}): GameState {
     pendingDecision: null,
     lastSpin: null,
     movementPath: [],
+    pendingPath: [],
     stepsRemaining: 0,
     chosenExit: null,
     lastEvent: null,

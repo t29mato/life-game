@@ -11,7 +11,7 @@ import { FRANCE_CURRENCY, FRANCE_ECONOMY } from './economy'
  * euro sits close enough to the dollar that only the symbol moves — and the
  * life on it is French from the concours to the notary's reading of the deed.
  *
- * The board's mechanical shape (tiers, stops, hardships, hazard density,
+ * The board's mechanical shape (stops, hardships, hazard density,
  * payday placement) is the shipped one; `france/edition.test.ts` pins the
  * mirror tile for tile, and `france/balance.test.ts` holds the same measured
  * bands the USA board holds, in euros.

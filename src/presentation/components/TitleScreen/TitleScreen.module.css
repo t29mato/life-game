@@ -443,6 +443,134 @@
   outline-offset: 3px;
 }
 
+/* The chosen face, worn by the tray pawn itself — the row's own preview. */
+.pawnFace {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---- Face chips ---------------------------------------------------------- */
+/* The swatches' quieter siblings: same size, same press, but flat sunken
+   buttons rather than domes of plastic — the dome is the colour's job. */
+.chipGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.designChip {
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  cursor: pointer;
+  box-shadow: inset 0 1px 2px rgba(92, 70, 34, 0.12);
+  transition:
+    transform var(--duration-fast) var(--spring-bouncy, ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.designChip:hover {
+  transform: translateY(-1px);
+}
+
+/* Chosen: the chip presses in and takes the amber stamp every other picker
+   on this screen already answers with. */
+.designChipSelected {
+  background: color-mix(in srgb, var(--candy-sun) 26%, var(--surface));
+  box-shadow:
+    inset 0 0 0 2px var(--candy-sun-dark),
+    inset 0 1px 2px rgba(92, 70, 34, 0.12);
+}
+
+.designChip:focus-visible {
+  outline: 3px solid var(--candy-sky);
+  outline-offset: 2px;
+}
+
+.chipGlyph {
+  width: 1.3rem;
+  height: 1.3rem;
+  display: block;
+}
+
+/* The peg head a face chip is drawn on: the row's own plastic tint, so the
+   preview matches the driver it dresses. */
+.chipHead {
+  fill: color-mix(in srgb, var(--pawn-light, var(--surface-alt)) 44%, #fffaf2);
+  stroke: var(--pawn-dark, var(--border-strong));
+  stroke-width: 1.3;
+}
+
+/* ---- Recent players ------------------------------------------------------ */
+/* A quiet strip of name chips, each wearing its saved colour as a dot. */
+.recentRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.recentLabel {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+  margin-right: 0.15rem;
+}
+
+.recentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  max-width: 11rem;
+  padding: 0.22rem 0.6rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  box-shadow: inset 0 1px 2px rgba(92, 70, 34, 0.1);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--spring-bouncy, ease-out);
+}
+
+.recentChip:hover {
+  color: var(--ink);
+  background: var(--surface);
+  transform: translateY(-1px);
+}
+
+.recentChip:focus-visible {
+  outline: 3px solid var(--candy-sky);
+  outline-offset: 2px;
+}
+
+.recentDot {
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: var(--radius-full);
+  background: var(--chip-base, var(--ink-faint));
+  box-shadow: inset 0 -1px 1px color-mix(in srgb, var(--chip-dark, var(--ink)) 70%, transparent);
+}
+
 /* ---- Human / CPU seat toggle --------------------------------------------- */
 .seatToggle {
   display: inline-flex;
@@ -563,10 +691,21 @@
   gap: 0.75rem;
 }
 
+/* One honest line above Start — an estimate, in the detail lines' voice. */
+.playtimeHint {
+  margin: 0 0 -0.25rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--ink-soft);
+  font-variant-numeric: var(--tabular, tabular-nums);
+}
+
 /* ==========================================================================
    Edition — which country's board the evening is played on. A peer of the
-   session-length and difficulty pickers: same card, same rhythm, the same
-   amber stamp on the chosen tile. The grid auto-fits because the shelf is
+   difficulty picker: same card, same rhythm, the same amber stamp on the
+   chosen tile. The grid auto-fits because the shelf is
    still filling — two columns on a 360px phone, up to five across on a
    desktop, and a sixth country wraps without anyone editing this file.
    ========================================================================== */
@@ -648,75 +787,7 @@
 }
 
 /* ==========================================================================
-   Session length — a three-way picker with an honest time estimate
-   ========================================================================== */
-.lengthSection {
-  position: relative;
-  background: var(--surface-grad);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--elev-2);
-  padding: 1.1rem 1.3rem 1.3rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-}
-
-.lengthGroup {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.6rem;
-}
-
-.lengthOption {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  padding: 0.7rem 0.4rem;
-  border-radius: var(--radius-md);
-  border: none;
-  background: var(--surface-alt);
-  box-shadow: 0 2px 0 color-mix(in srgb, var(--border-strong) 60%, transparent);
-  cursor: pointer;
-  transition:
-    transform var(--duration-fast) var(--spring-bouncy, ease-out),
-    box-shadow var(--duration-fast) var(--ease-out),
-    background var(--duration-fast) var(--ease-out);
-}
-
-.lengthOption:hover:not(.lengthSelected) {
-  transform: translateY(-1px);
-}
-
-/* Chosen: the tile presses in and takes an amber print — a stamped choice,
-   not a glowing outline. */
-.lengthSelected {
-  background: color-mix(in srgb, var(--candy-sun) 22%, var(--surface));
-  box-shadow:
-    inset 0 0 0 2px var(--candy-sun-dark),
-    inset 0 2px 3px rgba(92, 70, 34, 0.12);
-}
-
-.lengthOption:focus-visible {
-  outline: 3px solid var(--candy-sky);
-  outline-offset: 2px;
-}
-
-.lengthLabel {
-  font-weight: 800;
-  font-size: 0.9rem;
-  color: var(--ink);
-}
-
-.lengthHint {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--ink-faint);
-  font-variant-numeric: var(--tabular, tabular-nums);
-}
-
-/* ==========================================================================
-   Difficulty — a peer of the session-length picker, same card, same rhythm.
+   Difficulty — a peer of the edition picker, same card, same rhythm.
    The selection tint escalates with the cruelty on offer: mint for Normal,
    tangerine for Hard, coral for Very Hard — the choice reads as a warning
    level before a word is parsed. `--pick-base`/`--pick-dark` are set per
@@ -868,15 +939,6 @@
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--ink-faint);
-}
-
-.slotAutosaveTag {
-  font-size: 0.55rem;
-  padding: 0.05rem 0.35rem;
-  border-radius: var(--radius-full);
-  background: var(--tone-blue-bg);
-  color: var(--tone-blue-ink);
-  letter-spacing: 0.04em;
 }
 
 .slotPlayers {

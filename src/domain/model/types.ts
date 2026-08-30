@@ -25,11 +25,8 @@ export type StockId = string
  */
 export type EditionId = string
 
-/** How long a session runs. Picked on the title screen; decides the board built. */
-export type BoardLength = 'short' | 'standard' | 'long'
-
 /**
- * How unkind the board is. Picked on the title screen alongside the length.
+ * How unkind the board is. Picked on the title screen.
  *
  * Difficulty is not a hidden multiplier: it seeds extra setbacks into the route
  * and rewrites the money on the tiles, so a harder game is visibly a harder
@@ -49,10 +46,39 @@ export type Hazard = 'fire' | 'accident'
 /** Whole dollars. May go negative — that is debt, and debt is allowed. */
 export type Money = number
 
-/** The spinner always yields 1–10. */
-export type SpinValue = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
+/**
+ * The die always yields 1–6.
+ *
+ * It used to be a ten-wedge wheel, and the width was the problem: a ten sent
+ * one player racing half a stage ahead of the table while a one left somebody
+ * standing still, and a board game everybody is playing at once wants the
+ * seats to travel at roughly the same pace. Six faces halve the spread and
+ * take the average roll from 5.5 to 3.5 — which every per-pip figure in the
+ * editions is priced against, so the two changes are one change.
+ */
+export type SpinValue = 1 | 2 | 3 | 4 | 5 | 6
 
-export type PlayerColor = 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange'
+export type PlayerColor =
+  | 'red'
+  | 'blue'
+  | 'green'
+  | 'yellow'
+  | 'purple'
+  | 'orange'
+  | 'teal'
+  | 'pink'
+  | 'navy'
+  | 'brown'
+  | 'charcoal'
+  | 'cream'
+
+/**
+ * The expression moulded onto the driver peg — the one at the wheel, the peg
+ * that *is* the player. Passengers always keep the plain factory look, so a
+ * face marks whose car this is at a glance. `classic` is that same plain
+ * moulding, which is why an absent choice reads as it.
+ */
+export type DriverFace = 'classic' | 'cheerful' | 'determined' | 'cool' | 'surprised' | 'sleepy'
 
 /** Palette token a space renders with. Presentation maps these to real colours. */
 export type SpaceTone = 'blue' | 'orange' | 'green' | 'pink' | 'purple' | 'gold' | 'slate'
@@ -76,8 +102,8 @@ export interface Career {
    * Set on work that does not pay the same twice. A payday then pays
    * `payPerPip × spin` instead of `salary`, so an unsteady trade is a real
    * gamble: a good month beats a salaried job, a bad one barely covers rent.
-   * Keep it close to `salary / 5.5`, the average spin, so the headline figure
-   * stays honest.
+   * Keep it close to `salary / 3.5`, the average roll of the die, so the
+   * headline figure stays honest.
    */
   readonly payPerPip?: Money
   /** Added to `salary` each time the player hits a pay-raise space. */
@@ -105,7 +131,7 @@ export interface Career {
    *
    * This is what makes climbing something you play for rather than something
    * the board hands you. Write the higher rungs harder: a first promotion that
-   * lands seven times in ten and a corner office that lands four says, in two
+   * lands four times in six and a corner office that lands twice says, in two
    * numbers, that the top of a ladder is meant to be rare.
    */
   readonly promotionSpin?: SpinValue
@@ -378,6 +404,13 @@ export interface Player {
   readonly stocks: readonly StockHolding[]
   /** Policies held. Each waives its hazard and `life` pays out at retirement. */
   readonly insurance: readonly InsuranceKind[]
+  /**
+   * The expression this player chose for their driver peg. Absent reads as
+   * the plain factory moulding (`classic`) — which is also how a save
+   * written before designs existed reads back, the same bargain
+   * `carriedSeniority` below already strikes.
+   */
+  readonly face?: DriverFace
   /** True when the seat is played by the computer rather than a person. */
   readonly isCpu: boolean
   readonly isRetired: boolean
@@ -476,6 +509,22 @@ export interface LandingEvent {
    * that names them.
    */
   readonly transfers?: readonly MoneyTransfer[]
+  /**
+   * The die that decided this outcome, when a die decided it at all.
+   *
+   * A tile the pawn actually stops on shows its roll before this card even
+   * exists — the die goes up on screen and the player watches it land, then
+   * the card is built from what it landed on. A tile a move only *sweeps
+   * past* has no press to hang that on, so `applyPassedEvent` rolls for it
+   * and hands over the finished card; without this field the only trace of
+   * the roll would be the "Rolled a 3." line in `notes`, a fact about
+   * something nobody saw happen. This is what lets the presentation layer
+   * throw that same die where it can be watched before the card is
+   * readable. Absent means nothing was rolled — a flat salary, a fixed
+   * charge, a graduation — exactly as an absent `face` reads as the plain
+   * moulding, so nothing that never touches the die has to change.
+   */
+  readonly rolled?: SpinValue
 }
 
 export interface MoneyTransfer {
@@ -508,7 +557,7 @@ export interface PlayerResult {
   /**
    * How many of this player's children turned out to be stars.
    *
-   * Every child is spun for at the final scoring, and one in ten of them makes
+   * Every child is rolled for at the final scoring, and one in six of them makes
    * it — which is the whole reason `childrenBonus` is worth looking at again.
    * Broken out so the moment can be announced rather than buried in a total.
    * Absent when the scoring was done without dice.
@@ -535,6 +584,18 @@ export type GamePhase =
   | 'setup'
   /** Current player must spin. */
   | 'awaitingSpin'
+  /**
+   * The road out of a fork is settled and named; the current player must roll
+   * again for how far down it they travel.
+   *
+   * A fork used to be settled and travelled by one single roll, which quietly
+   * made the first tiles of the far road unreachable: only a 4, 5 or 6 sends
+   * anybody down it, and that same number then carries them four, five or six
+   * tiles past its opening. So the two questions a fork asks — which road, and
+   * how far — get a press each now, and `chosenExit` holds the answer to the
+   * first while the second is still in the air.
+   */
+  | 'awaitingDistanceSpin'
   /** `movementPath` is populated; the UI is animating the pawn along it. */
   | 'moving'
   /**
@@ -553,8 +614,6 @@ export type GamePhase =
 
 export interface GameState {
   readonly board: Board
-  /** Which board was built. Kept so "play again" can reuse the same settings. */
-  readonly boardLength: BoardLength
   /**
    * Which country's edition this game is played on.
    *
@@ -583,14 +642,26 @@ export interface GameState {
    * ending on its destination. Empty unless `phase === 'moving'`.
    */
   readonly movementPath: readonly SpaceId[]
+  /**
+   * The rest of the hop, held back while this leg of it is animating.
+   *
+   * A move is walked one leg at a time — see `nextMovementLeg` in
+   * `src/domain/board/movement.ts` — so `movementPath` is only ever as far as
+   * the next tile that owes a card, and this is the road beyond it. `settle`
+   * hands the next leg over when the card on that tile is dismissed, so the
+   * pawn visibly carries on rather than the remaining tiles being conjured
+   * away while a modal was up. Empty for a move with nothing to stop for,
+   * which is every move that sweeps past nothing.
+   */
+  readonly pendingPath: readonly SpaceId[]
   /** Steps still owed after a fork or a forced stop interrupts movement. */
   readonly stepsRemaining: number
   /**
-   * The road the current player committed to before spinning, when they began
-   * their turn standing on a fork. Choosing after the spin let them pick the
-   * lane that happened to land them well, which is a cheap advantage no board
-   * game gives you — the road is chosen first, then the wheel decides how far.
-   * Null whenever no choice is outstanding.
+   * The road settled for the current player, waiting on the roll that says how
+   * far down it they go — the road is decided first, then the die decides the
+   * distance, and never both by the same number (see `awaitingDistanceSpin`).
+   * Null whenever no road is outstanding, which is every turn that did not
+   * begin on a fork.
    */
   readonly chosenExit: SpaceId | null
   readonly lastEvent: LandingEvent | null
@@ -627,13 +698,14 @@ export interface PassedQueueItem {
 export interface NewGamePlayer {
   readonly name: string
   readonly color: PlayerColor
+  /** Omitted means `classic`, so a caller that predates designs still works. */
+  readonly face?: DriverFace
   /** A computer seat plays itself; the UI drives it on a timer. */
   readonly isCpu: boolean
 }
 
 export interface NewGameConfig {
   readonly players: readonly NewGamePlayer[]
-  readonly boardLength: BoardLength
   /** Omitted means `normal`, so a caller that predates difficulty still works. */
   readonly difficulty?: Difficulty
   /** Omitted means `'usa'`, so a caller that predates editions still works. */

@@ -82,7 +82,7 @@ looks exactly like a person's. It must never return an option id outside
 `pendingDecision.options`: an invalid id would freeze the game.
 
 ### Turn cycle
-`awaitingSpin` → spin (1–10) → `moving` (pawn animates along `movementPath`) →
+`awaitingSpin` → roll (1–6) → `moving` (pawn animates along `movementPath`) →
 `settle` → either `awaitingDecision` (branch/career/house) or `resolved`
 (`lastEvent` populated) → `endTurn` → next non-retired player.
 
@@ -165,15 +165,15 @@ the stats repository exactly once, so a group can keep score across an evening.
 
 ## 4. Board layout
 
-Spaces are tiered so one route definition builds all three lengths: 57 spaces at
-`short`, 86 at `standard`, 131 at `long` (43 / 63 / 93 tiles actually walked, so
-the 0.6× and 1.5× ratios in `BOARD_LENGTH_SCALE` hold). Every length keeps all
-the milestone stops and carries every `SpaceEffect` variant.
+One route definition, one board: 75 spaces at `normal`, rising to 90 at
+`veryHard` as the difficulty seeds its extra setbacks in. A session runs about
+fifteen minutes, which is the whole reason there is one length and not three —
+a game nobody finishes is a game nobody plays twice. The board keeps every
+milestone stop and carries every `SpaceEffect` variant at every difficulty.
 
-`standard` is longer than the 60–70 spaces of the first board: fourteen new
-mechanic spaces, a midtown lane and a steeper income curve had to fit somewhere.
-Session length is what actually matters, and `gameBalance.test.ts` pins it —
-mean turns stay inside the same band as before.
+The only thing that thins or thickens the route is difficulty: `appearsFrom` on
+a space is the gate, and `createBoard.test.ts` pins what each step up is allowed
+to change.
 
 The upset spaces and the biggest money swings belong in the last third of the
 route, where they can still change the standings — a board decided by turn ten
@@ -211,7 +211,7 @@ Target: **Nintendo first-party polish**. Joyful, chunky, tactile, immaculate.
 - **Buttons**: chunky, fully rounded, with a darker bottom lip (`box-shadow: 0 6px 0 <dark>`). On press the lip collapses and the button translates down — it must feel like a physical key. Never a flat rectangle.
 - **Motion**: springs, not linear fades. Overshoot on entry, squash-and-stretch on the pawn's hop, a satisfying settle on every card. Use `framer-motion`.
 - **Feedback**: every action gets a sound *and* a visual. Money changes roll up digit by digit and flash green/red. Milestones burst confetti.
-- **Spinner**: a real wheel with 10 wedges. Multi-rotation spin, decelerating ease-out, ticking as it passes each wedge, a bounce as it settles on the pointer.
+- **Dice**: a moulded six-face die, docked over the foot of the board. Multi-turn tumble, decelerating ease-out, the face flickering every quarter turn, a bounce as it settles on the number it rolled.
 - **Board**: SVG. Rounded-square tiles along a drawn path, tone-coloured, with the emoji centred. The current player's tile pulses. Camera pans smoothly to follow the active pawn.
 - **Accessibility**: full keyboard operation, visible focus rings, `aria-live` for turn and money announcements, and honour `prefers-reduced-motion` by cutting movement to instant transitions (never remove information).
 - **Responsive**: works from 360 px phones to wide desktops. Board scales; panels reflow to a bottom sheet on narrow screens.

@@ -1,4 +1,5 @@
-import type { Difficulty, Player, PlayerId } from '@domain/model/types'
+import type { Difficulty, EditionId, Player, PlayerId } from '@domain/model/types'
+import { editionFor } from '@domain/edition/registry'
 import { estimateNetWorth } from '@domain/rules/scoring'
 
 export interface Standing {
@@ -15,15 +16,21 @@ export interface Standing {
  *
  * `difficulty` matters because a harder game settles loans at a steeper
  * rate — two players holding different numbers of loans would otherwise be
- * ranked in the wrong order.
+ * ranked in the wrong order. `editionId` matters on the same grounds: each
+ * edition prices loans and child bonuses in its own economy, so omitting it
+ * would rank a non-USA game by USA rates. Optional, defaulting to the USA
+ * board, on the usual terms — nothing that does not care about editions has
+ * to know.
  */
 export function rankPlayers(
   players: readonly Player[],
   difficulty: Difficulty,
+  editionId?: EditionId,
 ): ReadonlyMap<PlayerId, Standing> {
+  const edition = editionFor(editionId)
   const scored = players.map((player) => ({
     id: player.id,
-    netWorth: estimateNetWorth(player, difficulty),
+    netWorth: estimateNetWorth(player, difficulty, edition),
   }))
   const sorted = [...scored].sort((a, b) => b.netWorth - a.netWorth)
 
