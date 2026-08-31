@@ -313,6 +313,47 @@
   opacity: 0.75;
 }
 
+/* ---- The driver's academic regalia ---------------------------------------- */
+/* The fresh graduate's mortarboard, worn between the Cap and Gown tile and
+   the first hire (`regalia.ts` holds that rule). Cast in its own academic
+   ink, never a family's plastic — a mortarboard the colour of a trade would
+   read as a ninth career — with the tassel in the board's own gold, the
+   lamps' `--candy-sun`. Outlines and gloss at the pegs' own weight. */
+
+.regalia {
+  pointer-events: none;
+}
+
+/* The scholar's ink: skull cap and board, a violet-black in the family of
+   the tyres' and dents' #241d3f so it sits in the board's shadow range. */
+.capInk {
+  fill: #3c3560;
+  stroke: #241d3f;
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+
+/* The tassel's cord, swung over the board's front edge. */
+.tasselCord {
+  fill: none;
+  stroke: var(--candy-sun);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
+/* The button on top and the bob at the cord's end, in the same gold. */
+.tasselBob {
+  fill: var(--candy-sun);
+  stroke: #241d3f;
+  stroke-width: 0.9;
+}
+
+/* The same upper-left specular every crown on this car carries. */
+.capGloss {
+  fill: #ffffff;
+  opacity: 0.75;
+}
+
 /* Past the cap the back seat carries a count instead of more heads. */
 .badgePlate {
   fill: var(--surface);

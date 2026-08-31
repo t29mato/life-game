@@ -335,6 +335,46 @@ describe('Pawn', () => {
     })
   })
 
+  describe("the graduate's cap", () => {
+    // Same scoping bargain as the earned look: one car per render, queried
+    // through its own container.
+    function renderCar(props: Partial<PawnProps> = {}): HTMLElement {
+      mockReducedMotion(true)
+      const { container } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <svg>
+            <Pawn color="blue" restPosition={{ x: 0, y: 0 }} {...props} />
+          </svg>
+        </AudioProvider>,
+      )
+      return container.querySelector('[data-testid="pawn"]') as HTMLElement
+    }
+
+    it('caps the fresh graduate before the first hire', () => {
+      const car = renderCar({ hasDegree: true })
+      expect(car).toHaveAttribute('data-regalia', 'mortarboard')
+      expect(car.querySelectorAll("[data-regalia-kind='mortarboard']")).toHaveLength(1)
+    })
+
+    it('drives bare-headed without a degree', () => {
+      const car = renderCar()
+      expect(car).not.toHaveAttribute('data-regalia')
+      expect(car.querySelector('[data-regalia-kind]')).toBeNull()
+    })
+
+    it('hands the head to career gear once a hire lands', () => {
+      const car = renderCar({ hasDegree: true, careerIcon: 'career:surgeon' })
+      expect(car).toHaveAttribute('data-career-family', 'care')
+      expect(car).not.toHaveAttribute('data-regalia')
+      expect(car.querySelector('[data-regalia-kind]')).toBeNull()
+    })
+
+    it('caps the driver alone, never the household', () => {
+      const car = renderCar({ hasDegree: true, isMarried: true, childCount: 3 })
+      expect(car.querySelectorAll('[data-regalia-kind]')).toHaveLength(1)
+    })
+  })
+
   describe('passengers', () => {
     function renderCar(props: { isMarried?: boolean; childCount?: number }): HTMLElement {
       mockReducedMotion(true)

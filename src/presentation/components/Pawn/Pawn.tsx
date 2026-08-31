@@ -17,6 +17,7 @@ import { useAudio } from '../../hooks/useAudio'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { FAMILY_PALETTE, type CareerFamily } from '../CareerPlaque/families'
 import { driverGearFamily } from './careerGear'
+import { driverRegalia, type Regalia } from './regalia'
 import { childPegs, describeCar } from './passengers'
 import type { WealthTier } from './wealthTier'
 import styles from './Pawn.module.css'
@@ -70,6 +71,14 @@ export interface PawnProps {
    * bare-headed peg.
    */
   readonly careerIcon?: IconName | null | undefined
+  /**
+   * Whether the player has walked the Cap and Gown tile. Worn by the driver
+   * peg as a mortarboard for exactly the stretch between commencement and
+   * the first hire — career gear owns the head after that; see `regalia.ts`
+   * for the precedence and its reasoning. Derived live from state exactly
+   * like `wealthTier` and `careerIcon`, never chosen.
+   */
+  readonly hasDegree?: boolean
 }
 
 /**
@@ -285,6 +294,52 @@ function DriverGear({ u, family }: { u: number; family: CareerFamily }): ReactEl
   )
 }
 
+/**
+ * The driver's academic regalia: the mortarboard a fresh graduate wears on
+ * the drive from the Cap and Gown tile to the job fair. Which occasions get
+ * a cap at all — and how it defers to career gear once a hire lands — is
+ * decided in `regalia.ts`; this only draws whatever that rule returns.
+ *
+ * Cut for its silhouette at peg scale like every DriverGear piece: a wide
+ * flat plate is the one shape no trade's hat has, so it reads as "scholar"
+ * even at two pixels. Cast in academic ink rather than any family's plastic
+ * — it must never be mistaken for a ninth trade — with the tassel's bob in
+ * the board's own gold, lit by the same upper-left gloss the crowns carry.
+ * A doctoral variant would join here as a second `regalia` branch.
+ */
+function DriverRegalia({ u, regalia }: { u: number; regalia: Regalia }): ReactElement {
+  return (
+    <g className={styles.regalia} data-regalia-kind={regalia}>
+      {regalia === 'mortarboard' ? (
+        // The mortarboard: a low skull cap under the flat board, a button on
+        // top, and the tassel swung over the front edge — the one detail
+        // that says it was earned this morning.
+        <>
+          <path
+            className={styles.capInk}
+            d={scalePath('M -0.07 -0.5 Q -0.07 -0.575 0 -0.575 Q 0.07 -0.575 0.07 -0.5 Z', u)}
+          />
+          <rect
+            className={styles.capInk}
+            x={-0.128 * u}
+            y={-0.612 * u}
+            width={0.256 * u}
+            height={0.036 * u}
+            rx={0.01 * u}
+          />
+          <circle className={styles.tasselBob} cy={-0.618 * u} r={0.013 * u} />
+          <path
+            className={styles.tasselCord}
+            d={scalePath('M 0.01 -0.612 Q 0.105 -0.6 0.12 -0.548', u)}
+          />
+          <circle className={styles.tasselBob} cx={0.12 * u} cy={-0.532 * u} r={0.02 * u} />
+          <circle className={styles.capGloss} cx={-0.058 * u} cy={-0.596 * u} r={0.016 * u} />
+        </>
+      ) : null}
+    </g>
+  )
+}
+
 /** Scales a path written on the unit car up to `u` viewBox units. */
 function scalePath(path: string, u: number): string {
   return path.replace(/-?\d*\.?\d+/g, (value) => String(Math.round(Number(value) * u * 100) / 100))
@@ -347,6 +402,7 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
     childCount = 0,
     wealthTier = 2,
     careerIcon = null,
+    hasDegree = false,
   },
   ref,
 ): ReactElement {
@@ -477,6 +533,9 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
      same way `wealthTier` is, so a hire or a switch dresses the peg the
      moment the board next paints. Fails closed to the bare head. */
   const gearFamily = driverGearFamily(careerIcon)
+  /* And the graduate's cap, from the same live state — worn only until the
+     career gear above takes the head; `regalia.ts` holds that rule. */
+  const regalia = driverRegalia(hasDegree, gearFamily)
 
   /* The grand tourer alone changes the silhouette — a longer nose, the front
      axle pushed forward under it, the lamp out on the new wing. Every other
@@ -503,6 +562,7 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
       data-children={Math.max(0, Math.floor(childCount))}
       data-tier={wealthTier}
       data-career-family={gearFamily ?? undefined}
+      data-regalia={regalia ?? undefined}
       role="img"
       aria-label={description}
     >
@@ -583,11 +643,14 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
           </g>
         ) : null}
 
-        {/* At the wheel — wearing the trade's gear — and the seat beside it
-            once there is a partner. Only the driver dresses for work. */}
+        {/* At the wheel — wearing the trade's gear, or the graduate's cap
+            while there is no trade yet — and the seat beside it once there
+            is a partner. Only the driver dresses for work, and only the
+            driver graduates; the pegs alongside stay bare. */}
         {isMarried ? <Peg u={u} at={-0.07} lift={0} scale={1} /> : null}
         <Peg u={u} at={0.1} lift={0} scale={1}>
           {gearFamily ? <DriverGear u={u} family={gearFamily} /> : null}
+          {regalia ? <DriverRegalia u={u} regalia={regalia} /> : null}
         </Peg>
 
         {/* Chassis: the darker moulding the body sits on. */}

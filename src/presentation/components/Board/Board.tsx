@@ -1246,6 +1246,10 @@ export function Board({
                     // re-renders the board, and the driver peg is wearing the
                     // new trade's gear by the next paint.
                     careerIcon={player.career?.icon ?? null}
+                    // And the diploma: the mortarboard goes on the moment
+                    // the Cap and Gown tile re-renders the board, and comes
+                    // off again when career gear claims the head.
+                    hasDegree={player.hasDegree}
                     size={pawnSize}
                   />
                 )
