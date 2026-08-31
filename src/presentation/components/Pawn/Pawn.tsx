@@ -6,12 +6,17 @@ import {
   useImperativeHandle,
   useMemo,
   useRef,
+  type CSSProperties,
   type ReactElement,
+  type ReactNode,
 } from 'react'
 import { animate, motion, useMotionValue, type AnimationPlaybackControls } from 'framer-motion'
 import type { PlayerColor } from '@domain/model/types'
+import type { IconName } from '@domain/model/icons'
 import { useAudio } from '../../hooks/useAudio'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { FAMILY_PALETTE, type CareerFamily } from '../CareerPlaque/families'
+import { driverGearFamily } from './careerGear'
 import { childPegs, describeCar } from './passengers'
 import type { WealthTier } from './wealthTier'
 import styles from './Pawn.module.css'
@@ -57,6 +62,14 @@ export interface PawnProps {
    * for the banding. Defaults to the familiar mid-tier roadster.
    */
   readonly wealthTier?: WealthTier
+  /**
+   * The current career's own icon, worn by the driver peg as family-coloured
+   * gear — a toque, a hard hat, a beret — the moment a hire or a switch
+   * lands. Derived live from state exactly like `wealthTier`, never chosen;
+   * see `careerGear.ts`. Absent, null, or naming no trade means the familiar
+   * bare-headed peg.
+   */
+  readonly careerIcon?: IconName | null | undefined
 }
 
 /**
@@ -64,7 +77,20 @@ export interface PawnProps {
  * Laid out as fractions of the car's length so it keeps its proportions at any
  * size, but drawn in the board's own units so its outline never scales with it.
  */
-function Peg({ u, at, lift, scale }: { u: number; at: number; lift: number; scale: number }): ReactElement {
+function Peg({
+  u,
+  at,
+  lift,
+  scale,
+  children,
+}: {
+  u: number
+  at: number
+  lift: number
+  scale: number
+  /** Drawn over the peg in its own frame — the driver's career gear. */
+  children?: ReactNode
+}): ReactElement {
   return (
     <g className={styles.peg} transform={`translate(${at * u}, ${lift * u})`}>
       <ellipse className={styles.pegBody} cy={-0.28 * u * scale} rx={0.075 * u * scale} ry={0.19 * u * scale} />
@@ -75,6 +101,186 @@ function Peg({ u, at, lift, scale }: { u: number; at: number; lift: number; scal
         cy={-0.5 * u * scale}
         r={0.03 * u * scale}
       />
+      {children}
+    </g>
+  )
+}
+
+/**
+ * The driver's career gear: one small moulded accessory per plaque family,
+ * worn by the peg at the wheel and cast in that family's own plastic
+ * (`FAMILY_PALETTE`), so a rival's trade reads across the table before its
+ * name does — the pawn-scale cousin of the `CareerPlaque` treatment.
+ *
+ * Each piece is chosen for its *silhouette* at peg scale, where a head is a
+ * couple of pixels: the toque is tall, the straw hat wide, the hard hat a
+ * smooth dome over a dark brim, the beret a tilted pancake, the sports cap a
+ * dome with a forward peak, the goggles two bumps pushed up on the head, the
+ * clinic cap the one white shape with a coloured cross — and the necktie the
+ * one mark worn on the body, not the head. Drawn in the peg's own frame on
+ * the same unit grid as the rest of the car, lit from the same upper-left
+ * (a white gloss catching each crown's left shoulder, the darker tone low
+ * and to the right), with the board-weight outlines every moulding carries.
+ */
+function DriverGear({ u, family }: { u: number; family: CareerFamily }): ReactElement {
+  const palette = FAMILY_PALETTE[family]
+  const style = {
+    '--gear-light': palette.light,
+    '--gear-base': palette.base,
+    '--gear-dark': palette.dark,
+  } as CSSProperties
+
+  return (
+    <g className={styles.gear} data-gear-family={family} style={style}>
+      {family === 'kitchen' ? (
+        // The toque: a tall white-hot crown of the kitchen's copper plastic,
+        // puffed at the top, banded at the brow.
+        <>
+          <rect
+            className={styles.gearLight}
+            x={-0.062 * u}
+            y={-0.65 * u}
+            width={0.124 * u}
+            height={0.115 * u}
+          />
+          <ellipse className={styles.gearLight} cy={-0.655 * u} rx={0.088 * u} ry={0.052 * u} />
+          <rect
+            className={styles.gearTint}
+            x={-0.062 * u}
+            y={-0.556 * u}
+            width={0.124 * u}
+            height={0.02 * u}
+          />
+          <circle className={styles.gearGloss} cx={-0.032 * u} cy={-0.665 * u} r={0.02 * u} />
+        </>
+      ) : null}
+
+      {family === 'field' ? (
+        // The straw hat: the widest brim on the board, a low crown above it.
+        <>
+          <path
+            className={styles.gearLight}
+            d={scalePath('M -0.068 -0.525 Q -0.068 -0.61 0 -0.61 Q 0.068 -0.61 0.068 -0.525 Z', u)}
+          />
+          <ellipse className={styles.gearShell} cy={-0.525 * u} rx={0.13 * u} ry={0.03 * u} />
+          <circle className={styles.gearGloss} cx={-0.026 * u} cy={-0.578 * u} r={0.017 * u} />
+        </>
+      ) : null}
+
+      {family === 'works' ? (
+        // The hard hat: a smooth proud dome with a crest bump on top and a
+        // dark all-round brim seating it on the head.
+        <>
+          <rect
+            className={styles.gearShell}
+            x={-0.024 * u}
+            y={-0.617 * u}
+            width={0.048 * u}
+            height={0.024 * u}
+            rx={0.01 * u}
+          />
+          <path
+            className={styles.gearShell}
+            d={scalePath('M -0.096 -0.5 Q -0.1 -0.6 0 -0.6 Q 0.1 -0.6 0.096 -0.5 Z', u)}
+          />
+          <ellipse className={styles.gearDark} cy={-0.5 * u} rx={0.117 * u} ry={0.02 * u} />
+          <circle className={styles.gearGloss} cx={-0.036 * u} cy={-0.56 * u} r={0.02 * u} />
+        </>
+      ) : null}
+
+      {family === 'office' ? (
+        // The necktie: knot at the collar, blade down the front — the one
+        // family worn on the body, so a bare head still means "no job yet".
+        <>
+          <path
+            className={styles.gearShell}
+            d={scalePath('M 0 -0.36 L 0.032 -0.3 L 0 -0.232 L -0.032 -0.3 Z', u)}
+          />
+          <path
+            className={styles.gearShell}
+            d={scalePath('M 0 -0.4 L 0.026 -0.378 L 0 -0.356 L -0.026 -0.378 Z', u)}
+          />
+        </>
+      ) : null}
+
+      {family === 'studio' ? (
+        // The beret: a pancake tipped to one side, stalk on top.
+        <>
+          <ellipse
+            className={styles.gearShell}
+            cx={0.01 * u}
+            cy={-0.556 * u}
+            rx={0.098 * u}
+            ry={0.036 * u}
+            transform={`rotate(-12 ${0.01 * u} ${-0.556 * u})`}
+          />
+          <circle className={styles.gearDark} cx={0.002 * u} cy={-0.598 * u} r={0.013 * u} />
+          <circle className={styles.gearGloss} cx={-0.028 * u} cy={-0.568 * u} r={0.016 * u} />
+        </>
+      ) : null}
+
+      {family === 'care' ? (
+        // The clinic cap: the one white piece of headwear, carrying its
+        // family's colour as the cross rather than the cloth.
+        <>
+          <path
+            className={styles.gearWhite}
+            d={scalePath('M -0.062 -0.535 L -0.05 -0.605 L 0.05 -0.605 L 0.062 -0.535 Z', u)}
+          />
+          <rect
+            className={styles.gearTint}
+            x={-0.011 * u}
+            y={-0.594 * u}
+            width={0.022 * u}
+            height={0.048 * u}
+          />
+          <rect
+            className={styles.gearTint}
+            x={-0.034 * u}
+            y={-0.581 * u}
+            width={0.068 * u}
+            height={0.022 * u}
+          />
+        </>
+      ) : null}
+
+      {family === 'science' ? (
+        // The goggles: pushed up onto the head between experiments — two
+        // rimmed lenses over a strap, a glint in the left one.
+        <>
+          <path
+            className={styles.gearStrap}
+            d={scalePath('M -0.08 -0.498 Q 0 -0.535 0.08 -0.498', u)}
+          />
+          <rect
+            className={styles.gearDark}
+            x={-0.012 * u}
+            y={-0.553 * u}
+            width={0.024 * u}
+            height={0.016 * u}
+          />
+          <circle className={styles.gearLight} cx={-0.04 * u} cy={-0.545 * u} r={0.033 * u} />
+          <circle className={styles.gearLight} cx={0.04 * u} cy={-0.545 * u} r={0.033 * u} />
+          <circle className={styles.gearGloss} cx={-0.05 * u} cy={-0.553 * u} r={0.011 * u} />
+        </>
+      ) : null}
+
+      {family === 'pitch' ? (
+        // The sports cap: a dome with its peak jutting toward the nose of
+        // the car — the one hat that points the way the driver is going.
+        <>
+          <path
+            className={styles.gearShell}
+            d={scalePath('M -0.086 -0.502 Q -0.086 -0.585 0 -0.585 Q 0.086 -0.585 0.086 -0.502 Z', u)}
+          />
+          <path
+            className={styles.gearShell}
+            d={scalePath('M 0.055 -0.51 Q 0.13 -0.515 0.152 -0.492 Q 0.11 -0.472 0.052 -0.482 Z', u)}
+          />
+          <circle className={styles.gearDark} cy={-0.588 * u} r={0.013 * u} />
+          <circle className={styles.gearGloss} cx={-0.03 * u} cy={-0.552 * u} r={0.018 * u} />
+        </>
+      ) : null}
     </g>
   )
 }
@@ -140,6 +346,7 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
     isMarried = false,
     childCount = 0,
     wealthTier = 2,
+    careerIcon = null,
   },
   ref,
 ): ReactElement {
@@ -266,6 +473,10 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
   const castId = `${uid}-cast`
   const { pegs, badge } = childPegs(childCount)
   const description = describeCar(name ?? label ?? 'Player', isMarried, childCount)
+  /* The driver's gear, from the live career — recomputed every render the
+     same way `wealthTier` is, so a hire or a switch dresses the peg the
+     moment the board next paints. Fails closed to the bare head. */
+  const gearFamily = driverGearFamily(careerIcon)
 
   /* The grand tourer alone changes the silhouette — a longer nose, the front
      axle pushed forward under it, the lamp out on the new wing. Every other
@@ -291,6 +502,7 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
       data-married={isMarried}
       data-children={Math.max(0, Math.floor(childCount))}
       data-tier={wealthTier}
+      data-career-family={gearFamily ?? undefined}
       role="img"
       aria-label={description}
     >
@@ -371,9 +583,12 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
           </g>
         ) : null}
 
-        {/* At the wheel, and the seat beside it once there is a partner. */}
+        {/* At the wheel — wearing the trade's gear — and the seat beside it
+            once there is a partner. Only the driver dresses for work. */}
         {isMarried ? <Peg u={u} at={-0.07} lift={0} scale={1} /> : null}
-        <Peg u={u} at={0.1} lift={0} scale={1} />
+        <Peg u={u} at={0.1} lift={0} scale={1}>
+          {gearFamily ? <DriverGear u={u} family={gearFamily} /> : null}
+        </Peg>
 
         {/* Chassis: the darker moulding the body sits on. */}
         <rect

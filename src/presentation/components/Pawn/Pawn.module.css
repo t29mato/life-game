@@ -253,6 +253,66 @@
   opacity: 0.75;
 }
 
+/* ---- The driver's career gear -------------------------------------------- */
+/* One moulded accessory per plaque family, cast in that family's plastic —
+   `--gear-*` is set inline from `FAMILY_PALETTE`, the same handoff
+   `CareerPlaque` makes, so the pawn and the plaque are visibly the same
+   plastic. Outlines at the pegs' own weight, gloss in the pegs' own white. */
+
+.gear {
+  pointer-events: none;
+}
+
+/* The family's base plastic: brims, domes, ties. */
+.gearShell {
+  fill: var(--gear-base);
+  stroke: var(--gear-dark);
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+
+/* The lighter tint, for pieces that read best bright: toque, straw crown,
+   goggle glass. */
+.gearLight {
+  fill: var(--gear-light);
+  stroke: var(--gear-dark);
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+
+/* Unstroked accents in the darker tone: brims' undersides, buttons, stalks. */
+.gearDark {
+  fill: var(--gear-dark);
+}
+
+/* Unstroked accents in the base tone: the toque's band, the clinic cross. */
+.gearTint {
+  fill: var(--gear-base);
+}
+
+/* The clinic cap's cloth: the pegs' own warm white, so the coloured cross
+   does the talking. */
+.gearWhite {
+  fill: #fffaf2;
+  stroke: var(--gear-dark);
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+
+/* The goggles' strap, drawn behind the lenses. */
+.gearStrap {
+  fill: none;
+  stroke: var(--gear-dark);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+/* The one specular the room's light leaves on a crown's left shoulder. */
+.gearGloss {
+  fill: #ffffff;
+  opacity: 0.75;
+}
+
 /* Past the cap the back seat carries a count instead of more heads. */
 .badgePlate {
   fill: var(--surface);

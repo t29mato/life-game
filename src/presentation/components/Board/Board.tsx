@@ -1242,6 +1242,10 @@ export function Board({
                     // promotion or a bad month re-renders the board, and the
                     // car's bodywork follows without anyone opening a menu.
                     wealthTier={wealthTier(estimateNetWorth(player, difficulty, edition), edition.economy)}
+                    // Likewise live: a hire at the fair or a mid-life switch
+                    // re-renders the board, and the driver peg is wearing the
+                    // new trade's gear by the next paint.
+                    careerIcon={player.career?.icon ?? null}
                     size={pawnSize}
                   />
                 )

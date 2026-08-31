@@ -279,6 +279,62 @@ describe('Pawn', () => {
     })
   })
 
+  describe("the driver's gear", () => {
+    // Same scoping bargain as the earned look: one car per render, queried
+    // through its own container.
+    function renderCar(props: Partial<PawnProps> = {}): HTMLElement {
+      mockReducedMotion(true)
+      const { container } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <svg>
+            <Pawn color="blue" restPosition={{ x: 0, y: 0 }} {...props} />
+          </svg>
+        </AudioProvider>,
+      )
+      return container.querySelector('[data-testid="pawn"]') as HTMLElement
+    }
+
+    // One trade per family, so every one of the eight accessories renders.
+    const wardrobe = [
+      ['career:pastry-chef', 'kitchen'],
+      ['career:rice-farmer', 'field'],
+      ['career:mechanic', 'works'],
+      ['career:bank-officer', 'office'],
+      ['career:manga-artist', 'studio'],
+      ['career:surgeon', 'care'],
+      ['career:professor', 'science'],
+      ['career:soccer-coach', 'pitch'],
+    ] as const
+
+    it.each(wardrobe)('dresses the driver for %s in the %s family', (icon, family) => {
+      const car = renderCar({ careerIcon: icon })
+      expect(car).toHaveAttribute('data-career-family', family)
+      expect(car.querySelectorAll(`[data-gear-family='${family}']`)).toHaveLength(1)
+    })
+
+    it('drives bare-headed before the first hire', () => {
+      const car = renderCar()
+      expect(car).not.toHaveAttribute('data-career-family')
+      expect(car.querySelector('[data-gear-family]')).toBeNull()
+    })
+
+    it('fails closed on an icon that names no trade', () => {
+      const car = renderCar({ careerIcon: 'space:big-promotion' })
+      expect(car).not.toHaveAttribute('data-career-family')
+      expect(car.querySelector('[data-gear-family]')).toBeNull()
+    })
+
+    it('dresses the driver alone, never the household', () => {
+      const car = renderCar({ careerIcon: 'career:surgeon', isMarried: true, childCount: 3 })
+      expect(car.querySelectorAll('[data-gear-family]')).toHaveLength(1)
+    })
+
+    it('keeps career out of the accessible description — that is the passengers’ story', () => {
+      const car = renderCar({ careerIcon: 'career:surgeon', name: 'Alice' })
+      expect(car).toHaveAttribute('aria-label', 'Alice, driving alone')
+    })
+  })
+
   describe('passengers', () => {
     function renderCar(props: { isMarried?: boolean; childCount?: number }): HTMLElement {
       mockReducedMotion(true)
