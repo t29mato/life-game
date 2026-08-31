@@ -549,7 +549,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   },
   {
     id: 'career-fr-aerospace-graduate',
-    title: 'Aerospace Graduate',
+    title: 'Junior Aerospace Engineer',
     salary: 62_000,
     raiseStep: 6_000,
     requiresDegree: true,

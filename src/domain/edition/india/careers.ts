@@ -553,7 +553,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   },
   {
     id: 'career-in-propulsion-graduate',
-    title: 'Propulsion Graduate',
+    title: 'Junior Propulsion Engineer',
     salary: 6_200_000,
     raiseStep: 600_000,
     requiresDegree: true,

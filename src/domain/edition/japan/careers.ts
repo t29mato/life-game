@@ -557,7 +557,7 @@ export const GRADUATE_CAREERS: readonly Career[] = [
   },
   {
     id: 'career-jp-robotics-graduate',
-    title: 'Robotics Graduate',
+    title: 'Junior Robotics Engineer',
     salary: 6_200_000,
     raiseStep: 600_000,
     requiresDegree: true,
