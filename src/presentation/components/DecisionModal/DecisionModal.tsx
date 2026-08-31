@@ -2,6 +2,9 @@ import { useRef, type CSSProperties, type KeyboardEvent, type ReactElement } fro
 import { motion } from 'framer-motion'
 import type { Board, Decision } from '@domain/model/types'
 import { GameIcon } from '../../icons/GameIcon'
+import { CareerPlaque } from '../CareerPlaque/CareerPlaque'
+import { isCareerIcon } from '../CareerPlaque/families'
+import { RollTable } from '../RollTable/RollTable'
 import { useAudio } from '../../hooks/useAudio'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
@@ -142,9 +145,18 @@ export function DecisionModal({
             const laneCharacter = lane ? summarizeLane(lane) : null
             const content = (
               <>
-                <span className={styles.optionEmoji} aria-hidden="true">
-                  <GameIcon name={option.icon} size={34} />
-                </span>
+                {/* A trade gets its full plaque — an option that offers a job
+                    should show the job, not a chip the size of a list row.
+                    Everything else keeps the quiet circled icon. */}
+                {isCareerIcon(option.icon) ? (
+                  <span aria-hidden="true">
+                    <CareerPlaque icon={option.icon} size={52} />
+                  </span>
+                ) : (
+                  <span className={styles.optionEmoji} aria-hidden="true">
+                    <GameIcon name={option.icon} size={34} />
+                  </span>
+                )}
                 <span className={styles.optionBody}>
                   <span className={styles.optionLabel}>{option.label}</span>
                   <span className={styles.optionDescription}>{option.description}</span>
@@ -153,22 +165,7 @@ export function DecisionModal({
                       real breakdown; `description` above stays the plain-
                       language framing and never repeats a row's own words. */}
                   {option.table && option.table.length > 0 ? (
-                    <table className={styles.optionTable}>
-                      <thead>
-                        <tr>
-                          <th scope="col">Roll</th>
-                          <th scope="col">Outcome</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {option.table.map((row) => (
-                          <tr key={row.range}>
-                            <td>{row.range}</td>
-                            <td>{row.amount}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <RollTable rows={option.table} compact />
                   ) : null}
                   {lane && lane.length > 0 ? (
                     <span className={styles.lanePreview}>

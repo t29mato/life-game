@@ -95,14 +95,8 @@
   text-shadow: 0 2px 3px color-mix(in srgb, var(--player-dark) 70%, transparent);
 }
 
-.pass {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--ink-soft);
-}
-
 .announce {
-  margin: 0.1rem 0 0.4rem;
+  margin: 0.1rem 0 0.5rem;
 }
 
 .name {

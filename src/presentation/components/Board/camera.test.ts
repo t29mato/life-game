@@ -7,6 +7,7 @@ import {
   cameraTransform,
   flythroughShots,
   focusShot,
+  handoffPanSeconds,
   restPoint,
   restShot,
   restSequence,
@@ -19,6 +20,7 @@ import {
   REST_ZOOM,
   RESOLVE_ZOOM,
   WIDE_SHOT_PADDING_TILES,
+  type CameraShot,
 } from './camera'
 
 function space(id: string, x: number, y: number, next: string[] = [], effect: SpaceEffect = { type: 'none' }): Space {
@@ -439,7 +441,9 @@ describe('restSequence', () => {
     expect(restSequence(model, projection, at, false)).toEqual([restShot(model, projection, at)])
   })
 
-  it('leads with a passing wide shot before the rest shot when a new player is handed the table', () => {
+  // Asked for on exactly one occasion now — the first settle of a board
+  // nobody has been framed on yet — a turn handoff pans directly instead.
+  it('leads with a passing wide shot before the rest shot when asked to establish', () => {
     const at = model.spaces['s4'] as Space
     expect(restSequence(model, projection, at, true)).toEqual([
       wideShot(projection, model),
@@ -453,6 +457,47 @@ describe('restSequence', () => {
       wideShot(projection, model),
       wideShot(projection, model),
     ])
+  })
+})
+
+/**
+ * The turn-handoff pan replaced a wide-shot-then-rest sequence, so its
+ * pacing has to answer for the same ground that sequence covered in two
+ * hops: neighbours get the ordinary considered move, a cross-board pan a
+ * slower, readable sweep — bounded, because past a point a slow camera
+ * stops feeling deliberate and starts holding the next turn hostage.
+ */
+describe('handoffPanSeconds', () => {
+  const base = 0.62
+  const shotAt = (cx: number, cy: number): CameraShot => ({ cx, cy, zoom: REST_ZOOM })
+
+  it('takes exactly the base move when the pan goes nowhere', () => {
+    expect(handoffPanSeconds(projection, shotAt(300, 300), shotAt(300, 300), base)).toBe(base)
+  })
+
+  it('stretches with the distance actually crossed', () => {
+    const near = handoffPanSeconds(projection, shotAt(300, 300), shotAt(300 + projection.pitch, 300), base)
+    const far = handoffPanSeconds(projection, shotAt(300, 300), shotAt(300 + projection.pitch * 6, 300), base)
+
+    expect(near).toBeGreaterThan(base)
+    expect(far).toBeGreaterThan(near)
+  })
+
+  it('never dips below the base, and never runs away with a cross-board pan', () => {
+    const enormous = handoffPanSeconds(projection, shotAt(0, 0), shotAt(100000, 100000), base)
+    const evenMore = handoffPanSeconds(projection, shotAt(0, 0), shotAt(500000, 500000), base)
+
+    // Capped: past the ceiling, further distance buys no further seconds.
+    expect(enormous).toBe(evenMore)
+    expect(enormous).toBeGreaterThan(base)
+    expect(enormous).toBeLessThan(base + 1)
+  })
+
+  it('measures the same pan the same in both directions', () => {
+    const from = shotAt(120, 400)
+    const to = shotAt(900, 180)
+
+    expect(handoffPanSeconds(projection, from, to, base)).toBe(handoffPanSeconds(projection, to, from, base))
   })
 })
 

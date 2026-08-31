@@ -37,6 +37,7 @@ import {
   takeLoan,
   tradeUpHouse,
 } from '@domain/rules/player'
+import { withBalanceAfter } from './balanceAfter'
 import {
   BANK_DECLINE_OPTION_ID,
   BANK_LOAN_OPTION_ID,
@@ -93,11 +94,15 @@ function outcomeEvent(
 /** Every non-branch decision lands the turn: the answer *is* the event. */
 function resolved(state: GameState, players: readonly Player[], event: LandingEvent, logMessage: string, tone: LogTone): GameState {
   const player = state.players[state.currentPlayerIndex]
+  // The one way out for every answered decision, so it is also the one place
+  // that needs to report the balance the answer left behind — `players` here
+  // is already the post-decision roster. See `withBalanceAfter`.
+  const settled = player ? withBalanceAfter(event, players, player.id) : event
   return {
     ...state,
     players,
     pendingDecision: null,
-    lastEvent: event,
+    lastEvent: settled,
     phase: 'resolved',
     movementPath: [],
     pendingPath: [],
@@ -181,10 +186,9 @@ function resolveCareerStay(
     player,
     'Staying Put',
     0,
-    [
-      `Still a ${staying.title}, on ${money(salaryRate(staying.salary, currency))} a ${salaryPeriod(currency)}.`,
-      'Every rung still above you is still yours to climb.',
-    ],
+    // The ladder they keep is the narration's whole point; the note carries
+    // the one thing it does not say — what the job actually pays.
+    [`Still a ${staying.title}, on ${money(salaryRate(staying.salary, currency))} a ${salaryPeriod(currency)}.`],
     'normal',
     `${player.name} turns them both down. They like it here, and there is further to go yet.`,
   )
@@ -226,15 +230,13 @@ function resolveCareerSpin(
    * the one you are on, or one rung shorter. Same money today, a different
    * ceiling. That is a real question and it costs the economy nothing.
    */
-  const notes = [
-    `Rolled a ${spinValue}.`,
-    `${player.name} becomes a ${taken.title}!`,
-    `${money(salaryRate(taken.salary, edition.currency))} every ${salaryPeriod(edition.currency)}.`,
-  ]
+  // The card prints the die itself and the narration names the job, so the
+  // only thing left to say is the wage.
+  const notes = [`${money(salaryRate(taken.salary, edition.currency))} every ${salaryPeriod(edition.currency)}.`]
 
   const narration = previous
-    ? `A ${spinValue}! Out with the old — ${player.name} leaves the ${previous.title} life behind to become a ${taken.title}.`
-    : `A ${spinValue}! ${player.name} is hired as a ${taken.title} — the paydays start counting now!`
+    ? `Out with the old — ${player.name} leaves the ${previous.title} life behind to become a ${taken.title}.`
+    : `${player.name} is hired as a ${taken.title} — the paydays start counting now!`
   const event = outcomeEvent(space, player, 'New Career', 0, notes, 'milestone', narration)
 
   return resolved(
@@ -261,7 +263,9 @@ function resolveHouse(state: GameState, optionId: string): GameState {
       player,
       'House Hunting',
       0,
-      [staying ? `Staying put in the ${staying.name}.` : 'Decided to keep renting for now.'],
+      // Nothing moved and nothing changed hands: the narration is the whole
+      // of it, and a note repeating it back was the only thing here.
+      [],
       'normal',
       staying
         ? `${player.name} likes the ${staying.name} just fine, thank you very much.`
@@ -285,9 +289,9 @@ function resolveHouse(state: GameState, optionId: string): GameState {
   const delta = updated.money - player.money
   const loansTaken = updated.loans - player.loans
 
-  const notes = previous
-    ? [`Traded the ${previous.name} for the ${house.name}.`, `Old home credited back at ${money(previous.price)}.`]
-    : [`Bought the ${house.name}!`]
+  // Which house, and which house it replaced, are the narration's own
+  // sentence — what it cannot say is what the old place was credited at.
+  const notes: string[] = previous ? [`Old home credited back at ${money(previous.price)}.`] : []
   if (loansTaken > 0) {
     notes.push(
       loanNote(loansTaken, economy.loanPrincipal, loanRepaymentFor(state.difficulty, edition), currency),
@@ -325,9 +329,9 @@ function resolveStock(state: GameState, optionId: string): GameState {
       player,
       'Trading Floor',
       0,
-      ['Kept the cash instead.'],
+      [],
       'normal',
-      `${player.name} keeps their money in their pocket. Cautious — but nobody ever lost it that way!`,
+      `${player.name} keeps their money in their pocket — nobody ever lost it that way.`,
     )
     return resolved(state, state.players, event, `${player.name} passes on the shares.`, 'info')
   }
@@ -383,7 +387,7 @@ function resolveInsurance(state: GameState, optionId: string): GameState {
       player,
       'Insurance Office',
       0,
-      ['Left the office uninsured.'],
+      [],
       'normal',
       `${player.name} takes the risk and walks out uninsured. Fingers crossed!`,
     )
@@ -413,7 +417,7 @@ function resolveInsurance(state: GameState, optionId: string): GameState {
     delta,
     notes,
     emphasisForMoney(delta, economy),
-    `${player.name} is covered! That premium could look very clever indeed before the night is out.`,
+    `${player.name} is covered, and that premium could look very clever before the game is out.`,
   )
 
   return resolved(
@@ -439,7 +443,7 @@ function resolveBank(state: GameState, optionId: string): GameState {
       player,
       'The Bank',
       0,
-      ['No business at the bank today.'],
+      [],
       'normal',
       `${player.name} walks straight past the bank. No debts, no drama.`,
     )
@@ -454,7 +458,9 @@ function resolveBank(state: GameState, optionId: string): GameState {
       player,
       'The Bank',
       delta,
-      [`Borrowed ${money(economy.loanPrincipal)}.`, `Now carrying ${updated.loans} loan${updated.loans > 1 ? 's' : ''}.`],
+      // How much was borrowed is on the delta plate and in the narration
+      // both; how deep the pile now is, is neither.
+      [`Now carrying ${updated.loans} loan${updated.loans > 1 ? 's' : ''}.`],
       emphasisForMoney(delta, economy),
       `${money(economy.loanPrincipal)} of the bank's money for ${player.name} — spend it well, it wants more back!`,
     )
@@ -476,10 +482,14 @@ function resolveBank(state: GameState, optionId: string): GameState {
       player,
       'The Bank',
       delta,
-      [
-        `Repaid one loan for ${money(earlySettlement)}.`,
-        updated.loans === 0 ? 'Debt free!' : `${updated.loans} loan${updated.loans > 1 ? 's' : ''} still outstanding.`,
-      ],
+      // "Debt free!" is the narration's line when the pile clears; the note
+      // only speaks when there is a pile left to count.
+      updated.loans === 0
+        ? [`Repaid one loan for ${money(earlySettlement)}.`]
+        : [
+            `Repaid one loan for ${money(earlySettlement)}.`,
+            `${updated.loans} loan${updated.loans > 1 ? 's' : ''} still outstanding.`,
+          ],
       emphasisForMoney(delta, economy),
       updated.loans === 0
         ? `Debt free! ${player.name} clears the last loan and walks out of that bank standing tall.`
@@ -510,16 +520,23 @@ function resolveTuitionSpin(
   const band = tuitionBandFor(economy.tuition.outcomes, spinValue)
   const updated = band.cost > 0 ? debitPlayer(player, band.cost, economy) : player
   const delta = updated.money - player.money
+  const loansTaken = updated.loans - player.loans
 
-  const notes = [
-    `Rolled a ${spinValue} — ${band.note}`,
-    band.cost > 0 ? `Tuition: ${money(band.cost)}` : 'No tuition due — a full ride.',
-  ]
-  const narration = `A ${spinValue} for ${player.name}. ${band.note}${
-    band.cost > 0 ? ` Tuition comes to ${money(band.cost)}.` : ' Tuition is waived entirely.'
-  }`
+  /*
+   * Three facts, one home each. The die is printed on the card itself; the
+   * band's own line is the colour and says it once; the bill gets a note of
+   * its own because it is the one number the delta plate cannot be trusted
+   * for — a player who cannot cover it is topped up by the bank, so the
+   * plate reads the cash that actually moved, not what the semester cost.
+   * That forced borrowing is the other thing worth saying, and until now
+   * this tile was the one debit on the board that never mentioned it.
+   */
+  const notes = [band.cost > 0 ? `Tuition: ${money(band.cost)}` : 'No tuition due — a full ride.']
+  if (loansTaken > 0) {
+    notes.push(loanNote(loansTaken, economy.loanPrincipal, loanRepaymentFor(state.difficulty, edition), edition.currency))
+  }
 
-  const event = outcomeEvent(space, player, 'Tuition Bill', delta, notes, emphasisForMoney(delta, economy), narration)
+  const event = outcomeEvent(space, player, 'Tuition Bill', delta, notes, emphasisForMoney(delta, economy), band.note)
   return resolved(
     state,
     replacePlayer(state.players, updated),
@@ -554,13 +571,13 @@ function resolvePromotionSpin(
       'Review',
       0,
       [
-        `Rolled a ${spinValue}, and ${needed} was the bar — the ${next.title} job goes to somebody else.`,
+        `${needed} was the bar — the ${next.title} job goes to somebody else.`,
         edition.currency.salaryDisplay
           ? raiseNote(career.salary, newSalary, edition.currency)
           : `A raise anyway: ${money(newSalary)}`,
       ],
       'normal',
-      `A ${spinValue}. Not this time, ${player.name} — but they find you a raise on the way out of the room.`,
+      `Not this time, ${player.name} — but they find you a raise on the way out of the room.`,
     )
     return resolved(
       state,
@@ -575,11 +592,11 @@ function resolvePromotionSpin(
   const twoAtOnce = spinValue >= DOUBLE_PROMOTION_SPIN ? nextRungOf(next, edition) : undefined
   if (twoAtOnce) promoted = promoteCareer(promoted, twoAtOnce)
   const arrived = promoted.career ?? next
+  // The narration names the rung arrived at, and the card prints the die
+  // that cleared the bar — so the notes carry the bar itself and the wage,
+  // which are the two things neither of those says.
   const notes = [
-    `Rolled a ${spinValue} against a bar of ${needed}.`,
-    twoAtOnce
-      ? `Two rungs in one morning: ${career.title} straight to ${arrived.title}.`
-      : `${career.title} no longer — you are a ${arrived.title}.`,
+    `Cleared the bar of ${needed}.`,
     `${money(salaryRate(arrived.salary, edition.currency))} every ${salaryPeriod(edition.currency)}.`,
   ]
   const event = outcomeEvent(
@@ -590,8 +607,8 @@ function resolvePromotionSpin(
     notes,
     'milestone',
     twoAtOnce
-      ? `A ${spinValue} — the top of the die! They skip a whole rung: ${player.name} is a ${arrived.title}, and the room is not sure what just happened.`
-      : `Promoted! ${player.name} is a ${arrived.title} now, on ${money(salaryRate(arrived.salary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
+      ? `The top of the die! They skip a whole rung: ${player.name} is a ${arrived.title}, and the room is not sure what just happened.`
+      : `Promoted! ${player.name} is a ${arrived.title} now.`,
   )
   return resolved(
     state,
@@ -626,13 +643,15 @@ function resolveMarriageSpin(
         player,
         'Wedding Day',
         0,
+        // The card prints the first ask; only the second one needs saying.
+        // The tiles are already dealt as their own chips above the notes,
+        // so listing their titles here said them twice on one card.
         [
-          `Rolled a ${asked}, then a ${askedAgain} — not this year, and not next year either.`,
+          `Asked again, rolled a ${askedAgain} — not this year, and not next year either.`,
           'Single, and the road ahead is entirely yours: children, Family Lane and every bonus on it are still open.',
-          ...tiles.map((tile) => tile.title),
         ],
         'milestone',
-        `A ${asked} and then a ${askedAgain}! No wedding for ${player.name} — so they spend the year on themselves instead, and it makes a far better story.`,
+        `No wedding for ${player.name} — so they spend the year on themselves instead, and it makes a far better story.`,
       ),
       lifeTilesGained: tiles,
     }
@@ -657,12 +676,11 @@ function resolveMarriageSpin(
 
   let players = state.players
   let mover = marryPlayer(player)
-  const notes: string[] = [
-    askedAgain !== null
-      ? `Rolled a ${asked}, asked again, rolled a ${askedAgain} — and this time, yes.`
-      : `Rolled a ${asked}.`,
-    outcome.note,
-  ]
+  // The first ask is printed on the card; a second one is a fact of its own
+  // and the only roll the card cannot show.
+  const notes: string[] = askedAgain !== null
+    ? [`Asked again, rolled a ${askedAgain} — and this time, yes.`, outcome.note]
+    : [outcome.note]
 
   for (const payer of payers) {
     players = replacePlayer(players, debitPlayer(payer, gift, economy))
@@ -717,20 +735,21 @@ function resolveHouseholdSpin(
   const updated = amount >= 0 ? creditPlayer(player, amount) : debitPlayer(player, -amount, economy)
   const delta = updated.money - player.money
 
-  const notes =
-    amount < 0
-      ? [`Rolled a ${spinValue} — the spending outran the account: ${money(delta)}`]
-      : amount === 0
-        ? [`Rolled a ${spinValue} — the account comes out exactly level.`]
-        : [`Rolled a ${spinValue} — two incomes carried it: ${money(delta)}`]
+  /*
+   * A statement whose every fact was said three times over: the roll on the
+   * card and again in both lines, the figure in the note, the narration and
+   * the delta plate. The die is printed above, the plate carries the money,
+   * and the narration says what kind of month it was — which leaves the
+   * notes nothing to add that is not already on screen.
+   */
   const narration =
     amount < 0
-      ? `A ${spinValue}, and your partner has been shopping, ${player.name}. ${money(delta)}.`
+      ? `Your partner has been shopping, ${player.name}. That is the month gone.`
       : amount === 0
-        ? `A ${spinValue}, and the joint account lands exactly where it started. Nobody wins that argument.`
-        : `A ${spinValue}! Two incomes and a good month — ${money(delta)} for ${player.name}.`
+        ? `The joint account lands exactly where it started. Nobody wins that argument.`
+        : `Two incomes and a good month for ${player.name}!`
 
-  const event = outcomeEvent(space, player, 'The Joint Account', delta, notes, emphasisForMoney(delta, economy), narration)
+  const event = outcomeEvent(space, player, 'The Joint Account', delta, [], emphasisForMoney(delta, economy), narration)
   return resolved(
     state,
     replacePlayer(state.players, updated),
@@ -834,9 +853,9 @@ function spinOutcome(
       player,
       'Roll',
       delta,
-      [space.effect.reason, `Rolled a ${spinValue} → ${money(gain)}`],
+      [space.effect.reason],
       emphasisForMoney(delta, economy),
-      `${player.name} rolls a ${spinValue} — and that is worth ${money(gain)}!`,
+      `And that is worth ${money(gain)} to ${player.name}!`,
     )
     return resolved(
       state,
@@ -872,7 +891,7 @@ function spinOutcome(
       player,
       'Gift Envelopes',
       delta,
-      [`Rolled a ${spinValue} → ${money(gain)}`],
+      [],
       emphasisForMoney(delta, economy),
       `The gift envelopes add up to ${money(gain)} for ${player.name}!`,
     )
@@ -891,14 +910,16 @@ function spinOutcome(
   const updated = payPlayerSalary(player, spinValue, economy)
   const delta = updated.money - player.money
   const kind = paydayKindOf(player)
+  // The note says how this player is paid at all — the standing fact, true
+  // every week. The narration says what *this* week came to, once.
   const notes =
     kind === 'casual'
-      ? ['Between jobs, so you pick up shifts.', `Rolled ${spinValue} → ${money(amount)}`]
-      : [`${player.career?.title ?? 'Your trade'} — no two weeks pay the same.`, `Rolled ${spinValue} → ${money(amount)}`]
+      ? ['Between jobs, so you pick up shifts.']
+      : [`${player.career?.title ?? 'Your trade'} — no two weeks pay the same.`]
   const narration =
     kind === 'casual'
-      ? `No job, but no wasted week either — ${player.name} picks up shifts and rolls ${spinValue} for ${money(amount)}.`
-      : `A ${spinValue} on the die, and that is what the week was worth: ${money(amount)} for ${player.name}.`
+      ? `No wasted week either — ${player.name} picks up shifts worth ${money(amount)}.`
+      : `That is what the week was worth: ${money(amount)} for ${player.name}.`
   const logMessage =
     kind === 'casual'
       ? `${player.name} picks up casual shifts, rolling ${spinValue}: ${money(amount)}.`
@@ -932,7 +953,7 @@ function resolveRetireEarly(state: GameState, optionId: string, deps: UseCaseDep
       player,
       'The Number',
       0,
-      ['One more year, then.'],
+      [],
       'normal',
       `${player.name} decides the number can wait. There is road left, and road pays.`,
     )
@@ -961,23 +982,30 @@ function resolveRetireEarly(state: GameState, optionId: string, deps: UseCaseDep
    * real one; the bonus figure is what answers "was it worth stopping",
    * which the net delta alone does not.
    */
-  const event = outcomeEvent(
-    space,
-    player,
-    'The Number',
-    delta,
-    [
-      `Bonus: ${money(payout)} (rolled a ${spin}).`,
-      `${money(economy.fireNumber)} went into the fund to get there.`,
-      `Retirement rank #${rank}, and every payday still on the road belongs to somebody else now.`,
-    ],
-    'milestone',
-    spin >= 5
-      ? `A ${spin}! The fund comes back at ${money(payout)} and ${player.name} never works another day. That is how it is done.`
-      : spin <= 2
-        ? `A ${spin}. The fund comes back at ${money(payout)} — less than went into it. ${player.name} stopped a year too soon, and there is no going back.`
-        : `${player.name} stops working for good. The fund returns ${money(payout)}, and that is retirement place number ${rank}.`,
-  )
+  const event: LandingEvent = {
+    ...outcomeEvent(
+      space,
+      player,
+      'The Number',
+      delta,
+      [
+        `Bonus: ${money(payout)}`,
+        `${money(economy.fireNumber)} went into the fund to get there.`,
+        `Retirement rank #${rank}, and every payday still on the road belongs to somebody else now.`,
+      ],
+      'milestone',
+      // The payout is a note of its own and the rank is another; what the
+      // narration is for is whether stopping here was the right call.
+      spin >= 5
+        ? `The fund comes back well ahead and ${player.name} never works another day. That is how it is done.`
+        : spin <= 2
+          ? `The fund comes back at less than went into it. ${player.name} stopped a year too soon, and there is no going back.`
+          : `${player.name} stops working for good. No more paydays — and no more bills either.`,
+    ),
+    // This roll never passes through `resolveSpinOutcome`, so the mark that
+    // lets the card print its own die has to be stamped here by hand.
+    rolled: spin,
+  }
 
   return resolved(
     state,

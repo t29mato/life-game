@@ -971,6 +971,14 @@ export function ridges(board: Board, projection: BoardProjection): readonly Ridg
 
 export interface RouteStrand {
   readonly id: string
+  /**
+   * The lane this strand renders — `BoardLane`'s own id. A junction with
+   * several approaches draws one strand per approach, all carrying the same
+   * lane; this is how anything that has to treat a whole road as one thing
+   * (the chosen-fork highlight in `Board.tsx`) finds every ribbon of it
+   * without parsing the strand id back apart.
+   */
+  readonly laneId: string
   readonly path: string
   /** The tile centres the strand runs through, in order. */
   readonly points: readonly Point[]
@@ -1020,6 +1028,7 @@ export function routeStrands(
         )
         return {
           id: `${entry?.id ?? 'in'}>${lane.id}>${exit?.id ?? 'out'}`,
+          laneId: lane.id,
           path: roundedPolyline(points, projection.pitch * 0.62),
           points,
         }

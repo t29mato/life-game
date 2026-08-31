@@ -150,6 +150,19 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
           <h2 id="event-card-title" className={styles.title}>
             {event.title}
           </h2>
+          {/* The die that decided this card, shown once and structurally.
+              Every wheel-decided handler used to write "Rolled a 4." into
+              `notes` *and* open its narration with "A 4!", so the same
+              number reached the player twice in two voices. `rolled` is
+              already on the event — the die the player watched land was
+              thrown from it — so the card reads it straight rather than
+              asking each handler to spell it out again. */}
+          {event.rolled !== undefined ? (
+            <p className={styles.rolled}>
+              <span className={styles.rolledLabel}>Rolled</span>
+              <span className={styles.rolledFace}>{event.rolled}</span>
+            </p>
+          ) : null}
           {event.narration ? <p className={styles.narration}>&ldquo;{event.narration}&rdquo;</p> : null}
           <p className={styles.description}>{event.description}</p>
 
@@ -166,6 +179,21 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
                 duration={0.7}
               />
             </div>
+          ) : null}
+
+          {/* Where that leaves them. The plate says how much moved and says it
+              loudly; this says what is actually in the wallet now, which is
+              the question a player is really asking and the one the plate
+              cannot answer alone — a debit larger than the wallet takes an
+              automatic loan, so the cash does not land where subtracting the
+              plate would put it. Deliberately quiet and second: it is context
+              for the number above, not a rival to it. "Cash" because that is
+              what the strip and the status sheet call this same figure. */}
+          {event.balanceAfter !== undefined ? (
+            <p className={styles.balance}>
+              <span className={styles.balanceLabel}>Cash</span>
+              <span className={`${styles.balanceValue} tabular-num`}>{money(event.balanceAfter)}</span>
+            </p>
           ) : null}
 
           {event.transfers && event.transfers.length > 0 ? (

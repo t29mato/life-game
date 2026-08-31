@@ -25,7 +25,7 @@ const ROUNDS: Readonly<Record<Difficulty, number>> = {
 const HUMAN_TURN_SECONDS: readonly [number, number] = [20, 30]
 
 /** The die's roll and settle (`Dice.tsx` `rollDuration` + `settleDuration`). */
-const DIE_SECONDS = 0.85 + 0.32
+const DIE_SECONDS = 1.4 + 0.42
 
 /** One pawn hop (`Pawn.tsx` `hopDuration`) times the die's average roll of 3.5. */
 const TRAVEL_SECONDS = 3.5 * 0.32

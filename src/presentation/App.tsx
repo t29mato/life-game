@@ -694,6 +694,11 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                 phase={state.phase}
                 movementPath={dieSettled ? state.movementPath : []}
                 pendingHops={dieSettled ? state.pendingPath.length : 0}
+                /* Withheld exactly like movementPath: the store names the
+                   chosen road the instant the fork roll is dispatched, and a
+                   road lighting up while the die is still tumbling gives away
+                   the number it is tumbling towards. */
+                chosenExitId={dieSettled ? state.chosenExit : null}
                 onMovementComplete={handleMovementComplete}
                 onSpacesLeftChange={setSpacesLeft}
                 introFlythrough={introPending}
@@ -911,7 +916,6 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
             player={activePlayer}
             turn={state.turn}
             rank={standings.get(activePlayer.id)?.rank ?? state.players.length}
-            totalPlayers={state.players.length}
             onReady={handleHandoffReady}
           />
         )}

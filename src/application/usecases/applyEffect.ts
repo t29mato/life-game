@@ -11,6 +11,7 @@ import type {
   Money,
   MoneyTransfer,
   Player,
+  RollTableRow,
   Space,
   Stock,
 } from '@domain/model/types'
@@ -45,6 +46,7 @@ import {
   setMoney,
   totalShares,
 } from '@domain/rules/player'
+import { withBalanceAfter } from './balanceAfter'
 import { formatMoney, loanNote, paydayReceipt, raiseNote, salaryPeriod, salaryRate } from './format'
 import { appendLog } from './logging'
 import { collectPaydays } from './payday'
@@ -207,10 +209,7 @@ function baseEvent(
  * Data, not a sentence: the presentation layer renders this as a table
  * rather than a player having to parse a comma-joined string themselves.
  */
-function tuitionBands(
-  tuition: TuitionSpec,
-  currency: CurrencySpec,
-): readonly { readonly range: string; readonly amount: string }[] {
+function tuitionBands(tuition: TuitionSpec, currency: CurrencySpec): readonly RollTableRow[] {
   const money = (amount: Money): string => formatMoney(amount, currency)
   let previousUpTo = 0
   return tuition.outcomes.map((band) => {
@@ -251,17 +250,19 @@ function careerOfferSummary(career: Career, currency: CurrencySpec, edition: Edi
  * The two offers, as table rows instead of a sentence — `LOW_HALF`/
  * `HIGH_HALF` name which side of the die each one is on, exactly the way
  * `resolveForkBranch` splits a fork, so a player scans two rows rather than
- * parsing "1-3: X. 4-6: Y." out of prose.
+ * parsing "1-3: X. 4-6: Y." out of prose. Each row carries the trade's own
+ * portrait: two jobs on the same money are told apart by what the work looks
+ * like, and a fair whose rows are prose alone is a fair with no booths.
  */
 function careerOfferTable(
   first: Career,
   second: Career,
   currency: CurrencySpec,
   edition: Edition,
-): readonly { readonly range: string; readonly amount: string }[] {
+): readonly RollTableRow[] {
   return [
-    { range: LOW_HALF, amount: careerOfferSummary(first, currency, edition) },
-    { range: HIGH_HALF, amount: careerOfferSummary(second, currency, edition) },
+    { range: LOW_HALF, amount: careerOfferSummary(first, currency, edition), icon: first.icon },
+    { range: HIGH_HALF, amount: careerOfferSummary(second, currency, edition), icon: second.icon },
   ]
 }
 
@@ -312,7 +313,22 @@ function tileValueOf(player: Player): Money {
 }
 
 /** Resolves the `SpaceEffect` of `space` for the current player. Pure; never mutates its inputs. */
+/**
+ * Resolves a landing, then stamps the balance it left the player holding.
+ *
+ * The switch below is long enough that "every branch remembers to report the
+ * new balance" is not a rule that survives contact with the next effect
+ * anybody adds. So no branch does: they each return the state they produced,
+ * and the balance is read off it here, once, on the single way out.
+ */
 export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): EffectResult {
+  const actingPlayerId = state.players[state.currentPlayerIndex]?.id
+  const result = resolveEffect(state, space, deps)
+  if (actingPlayerId === undefined) return result
+  return { ...result, event: withBalanceAfter(result.event, result.state.players, actingPlayerId) }
+}
+
+function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): EffectResult {
   const player = state.players[state.currentPlayerIndex]
   if (!player) throw new Error('applyEffect: no current player')
 
@@ -342,10 +358,19 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       const updated = creditPlayer(player, effect.amount)
       const delta = updated.money - player.money
       const emphasis = emphasisOf(delta)
+      /*
+       * A routine credit gets one clause, not two. "A little extra for X.
+       * Every dollar counts at the end!" was a whole second sentence spent
+       * saying nothing the plate had not already said louder — and, said
+       * over a tile whose own description called the money enormous, it
+       * argued with the card it was printed on. Commentary about the act of
+       * collecting travels safely over any tile; commentary about the size
+       * of the sum is the plate's job, and only the `big` line takes it.
+       */
       const narration =
         emphasis === 'big'
           ? `${money(delta)} into ${player.name}'s pocket — that is a serious jump up the board!`
-          : `A little extra for ${player.name}. Every dollar counts at the end!`
+          : `Straight into ${player.name}'s pocket.`
       const event = baseEvent(space, delta, [effect.reason], emphasis, narration)
       const log = appendLog(
         state,
@@ -360,7 +385,9 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       // The whole point of a premium: a covered player watches the bill go by.
       if (effect.hazard && isCoveredAgainst(player, effect.hazard)) {
         const policy = HAZARD_POLICY[effect.hazard]
-        const notes = [effect.reason, `Your ${INSURANCE_LABELS[policy].toLowerCase()} covers it — you pay nothing.`]
+        // "You pay nothing" is the narration's own line — the note is here
+        // to name *which* policy just earned its premium back.
+        const notes = [effect.reason, `Your ${INSURANCE_LABELS[policy].toLowerCase()} covers it.`]
         const event = baseEvent(
           space,
           0,
@@ -386,7 +413,9 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       const narration =
         emphasis === 'big'
           ? `Ouch! ${money(Math.abs(delta))} straight out of ${player.name}'s wallet.`
-          : `A small bill for ${player.name} — nothing the next payday won't fix.`
+          // No promise about the next payday: this line runs over bills the
+          // player has no payday coming to fix.
+          : `${player.name} settles it and walks on.`
       const event = baseEvent(space, delta, notes, emphasis, narration)
       const log = appendLog(
         state,
@@ -409,9 +438,13 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           delta,
-          [`Payday! ${paydayReceipt(delta, currency)}`],
+          // Only where the receipt is actually working — the rate times the
+          // periods it adds up over. An edition that reads salary as one
+          // lump has no working to show, and printing the lump again under
+          // the plate that already shouts it is not a note, it is an echo.
+          currency.salaryDisplay ? [paydayReceipt(delta, currency)] : [],
           emphasisOf(delta),
-          `Payday! ${player.name} clocks out ${money(delta)} richer.`,
+          `Payday — ${player.name} clocks out with the packet in hand.`,
         )
         const log = appendLog(state, player.id, `${player.name} collects payday: ${paydayReceipt(delta, currency)}.`, 'money-in')
         return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
@@ -447,7 +480,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          ['No job yet — no raise to give.'],
+          [],
           'normal',
           `Hard to get a raise with no job. Better luck at the next career fair, ${player.name}!`,
         )
@@ -510,7 +543,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          [effect.reason, 'No job yet — nothing to be promoted out of.'],
+          [effect.reason],
           'normal',
           `Hard to be promoted with no job. Get hired first, ${player.name}!`,
         )
@@ -532,10 +565,11 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
           ...baseEvent(
             space,
             0,
+            // The tiles are dealt as their own chips further up the card;
+            // listing their titles here printed each of them twice.
             [
               effect.reason,
               `There is no rung above ${career.title}, and there was never going to be.`,
-              ...tiles.map((tile) => tile.title),
               raiseNote(career.salary, newSalary, currency),
             ],
             'milestone',
@@ -564,9 +598,11 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          [effect.reason, `Nobody above you to be promoted past.`, raiseNote(career.salary, newSalary, currency)],
+          // "Nobody above you" is exactly what "already runs the place"
+          // says, and the new pay is the raise note's own job.
+          [effect.reason, raiseNote(career.salary, newSalary, currency)],
           'big',
-          `${player.name} already runs the place — so they simply write themselves a better number. Pay is now ${money(salaryRate(newSalary, currency))} a ${salaryPeriod(currency)}!`,
+          `${player.name} already runs the place — so they simply write themselves a better number.`,
         )
         const log = appendLog(
           state,
@@ -612,7 +648,9 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         ...baseEvent(
           space,
           0,
-          tiles.map((tile) => tile.title),
+          // `lifeTilesGained` below already deals these onto the card as
+          // chips, icon and all — a note per title was the same list twice.
+          [],
           'normal',
           `${player.name} picks up a LIFE tile — those all count at the very end!`,
         ),
@@ -673,7 +711,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          ['Already married, and still very pleased about it.'],
+          [],
           'normal',
           `${player.name} is already spoken for. They wave at the happy couple and walk on.`,
         )
@@ -717,7 +755,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          [effect.reason, 'Nobody else on the account, so nobody else to blame.'],
+          [effect.reason],
           'normal',
           `${player.name} answers to nobody about money this month.`,
         )
@@ -786,8 +824,8 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       const offered = deps.random.shuffle(edition.houses).slice(0, 3)
       const decision: Decision = {
         kind: 'house',
-        prompt: 'Pick a home to buy',
-        options: houseDecisionOptions(offered, 'Keep renting for now', 'Skip buying a house this turn.', currency),
+        prompt: 'Buy a home now, sell it again at retirement',
+        options: houseDecisionOptions(offered, 'Keep renting for now', 'Keep the cash, and own nothing to sell at retirement.', currency),
       }
       const event = baseEvent(space, 0, [], 'normal', `Time to go house hunting, ${player.name}. Pick a front door!`)
       const log = appendLog(state, player.id, `${player.name} is house hunting.`, 'event')
@@ -804,10 +842,10 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const debited = debitPlayer(payer, effect.amount, economy)
         players = replacePlayer(players, debited)
         mover = creditPlayer(mover, effect.amount)
-        // Whose money moved, how much, and what it left them with — the same
-        // three facts a table would want read out loud watching cash change
-        // hands for real.
-        notes.push(`${payer.name} pays you ${money(effect.amount)} — down to ${money(debited.money)}.`)
+        // The lane above already flies the coin between the two names and
+        // prints the amount on the end of it. What it cannot show is where
+        // the payer was left, which is the half a table actually argues over.
+        notes.push(`${payer.name} is down to ${money(debited.money)}.`)
         transfers.push({ playerId: payer.id, playerName: payer.name, playerColor: payer.color, amount: -effect.amount })
       }
       players = replacePlayer(players, mover)
@@ -841,7 +879,9 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         mover = debitPlayer(mover, effect.amount, economy)
         const credited = creditPlayer(recipient, effect.amount)
         players = replacePlayer(players, credited)
-        notes.push(`You pay ${recipient.name} ${money(effect.amount)} — up to ${money(credited.money)}.`)
+        // Same division as `collectFromEach`: the lane carries the amount,
+        // the note carries where it left them.
+        notes.push(`${recipient.name} is up to ${money(credited.money)}.`)
         transfers.push({
           playerId: recipient.id,
           playerName: recipient.name,
@@ -900,7 +940,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         0,
         [`Retirement rank #${rank}`],
         'milestone',
-        `${player.name} retires in position number ${rank}! Feet up, the hard part is over.`,
+        `${player.name} is home free! Feet up, the hard part is over.`,
       )
       const log = appendLog(state, player.id, `${player.name} retires!`, 'milestone')
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
@@ -1065,7 +1105,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          [effect.reason, 'Already out of work — nothing left to lose.'],
+          [effect.reason],
           'normal',
           `You cannot lose a job you never had. ${player.name} shrugs and walks on.`,
         )
@@ -1083,7 +1123,9 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          [effect.reason, `Nobody can take a ${player.career.title} away from you. The work is yours.`],
+          // The narration already says they cannot be laid off; the note is
+          // here for the title that survived it.
+          [effect.reason, `Still a ${player.career.title}, and nobody can take that away.`],
           'big',
           `They cannot lay ${player.name} off — this is a calling, and it does not come with a badge to hand back.`,
         )
@@ -1102,10 +1144,9 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       const event = baseEvent(
         space,
         0,
-        [
-          effect.reason,
-          `No longer a ${lost} — until somebody hires you, a payday is whatever shifts you can pick up: ${money(economy.casualWagePerPip)} a pip.`,
-        ],
+        // That every payday is shift work now is the narration's line; what
+        // it cannot say is the job that was lost and what a shift is worth.
+        [effect.reason, `No longer a ${lost}. Shifts pay ${money(economy.casualWagePerPip)} a pip.`],
         'milestone',
         `Laid off! ${player.name} is out of work — from here every payday is shift work, and the wheel decides how good the week was.`,
       )
@@ -1135,11 +1176,11 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         {
           id: DECLINE_STOCK_OPTION_ID,
           label: 'Keep your cash',
-          description: 'Walk past the trading floor this turn.',
+          description: 'Nothing spent, and nothing paying out at retirement either.',
           icon: 'finance:trading-floor',
         },
       ]
-      const decision: Decision = { kind: 'stock', prompt: 'Buy a share?', options }
+      const decision: Decision = { kind: 'stock', prompt: 'Buy in now for a payout at retirement?', options }
       const event = baseEvent(
         space,
         0,
@@ -1157,7 +1198,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          [effect.reason, 'No shares held — nothing to collect.'],
+          [effect.reason],
           'normal',
           `Dividend day, but ${player.name} does not own a single share. Nothing to collect!`,
         )
@@ -1189,7 +1230,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          ['Already covered on every policy offered here.'],
+          [],
           'normal',
           `${player.name} is already covered on everything on offer. Walk on!`,
         )
@@ -1208,11 +1249,11 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         {
           id: DECLINE_INSURANCE_OPTION_ID,
           label: 'Take the risk',
-          description: 'Leave the office uninsured this turn.',
+          description: 'Keep the premium, and pay the whole bill yourself if the worst turns up.',
           icon: 'finance:insurance-office',
         },
       ]
-      const decision: Decision = { kind: 'insurance', prompt: 'Take out a policy?', options }
+      const decision: Decision = { kind: 'insurance', prompt: 'A premium now, or the whole bill if it happens?', options }
       const event = baseEvent(
         space,
         0,
@@ -1234,7 +1275,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         {
           id: BANK_LOAN_OPTION_ID,
           label: 'Take out a loan',
-          description: `Borrow ${money(economy.loanPrincipal)} now and pay back ${money(settlement)} at retirement.`,
+          description: `Borrow ${money(economy.loanPrincipal)} now and pay back ${money(settlement)} at retirement — cash in hand for a house, shares, or a bill you cannot cover.`,
           icon: 'finance:bank-visit',
           detail: `+${money(economy.loanPrincipal)}`,
         },
@@ -1244,7 +1285,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         options.push({
           id: BANK_REPAY_OPTION_ID,
           label: 'Repay a loan early',
-          description: `Clear one loan now for ${money(earlySettlement)}, instead of ${money(settlement)} at retirement.`,
+          description: `Clear one loan now for ${money(earlySettlement)} instead of ${money(settlement)} at retirement — ${money(settlement - earlySettlement)} that stays in your final total.`,
           icon: 'finance:bank-visit',
           detail: `-${money(earlySettlement)}`,
         })
@@ -1252,10 +1293,13 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       options.push({
         id: BANK_DECLINE_OPTION_ID,
         label: 'Walk on by',
-        description: 'Leave the bank without borrowing or repaying.',
+        description: 'No cash today, and nothing new owed at retirement.',
         icon: 'finance:bank-visit',
       })
-      const decision: Decision = { kind: 'bank', prompt: 'Business at the bank?', options }
+      // The prompt carries the trade, not just the address: a player who has
+      // never seen this tile should be able to weigh it without already
+      // knowing what a loan costs here.
+      const decision: Decision = { kind: 'bank', prompt: 'Cash now, or a smaller bill at retirement?', options }
       const event = baseEvent(
         space,
         0,
@@ -1274,7 +1318,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          [effect.reason, 'No children — no bill to pay.'],
+          [effect.reason],
           'normal',
           `No children, no bill. ${player.name} strolls straight past this one.`,
         )
@@ -1292,7 +1336,9 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         delta,
         notes,
         emphasisOf(delta),
-        `${player.children} children, ${money(owed)} out the door. Family life is not cheap!`,
+        // The note carries the multiplication, so the narration need only
+        // land the total once.
+        `${money(owed)} out the door. Family life is not cheap!`,
       )
       const log = appendLog(
         state,
@@ -1308,7 +1354,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          [effect.reason, 'No children — nothing to claim.'],
+          [effect.reason],
           'normal',
           `No children to claim for, so nothing for ${player.name} this time.`,
         )
@@ -1323,7 +1369,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         delta,
         [effect.reason, `${player.children} × ${money(effect.amount)}`],
         emphasisOf(delta),
-        `${player.children} children means ${money(gained)} in — the family pays off this time!`,
+        `That is ${money(gained)} in — the family pays off this time!`,
       )
       const log = appendLog(
         state,
@@ -1343,7 +1389,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          [effect.reason, 'Nothing to end — nobody to separate from.'],
+          [effect.reason],
           'normal',
           `${player.name} has nobody to separate from. They walk on.`,
         )
@@ -1367,7 +1413,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         delta,
         notes,
         emphasisOf(delta),
-        `${player.name}'s marriage ends. ${money(economy.divorceSettlement)} settled, and the house is quieter than it was.`,
+        `${player.name}'s marriage ends, and the house is a good deal quieter than it was.`,
       )
       const log = appendLog(state, player.id, `${player.name} divorces and pays a ${money(economy.divorceSettlement)} settlement.`, 'event')
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
@@ -1382,11 +1428,10 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       )
 
       if (!leader || leader.money <= player.money) {
-        const notes = [effect.reason, leader ? 'Nobody is holding more — nothing to swap.' : 'Nobody left to swap with.']
         const event = baseEvent(
           space,
           0,
-          notes,
+          [effect.reason],
           'normal',
           leader
             ? `${player.name} is already out in front, so there is nothing to swap!`
@@ -1403,7 +1448,9 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         ...baseEvent(
           space,
           delta,
-          [effect.reason, `Swapped wallets with ${leader.name}: ${money(player.money)} ↔ ${money(leader.money)}`],
+          // Whose wallet, and how much of a jump it is, are the narration's
+          // and the lane's; the note is the two figures that traded places.
+          [effect.reason, `Wallets swapped: ${money(player.money)} ↔ ${money(leader.money)}`],
           'big',
           `Swap! ${player.name} takes ${leader.name}'s wallet, and the whole board just changed shape!`,
         ),
@@ -1429,7 +1476,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          [effect.reason, 'Nobody else is holding a LIFE tile.'],
+          [effect.reason],
           'normal',
           `Nobody else is holding a LIFE tile, so ${player.name} leaves empty-handed.`,
         )
@@ -1444,7 +1491,10 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         ...baseEvent(
           space,
           0,
-          [effect.reason, `Took "${tile.title}" from ${victim.name} (${money(tile.value)})`],
+          // Which tile, and off whom, are the narration's own sentence — and
+          // the tile itself is dealt as a chip above. What neither shows is
+          // what it will be worth at the final count.
+          [effect.reason, `Worth ${money(tile.value)} at the final count.`],
           'big',
           `${player.name} swipes "${tile.title}" right out of ${victim.name}'s hands!`,
         ),
@@ -1466,13 +1516,13 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const offered = deps.random.shuffle(edition.houses).slice(0, 3)
         const decision: Decision = {
           kind: 'house',
-          prompt: 'No home to trade up — buy your first?',
-          options: houseDecisionOptions(offered, 'Keep renting for now', 'Skip buying a house this turn.', currency),
+          prompt: 'Nothing to trade up — buy your first, and sell it at retirement?',
+          options: houseDecisionOptions(offered, 'Keep renting for now', 'Keep the cash, and own nothing to sell at retirement.', currency),
         }
         const event = baseEvent(
           space,
           0,
-          ['No home to trade up from yet.'],
+          [],
           'normal',
           `No home to upgrade yet, so let's go shopping instead, ${player.name}!`,
         )
@@ -1485,7 +1535,7 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
         const event = baseEvent(
           space,
           0,
-          [`The ${current.name} is already the finest home on the board.`],
+          [],
           'normal',
           `There is nothing left to trade up to — ${player.name} already owns the best address in town!`,
         )
@@ -1496,11 +1546,11 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
       const offered = deps.random.shuffle(better).slice(0, 3)
       const decision: Decision = {
         kind: 'house',
-        prompt: `Trade up from the ${current.name}?`,
+        prompt: `Trade up from the ${current.name}? A dearer house sells for more`,
         options: houseDecisionOptions(
           offered,
           `Stay in the ${current.name}`,
-          'Keep the home you have and move on.',
+          'Keep the home you have, and whatever it already sells for at retirement.',
           currency,
         ),
       }

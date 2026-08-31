@@ -11,7 +11,6 @@ export interface TurnHandoffProps {
   readonly player: Player
   readonly turn: number
   readonly rank: number
-  readonly totalPlayers: number
   readonly onReady: () => void
 }
 
@@ -21,7 +20,7 @@ export interface TurnHandoffProps {
  * what stops a player from missing their own turn — it is impossible to
  * mistake for anything but a full stop.
  */
-export function TurnHandoff({ player, turn, rank, totalPlayers, onReady }: TurnHandoffProps): ReactElement {
+export function TurnHandoff({ player, turn, rank, onReady }: TurnHandoffProps): ReactElement {
   // No `onEscape`: there is no valid way to cancel a handoff.
   const containerRef = useModalFocusTrap<HTMLDivElement>()
   const reduceMotion = usePrefersReducedMotion()
@@ -58,17 +57,20 @@ export function TurnHandoff({ player, turn, rank, totalPlayers, onReady }: TurnH
           <span className={styles.avatarInitial}>{player.name.charAt(0).toUpperCase()}</span>
         </div>
 
-        <p className={styles.pass}>Pass the device to</p>
-        {/* aria-live so screen-reader users hear who is up without hunting for it. */}
+        {/* The name carries this screen on its own. A "Pass the device to"
+            line above it only narrated what the pawn, the colour wash and the
+            name in display type had already said louder than a sentence can.
+            aria-live so screen-reader users hear who is up without hunting. */}
         <p className={styles.announce} aria-live="polite">
           <span id="handoff-name" className={styles.name}>
             {player.name}
           </span>
         </p>
 
-        <p className={styles.rank}>
-          In {formatOrdinal(rank)} place of {totalPlayers}
-        </p>
+        {/* Just the place. The field size is on the strip behind this card,
+            and a player counting themselves against it mid-handoff never was
+            the point — where they stand is. */}
+        <p className={styles.rank}>{formatOrdinal(rank)} place</p>
 
         <div className={styles.action}>
           <ChunkyButton variant="primary" size="lg" fullWidth onClick={onReady}>

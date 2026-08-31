@@ -113,11 +113,12 @@ export interface TransferLaneProps {
  * One coin, travelling the table between "You" and whoever else's balance
  * this landing just moved — Mario-Party-style money-changes-hands, minus
  * the sprite budget: a single `Coin` slides along a straight line between
- * two colour-coded ends, landing on whichever side gained. The existing
- * note this pairs with (`"X pays you $Y — down to $Z"`) is the source of
- * truth for the amount and direction; this only ever restates what that
- * note already says, on its own delay so a `payEach` reads as a queue of
- * individual payments rather than one blur.
+ * two colour-coded ends, landing on whichever side gained. `transfers` is
+ * the source of truth for the amount and direction, and the lane is where
+ * a player reads them — the note it pairs with says only where the money
+ * left that player standing (`"X is down to $Z"`), so the two halves of
+ * the fact are told once each rather than both twice. On its own delay, so
+ * a `payEach` reads as a queue of individual payments rather than one blur.
  */
 export function TransferLane({ entry, format, delay, flightKey }: TransferLaneProps): ReactElement {
   const reduceMotion = usePrefersReducedMotion()

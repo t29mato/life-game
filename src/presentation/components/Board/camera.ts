@@ -372,13 +372,18 @@ export function restShot(
  * The shots the camera plays through to settle at rest.
  *
  * Ordinarily that is just the rest shot itself — a small adjustment from
- * wherever the camera already was. But the first moment a *new* player is
- * handed the table, a rest shot alone would just zoom them straight in on
- * wherever their car already sits, with no sense of where that is in the
- * board as a whole. `establishing` asks for a brief passing wide shot first,
- * so the player sees the whole route for a beat before the camera commits to
- * their corner of it — the one moment this game spends its zoom budget on
- * orientation instead of legibility.
+ * wherever the camera already was. `establishing` asks for a brief passing
+ * wide shot first, so the player sees the whole route for a beat before the
+ * camera commits to their corner of it — the one moment this game spends its
+ * zoom budget on orientation instead of legibility.
+ *
+ * It used to play on every turn handoff, and that was the reported problem:
+ * between two players the camera visibly fell back to the centre of the map
+ * before finding the next one, which read as the camera losing its place
+ * rather than as orientation. A handoff now pans straight from one player to
+ * the other — see `handoffPanSeconds` for its pacing — and `establishing` is
+ * kept for the one moment nobody has been framed yet: a game just loaded,
+ * where the camera genuinely has no place to lose.
  */
 export function restSequence(
   board: Board,
@@ -392,6 +397,32 @@ export function restSequence(
     ? restShot(board, projection, space, containerAspect)
     : wideShot(projection, board, playerPoints, containerAspect)
   return establishing ? [wideShot(projection, board, playerPoints, containerAspect), rest] : [rest]
+}
+
+/** Extra seconds a handoff pan takes per tile of ground it crosses. */
+const PAN_SECONDS_PER_TILE = 0.05
+/** The most a long pan may stretch past its base — a ceiling, not a target. */
+const PAN_STRETCH_MAX_SECONDS = 0.7
+
+/**
+ * Seconds a turn-handoff pan takes: `base` — the ordinary considered camera
+ * move — for players parked beside each other, stretching with the distance
+ * actually crossed so a pan over the whole board reads as travel rather than
+ * as a whip. Capped, because past a point a slower camera stops feeling
+ * deliberate and starts holding the next player's turn hostage.
+ *
+ * Measured between shot centres in board space, not screen pixels: the pan
+ * replaces what used to be a wide-shot-then-rest sequence, and its pacing has
+ * to answer for the same ground that sequence covered in two hops.
+ */
+export function handoffPanSeconds(
+  projection: BoardProjection,
+  from: CameraShot,
+  to: CameraShot,
+  base: number,
+): number {
+  const tiles = Math.hypot(to.cx - from.cx, to.cy - from.cy) / projection.pitch
+  return clamp(base + tiles * PAN_SECONDS_PER_TILE, base, base + PAN_STRETCH_MAX_SECONDS)
 }
 
 /**

@@ -198,6 +198,43 @@
   }
 }
 
+/* ---- The die that decided it -----------------------------------------------
+   A sunken chip cut into the card, the same recessed treatment the spin
+   modal's outcome table uses, so the roll reads as a printed record of the
+   throw rather than one more sentence to parse. */
+.rolled {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.28rem 0.28rem 0.28rem 0.75rem;
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 1px 3px rgba(92, 70, 34, 0.14);
+}
+
+.rolledLabel {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.rolledFace {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.55rem;
+  height: 1.55rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--card-tone-edge);
+  font-size: 0.98rem;
+  font-weight: 800;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  color: var(--card-tone-ink);
+}
+
 /* ---- Host narration: a line of commentary, distinct from the space's own
    description --------------------------------------------------------------- */
 .narration {
@@ -394,6 +431,34 @@
 /* One row per player whose balance this landing moved — the coin's own
    flight sits above `.notes`, which still spells out the same fact in
    words underneath. */
+/*
+ * The wallet, under the plate. Same label-then-value shape as the die above
+ * it, and deliberately a size down from the delta: this is the answer to
+ * "where does that leave me", which is context for the big number, never
+ * competition with it.
+ */
+.balance {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin: 0.15rem 0 0.1rem;
+}
+
+.balanceLabel {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.balanceValue {
+  font-size: 1.02rem;
+  font-weight: 800;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  color: var(--ink-soft);
+}
+
 .transferLanes {
   display: flex;
   flex-direction: column;

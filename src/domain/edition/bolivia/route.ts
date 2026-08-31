@@ -95,7 +95,7 @@ const GRAD_FAIR: SpaceContent = {
 }
 
 /**
- * Straight to Work: the market takes you Monday. The lane's structural
+ * Straight to Work: the market takes you the moment you show up. The lane's structural
  * promise — earning on tile one, paid before the students have unpacked —
  * is the informal economy's whole argument, and the rest of the lane is the
  * gamble the player asked for: a grill cart bet, a scratch card, and rent
@@ -104,7 +104,7 @@ const GRAD_FAIR: SpaceContent = {
 const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'bo-market-monday', kind: 'event', title: 'Monday at the Market',
-    description: 'Your aunt has a stall, and the stall next to hers needs a pair of hands. By Friday you know every price in the hall and you are being paid — years before the students earn a thing.',
+    description: 'Your aunt has a stall, and the stall next to hers needs a pair of hands. You know every price in the hall before your first break, and you are being paid — years before the students earn a thing.',
     effect: { type: 'chooseCareer', pool: 'basic' },
     tone: 'gold', icon: 'space:first-job-fair',
   },
@@ -324,7 +324,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
     'purple', 'space:nursery-setup'),
   {
     id: 'bo-family-school-list', kind: 'normal', title: 'The School List',
-    description: 'The uniform, the white smock, the gym kit, and a supply list with forty-one items — each child\'s name to be sewn, not written, into every single one by Monday.',
+    description: 'The uniform, the white smock, the gym kit, and a supply list with forty-one items — each child\'s name to be sewn, not written, into every single one before the first day.',
     effect: { type: 'payPerChild', amount: 3_000, reason: 'The school list per child' },
     tone: 'purple', icon: 'space:school-fees',
   },
@@ -363,7 +363,7 @@ const CAREER_TRACK: readonly SpaceContent[] = [
   },
   {
     id: 'bo-fast-reorg', kind: 'normal', title: 'The Reorganisation',
-    description: 'A consultant flies in for a week, the org chart is redrawn over a weekend, and on Monday your name is in a different box with a different title under it. Nobody asked you; nobody asked anybody.',
+    description: 'A consultant flies in, the org chart is redrawn behind a closed door, and your name comes back in a different box with a different title under it. Nobody asked you; nobody asked anybody.',
     effect: { type: 'careerChange', reason: 'Reorganised into a new role', compulsory: true },
     tone: 'orange', icon: 'space:career-fair-return', appearsFrom: 'veryHard',
   },
@@ -430,7 +430,7 @@ const MIDTOWN: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:pay-raise-talk',
   },
   setback('veryHard', 'bo-midtown-dollar-jump', 'The Dollar Jumps',
-    'The dollar stops being a fact and becomes a rumour: the street rate leaves the official one behind, and everything imported reprices by Thursday.',
+    'The dollar stops being a fact and becomes a rumour: the street rate leaves the official one behind, and everything imported reprices overnight.',
     { type: 'payMoney', amount: 14_000, reason: 'Everything imported reprices' },
     'slate', 'space:market-crash'),
 ]
@@ -491,7 +491,7 @@ const DOLLAR_ROAD: readonly SpaceContent[] = [
 const STEADY_STREET: readonly SpaceContent[] = [
   {
     id: 'bo-safe-market-timing', kind: 'normal', title: 'Market Arithmetic',
-    description: 'You know which afternoon the prices drop, which stall rounds down, and which seller owes you a favour. This week, the knowledge pays for the whole basket.',
+    description: 'You know which afternoon the prices drop, which stall rounds down, and which seller owes you a favour. Today, the knowledge pays for the whole basket.',
     effect: { type: 'gainMoney', amount: 800, reason: 'Knowing the market' },
     tone: 'green', icon: 'space:coupon-clipping',
   },
@@ -592,7 +592,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
 
 const RETIREMENT: SpaceContent = {
   id: 'bo-retirement', kind: 'retirement', title: 'Retirement Day',
-  description: 'You hand over the keys — to the office, the stall, or both — get covered in confetti by people who love you, and wake up to the first Monday in forty years with nowhere to be.',
+  description: 'You hand over the keys — to the office, the stall, or both — get covered in confetti by people who love you, and wake up to the first morning in forty years with nowhere to be.',
   effect: { type: 'retire' },
   tone: 'gold', icon: 'space:retirement',
 }
@@ -614,7 +614,7 @@ const UNIVERSITY_BRANCH: RouteBranch = {
 const WORK_BRANCH: RouteBranch = {
   identity: {
     name: 'Straight to Work',
-    summary: 'The market takes you Monday and pays you Friday, years before the students earn a thing. No safety net, and a trade that is really a business at three sizes — the bottom is hard graft, and the top out-earns every graduate at this table.',
+    summary: 'The market takes you the day you show up and pays you years before the students earn a thing. No safety net, and a trade that is really a business at three sizes — the bottom is hard graft, and the top out-earns every graduate at this table.',
   },
   spaces: WORK_LANE,
 }

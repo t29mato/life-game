@@ -47,6 +47,24 @@ function makeBoard(lastEffect: SpaceEffect = { type: 'none' }): BoardModel {
   return { spaces: record, startSpaceId: 'start', retirementSpaceId: 'c', width: 500, height: 400 }
 }
 
+/**
+ * A two-lane fork: one road up, one down, rejoining past both — the exact
+ * shape the opening fork's own roll picks between.
+ */
+function makeForkBoard(): BoardModel {
+  const spaces = [
+    space({ id: 'fork', x: 100, y: 200, next: ['up1', 'down1'] }),
+    space({ id: 'up1', x: 220, y: 100, next: ['up2'] }),
+    space({ id: 'up2', x: 340, y: 100, next: ['join'] }),
+    space({ id: 'down1', x: 220, y: 300, next: ['down2'] }),
+    space({ id: 'down2', x: 340, y: 300, next: ['join'] }),
+    space({ id: 'join', x: 460, y: 200, next: [] }),
+  ]
+  const record: Record<string, Space> = {}
+  for (const s of spaces) record[s.id] = s
+  return { spaces: record, startSpaceId: 'fork', retirementSpaceId: 'join', width: 600, height: 400 }
+}
+
 function makePlayer(overrides: Partial<Player>): Player {
   return {
     id: 'p1',
@@ -87,6 +105,7 @@ function renderBoard(props: Partial<BoardProps> = {}) {
         {...(props.introFlythrough === undefined
           ? {}
           : { introFlythrough: props.introFlythrough })}
+        {...(props.chosenExitId === undefined ? {} : { chosenExitId: props.chosenExitId })}
       />
     </AudioProvider>,
   )
@@ -250,12 +269,10 @@ describe('Board', () => {
     })
 
     /**
-     * A rest shot alone would just cut a newly active player straight to a
-     * close-up of wherever their car already sits, with no sense of where
-     * that is on the board as a whole. Reduced motion strips the travel but
-     * must not strip that orientation cue, so it still lands on the correct
-     * player's own rest shot — not on the previous player's, and not on the
-     * wide establishing shot the motion-ful version passes through first.
+     * Reduced motion strips the travel of a handoff pan, never its
+     * destination: the camera must land on the *new* player's own rest shot
+     * — not stay on the previous player's, and not fall back to the wide
+     * shot the pre-pan camera used to route through.
      */
     it('still lands on the new player’s own rest shot under reduced motion when a different player is handed the table', () => {
       mockReducedMotion(true)
@@ -290,14 +307,87 @@ describe('Board', () => {
     })
 
     /**
-     * When motion is welcome, a turn handoff plays a brief wide establishing
-     * shot before zooming in on the new player — see `restSequence`. That
-     * must never hold up an actual spin: if the player acts before the
-     * establishing shot finishes, movement takes over immediately and still
-     * completes, exactly once. This is the same race the opening fly-through
-     * already has to survive, exercised on the turn-handoff camera instead.
+     * The reported complaint, pinned: between two turns the camera used to
+     * fall back to a wide shot of the whole map before finding the next
+     * player. A handoff now pans straight from the old player's frame to the
+     * new player's rest shot. The old sequence's establishing leg always
+     * landed *exactly* on the wide transform, so recording every frame the
+     * camera writes and asserting that exact value never appears is what
+     * tells the two behaviours apart without racing the animation.
      */
-    it('still completes a move started while the turn-handoff establishing shot is running', async () => {
+    it('pans a turn handoff straight to the next player, never back through the wide shot', async () => {
+      mockReducedMotion(false)
+      const start = model.spaces['start'] as Space
+      const b = model.spaces['b'] as Space
+      const { getByTestId, rerender } = renderBoard({
+        board: model,
+        phase: 'awaitingSpin',
+        players: [makePlayer({ id: 'p1', spaceId: 'start' })],
+        currentPlayerIndex: 0,
+      })
+      const cam = getByTestId('board-camera')
+      // Let the first settle finish on p1's own rest shot before recording.
+      await waitFor(
+        () =>
+          expect(cam).toHaveAttribute(
+            'transform',
+            written(cameraTransform(projection, restShot(model, projection, start))),
+          ),
+        { timeout: 4000 },
+      )
+
+      const frames: string[] = []
+      const write = cam.setAttribute.bind(cam)
+      const spy = vi.spyOn(cam, 'setAttribute').mockImplementation((name, value) => {
+        if (name === 'transform') frames.push(value)
+        write(name, value)
+      })
+
+      rerender(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <Board
+            board={model}
+            players={[
+              makePlayer({ id: 'p1', spaceId: 'start' }),
+              makePlayer({ id: 'p2', name: 'Bo', color: 'red', spaceId: 'b' }),
+            ]}
+            currentPlayerIndex={1}
+            phase="awaitingSpin"
+            movementPath={[]}
+            onMovementComplete={() => {}}
+          />
+        </AudioProvider>,
+      )
+
+      await waitFor(
+        () =>
+          expect(cam).toHaveAttribute(
+            'transform',
+            written(cameraTransform(projection, restShot(model, projection, b))),
+          ),
+        { timeout: 4000 },
+      )
+
+      // The exact frame the old establishing leg would have landed on —
+      // built with both cars' own drawn points folded in, the way the rest
+      // effect hands them to `wideShot`.
+      const drawnPoint = (s: Space) =>
+        projection.lift(projection.project(s.layout), slabMetrics(projection, spaceAccent(s)).depth)
+      expect(frames).not.toContain(
+        written(cameraTransform(projection, wideShot(projection, model, [drawnPoint(start), drawnPoint(b)]))),
+      )
+      spy.mockRestore()
+    })
+
+    /**
+     * When motion is welcome, a turn handoff pans the camera from the old
+     * player to the new one. That pan must never hold up an actual spin: if
+     * the player acts before it finishes, movement takes over immediately
+     * and still completes, exactly once. This is the same race the opening
+     * fly-through already has to survive, exercised on the handoff camera
+     * instead.
+     */
+    it('still completes a move started while the turn-handoff pan is running', async () => {
       mockReducedMotion(false)
       const onMovementComplete = vi.fn()
       const { rerender } = renderBoard({
@@ -308,8 +398,8 @@ describe('Board', () => {
         onMovementComplete,
       })
 
-      // A different player is handed the table (starts the establishing
-      // shot), and immediately spins before it can finish.
+      // A different player is handed the table (starts the handoff pan),
+      // and immediately spins before it can finish.
       rerender(
         <AudioProvider audio={createFakeAudioPort()}>
           <Board
@@ -619,6 +709,93 @@ describe('Board', () => {
       expect(tierOf('Alice')).toBe('1')
       expect(tierOf('Bo')).toBe('2')
       expect(tierOf('Cass')).toBe('4')
+    })
+  })
+
+  /*
+   * The fork roll's answer, on the board itself: the dock naming the chosen
+   * road in words was not enough — a player glancing at the map saw two
+   * branches and no sign of which one the roll had just picked. Once the die
+   * has landed, the chosen road's whole ribbon lights up and the road not
+   * taken falls into shade, tiles included, and the light stays on while the
+   * distance roll and the drive it buys play out.
+   */
+  describe('the chosen fork road', () => {
+    it('lights the chosen road and shades the road not taken once the fork roll has landed', () => {
+      mockReducedMotion(true)
+      const model = makeForkBoard()
+      const { container } = renderBoard({
+        board: model,
+        players: [makePlayer({ id: 'p1', spaceId: 'fork' })],
+        phase: 'awaitingDistanceSpin',
+        chosenExitId: 'up1',
+      })
+
+      expect(container.querySelectorAll('[data-testid="road-taken"]')).toHaveLength(1)
+      expect(container.querySelectorAll('[data-testid="road-not-taken"]')).toHaveLength(1)
+      // Both tiles of the rejected lane dim with their road; the chosen
+      // lane's and the junctions' stay bright.
+      const dimmed = [...container.querySelectorAll('[data-testid="tile-not-taken"]')].map((shade) =>
+        shade.closest('[data-space]')?.getAttribute('data-space'),
+      )
+      expect(dimmed.sort()).toEqual(['down1', 'down2'])
+    })
+
+    it('shows nothing while no fork choice is live', () => {
+      mockReducedMotion(true)
+      const { container } = renderBoard({
+        board: makeForkBoard(),
+        players: [makePlayer({ id: 'p1', spaceId: 'fork' })],
+        phase: 'awaitingSpin',
+      })
+
+      expect(container.querySelector('[data-testid="road-taken"]')).toBeNull()
+      expect(container.querySelector('[data-testid="tile-not-taken"]')).toBeNull()
+    })
+
+    /**
+     * The store clears `chosenExit` the instant the distance roll is
+     * pressed, but the light's whole point is to still be on the road while
+     * the car drives down it — so it outlives the prop for as long as the
+     * move it started is playing out, and goes out when the turn resolves.
+     */
+    it('keeps the road lit through the drive and puts it out when the turn resolves', () => {
+      mockReducedMotion(true)
+      const model = makeForkBoard()
+      const players = [makePlayer({ id: 'p1', spaceId: 'fork' })]
+      const { container, rerender } = renderBoard({
+        board: model,
+        players,
+        phase: 'awaitingDistanceSpin',
+        chosenExitId: 'up1',
+      })
+      const renderWith = (phase: BoardProps['phase'], chosenExitId: string | null) =>
+        rerender(
+          <AudioProvider audio={createFakeAudioPort()}>
+            <Board
+              board={model}
+              players={players}
+              currentPlayerIndex={0}
+              phase={phase}
+              movementPath={[]}
+              onMovementComplete={() => {}}
+              chosenExitId={chosenExitId}
+            />
+          </AudioProvider>,
+        )
+
+      // The distance roll is pressed: the prop is gone, the light is not.
+      renderWith('moving', null)
+      expect(container.querySelectorAll('[data-testid="road-taken"]')).toHaveLength(1)
+
+      // A swept-past card mid-drive changes nothing either.
+      renderWith('passingEvent', null)
+      expect(container.querySelectorAll('[data-testid="road-taken"]')).toHaveLength(1)
+
+      // The move resolves: the answer has been travelled, the light goes out.
+      renderWith('resolved', null)
+      expect(container.querySelector('[data-testid="road-taken"]')).toBeNull()
+      expect(container.querySelector('[data-testid="tile-not-taken"]')).toBeNull()
     })
   })
 

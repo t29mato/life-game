@@ -1,0 +1,92 @@
+/* ==========================================================================
+   RollTable — the die's outcome table, a sunken panel cut into whichever
+   card holds it, the way a printed insert sits recessed into a board game's
+   own box. Two columns only, so it stays a glance rather than a spreadsheet.
+   The base sizing is EventSpinModal's whole-card panel; `.compact` steps it
+   down to sit inside one DecisionModal option row.
+   ========================================================================== */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(92, 70, 34, 0.12);
+}
+
+.table th,
+.table td {
+  padding: 0.5rem 0.9rem;
+  text-align: left;
+  font-size: 0.92rem;
+}
+
+.table thead th {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-bottom: 0.3rem;
+}
+
+.table tbody th,
+.table tbody td:first-child {
+  font-weight: 800;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  white-space: nowrap;
+}
+
+.table tbody td:last-child {
+  font-weight: 600;
+  color: var(--ink-soft, var(--ink-faint));
+}
+
+.table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--surface) 45%, transparent);
+}
+
+.compact th,
+.compact td {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.82rem;
+}
+
+.compact thead th {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  padding-bottom: 0.15rem;
+}
+
+.compact {
+  margin-top: 0.3rem;
+  border-radius: var(--radius-sm);
+}
+
+/* ---- An illustrated row: plaque beside name-over-terms ------------------- */
+.subject {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.subjectBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.subjectName {
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.subjectTerms {
+  font-size: 0.86em;
+  font-weight: 600;
+  color: var(--ink-soft, var(--ink-faint));
+  line-height: 1.3;
+}

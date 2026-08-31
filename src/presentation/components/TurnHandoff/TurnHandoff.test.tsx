@@ -41,7 +41,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
 function renderHandoff(onReady = vi.fn()) {
   return render(
     <AudioProvider audio={createFakeAudioPort()}>
-      <TurnHandoff player={makePlayer()} turn={4} rank={2} totalPlayers={3} onReady={onReady} />
+      <TurnHandoff player={makePlayer()} turn={4} rank={2} onReady={onReady} />
     </AudioProvider>,
   )
 }
@@ -51,15 +51,23 @@ describe('TurnHandoff', () => {
     mockReducedMotion(true)
     renderHandoff()
     expect(screen.getByText('Priya')).toBeInTheDocument()
-    expect(screen.getByText(/2nd place of 3/)).toBeInTheDocument()
+    expect(screen.getByText('2nd place')).toBeInTheDocument()
     expect(screen.getByText('Turn 4')).toBeInTheDocument()
+  })
+
+  it('lets the name stand alone, with no line framing it', () => {
+    mockReducedMotion(true)
+    renderHandoff()
+    expect(screen.queryByText(/pass the device/i)).not.toBeInTheDocument()
+    // The place is the standing on its own — never measured against the field.
+    expect(screen.queryByText(/place of/i)).not.toBeInTheDocument()
   })
 
   it('is a labelled dialog announced live', () => {
     mockReducedMotion(true)
     const { container } = render(
       <AudioProvider audio={createFakeAudioPort()}>
-        <TurnHandoff player={makePlayer()} turn={1} rank={1} totalPlayers={2} onReady={() => {}} />
+        <TurnHandoff player={makePlayer()} turn={1} rank={1} onReady={() => {}} />
       </AudioProvider>,
     )
     expect(screen.getByRole('dialog', { name: 'Priya' })).toBeInTheDocument()

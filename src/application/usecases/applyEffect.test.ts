@@ -246,6 +246,19 @@ describe('applyEffect', () => {
       expect(option.table![1]!.amount).toContain(secondCareer.title)
     })
 
+    it("puts each offer's own portrait on its row, so a fair shows the jobs and not just their names", () => {
+      const player = fixturePlayer({ hasDegree: false })
+      const state = fixtureState({ players: [player] })
+      const space = fixtureSpace({ effect: { type: 'chooseCareer', pool: 'basic' } })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      const option = next.pendingDecision!.options[0]!
+      const [firstId, secondId] = next.pendingDecision!.offeredCareerIds!
+      const firstCareer = BASIC_CAREERS.find((c) => c.id === firstId)!
+      const secondCareer = BASIC_CAREERS.find((c) => c.id === secondId)!
+      expect(option.table![0]!.icon).toBe(firstCareer.icon)
+      expect(option.table![1]!.icon).toBe(secondCareer.icon)
+    })
+
     it('offers from the graduate pool when the player has a degree', () => {
       const player = fixturePlayer({ hasDegree: true })
       const state = fixtureState({ players: [player] })
@@ -498,6 +511,9 @@ describe('applyEffect', () => {
       expect(event.transfers).toEqual([
         { playerId: 'p2', playerName: 'Rival', playerColor: 'blue', amount: -200 },
       ])
+      // The lane flies the amount; the note says only where it left them,
+      // so a player is not told the same $200 twice on one card.
+      expect(event.notes).toEqual(['Prize money', 'Rival is down to $800.'])
     })
   })
 
@@ -524,6 +540,7 @@ describe('applyEffect', () => {
       expect(event.transfers).toEqual([
         { playerId: 'p2', playerName: 'Rival', playerColor: 'green', amount: 200 },
       ])
+      expect(event.notes).toEqual(['Round of drinks', 'Rival is up to $200.'])
     })
   })
 
@@ -610,6 +627,49 @@ describe('applyEffect', () => {
         expect(event.narration, `narration for ${effect.type}`).toBeTruthy()
         expect(event.narration!.length, `narration for ${effect.type}`).toBeGreaterThan(10)
         expect(['normal', 'big', 'milestone']).toContain(event.emphasis)
+      }
+    })
+
+    /*
+     * The invariant the whole design rests on, swept across every effect
+     * rather than spot-checked on the two or three that happened to be
+     * written by hand: a card that moved money reports the wallet it left
+     * behind, and a card that moved none says nothing about money at all.
+     * Anybody adding an effect below gets this for free — and finds out here
+     * if they somehow return a state the balance cannot be read from.
+     */
+    it('reports the resulting balance on every effect that moves money, and only those', () => {
+      const player = fixturePlayer({ id: 'p1', career: BASIC_CAREERS[0]!, children: 2, house: HOUSES[0]!, lifeTiles: [TILE_A] })
+      const rival = fixturePlayer({ id: 'p2', name: 'Bo', money: 500_000, lifeTiles: [TILE_B] })
+      const state = fixtureState({ players: [player, rival], currentPlayerIndex: 0 })
+
+      const effects = [
+        { type: 'none' },
+        { type: 'gainMoney', amount: 500, reason: 'Found cash' },
+        { type: 'payMoney', amount: 500, reason: 'Toll' },
+        { type: 'payMoney', amount: 60_000, reason: 'House fire', hazard: 'fire' },
+        { type: 'payday' },
+        { type: 'payRaise' },
+        { type: 'graduate' },
+        { type: 'haveChildren', count: 1, celebrationPerPip: 500 },
+        { type: 'collectFromEach', amount: 100, reason: 'Prize' },
+        { type: 'payEach', amount: 100, reason: 'Drinks' },
+        { type: 'spinForMoney', perPip: 100, reason: 'Lucky roll' },
+        { type: 'stockDividend', perShare: 5_000, reason: 'Dividend day' },
+        { type: 'payPerChild', amount: 5_000, reason: 'School fees' },
+        { type: 'collectPerChild', amount: 5_000, reason: 'Child benefit' },
+        { type: 'swapMoneyWithLeader', reason: 'Rival swap' },
+      ] as const
+
+      for (const effect of effects) {
+        const space = fixtureSpace({ effect })
+        const { state: next, event } = applyEffect(state, space, { random: createFakeRandom() })
+        const settled = next.players.find((candidate) => candidate.id === 'p1')!
+        if (event.moneyDelta === 0) {
+          expect(event.balanceAfter, `balanceAfter for ${effect.type}`).toBeUndefined()
+        } else {
+          expect(event.balanceAfter, `balanceAfter for ${effect.type}`).toBe(settled.money)
+        }
       }
     })
 
@@ -752,7 +812,10 @@ describe('applyEffect', () => {
       const space = fixtureSpace({ effect: { type: 'buyInsurance', kinds: ['home', 'auto'] } })
       const { state: next, event } = applyEffect(state, space, { random: createFakeRandom() })
       expect(next.pendingDecision).toBeNull()
-      expect(event.notes[0]).toContain('Already covered')
+      // Nothing happened, so there is nothing to note: the narration alone
+      // says they walked out already covered.
+      expect(event.notes).toEqual([])
+      expect(event.narration).toContain('already covered')
     })
 
     it('prices each option at its premium', () => {
@@ -1200,7 +1263,10 @@ describe('applyEffect', () => {
         random: createFakeRandom(),
       })
       expect(next.pendingDecision).toBeNull()
-      expect(event.notes[0]).toContain(best.name)
+      // The narration already says they own the best address in town; a note
+      // naming the same house again was saying it twice.
+      expect(event.notes).toEqual([])
+      expect(event.narration).toContain('best address')
     })
   })
 })

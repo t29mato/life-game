@@ -14,6 +14,7 @@ import { AudioToggle } from '../AudioToggle/AudioToggle'
 import { GameIcon } from '../../icons/GameIcon'
 import { UiIcon } from '../../icons/ui'
 import { PLAYER_COLORS } from '../Pawn/designs'
+import { ManualScreen } from '../ManualScreen/ManualScreen'
 import { RecordsScreen } from '../RecordsScreen/RecordsScreen'
 import { ReleaseNotesScreen } from '../ReleaseNotes/ReleaseNotesScreen'
 import { estimatePlaytime } from './estimatePlaytime'
@@ -171,6 +172,7 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
   const editions = editionOptions()
   const [showRecords, setShowRecords] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
+  const [showManual, setShowManual] = useState(false)
 
   const unlockAudioOnce = (): void => {
     if (unlockedRef.current) return
@@ -258,6 +260,10 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
 
   if (showNotes) {
     return <ReleaseNotesScreen onClose={() => setShowNotes(false)} />
+  }
+
+  if (showManual) {
+    return <ManualScreen onClose={() => setShowManual(false)} />
   }
 
   return (
@@ -603,13 +609,19 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
         </div>
       </section>
 
-      {records.length > 0 ? (
-        <div className={styles.recordsRow}>
+      {/* The handbook is always on offer — a first-time table is exactly who
+          it exists for — where the hall only appears once there is a record
+          to hang in it. */}
+      <div className={styles.recordsRow}>
+        <ChunkyButton variant="ghost" size="md" icon="book" onClick={() => setShowManual(true)}>
+          The Handbook
+        </ChunkyButton>
+        {records.length > 0 ? (
           <ChunkyButton variant="ghost" size="md" icon="ribbon" onClick={() => setShowRecords(true)}>
             Hall of Records
           </ChunkyButton>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       <div className={styles.audioRow}>
         <AudioToggle />

@@ -106,7 +106,7 @@ const GRAD_FAIR: SpaceContent = {
 const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'fr-apprenticeship-day', kind: 'event', title: 'Apprenticeship Day',
-    description: 'A trade school finds you an employer on the spot. You sign Monday, and you are paid from Tuesday — while the exam students are still standing in line to enrol.',
+    description: 'A trade school finds you an employer on the spot. You sign there and then, and you are paid from your first shift — while the exam students are still standing in line to enrol.',
     effect: { type: 'chooseCareer', pool: 'basic' },
     tone: 'gold', icon: 'space:first-job-fair',
   },
@@ -131,7 +131,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'fr-work-first-night', kind: 'normal', title: 'First Night In',
-    description: 'You unpack by lamplight, because the overhead bulb is still on next week\'s shopping list.',
+    description: 'You unpack by lamplight, because the overhead bulb has not made it off the shopping list yet.',
     effect: { type: 'none' },
     tone: 'orange', icon: 'space:rent-due',
   },
@@ -144,7 +144,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   payday('fr-work-payday-2', 'Another month, another pay slip. Still nobody has asked to see your diploma.', missedPayday(
     'hard',
     'Hours Cut',
-    'Your boss posts next week\'s schedule with a sigh. Your name is on half as many shifts as last week.',
+    'Your boss posts the new schedule with a sigh. Your name is on half as many shifts as it was.',
     1_200,
     'Half a month of shifts',
   )),
@@ -432,7 +432,7 @@ const MIDTOWN: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:pay-raise-talk',
   },
   setback('veryHard', 'fr-midtown-rate-rise', 'Rate Rise',
-    'Your fixed mortgage rate expires on a Thursday morning, and every monthly bill in the house moves along with it.',
+    'Your fixed mortgage rate expires without ceremony, and every monthly bill in the house moves along with it.',
     { type: 'payMoney', amount: 14_000, reason: 'Rates go the wrong way' },
     'slate', 'space:market-crash'),
 ]
@@ -594,7 +594,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
 
 const RETIREMENT: SpaceContent = {
   id: 'fr-retirement', kind: 'retirement', title: 'Retirement Day',
-  description: 'The last leaving party of them all, one final walk through the office with a cardboard box, and your first Monday in forty years with nowhere to be. The pension you spent a lifetime protecting is finally yours.',
+  description: 'The last leaving party of them all, one final walk through the office with a cardboard box, and your first morning in forty years with nowhere to be. The pension you spent a lifetime protecting is finally yours.',
   effect: { type: 'retire' },
   tone: 'gold', icon: 'space:retirement',
 }

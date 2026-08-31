@@ -137,6 +137,57 @@ export type IconName =
   | 'space:rival-swap'
   | 'space:school-fees'
   | 'space:sticky-fingers'
+  // --- careers drawn for the ladder trades, shared across editions ---------
+  | 'career:actuary'
+  | 'career:aerospace-engineer'
+  | 'career:agency-owner'
+  | 'career:agronomist'
+  | 'career:apprentice-baker'
+  | 'career:apprentice-mechanic'
+  | 'career:bank-officer'
+  | 'career:baseball-coach'
+  | 'career:brass-musician'
+  | 'career:chai-wallah'
+  | 'career:cricket-coach'
+  | 'career:dispatcher'
+  | 'career:estate-agent'
+  | 'career:geologist'
+  | 'career:grill-cook'
+  | 'career:import-trader'
+  | 'career:investment-analyst'
+  | 'career:journalist'
+  | 'career:line-cook'
+  | 'career:logistics-lead'
+  | 'career:manga-artist'
+  | 'career:market-gardener'
+  | 'career:market-vendor'
+  | 'career:mechanic'
+  | 'career:minibus-owner'
+  | 'career:ministry-official'
+  | 'career:noodle-cook'
+  | 'career:photographer'
+  | 'career:product-manager'
+  | 'career:professor'
+  | 'career:quinoa-farmer'
+  | 'career:radio-host'
+  | 'career:radio-runner'
+  | 'career:record-producer'
+  | 'career:rice-apprentice'
+  | 'career:rice-farmer'
+  | 'career:robotics-engineer'
+  | 'career:rocket-engineer'
+  | 'career:salon-apprentice'
+  | 'career:session-musician'
+  | 'career:site-labourer'
+  | 'career:soccer-coach'
+  | 'career:station-owner'
+  | 'career:sweet-maker'
+  | 'career:trading-generalist'
+  | 'career:veterinarian'
+  | 'career:warehouse-picker'
+  | 'career:wheat-farmer'
+  | 'career:workshop-owner'
+  | 'career:writer'
 
 export const ALL_ICON_NAMES: readonly IconName[] = [
   'career:architect',
@@ -267,4 +318,54 @@ export const ALL_ICON_NAMES: readonly IconName[] = [
   'space:rival-swap',
   'space:school-fees',
   'space:sticky-fingers',
+  'career:actuary',
+  'career:aerospace-engineer',
+  'career:agency-owner',
+  'career:agronomist',
+  'career:apprentice-baker',
+  'career:apprentice-mechanic',
+  'career:bank-officer',
+  'career:baseball-coach',
+  'career:brass-musician',
+  'career:chai-wallah',
+  'career:cricket-coach',
+  'career:dispatcher',
+  'career:estate-agent',
+  'career:geologist',
+  'career:grill-cook',
+  'career:import-trader',
+  'career:investment-analyst',
+  'career:journalist',
+  'career:line-cook',
+  'career:logistics-lead',
+  'career:manga-artist',
+  'career:market-gardener',
+  'career:market-vendor',
+  'career:mechanic',
+  'career:minibus-owner',
+  'career:ministry-official',
+  'career:noodle-cook',
+  'career:photographer',
+  'career:product-manager',
+  'career:professor',
+  'career:quinoa-farmer',
+  'career:radio-host',
+  'career:radio-runner',
+  'career:record-producer',
+  'career:rice-apprentice',
+  'career:rice-farmer',
+  'career:robotics-engineer',
+  'career:rocket-engineer',
+  'career:salon-apprentice',
+  'career:session-musician',
+  'career:site-labourer',
+  'career:soccer-coach',
+  'career:station-owner',
+  'career:sweet-maker',
+  'career:trading-generalist',
+  'career:veterinarian',
+  'career:warehouse-picker',
+  'career:wheat-farmer',
+  'career:workshop-owner',
+  'career:writer',
 ]

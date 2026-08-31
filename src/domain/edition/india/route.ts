@@ -95,15 +95,15 @@ const GRAD_FAIR: SpaceContent = {
 }
 
 /**
- * Straight to Work: an uncle knows a man, the man needs hands, and by Friday
- * you have a wage — two years before the students earn a thing. The rest of
+ * Straight to Work: an uncle knows a man, the man needs hands, and you walk
+ * out with a wage — two years before the students earn a thing. The rest of
  * the lane is the gamble the player asked for: a food-cart bet, a fantasy-app
  * payout, and rent that is due whatever the week did.
  */
 const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'in-joining-day', kind: 'event', title: 'Joining Day',
-    description: 'Your uncle knows a man, the man needs hands, and by Friday you have a badge, a duty roster, and a wage — two years before the students earn a thing.',
+    description: 'Your uncle knows a man, the man needs hands, and you walk out with a badge, a duty roster, and a wage — two years before the students earn a thing.',
     effect: { type: 'chooseCareer', pool: 'basic' },
     tone: 'gold', icon: 'space:first-job-fair',
   },
@@ -115,8 +115,8 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   payday('in-work-payday-1', 'A full month on the rolls, and the credit lands while your classmates are still queueing for lecture seats.', missedPayday(
     'veryHard',
-    'Salary Next Week',
-    'The accountant says next week, the same thing he said last time, and you still need money for food.',
+    'Salary Not Yet',
+    'The accountant says it is coming, the same thing he said last time, and you still need money for food.',
     90_000,
     'A month of living on nothing',
   )),
@@ -128,7 +128,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'in-work-first-night', kind: 'normal', title: 'First Night In',
-    description: 'You unpack by the light of one bare bulb, because the tube light is still on next week\'s list.',
+    description: 'You unpack by the light of one bare bulb, because the tube light has not made it off the list yet.',
     effect: { type: 'none' },
     tone: 'orange', icon: 'space:rent-due',
   },
@@ -141,7 +141,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   payday('in-work-payday-2', 'Another month, another credit, and still nobody has ever asked to see a degree.', missedPayday(
     'hard',
     'Hours Cut',
-    'The duty roster goes up on Sunday with your name on half as many lines as last week.',
+    'The new duty roster goes up with your name on half as many lines as it used to carry.',
     120_000,
     'Half a month of shifts',
   )),
@@ -345,7 +345,7 @@ const CAREER_TRACK: readonly SpaceContent[] = [
   payday('in-fast-payday-1', 'The late nights finally show up on the pay slip.'),
   {
     id: 'in-fast-headhunted', kind: 'normal', title: 'Headhunted',
-    description: 'A recruiter calls your personal number during the Monday stand-up, with two offers and no patience.',
+    description: 'A recruiter calls your personal number during the morning stand-up, with two offers and no patience.',
     effect: { type: 'careerChange', reason: 'Headhunted for something new' },
     tone: 'orange', icon: 'space:headhunted',
   },
@@ -427,7 +427,7 @@ const MIDTOWN: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:pay-raise-talk',
   },
   setback('veryHard', 'in-midtown-repo-rate', 'The Repo Rate',
-    'The central bank moves the rate on a Thursday morning, and by Friday every home-loan EMI in the household has moved with it.',
+    'The central bank moves the rate overnight, and every home-loan EMI in the household moves with it.',
     { type: 'payMoney', amount: 1_400_000, reason: 'Rates go the wrong way' },
     'slate', 'space:market-crash'),
 ]
@@ -589,7 +589,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
 
 const RETIREMENT: SpaceContent = {
   id: 'in-retirement', kind: 'retirement', title: 'Retirement Day',
-  description: 'A shawl around your shoulders, a coconut in your hands, a framed group photograph — and the first Monday in forty years with nowhere to be.',
+  description: 'A shawl around your shoulders, a coconut in your hands, a framed group photograph — and the first morning in forty years with nowhere to be.',
   effect: { type: 'retire' },
   tone: 'gold', icon: 'space:retirement',
 }
@@ -611,7 +611,7 @@ const COLLEGE_BRANCH: RouteBranch = {
 const WORK_BRANCH: RouteBranch = {
   identity: {
     name: 'Straight to Work',
-    summary: 'An uncle knows a man, and by Friday you have a wage — years before the students earn a thing. No safety net, and a trade ladder whose bottom rung is grim and whose top rung out-earns every graduate at this table.',
+    summary: 'An uncle knows a man, and you walk out with a wage — years before the students earn a thing. No safety net, and a trade ladder whose bottom rung is grim and whose top rung out-earns every graduate at this table.',
   },
   spaces: WORK_LANE,
 }

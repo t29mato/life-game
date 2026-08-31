@@ -123,6 +123,38 @@ describe('DecisionModal', () => {
     expect(screen.queryByText(/\$90,000.*\$52,000/)).not.toBeInTheDocument()
   })
 
+  it("draws each career offer's own art in the table, so a fair shows the jobs and not just prose", () => {
+    const decision: Decision = {
+      kind: 'valueSpin',
+      prompt: 'First Job Fair',
+      options: [
+        {
+          id: 'roll',
+          label: 'Roll',
+          description: 'Roll to see who hires you.',
+          icon: 'space:first-job-fair',
+          table: [
+            { range: '1-3', amount: 'Second Shooter ($26,250/payday, rung 1 of 2)', icon: 'career:radio-runner' },
+            { range: '4-6', amount: 'Salon Apprentice ($29,750/payday, rung 1 of 3)', icon: 'career:salon-apprentice' },
+          ],
+        },
+      ],
+    }
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <DecisionModal decision={decision} board={makeBoard()} onChoose={() => {}} />
+      </AudioProvider>,
+    )
+
+    const table = screen.getByRole('table')
+    expect(within(table).getByText('Second Shooter')).toBeInTheDocument()
+    expect(within(table).getByText('Salon Apprentice')).toBeInTheDocument()
+    // A plaque per row: the family stamp is what says the full career art
+    // rendered, not just another line of text.
+    expect(table.querySelector('[data-family="studio"]')).not.toBeNull()
+    expect(table.querySelector('[data-family="care"]')).not.toBeNull()
+  })
+
   it('renders no table when an option has nothing to break down', () => {
     render(
       <AudioProvider audio={createFakeAudioPort()}>

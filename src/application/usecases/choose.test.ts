@@ -12,6 +12,7 @@ import { BASIC_CAREERS, USA_ECONOMY } from '@domain/edition/usa'
 import { HOUSES } from '@domain/edition/usa'
 import { STOCKS } from '@domain/edition/usa'
 import { insuranceOptionId, VALUE_SPIN_OPTION_ID } from './applyEffect'
+import { formatMoney } from './format'
 import { branchDecision } from './branch'
 import { fixtureMovementBoard, fixturePlayer, fixtureState } from '../testing/fixtures'
 import { createFakeRandom } from '../testing/fakes'
@@ -228,7 +229,11 @@ describe('choose', () => {
       expect(next.players[0]!.house).toEqual(newHouse)
       expect(next.players[0]!.money).toBe(500_000 + oldHouse.price - newHouse.price)
       expect(next.lastEvent!.moneyDelta).toBe(oldHouse.price - newHouse.price)
-      expect(next.lastEvent!.notes.some((note) => note.includes(oldHouse.name))).toBe(true)
+      // Which house replaced which is the narration's sentence; the note is
+      // only for the credit, which nothing else on the card shows.
+      expect(next.lastEvent!.narration).toContain(oldHouse.name)
+      expect(next.lastEvent!.notes.some((note) => note.includes(oldHouse.name))).toBe(false)
+      expect(next.lastEvent!.notes.some((note) => note.includes('credited back'))).toBe(true)
       expect(next.log.some((entry) => entry.message.includes('trades up'))).toBe(true)
     })
 
@@ -411,7 +416,12 @@ describe('choose', () => {
       expect(next.pendingDecision).toBeNull()
       expect(next.players[0]!.money).toBe(500)
       expect(next.lastEvent!.moneyDelta).toBe(500)
-      expect(next.lastEvent!.notes.join(' ')).toContain('Rolled a 5')
+      // The die is carried structurally and printed by the card itself, so
+      // no handler spells the roll out in prose any more.
+      expect(next.lastEvent!.rolled).toBe(5)
+      expect(next.lastEvent!.notes.join(' ')).not.toContain('Rolled')
+      expect(next.lastEvent!.narration).not.toMatch(/rolls? a 5/i)
+      expect(next.lastEvent!.notes).toEqual(['Lucky roll'])
     })
 
     it('spins for a casual payday, paying by the roll rather than nothing', () => {
@@ -426,7 +436,12 @@ describe('choose', () => {
 
       expect(random.calls.spins).toBe(1)
       expect(next.players[0]!.money).toBe(1_000 + CASUAL_WAGE_PER_PIP * 4)
-      expect(next.lastEvent!.notes.join(' ')).toContain('Rolled 4')
+      // The roll travels on the event, not in a note; what the note carries
+      // is the standing fact that this player is paid by the die at all.
+      expect(next.lastEvent!.rolled).toBe(4)
+      expect(next.lastEvent!.notes.join(' ')).not.toContain('Rolled')
+      expect(next.lastEvent!.notes).toEqual(['Between jobs, so you pick up shifts.'])
+      expect(next.lastEvent!.narration).toContain(formatMoney(CASUAL_WAGE_PER_PIP * 4))
     })
 
     it('spins for an unsteady career payday at its own rate, not the casual one', () => {
@@ -507,7 +522,10 @@ describe('choose', () => {
 
         const skipped = BASIC_CAREERS.find((c) => c.id === career.promotesTo)!
         expect(next.players[0]!.career?.id).toBe(skipped.promotesTo)
-        expect(next.lastEvent!.notes.join(' ')).toContain('Two rungs')
+        // The narration names the rung landed on; the note that used to say
+        // "Two rungs in one morning" was the same news in a second voice.
+        expect(next.lastEvent!.narration).toContain('skip a whole rung')
+        expect(next.lastEvent!.notes.join(' ')).not.toContain('Two rungs')
       })
     })
 
@@ -632,7 +650,11 @@ describe('choose', () => {
         expect(next.pendingDecision).toBeNull()
         expect(next.players[0]!.money).toBe(3_000)
         expect(next.lastEvent!.moneyDelta).toBe(3_000)
-        expect(next.lastEvent!.notes.join(' ')).toContain('Rolled a 6')
+        // The roll is on the event and the total is on the delta plate, so
+        // the note that said both of them over again is gone.
+        expect(next.lastEvent!.rolled).toBe(6)
+        expect(next.lastEvent!.notes).toEqual([])
+        expect(next.lastEvent!.narration).toContain(formatMoney(3_000))
       })
     })
 
@@ -678,6 +700,106 @@ describe('choose', () => {
         expect(next.players[0]!.money).toBe(100_000)
         expect(next.lastEvent!.moneyDelta).toBe(0)
         expect(next.lastEvent!.notes.join(' ')).toContain('full ride')
+      })
+
+      /*
+       * The card a real player read back, verbatim: "A 2 for Player 1. The
+       * financial aid letter arrives a semester late... Tuition comes to
+       * $90,000." and then, underneath, "Rolled a 2 — The financial aid
+       * letter arrives a semester late..." and "Tuition: $90,000" again.
+       * Three facts, each said twice. Each one now has exactly one home.
+       */
+      it('says the roll, the reason and the bill exactly once each', () => {
+        const player = fixturePlayer({ spaceId: 'a', money: 100_000 })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: billSpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [1] }) })
+        const event = next.lastEvent!
+        const band = USA_ECONOMY.tuition.outcomes[0]!
+        const bill = formatMoney(band.cost)
+
+        // The roll: carried structurally for the card to print, and written
+        // out nowhere.
+        expect(event.rolled).toBe(1)
+        expect(event.notes.join(' ')).not.toMatch(/rolled/i)
+        expect(event.narration).not.toMatch(/rolled|a 1\b/i)
+
+        // The reason: the narration, and only the narration.
+        expect(event.narration).toBe(band.note)
+        expect(event.notes.join(' ')).not.toContain(band.note)
+
+        // The bill: one note, because the delta plate cannot be trusted for
+        // it — a player who cannot cover it is topped up by the bank.
+        expect(event.notes.filter((note) => note.includes(bill))).toHaveLength(1)
+        expect(event.narration).not.toContain(bill)
+      })
+
+      it('names the loans a bill too big to cover forced on the player', () => {
+        const player = fixturePlayer({ spaceId: 'a', money: 0 })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: billSpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [1] }) })
+        expect(next.players[0]!.loans).toBeGreaterThan(0)
+        expect(next.lastEvent!.notes.join(' ')).toContain('due at retirement')
+      })
+
+      /*
+       * The case that confused a real player, and the reason `balanceAfter` is
+       * read off the wallet rather than composed by the handler. A bill bigger
+       * than the player has takes automatic loans to cover it, so the plate
+       * reports the *net* of bill and principal — here a bill of tens of
+       * thousands lands as a rise — and the one number that makes sense of
+       * that is what is actually in the wallet afterwards.
+       */
+      it('reports the balance an auto-loaned bill really left', () => {
+        const player = fixturePlayer({ spaceId: 'a', money: 0 })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: billSpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [1] }) })
+        const settled = next.players[0]!
+        expect(settled.loans).toBeGreaterThan(0)
+        // Never negative: the loans covered the bill, and the card can say so.
+        expect(next.lastEvent!.balanceAfter).toBe(settled.money)
+        expect(next.lastEvent!.balanceAfter).toBeGreaterThanOrEqual(0)
+      })
+
+      it('reports the balance an ordinary debit left, with no loan involved', () => {
+        const player = fixturePlayer({ spaceId: 'a', money: 100_000 })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: billSpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [1] }) })
+        expect(next.players[0]!.loans).toBe(0)
+        expect(next.lastEvent!.balanceAfter).toBe(100_000 + next.lastEvent!.moneyDelta)
+      })
+
+      it('leaves the balance off a card that moved no money', () => {
+        const player = fixturePlayer({ spaceId: 'a', money: 100_000 })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: billSpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const bestBand = USA_ECONOMY.tuition.outcomes[USA_ECONOMY.tuition.outcomes.length - 1]!
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [bestBand.upTo] }) })
+        expect(next.lastEvent!.moneyDelta).toBe(0)
+        expect(next.lastEvent!.balanceAfter).toBeUndefined()
       })
     })
   })

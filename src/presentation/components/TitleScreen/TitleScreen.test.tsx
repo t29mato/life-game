@@ -417,6 +417,23 @@ describe('TitleScreen', () => {
     })
   })
 
+  describe('the handbook', () => {
+    it('opens the handbook screen and can be closed again', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await user.click(screen.getByRole('button', { name: /the handbook/i }))
+      expect(screen.getByRole('heading', { name: 'The Handbook' })).toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: /back to title/i }))
+      expect(screen.getByText('LIFE JOURNEY')).toBeInTheDocument()
+    })
+
+    it('is always on offer — a first-time table is who it exists for', () => {
+      renderTitleScreen({ records: [] })
+      expect(screen.getByRole('button', { name: /the handbook/i })).toBeInTheDocument()
+    })
+  })
+
   describe('release notes', () => {
     it('opens the release notes screen and can be closed again', async () => {
       const user = userEvent.setup()

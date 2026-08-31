@@ -423,6 +423,21 @@ export interface Player {
 
 export type DecisionKind = 'branch' | 'house' | 'stock' | 'insurance' | 'bank' | 'retire' | 'valueSpin'
 
+/**
+ * One band of a die's outcome table — "1-3" and what that face deals.
+ *
+ * `icon` names the subject a face is dealing, when it deals a *thing* rather
+ * than a sum: a career fair's rows each carry the trade's own portrait, so a
+ * player weighing "1-3: Second Shooter" against "4-6: Salon Apprentice" sees
+ * the two jobs and not just their names in prose. Absent on a row that only
+ * moves money — a tuition band has an amount, not a face.
+ */
+export interface RollTableRow {
+  readonly range: string
+  readonly amount: string
+  readonly icon?: IconName
+}
+
 export interface DecisionOption {
   readonly id: string
   readonly label: string
@@ -441,7 +456,7 @@ export interface DecisionOption {
    * to break down — a flat charge, a single outcome, a real choice between
    * named options that are not rolled for.
    */
-  readonly table?: readonly { readonly range: string; readonly amount: string }[]
+  readonly table?: readonly RollTableRow[]
 }
 
 export interface Decision {
@@ -489,21 +504,53 @@ export interface LandingEvent {
   readonly tone: SpaceTone
   /** Net change to the player's cash, already applied to state. */
   readonly moneyDelta: Money
+  /**
+   * What the player is actually holding once this landing is settled. Set
+   * whenever `moneyDelta` is non-zero, and absent otherwise — a card that
+   * moved no money has no new balance to report.
+   *
+   * The delta alone answers "how much moved", never "where does that leave
+   * me", and the second question is the one a player at the table is really
+   * asking. It matters most exactly where the delta is *not* the whole
+   * story: a debit bigger than the wallet takes an automatic loan, so the
+   * cash lands somewhere the player cannot reach by adding the plate to
+   * what they remember having. Read straight off the post-effect state at
+   * the one point every card passes through rather than composed by the
+   * handler that happened to move the money — arithmetic done in a note is
+   * arithmetic that can disagree with the ledger, and this cannot.
+   */
+  readonly balanceAfter?: Money
   readonly lifeTilesGained: readonly LifeTile[]
-  /** Extra lines for the card, e.g. "Salary raised to $65,000". */
+  /**
+   * The ledger: what changed, in lines a player can scan — "Salary raised to
+   * $65,000", "Now carrying 2 loans".
+   *
+   * Every fact on a card belongs to exactly one element, and this is the rule
+   * that keeps it that way. `narration` is colour and says a thing once;
+   * `moneyDelta` is on the plate; `lifeTilesGained` is dealt as chips;
+   * `rolled` is printed as the die. A note that restates any of them is the
+   * player reading the same sentence twice in two voices, which is what a
+   * real Tuition Bill card did — the roll, the reason and the amount each
+   * said in the narration and then again here.
+   */
   readonly notes: readonly string[]
   /** How hard the card should land. Presentation escalates its animation. */
   readonly emphasis?: LandingEmphasis
-  /** One line of host commentary, e.g. "That's the lead gone, just like that!" */
+  /**
+   * One line of host commentary, e.g. "That's the lead gone, just like that!"
+   *
+   * Colour, not the ledger: it may land the one number that *is* the
+   * punchline, but the mechanical breakdown belongs in `notes`, and neither
+   * repeats the other. See `notes`.
+   */
   readonly narration?: string
   /**
    * Every other player whose own balance moved because of this landing —
    * `collectFromEach`, `payEach`, a wallet swap — signed from *that*
    * player's own point of view (positive: they gained; negative: they
-   * paid). `notes` already says this in words; this is the same fact
-   * structured for the presentation layer to animate, not a second source
-   * of truth for it — the amount and direction always agree with the note
-   * that names them.
+   * paid). This is where the amount and the direction are told — the lane
+   * the presentation layer flies prints both — so the note beside it says
+   * only what neither can: where the money left that player standing.
    */
   readonly transfers?: readonly MoneyTransfer[]
   /**
@@ -514,10 +561,12 @@ export interface LandingEvent {
    * the card is built from what it landed on. A tile a move only *sweeps
    * past* has no press to hang that on, so `applyPassedEvent` rolls for it
    * and hands over the finished card; without this field the only trace of
-   * the roll would be the "Rolled a 3." line in `notes`, a fact about
-   * something nobody saw happen. This is what lets the presentation layer
-   * throw that same die where it can be watched before the card is
-   * readable. Absent means nothing was rolled — a flat salary, a fixed
+   * the roll would be a hand-written "Rolled a 3." line in `notes`, a fact
+   * about something nobody saw happen. This is what lets the presentation
+   * layer throw that same die where it can be watched before the card is
+   * readable — and, once it has landed, print it on the card itself, which
+   * is why no handler writes the roll into `notes` or `narration` any more.
+   * Absent means nothing was rolled — a flat salary, a fixed
    * charge, a graduation — exactly as an absent `face` reads as the plain
    * moulding, so nothing that never touches the die has to change.
    */
@@ -537,7 +586,7 @@ export interface LandingEvent {
    * `DecisionOption.table` for what a row means. A swept tile's die deserves
    * the same table a pressed one shows, not just the framing sentence.
    */
-  readonly table?: readonly { readonly range: string; readonly amount: string }[]
+  readonly table?: readonly RollTableRow[]
 }
 
 export interface MoneyTransfer {

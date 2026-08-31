@@ -165,6 +165,59 @@ describe('EventCard', () => {
     expect(screen.queryByText(/^".*"$/)).not.toBeInTheDocument()
   })
 
+  /*
+   * The die is the one fact every wheel-decided handler used to write out
+   * twice — "Rolled a 4." in the notes and "A 4!" opening the narration.
+   * The card reads it off the event instead, which is why no handler spells
+   * it out any more, so this is the only place it can now come from.
+   */
+  it('prints the die that decided the card', () => {
+    mockReducedMotion(true)
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <EventCard event={makeEvent({ rolled: 4 })} onDismiss={() => {}} />
+      </AudioProvider>,
+    )
+    expect(screen.getByText('Rolled')).toBeInTheDocument()
+    expect(screen.getByText('4')).toBeInTheDocument()
+  })
+
+  it('prints no die on a card nothing was rolled for', () => {
+    mockReducedMotion(true)
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <EventCard event={makeEvent()} onDismiss={() => {}} />
+      </AudioProvider>,
+    )
+    expect(screen.queryByText('Rolled')).not.toBeInTheDocument()
+  })
+
+  /*
+   * The delta says how much moved; this says where it left them. Both, on
+   * every card that moved money — the plate alone never answered the question
+   * a player at the table is actually asking.
+   */
+  it('prints the balance the landing left behind', () => {
+    mockReducedMotion(true)
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <EventCard event={makeEvent({ moneyDelta: -2_000, balanceAfter: 8_000 })} onDismiss={() => {}} />
+      </AudioProvider>,
+    )
+    expect(screen.getByText('Cash')).toBeInTheDocument()
+    expect(screen.getByText('$8,000')).toBeInTheDocument()
+  })
+
+  it('prints no balance on a card that moved no money', () => {
+    mockReducedMotion(true)
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <EventCard event={makeEvent({ moneyDelta: 0 })} onDismiss={() => {}} />
+      </AudioProvider>,
+    )
+    expect(screen.queryByText('Cash')).not.toBeInTheDocument()
+  })
+
   it('renders a transfer lane for every player whose balance this landing moved', () => {
     mockReducedMotion(true)
     render(

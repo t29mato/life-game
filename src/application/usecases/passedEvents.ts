@@ -77,21 +77,16 @@ export function applyPassedEvent(
   }
 
   /*
-   * Ends on the balance it left behind — an amount swept past mid-move is
-   * easy to lose track of with play already moving on to the tile the pawn
-   * actually stopped on, so the card says what it was worth *and* what it
-   * left behind, not just the first. Only when it actually moved money — a
-   * graduation or a career change has nothing to add here.
+   * The balance this left behind is already on the card, and was not written
+   * here: whichever door the event came out of — `applyEffect` above, or
+   * `resolved` inside `resolveSpinOutcome` — stamped `balanceAfter` from the
+   * same post-effect roster this returns. An amount swept past mid-move is
+   * the easiest of all to lose track of, with play already moving on to the
+   * tile the pawn actually stopped on, so it matters most here; it is simply
+   * no longer this function's job to say so in a sentence of its own.
    */
-  const finalPlayer = finalState.players.find((candidate) => candidate.id === player.id)
-  const movedMoney = finalPlayer && finalPlayer.money !== player.money
-  const edition = editionOf(state)
-  const notes = movedMoney
-    ? [...event.notes, `Now ${formatMoney(finalPlayer.money, edition.currency)}.`]
-    : event.notes
-
   return {
     state: { ...state, players: finalState.players, log: finalState.log },
-    event: { ...event, notes },
+    event,
   }
 }

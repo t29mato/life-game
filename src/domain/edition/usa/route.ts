@@ -128,7 +128,7 @@ const GRAD_FAIR: SpaceContent = {
 const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'first-job-fair', kind: 'event', title: 'First Job Fair',
-    description: 'Local employers set up booths, hunting for hungry new talent — and you are hired by Friday.',
+    description: 'Local employers set up booths, hunting for hungry new talent — and you are hired before you reach the end of the row.',
     effect: { type: 'chooseCareer', pool: 'basic' },
     tone: 'gold', icon: 'space:first-job-fair',
   },
@@ -211,7 +211,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   payday('work-payday-2', 'Another month, another deposit, and still nobody has asked to see a certificate.', missedPayday(
     'hard',
     'Hours Cut',
-    'The schedule goes up on Sunday with your name on half as many shifts as last week.',
+    'The new schedule goes up with your name on half as many shifts as it used to carry.',
     1_200,
     'Half a month of shifts',
   )),
@@ -658,14 +658,14 @@ const MIDTOWN: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:pay-raise-talk',
   },
   setback('veryHard', 'midtown-rate-rise', 'Rate Rise',
-    'The rate moves the wrong way on a Thursday morning, and every monthly figure moves with it.',
+    'The rate moves the wrong way overnight, and every monthly figure moves with it.',
     { type: 'payMoney', amount: 14_000, reason: 'Rates go the wrong way' },
     'slate', 'space:market-crash'),
 ]
 
 const HOME_BUYING: SpaceContent = {
   id: 'home-buying', kind: 'stop', title: 'House Hunting',
-  description: 'You tour open houses all weekend, mentally moving in furniture.',
+  description: 'You tour open house after open house, mentally moving in furniture.',
   effect: { type: 'buyHouse' },
   tone: 'gold', icon: 'space:house-hunting',
 }
@@ -870,7 +870,7 @@ const COLLEGE_BRANCH: RouteBranch = {
 const WORK_BRANCH: RouteBranch = {
   identity: {
     name: 'Straight to Work',
-    summary: 'Be earning by Friday while they are still unpacking their dorms. No tuition, no safety net, and a trade ladder whose bottom rung is grim and whose top rung beats any graduate at this table.',
+    summary: 'Be earning while they are still unpacking their dorms. No tuition, no safety net, and a trade ladder whose bottom rung is grim and whose top rung beats any graduate at this table.',
   },
   spaces: WORK_LANE,
 }

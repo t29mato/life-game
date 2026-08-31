@@ -237,51 +237,8 @@
   line-height: 1.4;
 }
 
-/* The die's own outcome table — a sunken panel, same idea as `EventSpinModal`'s
-   own table, sized down to sit inside one option row rather than a whole
-   card. `margin-top` gives it room from the description above without the
-   option's own `gap` (tuned for single-line text) doing it for free. */
-.optionTable {
-  width: 100%;
-  margin-top: 0.3rem;
-  border-collapse: collapse;
-  background: var(--surface-sunken);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  box-shadow: inset 0 1px 3px rgba(92, 70, 34, 0.12);
-}
-
-.optionTable th,
-.optionTable td {
-  padding: 0.3rem 0.6rem;
-  text-align: left;
-  font-size: 0.82rem;
-}
-
-.optionTable thead th {
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  padding-bottom: 0.15rem;
-}
-
-.optionTable tbody th,
-.optionTable tbody td:first-child {
-  font-weight: 800;
-  font-variant-numeric: var(--tabular, tabular-nums);
-  white-space: nowrap;
-}
-
-.optionTable tbody td:last-child {
-  font-weight: 600;
-  color: var(--ink-soft);
-}
-
-.optionTable tbody tr:nth-child(even) {
-  background: color-mix(in srgb, var(--surface) 45%, transparent);
-}
+/* The die's own outcome table lives in `RollTable` now (compact variant) —
+   one sunken panel shared with EventSpinModal's whole-card copy. */
 
 /* ---- Branch lane preview: what a fork actually holds --------------------- */
 .lanePreview {

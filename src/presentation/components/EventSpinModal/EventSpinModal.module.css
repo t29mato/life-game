@@ -71,46 +71,6 @@
   color: var(--ink-soft, var(--ink-faint));
 }
 
-/* The die's own outcome table — a sunken panel cut into the card, the same
-   way a printed insert sits recessed into a board game's own box. Two
-   columns only, so it stays a glance rather than a spreadsheet. */
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--surface-sunken);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: inset 0 1px 3px rgba(92, 70, 34, 0.12);
-}
-
-.table th,
-.table td {
-  padding: 0.5rem 0.9rem;
-  text-align: left;
-  font-size: 0.92rem;
-}
-
-.table thead th {
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  padding-bottom: 0.3rem;
-}
-
-.table tbody th,
-.table tbody td:first-child {
-  font-weight: 800;
-  font-variant-numeric: var(--tabular, tabular-nums);
-  white-space: nowrap;
-}
-
-.table tbody td:last-child {
-  font-weight: 600;
-  color: var(--ink-soft, var(--ink-faint));
-}
-
-.table tbody tr:nth-child(even) {
-  background: color-mix(in srgb, var(--surface) 45%, transparent);
-}
+/* The die's own outcome table lives in `RollTable` now — one sunken panel
+   shared with DecisionModal's in-option insert, so an illustrated row is
+   illustrated in both places for free. */

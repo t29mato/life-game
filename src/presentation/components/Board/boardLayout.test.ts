@@ -919,6 +919,20 @@ describe('routeStrands', () => {
     expect(campus?.path.startsWith('M ')).toBe(true)
   })
 
+  /**
+   * The chosen-fork highlight in `Board.tsx` has to find every ribbon of a
+   * road as one thing, so each strand names the lane it renders directly
+   * rather than leaving callers to parse the strand id back apart.
+   */
+  it('names the lane each strand renders', () => {
+    const strands = routeStrands(model, projection, lanes)
+
+    for (const strand of strands) {
+      expect(lanes.some((lane) => lane.id === strand.laneId)).toBe(true)
+    }
+    expect(strands.find((strand) => strand.id.includes('lane-b1'))?.laneId).toBe('lane-b1')
+  })
+
   it('draws a lane with no way in or out as just itself', () => {
     const lonely = board([space('only', 1, 1)], 3, 3)
     const strands = routeStrands(lonely, createProjection(lonely), boardLanes(lonely))

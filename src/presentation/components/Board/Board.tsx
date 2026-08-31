@@ -33,6 +33,7 @@ import {
   spaceAccent,
   spaceCaption,
   terrainRegions,
+  type BoardLane,
   type BoardProjection,
   type CaptionSide,
   type Point,
@@ -44,6 +45,7 @@ import {
   cameraTransform,
   flythroughShots,
   focusShot,
+  handoffPanSeconds,
   restSequence,
   wideShot,
   RESOLVE_ZOOM,
@@ -76,6 +78,16 @@ export interface BoardProps {
   readonly onSpacesLeftChange?: (spacesLeft: number | null) => void
   /** Sweeps the camera along the route once before the first turn. */
   readonly introFlythrough?: boolean
+  /**
+   * The first space of the road the opening fork's roll just settled on, or
+   * null while no fork choice is live. The board lights that whole road up
+   * and shades the one not taken — see the fork-light layer below — because
+   * the dock naming the road in words was not enough: a player glancing at
+   * the board saw two branches and no sign of which one their roll had just
+   * picked. `App` withholds it until the die has visibly landed, the same
+   * spoiler rule `movementPath` already obeys.
+   */
+  readonly chosenExitId?: SpaceId | null
   /** Which country's map pigments to paint the terrain in — see `.frame`'s `[data-edition]` overrides. */
   readonly editionId?: string
   /**
@@ -235,6 +247,7 @@ export function Board({
   onMovementComplete,
   onSpacesLeftChange,
   introFlythrough = false,
+  chosenExitId = null,
   editionId,
   difficulty,
 }: BoardProps): ReactElement {
@@ -378,6 +391,48 @@ export function Board({
     [currentPlayerIndex, phase],
   )
 
+  /**
+   * The road the fork roll picked stays lit past the prop that announced it:
+   * the store clears `chosenExit` the instant the distance roll is pressed,
+   * but the whole point of the light is to still be on the road while the
+   * car actually drives down it. So the last exit named is held here for as
+   * long as the move it started is still playing out — the distance roll,
+   * the hops, any swept-past card — and let go the moment the turn resolves.
+   * Same trick, same reasoning as `visualSpaceIds` above.
+   */
+  const litExitRef = useRef<SpaceId | null>(null)
+  const midFork = phase === 'awaitingDistanceSpin' || phase === 'moving' || phase === 'passingEvent'
+  if (chosenExitId) litExitRef.current = chosenExitId
+  else if (!midFork) litExitRef.current = null
+  const litExitId = litExitRef.current
+
+  /**
+   * Everything the fork light paints: the chosen road's own ribbons, the
+   * rejected road's, and the rejected road's tiles. Resolved from the graph
+   * rather than from anything the dock said — the lit exit heads its own
+   * lane (a fork always breaks the chain there, see `boardLanes`), and the
+   * road not taken is whichever lane the fork's other exit heads.
+   */
+  const forkLight = useMemo(() => {
+    if (!litExitId) return null
+    const fork = spaces.find((space) => space.next.length > 1 && space.next.includes(litExitId))
+    if (!fork) return null
+    const laneOf = (head: SpaceId): BoardLane | undefined =>
+      lanes.find((lane) => lane.spaceIds[0] === head)
+    const taken = laneOf(litExitId)
+    if (!taken) return null
+    const passed = fork.next
+      .filter((id) => id !== litExitId)
+      .map(laneOf)
+      .filter((lane): lane is BoardLane => lane !== undefined)
+    const passedLaneIds = new Set(passed.map((lane) => lane.id))
+    return {
+      takenStrands: strands.filter((strand) => strand.laneId === taken.id),
+      passedStrands: strands.filter((strand) => passedLaneIds.has(strand.laneId)),
+      passedSpaceIds: new Set(passed.flatMap((lane) => lane.spaceIds)),
+    }
+  }, [litExitId, spaces, lanes, strands])
+
   const seats = Math.min(players.length, 4)
   const pawnSize = projection.tileSize * (PAWN_SCALE[seats] ?? 0.54)
   const spreadX = projection.tileSize * (SLOT_SPREAD_X[seats] ?? 0.46)
@@ -428,6 +483,13 @@ export function Board({
   const camScale = useMotionValue(initial.scale)
   const cameraControls = useRef<AnimationPlaybackControls[]>([])
   const cameraRef = useRef<SVGGElement>(null)
+  /**
+   * The last shot the camera was told to land on — where a turn-handoff pan
+   * measures its travel from. A free-look drag can leave the true frame
+   * somewhere else, but all that mispricing costs is a slightly off duration
+   * on the next pan, so the drag deliberately isn't tracked here.
+   */
+  const lastShotRef = useRef<CameraShot>(opening)
   /** True until the opening sweep is done: nothing else may touch the camera. */
   const flyingRef = useRef(introFlythrough)
 
@@ -449,6 +511,7 @@ export function Board({
 
   const applyShot = useCallback(
     (shot: CameraShot, seconds: number): Promise<void> => {
+      lastShotRef.current = shot
       const target = cameraTransform(projection, shot, containerAspectRef.current)
 
       /* On a narrow screen the drawing is wider than its column and pans. The
@@ -632,14 +695,22 @@ export function Board({
    * the player sees what happened. Waiting for a spin is where the board used
    * to pull all the way back to the whole map — legible for nobody, per the
    * reported complaint — so it now settles on `restShot`, zoomed on the active
-   * player's own corner of the board instead. The one exception is the instant
-   * a *different* player is handed the table: that gets a brief passing wide
-   * shot first (`restSequence`'s `establishing` shot), so a player picking up
-   * the controller sees where their car sits in the whole journey before the
-   * camera commits to it — the orientation cue a permanently tight camera
-   * would otherwise cost. Reduced motion always collapses straight to the
-   * final rest shot: the wide establishing beat is motion, not information,
-   * and the rest shot alone already answers "where am I and what's next".
+   * player's own corner of the board instead. Handing the table to a
+   * *different* player used to route through a wide establishing shot on the
+   * way, and that drew its own complaint: between every pair of turns the
+   * camera visibly fell back to the centre of the map before finding the next
+   * player, which read as the camera losing its place rather than as
+   * orientation. A handoff now pans straight from wherever the last turn
+   * left the frame to the new player's rest shot, paced by how far it
+   * actually travels (`handoffPanSeconds`) — neighbours get the ordinary
+   * considered move, a cross-board handoff a slower, readable sweep. The
+   * establishing wide shot survives in exactly one place: the first settle of
+   * a board nobody has been framed on yet (a game just loaded), where there
+   * is no previous frame to pan from and the whole map genuinely is the
+   * orientation a player needs. Reduced motion always collapses straight to
+   * the final rest shot: the wide beat and the pan are motion, not
+   * information, and the rest shot alone already answers "where am I and
+   * what's next".
    *
    * `passingEvent` is left alone along with `moving`: the car is parked
    * mid-move on the tile whose card is up, and every shot below is framed on
@@ -662,21 +733,34 @@ export function Board({
     }
 
     const changedPlayer = previousRestPlayerId.current !== (activePlayer?.id ?? null)
+    const firstSettle = previousRestPlayerId.current === null
     previousRestPlayerId.current = activePlayer?.id ?? null
     const sequence = restSequence(
       board,
       projection,
       space,
-      changedPlayer && !reduceMotion,
+      changedPlayer && firstSettle && !reduceMotion,
       playerPoints,
       containerAspectRef.current,
     )
+    /* Priced before the loop moves the camera: a handoff pan's whole travel
+       is from wherever the previous turn parked the frame, and `applyShot`
+       overwrites that record with its own first leg. */
+    const seconds =
+      changedPlayer && !firstSettle
+        ? handoffPanSeconds(
+            projection,
+            lastShotRef.current,
+            sequence[sequence.length - 1] as CameraShot,
+            CAMERA_SECONDS,
+          )
+        : CAMERA_SECONDS
 
     let cancelled = false
     void (async () => {
       for (const shot of sequence) {
         if (cancelled) return
-        await applyShot(shot, reduceMotion ? 0 : CAMERA_SECONDS)
+        await applyShot(shot, reduceMotion ? 0 : seconds)
       }
     })()
     return () => {
@@ -887,6 +971,40 @@ export function Board({
               ))}
             </g>
 
+            {/* The fork roll's answer, painted on the road itself: the chosen
+                ribbon glows amber with fresh paint flowing the way the car is
+                about to go, and the road not taken falls into shade — its
+                tiles with it, further down. Drawn over the tarmac but under
+                the slabs, so the light reads as the road catching the sun
+                rather than as chrome laid on top of the tiles. */}
+            {forkLight && (
+              <g className={styles.forkLight} aria-hidden="true">
+                {forkLight.passedStrands.map((strand) => (
+                  <path
+                    key={strand.id}
+                    data-testid="road-not-taken"
+                    className={styles.roadNotTaken}
+                    d={strand.path}
+                    strokeWidth={projection.roadCasingWidth}
+                  />
+                ))}
+                {forkLight.takenStrands.map((strand) => (
+                  <g key={strand.id} data-testid="road-taken">
+                    <path
+                      className={styles.roadTakenGlow}
+                      d={strand.path}
+                      strokeWidth={projection.roadWidth * 1.08}
+                    />
+                    <path
+                      className={styles.roadTakenTrace}
+                      d={strand.path}
+                      strokeWidth={projection.roadWidth * 0.16}
+                    />
+                  </g>
+                ))}
+              </g>
+            )}
+
             <g className={styles.glowLayer} aria-hidden="true">
               {tiles
                 .filter((tile) => tile.accent === 'milestone' || tile.accent === 'payday')
@@ -1056,6 +1174,24 @@ export function Board({
                           {tile.caption}
                         </text>
                       </g>
+                    ) : null}
+
+                    {/* The road not taken's own tiles dim with their road —
+                        a shaded ribbon threading between bright tiles would
+                        read as weather, not as an answer. A plain tinted
+                        rect rather than a filter: a filter region per tile
+                        is exactly what the shared-shadow note above the
+                        slab layer exists to avoid. */}
+                    {forkLight?.passedSpaceIds.has(space.id) ? (
+                      <rect
+                        data-testid="tile-not-taken"
+                        className={styles.roadNotTakenTile}
+                        x={-half}
+                        y={-half}
+                        width={size}
+                        height={size}
+                        rx={radius}
+                      />
                     ) : null}
 
                     {isCurrent ? (

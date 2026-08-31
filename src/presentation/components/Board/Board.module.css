@@ -576,6 +576,84 @@
   stroke: var(--road-top);
 }
 
+/* ---- The chosen fork road ------------------------------------------------
+   The moment the fork roll lands, its answer is painted on the board itself:
+   the chosen road's whole ribbon glows amber with a line of fresh paint
+   flowing the way the car is about to travel, and the road not taken falls
+   into the map's own shade. Colour stays rationed to the pigments already on
+   the table — the sun gold every highlight uses, and the same shadow the
+   trees cast.                                                               */
+
+.forkLight {
+  pointer-events: none;
+  animation: forkLightIn 360ms var(--ease-out) backwards;
+}
+
+.forkLight path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.roadNotTaken {
+  stroke: var(--drop);
+}
+
+.roadTakenGlow {
+  stroke: var(--candy-sun);
+  opacity: 0.5;
+  animation: roadTakenBreathe 1.6s var(--ease-in-out) infinite;
+}
+
+.roadTakenTrace {
+  stroke: var(--road-edge);
+  opacity: 0.95;
+  /* Dashes about a third of a tile pitch long. The strand's own path runs in
+     route order, so a negative drift carries them forward down the road. */
+  stroke-dasharray: 23 33;
+  animation: roadTakenFlow 1.1s linear infinite;
+}
+
+.roadNotTakenTile {
+  fill: var(--drop);
+  pointer-events: none;
+}
+
+@keyframes forkLightIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes roadTakenBreathe {
+  0%,
+  100% {
+    opacity: 0.38;
+  }
+  50% {
+    opacity: 0.62;
+  }
+}
+
+@keyframes roadTakenFlow {
+  to {
+    stroke-dashoffset: -56;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forkLight,
+  .roadTakenTrace {
+    animation: none;
+  }
+
+  /* The light stays — it is how the road is read — it just stops breathing. */
+  .roadTakenGlow {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
 /* ---- Tile material -------------------------------------------------------
    A space is a slab of board stock standing on the map, not a print on it: a
    contact shadow grounds it, a side wall gives it thickness, and the printed

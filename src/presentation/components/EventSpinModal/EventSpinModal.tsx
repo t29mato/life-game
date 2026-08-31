@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import { motion } from 'framer-motion'
-import type { SpinValue } from '@domain/model/types'
+import type { RollTableRow, SpinValue } from '@domain/model/types'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { Dice } from '../Dice/Dice'
+import { RollTable } from '../RollTable/RollTable'
 import styles from './EventSpinModal.module.css'
 
 export interface EventSpinModalProps {
@@ -16,7 +17,7 @@ export interface EventSpinModalProps {
    * actual table beneath `stakes`, which is why `stakes` should never repeat
    * what a row here already says.
    */
-  readonly table?: readonly { readonly range: string; readonly amount: string }[] | undefined
+  readonly table?: readonly RollTableRow[] | undefined
   readonly result: SpinValue | null
   readonly onSpin: () => void
   readonly onSpinComplete: () => void
@@ -120,24 +121,7 @@ export function EventSpinModal({
             back out of a sentence the way `stakes` alone used to ask them
             to. Only ever present alongside a real breakdown; most rolls
             (a single threshold, a flat rate) have nothing to tabulate. */}
-        {table && table.length > 0 ? (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th scope="col">Roll</th>
-                <th scope="col">Outcome</th>
-              </tr>
-            </thead>
-            <tbody>
-              {table.map((row) => (
-                <tr key={row.range}>
-                  <td>{row.range}</td>
-                  <td>{row.amount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : null}
+        {table && table.length > 0 ? <RollTable rows={table} /> : null}
 
         <Dice
           result={result}

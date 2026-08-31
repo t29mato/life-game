@@ -103,7 +103,7 @@ const GRAD_FAIR: SpaceContent = {
 const WORK_LANE: readonly SpaceContent[] = [
   {
     id: 'jp-placement-day', kind: 'event', title: 'Placement Day',
-    description: 'Your school has an arrangement with a local firm, and by Friday you have a badge, a uniform, and a wage — two years before the students earn a thing.',
+    description: 'Your school has an arrangement with a local firm, and you leave with a badge, a uniform, and a wage — two years before the students earn a thing.',
     effect: { type: 'chooseCareer', pool: 'basic' },
     tone: 'gold', icon: 'space:first-job-fair',
   },
@@ -141,7 +141,7 @@ const WORK_LANE: readonly SpaceContent[] = [
   payday('jp-work-payday-2', 'Another month, another envelope, and still nobody has ever asked to see a diploma.', missedPayday(
     'hard',
     'Hours Cut',
-    'The rota goes up on Sunday with your name on half as many lines as last week.',
+    'The new rota goes up with your name on half as many lines as it used to carry.',
     120_000,
     'Half a month of shifts',
   )),
@@ -323,7 +323,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
     'purple', 'space:nursery-setup'),
   {
     id: 'jp-family-school-bag', kind: 'normal', title: 'The School Bag',
-    description: 'Each child needs the traditional leather backpack, the uniform, the gym clothes, and forty-one items labelled by hand before Tuesday. The backpack costs more than your first laptop and will outlast your car.',
+    description: 'Each child needs the traditional leather backpack, the uniform, the gym clothes, and forty-one items labelled by hand before the first day. The backpack costs more than your first laptop and will outlast your car.',
     effect: { type: 'payPerChild', amount: 300_000, reason: 'School bag and uniforms per child' },
     tone: 'purple', icon: 'space:school-fees',
   },
@@ -346,7 +346,7 @@ const CAREER_TRACK: readonly SpaceContent[] = [
   payday('jp-fast-payday-1', 'Overtime finally shows up on the pay slip.'),
   {
     id: 'jp-fast-headhunted', kind: 'normal', title: 'Headhunted',
-    description: 'A recruiter calls your personal phone during the Monday meeting, with two offers and no patience.',
+    description: 'A recruiter calls your personal phone during the morning meeting, with two offers and no patience.',
     effect: { type: 'careerChange', reason: 'Headhunted for something new' },
     tone: 'orange', icon: 'space:headhunted',
   },
@@ -428,7 +428,7 @@ const MIDTOWN: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:pay-raise-talk',
   },
   setback('veryHard', 'jp-midtown-rate-rise', 'Rate Rise',
-    'The era of the flat variable rate ends on a Thursday morning, and every monthly figure in the household moves with it.',
+    'The era of the flat variable rate ends overnight, and every monthly figure in the household moves with it.',
     { type: 'payMoney', amount: 1_400_000, reason: 'Rates go the wrong way' },
     'slate', 'space:market-crash'),
 ]
@@ -590,7 +590,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
 
 const RETIREMENT: SpaceContent = {
   id: 'jp-retirement', kind: 'retirement', title: 'Retirement Day',
-  description: 'A bouquet at your desk, one deep bow to the office, and the first Monday in forty years with nowhere to be.',
+  description: 'A bouquet at your desk, one deep bow to the office, and the first morning in forty years with nowhere to be.',
   effect: { type: 'retire' },
   tone: 'gold', icon: 'space:retirement',
 }

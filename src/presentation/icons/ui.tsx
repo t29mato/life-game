@@ -27,6 +27,7 @@ export type UiIconName =
   | 'medal-silver'
   | 'medal-bronze'
   | 'ribbon'
+  | 'book'
 
 export interface UiIconProps {
   readonly name: UiIconName
@@ -149,6 +150,13 @@ function Glyph({ name }: { readonly name: UiIconName }): ReactElement {
           <circle cx="12" cy="9.2" r="5" fill="none" stroke="#b32f76" strokeWidth="1.3" />
           <path d="M8.6 13 6.4 20.4 12 17.6l5.6 2.8L15.4 13Z" fill="#b32f76" />
           <path d="M9.6 9.6 11 11.2 14.6 7.4" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+      )
+    case 'book':
+      return (
+        <g fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round" strokeLinecap="round">
+          <path d="M12 6.2C10.2 4.8 7.4 4.4 4.2 4.8v13.4c3.2-.4 6-.0 7.8 1.4 1.8-1.4 4.6-1.8 7.8-1.4V4.8c-3.2-.4-6 0-7.8 1.4Z" />
+          <path d="M12 6.2v13.4" />
         </g>
       )
     case 'medal-gold':
