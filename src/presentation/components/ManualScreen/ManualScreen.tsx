@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, type CSSProperties, type KeyboardEvent, type ReactElement } from 'react'
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactElement } from 'react'
 import type { Career, SpaceTone } from '@domain/model/types'
 import type { IconName } from '@domain/model/icons'
 import type { CurrencySpec, Edition } from '@domain/edition/types'
@@ -10,6 +10,7 @@ import { GameIcon } from '../../icons/GameIcon'
 import { CareerPlaque } from '../CareerPlaque/CareerPlaque'
 import { CAREER_FAMILY, FAMILY_PALETTE, isCareerIcon } from '../CareerPlaque/families'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
+import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import styles from './ManualScreen.module.css'
 
 export interface ManualScreenProps {
@@ -128,6 +129,18 @@ const GLOSSARY: readonly { readonly term: string; readonly meaning: string }[] =
 ]
 
 /**
+ * The booklet's table of contents: one entry per section, in page order.
+ * The labels are shorter than the section headings on purpose — a tab of a
+ * real booklet says "Careers", not "The careers of the world".
+ */
+const CONTENTS: readonly { readonly id: string; readonly label: string }[] = [
+  { id: 'manual-turn', label: 'Turns' },
+  { id: 'manual-board', label: 'The board' },
+  { id: 'manual-careers', label: 'Careers' },
+  { id: 'manual-words', label: 'Glossary' },
+]
+
+/**
  * The shelf, in the order the title screen's picker offers it: the classic
  * USA game first, then the rest alphabetically by place name — same sort as
  * `TitleScreen`'s `editionOptions`, so the handbook and the picker never
@@ -239,13 +252,24 @@ const POOLS = [
 /**
  * `phase === 'setup'`, opened from the title screen: the game's own
  * instruction booklet. Its anchor is the career catalogue — every trade in
- * every country, on its family plaque, laid out ladder by ladder — framed by
- * the three short things a booklet owes a first-time player: how a turn
- * works, how to read the board, and what the game's own words mean.
+ * every country, on its family plaque, laid out ladder by ladder, one
+ * country's page open at a time — framed by the three short things a booklet
+ * owes a first-time player: how a turn works, how to read the board, and
+ * what the game's own words mean. A sticky contents bar and the country
+ * tabs are what make it a booklet rather than a flyer: you turn to the page
+ * you want instead of scrolling past every page before it.
  */
 export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
   const headingRef = useRef<HTMLHeadingElement>(null)
+  const sectionRefs = useRef<Record<string, HTMLHeadingElement | null>>({})
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const reduceMotion = usePrefersReducedMotion()
   const editions = editionShelf()
+  // The catalogue shows one country at a time — five full catalogues stacked
+  // was the wall of paper this screen used to be. The shelf's first edition
+  // (the classic USA game) is the one a first-time reader means by default.
+  const [shownEditionId, setShownEditionId] = useState<string>(editions[0]!.id)
+  const shownEdition = editions.find((edition) => edition.id === shownEditionId) ?? editions[0]!
 
   useEffect(() => {
     headingRef.current?.focus()
@@ -257,6 +281,43 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (event.key === 'Escape') onClose()
+  }
+
+  /**
+   * A contents button, not an anchor link: a hash navigation would push a
+   * history entry of its own on top of the one `useBackDismiss` owns, and a
+   * back gesture would then spend itself un-jumping instead of closing the
+   * screen. Scrolling by hand keeps history exactly as the hook left it, and
+   * moving focus to the heading keeps a keyboard reader's place honest.
+   */
+  const jumpTo = (id: string): void => {
+    const heading = sectionRefs.current[id]
+    if (!heading) return
+    heading.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+    heading.focus({ preventScroll: true })
+  }
+
+  const registerSection =
+    (id: string) =>
+    (el: HTMLHeadingElement | null): void => {
+      sectionRefs.current[id] = el
+    }
+
+  // The tablist keyboard contract: arrows walk the shelf, Home/End jump to
+  // its ends, and the tab that gains focus is the tab that shows — there is
+  // no separate "activate" step to explain.
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    const count = editions.length
+    const current = editions.findIndex((edition) => edition.id === shownEdition.id)
+    let next: number
+    if (event.key === 'ArrowRight') next = (current + 1) % count
+    else if (event.key === 'ArrowLeft') next = (current - 1 + count) % count
+    else if (event.key === 'Home') next = 0
+    else if (event.key === 'End') next = count - 1
+    else return
+    event.preventDefault()
+    setShownEditionId(editions[next]!.id)
+    tabRefs.current[next]?.focus()
   }
 
   return (
@@ -273,8 +334,23 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
         </h1>
       </header>
 
+      {/* The booklet's thumb tabs: always in reach, one press from any page.
+          Sticky so the reader deep in the catalogue can still get out of it. */}
+      <nav className={styles.contents} aria-label="Contents">
+        {CONTENTS.map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            className={styles.contentsButton}
+            onClick={() => jumpTo(entry.id)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </nav>
+
       <section className={styles.section} aria-labelledby="manual-turn">
-        <h2 className={styles.sectionHeading} id="manual-turn">
+        <h2 className={styles.sectionHeading} id="manual-turn" tabIndex={-1} ref={registerSection('manual-turn')}>
           How a turn works
         </h2>
         <ol className={styles.steps}>
@@ -293,7 +369,7 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
       </section>
 
       <section className={styles.section} aria-labelledby="manual-board">
-        <h2 className={styles.sectionHeading} id="manual-board">
+        <h2 className={styles.sectionHeading} id="manual-board" tabIndex={-1} ref={registerSection('manual-board')}>
           Reading the board
         </h2>
         <ul className={styles.tileList}>
@@ -322,45 +398,76 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
       </section>
 
       <section className={styles.section} aria-labelledby="manual-careers">
-        <h2 className={styles.sectionHeading} id="manual-careers">
+        <h2 className={styles.sectionHeading} id="manual-careers" tabIndex={-1} ref={registerSection('manual-careers')}>
           The careers of the world
         </h2>
         <p className={styles.sectionLede}>
-          Every trade on every board, ladder by ladder. A fair only ever hires onto the leftmost rung —
-          the rest is climbed.
+          Every trade on every board, ladder by ladder, one country at a time. A fair only ever hires
+          onto the leftmost rung — the rest is climbed.
         </p>
-        {editions.map((edition) => {
-          const trades = edition.careers.basic.length + edition.careers.graduate.length
-          return (
-            <section key={edition.id} className={styles.edition} aria-label={`${editionDisplayName(edition)} careers`}>
-              <header className={styles.editionHeader}>
-                <h3 className={styles.editionName}>{editionDisplayName(edition)}</h3>
-                <span className={styles.editionMeta}>
-                  counts in {edition.currency.symbol} · {trades} trades
-                </span>
-              </header>
-              {POOLS.map((pool) => {
-                const ladders = laddersFor(edition, pool.degree)
-                if (ladders.length === 0) return null
-                return (
-                  <div key={pool.label} className={styles.pool}>
-                    <div className={styles.poolHeader}>
-                      <span className={styles.poolLabel}>{pool.label}</span>
-                      <span className={styles.poolHint}>{pool.hint}</span>
-                    </div>
-                    {ladders.map((rungs) => (
-                      <Ladder key={rungs[0]!.id} rungs={rungs} currency={edition.currency} />
-                    ))}
-                  </div>
-                )
-              })}
-            </section>
-          )
-        })}
+        <div
+          className={styles.editionTabs}
+          role="tablist"
+          aria-label="Pick a country"
+          onKeyDown={handleTabKeyDown}
+        >
+          {editions.map((edition, index) => {
+            const selected = edition.id === shownEdition.id
+            return (
+              <button
+                key={edition.id}
+                id={`manual-edition-tab-${edition.id}`}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                aria-controls={`manual-edition-panel-${edition.id}`}
+                tabIndex={selected ? 0 : -1}
+                className={selected ? `${styles.editionTab} ${styles.editionTabActive}` : styles.editionTab}
+                ref={(el) => {
+                  tabRefs.current[index] = el
+                }}
+                onClick={() => setShownEditionId(edition.id)}
+              >
+                {editionDisplayName(edition)}
+              </button>
+            )
+          })}
+        </div>
+        <section
+          key={shownEdition.id}
+          id={`manual-edition-panel-${shownEdition.id}`}
+          role="tabpanel"
+          tabIndex={0}
+          className={styles.edition}
+          aria-label={`${editionDisplayName(shownEdition)} careers`}
+        >
+          <header className={styles.editionHeader}>
+            <h3 className={styles.editionName}>{editionDisplayName(shownEdition)}</h3>
+            <span className={styles.editionMeta}>
+              counts in {shownEdition.currency.symbol} ·{' '}
+              {shownEdition.careers.basic.length + shownEdition.careers.graduate.length} trades
+            </span>
+          </header>
+          {POOLS.map((pool) => {
+            const ladders = laddersFor(shownEdition, pool.degree)
+            if (ladders.length === 0) return null
+            return (
+              <div key={pool.label} className={styles.pool}>
+                <div className={styles.poolHeader}>
+                  <span className={styles.poolLabel}>{pool.label}</span>
+                  <span className={styles.poolHint}>{pool.hint}</span>
+                </div>
+                {ladders.map((rungs) => (
+                  <Ladder key={rungs[0]!.id} rungs={rungs} currency={shownEdition.currency} />
+                ))}
+              </div>
+            )
+          })}
+        </section>
       </section>
 
       <section className={styles.section} aria-labelledby="manual-words">
-        <h2 className={styles.sectionHeading} id="manual-words">
+        <h2 className={styles.sectionHeading} id="manual-words" tabIndex={-1} ref={registerSection('manual-words')}>
           Words this game uses
         </h2>
         <dl className={styles.glossary}>

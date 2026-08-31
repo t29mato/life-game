@@ -76,6 +76,57 @@
 }
 
 /* ==========================================================================
+   Contents bar — the booklet's thumb tabs. Sticky, so however deep into the
+   career catalogue the reader has scrolled, every other page stays one press
+   away. A floating plastic pill bar, same moulding as the buttons.
+   ========================================================================== */
+.contents {
+  position: sticky;
+  top: 0.6rem;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--surface-grad);
+  box-shadow:
+    var(--elev-2),
+    inset 0 0 0 1.5px color-mix(in srgb, var(--border-strong) 55%, transparent);
+}
+
+.contentsButton {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 0.38rem 0.85rem;
+  border-radius: var(--radius-full);
+  color: var(--ink-soft);
+  background: transparent;
+}
+
+.contentsButton:hover {
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+
+.contentsButton:active {
+  background: var(--surface-sunken);
+  box-shadow: inset 0 1px 3px rgba(92, 70, 34, 0.18);
+}
+
+.contentsButton:focus-visible {
+  outline: 3px solid var(--candy-sky);
+  outline-offset: 1px;
+}
+
+/* ==========================================================================
    Booklet sections — each one a sheet of paper laid on the table
    ========================================================================== */
 .section {
@@ -97,6 +148,15 @@
   font-weight: 900;
   letter-spacing: -0.02em;
   color: var(--ink);
+  /* A contents jump lands the heading below the sticky bar, not under it. */
+  scroll-margin-top: 4.4rem;
+  outline: none;
+}
+
+.sectionHeading:focus-visible {
+  outline: 3px solid var(--candy-sky);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .sectionLede {
@@ -212,11 +272,66 @@
 /* ==========================================================================
    The career catalogue
    ========================================================================== */
+
+/* ---- The country tabs: one edition's page open at a time ----------------- */
+.editionTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+/* An unpressed tab is a paper chip; the pressed one is moulded plastic in
+   the same sky blue as the step counters, so "selected" reads as the one
+   raised piece on the sheet. */
+.editionTab {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  padding: 0.42rem 0.95rem;
+  border-radius: var(--radius-full);
+  color: var(--ink-soft);
+  background: var(--surface-alt);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--border-strong) 60%, transparent);
+}
+
+.editionTab:hover {
+  color: var(--ink);
+  background: var(--surface-sunken);
+}
+
+.editionTab:focus-visible {
+  outline: 3px solid var(--candy-sky);
+  outline-offset: 2px;
+}
+
+.editionTabActive,
+.editionTabActive:hover {
+  color: #fff;
+  background: linear-gradient(180deg, var(--candy-sky), var(--candy-sky-dark));
+  box-shadow:
+    0 2px 0 var(--candy-sky-dark),
+    0 3px 6px -2px rgba(92, 70, 34, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
 .edition {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
   padding-top: 0.6rem;
+  outline: none;
+}
+
+/* The panel itself is a tab stop (it holds nothing else focusable), so it
+   needs the same visible ring everything focusable here wears. */
+.edition:focus-visible {
+  outline: 3px solid var(--candy-sky);
+  outline-offset: 4px;
+  border-radius: var(--radius-md);
 }
 
 .editionHeader {
@@ -431,6 +546,24 @@
 
   .section {
     padding: 1.1rem 1rem 1.25rem;
+  }
+
+  /* The thumb tabs tighten rather than wrap where they can help it — four
+     short words should stay one row even on a narrow phone. */
+  .contents {
+    top: 0.4rem;
+    gap: 0.15rem;
+    padding: 0.32rem 0.4rem;
+  }
+
+  .contentsButton {
+    font-size: 0.68rem;
+    padding: 0.34rem 0.6rem;
+  }
+
+  .editionTab {
+    font-size: 0.8rem;
+    padding: 0.38rem 0.8rem;
   }
 
   /* On a phone a ladder stacks; the arrow turns to point down the stack so
