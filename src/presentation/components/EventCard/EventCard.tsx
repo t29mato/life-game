@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties, type ReactElement } from 'reac
 import { motion } from 'framer-motion'
 import type { EditionId, LandingEvent } from '@domain/model/types'
 import { editionFor } from '@domain/edition/registry'
-import { formatMoney, formatMoneyDelta } from '../../format'
+import { formatMoney, formatMoneyDelta, formatOrdinal } from '../../format'
 import { GameIcon } from '../../icons/GameIcon'
 import { useAudio } from '../../hooks/useAudio'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
@@ -163,36 +163,66 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
               <span className={styles.rolledFace}>{event.rolled}</span>
             </p>
           ) : null}
-          {event.narration ? <p className={styles.narration}>&ldquo;{event.narration}&rdquo;</p> : null}
-          <p className={styles.description}>{event.description}</p>
+          {/* The specific, dynamic story of what just happened — every
+              handler writes one. The tile's own generic description (already
+              shown once, before the roll, on its popover and on its stakes
+              line) would only repeat the same beat in a duller voice, so it
+              steps aside the moment there is a real sentence to tell instead.
+              Only a card built without one — no real handler leaves narration
+              off, but the type allows it — falls back to the plain framing. */}
+          {event.narration ? (
+            <p className={styles.narration}>&ldquo;{event.narration}&rdquo;</p>
+          ) : (
+            <p className={styles.description}>{event.description}</p>
+          )}
 
-          {hasMoneyDelta ? (
-            <div className={`${styles.deltaPlate} ${deltaClassName}`}>
+          {/* The one figure a player actually wants: not just how much moved,
+              but where it left them — one line the wallet itself could
+              print, the delta folded in rather than said again in a second
+              line underneath it. `before` is read out of the ledger rather
+              than assumed to be `after - delta`'s inverse for the same
+              reason `balanceAfter` itself is: an automatic loan can put
+              `after` somewhere plain subtraction would not predict, and this
+              has to agree with it, not re-derive it. */}
+          {hasMoneyDelta && event.balanceAfter !== undefined ? (
+            <div className={`${styles.moneyPlate} ${deltaClassName}`}>
               <CoinBurst burstKey={coinTick} kind={event.moneyDelta >= 0 ? 'gain' : 'lose'} />
-              <span className={styles.deltaArrow} aria-hidden="true">
-                {arrow}
+              <div className={styles.moneyRow}>
+                <span className={`${styles.moneyBefore} tabular-num`}>
+                  {money(event.balanceAfter - event.moneyDelta)}
+                </span>
+                <span className={styles.moneyArrow} aria-hidden="true">
+                  →
+                </span>
+                <RollingNumber
+                  className={`${styles.moneyAfter} tabular-num`}
+                  value={revealed ? event.balanceAfter : event.balanceAfter - event.moneyDelta}
+                  format={money}
+                  duration={0.7}
+                />
+              </div>
+              <span className={styles.moneyDeltaChip}>
+                <span className={styles.deltaArrow} aria-hidden="true">
+                  {arrow}
+                </span>
+                {moneyDelta(event.moneyDelta)}
               </span>
-              <RollingNumber
-                className={`${styles.delta} tabular-num`}
-                value={revealed ? event.moneyDelta : 0}
-                format={moneyDelta}
-                duration={0.7}
-              />
             </div>
           ) : null}
 
-          {/* Where that leaves them. The plate says how much moved and says it
-              loudly; this says what is actually in the wallet now, which is
-              the question a player is really asking and the one the plate
-              cannot answer alone — a debit larger than the wallet takes an
-              automatic loan, so the cash does not land where subtracting the
-              plate would put it. Deliberately quiet and second: it is context
-              for the number above, not a rival to it. "Cash" because that is
-              what the strip and the status sheet call this same figure. */}
-          {event.balanceAfter !== undefined ? (
-            <p className={styles.balance}>
-              <span className={styles.balanceLabel}>Cash</span>
-              <span className={`${styles.balanceValue} tabular-num`}>{money(event.balanceAfter)}</span>
+          {/* Where that leaves them in the standings — only printed when it
+              actually moved. Most landings move money without moving a rung,
+              and a rank line that reads the same on both sides would just be
+              one more thing to read that says nothing happened. */}
+          {event.rankBefore !== undefined && event.rankAfter !== undefined ? (
+            <p
+              className={`${styles.rankChange} ${event.rankAfter < event.rankBefore ? styles.rankUp : styles.rankDown}`}
+            >
+              <span className={styles.rankValue}>{formatOrdinal(event.rankBefore)}</span>
+              <span className={styles.rankArrow} aria-hidden="true">
+                →
+              </span>
+              <span className={styles.rankValue}>{formatOrdinal(event.rankAfter)}</span>
             </p>
           ) : null}
 

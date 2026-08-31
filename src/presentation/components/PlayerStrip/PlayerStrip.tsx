@@ -4,7 +4,7 @@ import { editionFor } from '@domain/edition/registry'
 import { formatMoney, formatOrdinal } from '../../format'
 import { UiIcon } from '../../icons/ui'
 import { RollingNumber } from '../RollingNumber/RollingNumber'
-import type { Standing } from '../PlayerPanel/rankPlayers'
+import type { Standing } from '@domain/rules/standing'
 import styles from './PlayerStrip.module.css'
 
 export interface PlayerStripProps {

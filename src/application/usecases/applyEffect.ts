@@ -47,6 +47,7 @@ import {
   totalShares,
 } from '@domain/rules/player'
 import { withBalanceAfter } from './balanceAfter'
+import { withStandingChange } from './standingChange'
 import { formatMoney, loanNote, paydayReceipt, raiseNote, salaryPeriod, salaryRate } from './format'
 import { appendLog } from './logging'
 import { collectPaydays } from './payday'
@@ -325,7 +326,16 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
   const actingPlayerId = state.players[state.currentPlayerIndex]?.id
   const result = resolveEffect(state, space, deps)
   if (actingPlayerId === undefined) return result
-  return { ...result, event: withBalanceAfter(result.event, result.state.players, actingPlayerId) }
+  const withBalance = withBalanceAfter(result.event, result.state.players, actingPlayerId)
+  const event = withStandingChange(
+    withBalance,
+    state.players,
+    result.state.players,
+    actingPlayerId,
+    state.difficulty,
+    state.editionId,
+  )
+  return { ...result, event }
 }
 
 function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): EffectResult {

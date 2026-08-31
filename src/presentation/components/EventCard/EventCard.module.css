@@ -332,15 +332,19 @@
   max-width: 24rem;
 }
 
-/* ---- Money delta: an enamelled plate you cannot miss --------------------- */
-.deltaPlate {
+/* ---- Money plate: before → after, on an enamelled plate you cannot miss --
+   Replaces a plate that only ever said how much moved with one that says
+   where that leaves the wallet — the number a player is actually asking
+   about — and folds the delta underneath it rather than beside it. */
+.moneyPlate {
   position: relative;
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.15rem;
   margin: 0.2rem 0 0.1rem;
-  padding: 0.5rem 1.35rem 0.55rem;
-  border-radius: var(--radius-full);
+  padding: 0.55rem 1.35rem 0.6rem;
+  border-radius: var(--radius-xl);
   background: linear-gradient(180deg, var(--plate-light) 0%, var(--plate) 60%, var(--plate-dark) 100%);
   color: var(--plate-ink);
   box-shadow:
@@ -361,17 +365,40 @@
   }
 }
 
+.moneyRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
 .deltaArrow {
   font-size: 1.05rem;
   line-height: 1;
   opacity: 0.9;
 }
 
+/* The starting figure: present, but visibly the lesser of the two — the eye
+   should land on where this ends up, not where it began. */
+.moneyBefore {
+  font-size: clamp(1.05rem, 4vw, 1.3rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--plate-ink);
+  opacity: 0.65;
+}
+
+.moneyArrow {
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--plate-ink);
+  opacity: 0.75;
+}
+
 /*
  * Compound selector so the plate's own ink wins over `RollingNumber`'s
  * transient up/down flash — the plate already says which way this went.
  */
-.deltaPlate .delta {
+.moneyPlate .moneyAfter {
   font-size: clamp(1.9rem, 8vw, 2.45rem);
   line-height: 1.05;
   font-weight: 800;
@@ -380,6 +407,19 @@
   color: var(--plate-ink);
   background-color: transparent;
   text-shadow: 0 1px 0 color-mix(in srgb, var(--plate-dark) 55%, transparent);
+}
+
+/* The delta, folded underneath rather than repeated beside the big figure —
+   "how much" as a footnote to "where that leaves you", not a rival to it. */
+.moneyDeltaChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  color: var(--plate-ink);
+  opacity: 0.85;
 }
 
 .deltaPositive {
@@ -428,35 +468,34 @@
   font-weight: 600;
 }
 
-/* One row per player whose balance this landing moved — the coin's own
-   flight sits above `.notes`, which still spells out the same fact in
-   words underneath. */
-/*
- * The wallet, under the plate. Same label-then-value shape as the die above
- * it, and deliberately a size down from the delta: this is the answer to
- * "where does that leave me", which is context for the big number, never
- * competition with it.
- */
-.balance {
+/* ---- Standing: where this left them in the race, only when it moved ----- */
+.rankChange {
   display: inline-flex;
   align-items: baseline;
-  gap: 0.45rem;
-  margin: 0.15rem 0 0.1rem;
-}
-
-.balanceLabel {
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.balanceValue {
-  font-size: 1.02rem;
+  gap: 0.4rem;
+  margin: 0.05rem 0 0.1rem;
+  font-size: 0.92rem;
   font-weight: 800;
   font-variant-numeric: var(--tabular, tabular-nums);
-  color: var(--ink-soft);
+}
+
+.rankValue {
+  color: var(--ink);
+}
+
+.rankArrow {
+  opacity: 0.6;
+}
+
+/* A climb reads mint, same as a gain; a slip reads coral, same as a loss —
+   the standings borrow the plate's own colour language rather than invent
+   a second one. */
+.rankUp .rankValue:last-child {
+  color: var(--candy-mint-dark);
+}
+
+.rankDown .rankValue:last-child {
+  color: var(--candy-coral-dark);
 }
 
 .transferLanes {
@@ -494,7 +533,7 @@
 @media (prefers-reduced-motion: reduce) {
   .medallion,
   .medallionPunch,
-  .deltaPlate,
+  .moneyPlate,
   .backdrop,
   .flash,
   .continue {

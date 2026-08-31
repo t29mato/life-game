@@ -51,7 +51,7 @@ describe('EventCard', () => {
     mockReducedMotion(true)
     render(
       <AudioProvider audio={createFakeAudioPort()}>
-        <EventCard event={makeEvent({ moneyDelta: 5000 })} onDismiss={() => {}} />
+        <EventCard event={makeEvent({ moneyDelta: 5000, balanceAfter: 15_000 })} onDismiss={() => {}} />
       </AudioProvider>,
     )
     await waitFor(() => expect(screen.getByText('+$5,000')).toBeInTheDocument())
@@ -140,7 +140,7 @@ describe('EventCard', () => {
     expect(screen.queryByTestId('confetti-field')).not.toBeInTheDocument()
   })
 
-  it('renders the narration line distinctly from the space description', () => {
+  it('prints the narration in place of the space description once a real story exists', () => {
     mockReducedMotion(true)
     const event = makeEvent({
       description: 'Your side project blows up overnight.',
@@ -152,16 +152,20 @@ describe('EventCard', () => {
       </AudioProvider>,
     )
     expect(screen.getByText(/That's the lead gone, just like that!/)).toBeInTheDocument()
-    expect(screen.getByText('Your side project blows up overnight.')).toBeInTheDocument()
+    // The generic tile flavour already did its job before the roll — on the
+    // popover, on the stakes line — and would only repeat the same beat in a
+    // duller voice once the narration has the real, specific one to tell.
+    expect(screen.queryByText('Your side project blows up overnight.')).not.toBeInTheDocument()
   })
 
-  it('renders no narration line when the event carries none', () => {
+  it('falls back to the space description on a card built with no narration', () => {
     mockReducedMotion(true)
     render(
       <AudioProvider audio={createFakeAudioPort()}>
         <EventCard event={makeEvent()} onDismiss={() => {}} />
       </AudioProvider>,
     )
+    expect(screen.getByText('Your side project blows up overnight.')).toBeInTheDocument()
     expect(screen.queryByText(/^".*"$/)).not.toBeInTheDocument()
   })
 
@@ -193,29 +197,54 @@ describe('EventCard', () => {
   })
 
   /*
-   * The delta says how much moved; this says where it left them. Both, on
-   * every card that moved money — the plate alone never answered the question
-   * a player at the table is actually asking.
+   * The delta says how much moved; this says where it left them, on both
+   * ends — before *and* after, not just the wallet it landed in. The plate
+   * alone never answered the question a player at the table is actually
+   * asking.
    */
-  it('prints the balance the landing left behind', () => {
+  it('prints where the balance started and where it landed', async () => {
     mockReducedMotion(true)
     render(
       <AudioProvider audio={createFakeAudioPort()}>
         <EventCard event={makeEvent({ moneyDelta: -2_000, balanceAfter: 8_000 })} onDismiss={() => {}} />
       </AudioProvider>,
     )
-    expect(screen.getByText('Cash')).toBeInTheDocument()
-    expect(screen.getByText('$8,000')).toBeInTheDocument()
+    // The starting figure sits statically to the left of the arrow; the
+    // rolling figure to its right also opens on that same starting number
+    // until the reveal timer fires, so both are on screen at once here.
+    expect(screen.getAllByText('$10,000').length).toBeGreaterThan(0)
+    await waitFor(() => expect(screen.getByText('$8,000')).toBeInTheDocument())
   })
 
-  it('prints no balance on a card that moved no money', () => {
+  it('prints no money plate on a card that moved no money', () => {
     mockReducedMotion(true)
     render(
       <AudioProvider audio={createFakeAudioPort()}>
         <EventCard event={makeEvent({ moneyDelta: 0 })} onDismiss={() => {}} />
       </AudioProvider>,
     )
-    expect(screen.queryByText('Cash')).not.toBeInTheDocument()
+    expect(screen.queryByText('$0')).not.toBeInTheDocument()
+  })
+
+  it('prints the standing this landing moved them to, before and after', () => {
+    mockReducedMotion(true)
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <EventCard event={makeEvent({ rankBefore: 3, rankAfter: 1 })} onDismiss={() => {}} />
+      </AudioProvider>,
+    )
+    expect(screen.getByText('3rd')).toBeInTheDocument()
+    expect(screen.getByText('1st')).toBeInTheDocument()
+  })
+
+  it('prints no standing line when this landing left the rank untouched', () => {
+    mockReducedMotion(true)
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <EventCard event={makeEvent()} onDismiss={() => {}} />
+      </AudioProvider>,
+    )
+    expect(screen.queryByText(/^\d(st|nd|rd|th)$/)).not.toBeInTheDocument()
   })
 
   it('renders a transfer lane for every player whose balance this landing moved', () => {
@@ -300,28 +329,26 @@ describe('EventCard', () => {
       mockReducedMotion(true)
       const { container } = render(
         <AudioProvider audio={createFakeAudioPort()}>
-          <EventCard event={makeEvent({ moneyDelta: 500, tone: 'blue' })} onDismiss={() => {}} />
+          <EventCard event={makeEvent({ moneyDelta: 500, balanceAfter: 10_500, tone: 'blue' })} onDismiss={() => {}} />
         </AudioProvider>,
       )
       await waitFor(() => expect(screen.getByText('+$500')).toBeInTheDocument())
       expect(screen.getByText('▲')).toBeInTheDocument()
       expect(container.querySelector(`.${styles.deltaPositive}`)).not.toBeNull()
       expect(container.querySelector(`.${styles.deltaNegative}`)).toBeNull()
-      expect(container.querySelector(`.${styles.deltaZero}`)).toBeNull()
     })
 
     it('gives a negative delta the loss treatment: down arrow and the negative plate', async () => {
       mockReducedMotion(true)
       const { container } = render(
         <AudioProvider audio={createFakeAudioPort()}>
-          <EventCard event={makeEvent({ moneyDelta: -500, tone: 'blue' })} onDismiss={() => {}} />
+          <EventCard event={makeEvent({ moneyDelta: -500, balanceAfter: 9_500, tone: 'blue' })} onDismiss={() => {}} />
         </AudioProvider>,
       )
       await waitFor(() => expect(screen.getByText('-$500')).toBeInTheDocument())
       expect(screen.getByText('▼')).toBeInTheDocument()
       expect(container.querySelector(`.${styles.deltaNegative}`)).not.toBeNull()
       expect(container.querySelector(`.${styles.deltaPositive}`)).toBeNull()
-      expect(container.querySelector(`.${styles.deltaZero}`)).toBeNull()
     })
 
     it('skips the money plate entirely for a zero delta — a "$0" pill is clutter, not information', async () => {
@@ -337,7 +364,7 @@ describe('EventCard', () => {
       expect(screen.queryByText('—')).not.toBeInTheDocument()
       expect(screen.queryByText('▼')).not.toBeInTheDocument()
       expect(screen.queryByText('▲')).not.toBeInTheDocument()
-      expect(container.querySelector(`.${styles.deltaPlate}`)).toBeNull()
+      expect(container.querySelector(`.${styles.moneyPlate}`)).toBeNull()
     })
 
     it('does not burst confetti for a zero-delta, non-milestone event', async () => {

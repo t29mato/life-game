@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Player } from '@domain/model/types'
 import { editionFor } from '@domain/edition/registry'
 import { estimateNetWorth } from '@domain/rules/scoring'
-import { rankPlayers } from './rankPlayers'
+import { rankPlayers } from './standing'
 
 // This helper only needs to trust whatever `estimateNetWorth` reports — its
 // own job is ranking around that number. Stubbing it to plain cash keeps the

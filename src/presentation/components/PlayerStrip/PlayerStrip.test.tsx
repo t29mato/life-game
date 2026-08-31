@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { Player, PlayerId } from '@domain/model/types'
-import type { Standing } from '../PlayerPanel/rankPlayers'
+import type { Standing } from '@domain/rules/standing'
 import { PlayerStrip } from './PlayerStrip'
 
 function makePlayer(overrides: Partial<Player> = {}): Player {

@@ -38,6 +38,7 @@ import {
   tradeUpHouse,
 } from '@domain/rules/player'
 import { withBalanceAfter } from './balanceAfter'
+import { withStandingChange } from './standingChange'
 import {
   BANK_DECLINE_OPTION_ID,
   BANK_LOAN_OPTION_ID,
@@ -97,7 +98,10 @@ function resolved(state: GameState, players: readonly Player[], event: LandingEv
   // The one way out for every answered decision, so it is also the one place
   // that needs to report the balance the answer left behind — `players` here
   // is already the post-decision roster. See `withBalanceAfter`.
-  const settled = player ? withBalanceAfter(event, players, player.id) : event
+  const withBalance = player ? withBalanceAfter(event, players, player.id) : event
+  const settled = player
+    ? withStandingChange(withBalance, state.players, players, player.id, state.difficulty, state.editionId)
+    : withBalance
   return {
     ...state,
     players,

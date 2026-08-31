@@ -11,7 +11,7 @@ import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { GameIcon } from '../../icons/GameIcon'
 import { INSURANCE_ICON, INSURANCE_LABEL } from '../../icons/insurance'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
-import { rankPlayers } from '../PlayerPanel/rankPlayers'
+import { rankPlayers } from '@domain/rules/standing'
 import styles from './StatusModal.module.css'
 
 export interface StatusModalProps {

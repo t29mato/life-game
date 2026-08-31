@@ -587,6 +587,18 @@ export interface LandingEvent {
    * the same table a pressed one shows, not just the framing sentence.
    */
   readonly table?: readonly RollTableRow[]
+  /**
+   * Where this player stood, 1-based, right before and right after this
+   * landing settled — the same numbers `rankPlayers` hands the strip behind
+   * the card, read at the two moments that bracket the effect. Present only
+   * when they differ: a card that moved money without moving the standings
+   * (most of them) has nothing to say here, the same way `balanceAfter` says
+   * nothing when `moneyDelta` is zero. A rank can move even when cash does
+   * not — a life tile is worth something the moment it is gained — which is
+   * why this is its own pair rather than derived from `balanceAfter`.
+   */
+  readonly rankBefore?: number
+  readonly rankAfter?: number
 }
 
 export interface MoneyTransfer {
