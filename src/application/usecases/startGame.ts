@@ -69,6 +69,7 @@ export function startGame(config: NewGameConfig, _deps: UseCaseDeps): GameState 
     activePassedEvent: null,
     log: [],
     turn: 1,
+    scoreRolls: [],
     results: null,
   }
 

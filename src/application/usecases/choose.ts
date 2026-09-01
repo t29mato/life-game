@@ -999,7 +999,12 @@ function spinOutcome(
     kind === 'casual'
       ? `${player.name} picks up casual shifts, rolling ${spinValue}: ${money(amount)}.`
       : `${player.name} collects payday, rolling ${spinValue}: ${money(amount)}.`
-  const event = outcomeEvent(space, player, 'Payday', delta, notes, emphasisForMoney(delta, economy), narration)
+  const event = {
+    ...outcomeEvent(space, player, 'Payday', delta, notes, emphasisForMoney(delta, economy), narration),
+    // The trade this week's shifts were worked at — absent for a casual
+    // player between jobs, who has none. See `careerIcon` on `LandingEvent`.
+    ...(player.career === null ? {} : { careerIcon: player.career.icon }),
+  }
   return resolved(state, replacePlayer(state.players, updated), event, logMessage, 'money-in')
 }
 

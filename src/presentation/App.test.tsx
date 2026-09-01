@@ -12,6 +12,7 @@ import {
   createSeededRandom,
 } from '@application/testing/fakes'
 import { findCareer } from '@domain/edition/lookup'
+import { HOUSES, STOCKS } from '@domain/edition/usa'
 import type { GameState, NewGamePlayer, Player, SpinValue } from '@domain/model/types'
 
 import { App } from './App'
@@ -963,6 +964,169 @@ describe('a decision card answered by turning the die', () => {
     // nothing to watch and the card is readable straight away.
     await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument())
     expect(screen.queryByText(/^Rolled$/)).not.toBeInTheDocument()
+  })
+})
+
+/*
+ * The last thing the game decides, and for a long time the only thing it
+ * decided with no die anywhere.
+ *
+ * Every house sale and every share cash-out used to be settled inside
+ * `endTurn` — one synchronous `computeResults`, a uniform integer drawn per
+ * asset, in the tick the last player retired — and the player was dropped
+ * onto the results screen with the biggest numbers of their game already
+ * printed, having pressed nothing. The log even called it a roll. Same shape
+ * as the decision-card bug above, on the same grounds; these are the tests
+ * that hold it closed.
+ *
+ * Placed here, beside the decision-card die tests, rather than at the foot of
+ * the file: both throw a real die on a real clock, and framer-motion's frame
+ * loop does not survive a round trip through the faked `requestAnimationFrame`
+ * that `describe('computer seats')` below installs — a die thrown after those
+ * never finishes its animation. Every test in this file that waits on a die
+ * landing therefore belongs above them.
+ */
+describe('the closing settlement', () => {
+  /** A real store with everybody retired, one press away from the results. */
+  function retiredTable(holdings: Partial<Player>, bothComputers = false): GameStore {
+    const repository = createInMemoryRepository()
+    const store = createGameStore({
+      random: createSeededRandom(3),
+      repository,
+      stats: createInMemoryStatsRepository(),
+    })
+    const base = startedGame([
+      { name: 'Ada', color: 'red', isCpu: bothComputers },
+      { name: 'Ben', color: 'blue', isCpu: bothComputers },
+    ]).getState()
+    const [ada, ben] = base.players
+    repository.save(1, {
+      ...base,
+      players: [
+        { ...ada!, isRetired: true, retirementRank: 1, ...holdings },
+        { ...ben!, isRetired: true, retirementRank: 2, house: null, stocks: [] },
+      ],
+      currentPlayerIndex: 0,
+      phase: 'resolved',
+      lastEvent: null,
+      lastSpin: null,
+      movementPath: [],
+      pendingPath: [],
+      pendingDecision: null,
+    })
+    store.dispatch({ type: 'load', slot: 1 })
+    return store
+  }
+
+  const resultsShowing = (): boolean => screen.queryByRole('table', { name: /final standings/i }) !== null
+
+  /** Presses the die on a settlement card, the way a person at the table would. */
+  async function pressTheDie(dialog: HTMLElement): Promise<void> {
+    const user = userEvent.setup()
+    await user.click(within(dialog).getByRole('button', { name: /^roll$/i }))
+  }
+
+  /** Waits for whatever is in the air to come down and the results to appear. */
+  async function waitForResults(timeout = 8_000): Promise<void> {
+    await waitFor(() => expect(resultsShowing()).toBe(true), { timeout })
+  }
+
+  it('puts a real die and its ladder on screen before the results exist', async () => {
+    const store = retiredTable({ house: HOUSES[0]! })
+    render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    act(() => store.dispatch({ type: 'endTurn' }))
+
+    // The house is not sold yet — the die that sells it has not been thrown.
+    expect(store.getState().phase).toBe('scoring')
+    expect(resultsShowing()).toBe(false)
+
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText(/ada's house/i)).toBeInTheDocument()
+    // All six rungs published before the throw, so the number that comes up
+    // is one the player was already hoping for or dreading.
+    expect(within(dialog).getAllByRole('row')).toHaveLength(7)
+
+    // Nothing resolves on its own: it is a person's die, so it waits on them.
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(store.getState().phase).toBe('scoring')
+    expect(resultsShowing()).toBe(false)
+
+    /*
+     * …and only once they throw it and it *lands* do the results arrive.
+     * `scoreRoll` assembles the standings in the very tick the throw is
+     * dispatched — that face was the last fact it was missing — so the
+     * screen has to stay away while the die is still deciding the total
+     * printed on it. Pressed, mid-flight, still nothing:
+     */
+    await pressTheDie(dialog)
+    expect(store.getState().phase).toBe('gameOver')
+    expect(resultsShowing()).toBe(false)
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await waitForResults()
+    expect(store.getState().results!.standings.find((s) => s.name === 'Ada')!.houseValue).toBeGreaterThan(0)
+  })
+
+  /*
+   * One die per asset class, never one per individual asset: a four-seat table
+   * where everybody held a home and three stocks would otherwise ask for
+   * sixteen presses between the last retirement and the results screen.
+   */
+  it('asks for one die per asset class, and holds the results back for both', async () => {
+    const store = retiredTable({ house: HOUSES[0]!, stocks: [{ stockId: STOCKS[0]!.id, shares: 2 }] })
+    render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    act(() => store.dispatch({ type: 'endTurn' }))
+    expect(store.getState().scoreRolls).toHaveLength(2)
+
+    await pressTheDie(screen.getByRole('dialog'))
+    // The second die, for the shares — and still no results.
+    await waitFor(() => expect(screen.getByText(/ada's shares/i)).toBeInTheDocument(), { timeout: 8_000 })
+    expect(resultsShowing()).toBe(false)
+
+    await pressTheDie(screen.getByRole('dialog'))
+    // The last die of the game, still in the air: the standings exist by
+    // now but must not be readable over the throw that decided them.
+    expect(store.getState().phase).toBe('gameOver')
+    expect(resultsShowing()).toBe(false)
+
+    await waitForResults()
+    expect(store.getState().scoreRolls.map((roll) => roll.face)).not.toContain(null)
+  })
+
+  /*
+   * Nobody is the active player once everybody has retired, so "who presses"
+   * is answered by the die itself: it belongs to the seat it is scoring, and a
+   * computer's own holdings throw unattended exactly as a computer's rolls do
+   * all game. Nothing in this test presses anything.
+   */
+  it("throws a computer seat's own settlement dice unattended", async () => {
+    const store = retiredTable({ house: HOUSES[0]!, stocks: [{ stockId: STOCKS[0]!.id, shares: 1 }] }, true)
+    render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    act(() => store.dispatch({ type: 'endTurn' }))
+    expect(store.getState().phase).toBe('scoring')
+
+    await waitForResults(20_000)
+    // Thrown, not skipped: every die on the queue landed on a real face.
+    expect(store.getState().scoreRolls.map((roll) => roll.face)).not.toContain(null)
+  })
+
+  /*
+   * And nothing to settle means no ceremony. A player who bought neither a
+   * home nor a share has no die owed, so the results are where the last
+   * retirement leads — never an empty press with nothing riding on it.
+   */
+  it('goes straight to the results when nobody owns anything to value', () => {
+    const store = retiredTable({ house: null, stocks: [] })
+    render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    act(() => store.dispatch({ type: 'endTurn' }))
+
+    expect(store.getState().phase).toBe('gameOver')
+    expect(store.getState().scoreRolls).toEqual([])
+    expect(resultsShowing()).toBe(true)
   })
 })
 

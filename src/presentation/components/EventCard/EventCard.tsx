@@ -11,6 +11,8 @@ import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { RollingNumber } from '../RollingNumber/RollingNumber'
 import { Confetti } from '../Confetti/Confetti'
 import { CoinBurst, TransferLane } from '../CoinFlight/CoinFlight'
+import { CareerPlaque } from '../CareerPlaque/CareerPlaque'
+import { isCareerIcon } from '../CareerPlaque/families'
 import styles from './EventCard.module.css'
 
 export interface EventCardProps {
@@ -162,6 +164,14 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
               <span className={styles.rolledLabel}>Rolled</span>
               <span className={styles.rolledFace}>{event.rolled}</span>
             </p>
+          ) : null}
+          {/* Whose trade this packet was earned at — the same portrait a
+              career fair's own table draws, so a payday reads as *this*
+              job's wage on sight rather than a generic paycheck. Only ever
+              present on a payday landing for a player who actually holds a
+              career; see `careerIcon` on `LandingEvent`. */}
+          {event.careerIcon && isCareerIcon(event.careerIcon) ? (
+            <CareerPlaque icon={event.careerIcon} size={48} />
           ) : null}
           {/* The specific, dynamic story of what just happened — every
               handler writes one. The tile's own generic description (already

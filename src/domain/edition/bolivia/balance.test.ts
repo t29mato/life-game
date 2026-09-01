@@ -148,6 +148,10 @@ const playGame = (
         store.dispatch({ type: 'choose', optionId: offered[optionBias % offered.length]!.id })
         break
       }
+      // The closing settlement, one die at a time, before `gameOver`.
+      case 'scoring':
+        store.dispatch({ type: 'scoreRoll' })
+        break
       case 'resolved':
         options.landings?.push(state.players[state.currentPlayerIndex]!.spaceId)
         store.dispatch({ type: 'endTurn' })

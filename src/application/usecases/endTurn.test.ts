@@ -82,56 +82,84 @@ describe('endTurn', () => {
     expect(next.results!.winnerId).toBe('p1')
   })
 
-  it('rolls house resale within the house resale range via the random port', () => {
+  /*
+   * The last retirement used to *be* the scoring: `computeResults` ran in the
+   * same tick, every house and every holding drew a uniform integer out of the
+   * random port, and the player met the finished figures on the results screen
+   * having pressed nothing. These tests used to assert that draw. What they
+   * assert now is that `endTurn` decides nothing at all about what anything
+   * was worth — it only opens the settlement and hands over the dice still
+   * owed. See `scoreRoll.test.ts` for what the dice then do.
+   */
+  it('opens the settlement instead of valuing anything once everybody has retired', () => {
     const house = HOUSES[0]!
-    const players = [
-      fixturePlayer({ id: 'p1', house, isRetired: true, retirementRank: 1 }),
-      fixturePlayer({ id: 'p2', isRetired: true, retirementRank: 2 }),
-    ]
-    const state = fixtureState({ players, currentPlayerIndex: 0, phase: 'resolved' })
-    // Rolled in whole thousands: every other figure in the game is a round
-    // number, and a house that sold for $241,333 read as a glitch. The port is
-    // therefore asked for thousands, and the result scaled back up.
-    const random = createFakeRandom({ ints: [house.resaleRange[0] / 1_000] })
-    const next = endTurn(state, { random })
-    expect(random.calls.ints).toContainEqual({
-      min: house.resaleRange[0] / 1_000,
-      max: house.resaleRange[1] / 1_000,
-    })
-    const seller = next.results!.standings.find((standing) => standing.playerId === 'p1')!
-    expect(seller.houseValue).toBe(house.resaleRange[0])
-    expect(seller.houseValue % 1_000).toBe(0)
-    expect(seller.houseValue).toBeGreaterThanOrEqual(house.resaleRange[0])
-    expect(seller.houseValue).toBeLessThanOrEqual(house.resaleRange[1])
-  })
-
-  it('rolls each held stock inside its payout range via the random port', () => {
     const stock = STOCKS[0]!
     const players = [
-      fixturePlayer({ id: 'p1', stocks: [{ stockId: stock.id, shares: 2 }], isRetired: true, retirementRank: 1 }),
+      fixturePlayer({
+        id: 'p1',
+        house,
+        stocks: [{ stockId: stock.id, shares: 2 }],
+        isRetired: true,
+        retirementRank: 1,
+      }),
       fixturePlayer({ id: 'p2', isRetired: true, retirementRank: 2 }),
     ]
     const state = fixtureState({ players, currentPlayerIndex: 0, phase: 'resolved' })
-    const random = createFakeRandom({ ints: [stock.payoutRange[1] / 1_000] })
+    const random = createFakeRandom()
     const next = endTurn(state, { random })
 
-    // Same whole-thousand rule as the house resale.
-    expect(random.calls.ints).toContainEqual({
-      min: stock.payoutRange[0] / 1_000,
-      max: stock.payoutRange[1] / 1_000,
-    })
-    const holder = next.results!.standings.find((standing) => standing.playerId === 'p1')!
-    expect(holder.stockValue).toBe(stock.payoutRange[1] * 2)
-    expect(holder.stockValue % 1_000).toBe(0)
+    expect(next.phase).toBe('scoring')
+    expect(next.results).toBeNull()
+    expect(next.scoreRolls).toEqual([
+      { playerId: 'p1', kind: 'house', face: null },
+      { playerId: 'p1', kind: 'market', face: null },
+    ])
+    // The whole point: nothing was rolled here. Not a die, not an integer.
+    expect(random.calls.spins).toBe(0)
+    expect(random.calls.ints).toEqual([])
   })
 
-  it('scores a player holding no shares at zero stock value', () => {
+  it('owes one die per asset class, house before shares, in seat order', () => {
+    const house = HOUSES[0]!
+    const stock = STOCKS[0]!
     const players = [
-      fixturePlayer({ id: 'p1', stocks: [], isRetired: true, retirementRank: 1 }),
-      fixturePlayer({ id: 'p2', isRetired: true, retirementRank: 2 }),
+      fixturePlayer({ id: 'p1', house, isRetired: true, retirementRank: 1 }),
+      fixturePlayer({ id: 'p2', stocks: [{ stockId: stock.id, shares: 3 }], isRetired: true, retirementRank: 2 }),
+      fixturePlayer({
+        id: 'p3',
+        house,
+        stocks: [{ stockId: stock.id, shares: 1 }],
+        isRetired: true,
+        retirementRank: 3,
+      }),
     ]
     const state = fixtureState({ players, currentPlayerIndex: 0, phase: 'resolved' })
     const next = endTurn(state, { random: createFakeRandom() })
+
+    expect(next.scoreRolls.map((roll) => `${roll.playerId}:${roll.kind}`)).toEqual([
+      'p1:house',
+      'p2:market',
+      'p3:house',
+      'p3:market',
+    ])
+  })
+
+  /*
+   * Nothing to settle, so no ceremony: a table where nobody bought a home or
+   * a share owes no dice and goes straight to the results, rather than being
+   * made to press through an empty step with nothing riding on it.
+   */
+  it('goes straight to gameOver when nobody owns anything to value', () => {
+    const players = [
+      fixturePlayer({ id: 'p1', money: 100_000, stocks: [], isRetired: true, retirementRank: 1 }),
+      fixturePlayer({ id: 'p2', money: 0, stocks: [], isRetired: true, retirementRank: 2 }),
+    ]
+    const state = fixtureState({ players, currentPlayerIndex: 0, phase: 'resolved' })
+    const next = endTurn(state, { random: createFakeRandom() })
+
+    expect(next.scoreRolls).toEqual([])
+    expect(next.phase).toBe('gameOver')
     expect(next.results!.standings.every((standing) => standing.stockValue === 0)).toBe(true)
+    expect(next.results!.standings.every((standing) => standing.houseValue === 0)).toBe(true)
   })
 })

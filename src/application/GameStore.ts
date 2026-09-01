@@ -27,6 +27,12 @@ export type GameCommand =
   | { readonly type: 'choose'; readonly optionId: string }
   /** Dismiss `lastEvent` and pass play on. Valid only in `resolved`. */
   | { readonly type: 'endTurn' }
+  /**
+   * Throw the next die of the closing settlement — one house sold, or one
+   * player's shares cashed out. Valid only in `scoring`; the last one of them
+   * assembles the results and moves to `gameOver`.
+   */
+  | { readonly type: 'scoreRoll' }
   /** Throw the game away and return to `setup`. */
   | { readonly type: 'reset' }
   | { readonly type: 'save'; readonly slot: number }

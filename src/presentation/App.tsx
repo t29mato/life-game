@@ -14,6 +14,7 @@ import { AUTOSAVE_SLOT, SAVE_SLOT_COUNT } from '@application/ports/GameRepositor
 import type { PlayerProfileRepositoryPort } from '@application/ports/PlayerProfileRepositoryPort'
 import { CPU_THINK_MS, decideCpuCommand } from '@application/cpu/decideCpuCommand'
 import { forkRoadNames, roadName } from '@application/usecases/branch'
+import { describeScoreRoll, nextScoreRoll } from '@application/usecases/settlement'
 import type {
   Decision,
   DecisionOption,
@@ -22,6 +23,7 @@ import type {
   LandingEvent,
   NewGameConfig,
   RollTableRow,
+  ScoreRoll,
 } from '@domain/model/types'
 import { spinOriginOf, type SpinOrigin } from '@domain/rules/spin'
 
@@ -397,6 +399,57 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
     if (!state.pendingDecision) setChosenDieOptionId(null)
   }, [state.pendingDecision])
 
+  /*
+   * --- the closing settlement --------------------------------------------
+   *
+   * The last stretch of the game, and the one that had no die in it at all.
+   * Every house sale and every share cash-out used to be settled inside
+   * `endTurn`, synchronously, in the tick the last player retired — the
+   * player met a finished results screen having pressed nothing, told a
+   * house had "sold for" a number no die in the game could have produced.
+   * That is the same complaint, on the same grounds, as the decision-card
+   * roll fixed just before this, so it is fixed the same way: nothing is
+   * decided until a die is pressed, and the die is the thing that decides it.
+   *
+   * The queue lives in the store (`state.scoreRolls`); this is only the
+   * shell's side of it — which one is currently on screen, and the press
+   * that dispatches the next throw.
+   */
+  const activeScoreRoll = state.phase === 'scoring' ? nextScoreRoll(state.scoreRolls) : null
+  /*
+   * The die on screen, latched the way `displayedEventSpin` is latched and
+   * for the identical reason: `scoreRoll` advances the queue in the very tick
+   * it is dispatched, so the card would otherwise change to the *next*
+   * holding while the die deciding this one is still in the air — and, on the
+   * last throw of all, vanish outright as the phase moves to `gameOver`. It
+   * only ever moves on once `dieSettled` says the die it is showing has
+   * actually landed, which is also what holds the results screen back below.
+   */
+  const [displayedScoreRoll, setDisplayedScoreRoll] = useState<ScoreRoll | null>(null)
+  useEffect(() => {
+    if (dieSettled) setDisplayedScoreRoll(activeScoreRoll)
+  }, [activeScoreRoll, dieSettled])
+
+  // Whose holding it is, what is riding on it, and the six-band ladder the
+  // die will be read off — published before the throw, so the number that
+  // comes up is one the player was already hoping for or dreading.
+  const scoreRollPrompt = useMemo(
+    () => (displayedScoreRoll ? describeScoreRoll(state, displayedScoreRoll) : null),
+    [state, displayedScoreRoll],
+  )
+
+  /*
+   * Armed exactly like `handleValueSpin`: `dieSettled` goes down *before* the
+   * dispatch, so the shell knows a die is owed from the same tick the store
+   * resolves it. `activeSpin` is deliberately left alone — that flag is what
+   * keeps `EventSpinModal` mounted for a *decision's* die, and this modal is
+   * held up by `displayedScoreRoll` instead.
+   */
+  const handleScoreRoll = useCallback(() => {
+    setDieSettled(false)
+    store.dispatch({ type: 'scoreRoll' })
+  }, [store])
+
   const handleMovementComplete = useCallback(() => {
     store.dispatch({ type: 'settle' })
   }, [store])
@@ -582,7 +635,14 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
    * through the real button-press path, so it can't skip that step again.
    */
   const spinReady =
-    (SPIN_PHASES.includes(state.phase) || eventSpinRequest) && !handoffVisible && !activePlayer?.isCpu
+    ((SPIN_PHASES.includes(state.phase) || eventSpinRequest) && !handoffVisible && !activePlayer?.isCpu) ||
+    /*
+     * A settlement die is pressable by the seat it belongs to, not by
+     * whoever `currentPlayerIndex` happens to point at: everybody is retired
+     * by now, so there is no active player for the ordinary test to read.
+     * A computer's own holding throws itself and is not waiting on a key.
+     */
+    (displayedScoreRoll !== null && scoreRollPrompt !== null && !scoreRollPrompt.isCpu)
 
   /*
    * A fork asks two things, so the dock says two things.
@@ -683,7 +743,16 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
     )
   }
 
-  if (state.phase === 'gameOver') {
+  /*
+   * The results wait for the last die of the settlement to finish landing.
+   * `scoreRoll` assembles the standings in the same tick the final throw is
+   * dispatched — it has to, that throw is the last fact it was missing — so
+   * without this the screen would replace the die mid-flight and the player
+   * would read the very total they were watching it decide. Same guarantee
+   * `dieSettled` gives every other card in the game, applied to the biggest
+   * card of all.
+   */
+  if (state.phase === 'gameOver' && displayedScoreRoll === null) {
     return (
       <AudioProvider audio={audio}>
         <ResultsScreen
@@ -980,6 +1049,32 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
             autoSpinToken={autoSpinToken}
             passedThrough
             unattended={activePlayer?.isCpu === true}
+          />
+        )}
+
+        {/* One die of the closing settlement — a house going to market, or a
+            player's whole shareholding cashing out. Same modal, same die,
+            same middle of the screen every other roll in the game gets: the
+            ladder is on the card before the throw, the die decides which rung,
+            and the results screen only arrives once the last of them has
+            landed. Keyed per holding so each throw gets its own die rather
+            than one cube left lying on the previous number — and keyed off
+            the *latched* roll, never the live queue, so a remount can never
+            happen under a die still in the air. A computer's own holdings
+            throw themselves, exactly as a computer's rolls do all game;
+            nobody is the active player here, so the die belongs to the seat
+            being scored rather than to whoever's turn it was. */}
+        {displayedScoreRoll && scoreRollPrompt && (
+          <EventSpinModal
+            key={`${displayedScoreRoll.playerId}:${displayedScoreRoll.kind}`}
+            prompt={scoreRollPrompt.prompt}
+            stakes={scoreRollPrompt.stakes}
+            table={scoreRollPrompt.table}
+            result={state.lastSpin}
+            onSpin={handleScoreRoll}
+            onSpinComplete={handleSpinComplete}
+            autoSpinToken={autoSpinToken}
+            unattended={scoreRollPrompt.isCpu}
           />
         )}
 

@@ -23,6 +23,7 @@ function makeState(phase: GameState['phase']): GameState {
     activePassedEvent: null,
     log: [],
     turn: 1,
+    scoreRolls: [],
     results: null,
   }
 }

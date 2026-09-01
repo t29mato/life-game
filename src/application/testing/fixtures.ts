@@ -138,6 +138,7 @@ export function fixtureState(overrides: Partial<GameState> = {}): GameState {
     activePassedEvent: null,
     log: [],
     turn: 1,
+    scoreRolls: [],
     results: null,
     ...overrides,
   }

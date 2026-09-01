@@ -38,6 +38,10 @@ function playToGameOver(store: ReturnType<typeof createGameStore>): GameState {
       case 'awaitingDecision':
         store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
         break
+      // The closing settlement, one die at a time, before `gameOver`.
+      case 'scoring':
+        store.dispatch({ type: 'scoreRoll' })
+        break
       case 'resolved':
         store.dispatch({ type: 'endTurn' })
         break

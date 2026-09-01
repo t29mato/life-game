@@ -721,6 +721,19 @@ export interface LandingEvent {
    */
   readonly rankBefore?: number
   readonly rankAfter?: number
+  /**
+   * The trade this money was earned at, when this landing was a payday.
+   *
+   * A payday card already says the amount and, in a note, the job title in
+   * words — "Line Cook — no two weeks pay the same." This is the same fact
+   * a second way: the career's own portrait, the one every job-fair table
+   * and the Handbook already draw it as, so a wage reads as *this* trade's
+   * wage rather than a generic paycheck. Present only for a payday landing
+   * on a player who actually holds a career — a casual player between jobs,
+   * or any non-payday landing, has no trade to show and leaves this absent,
+   * the same way `balanceAfter` stays absent when nothing moved.
+   */
+  readonly careerIcon?: IconName
 }
 
 export interface MoneyTransfer {
@@ -805,7 +818,19 @@ export type GamePhase =
   | 'awaitingDecision'
   /** The landing effect has been applied; `lastEvent` describes it. */
   | 'resolved'
-  /** Everyone has retired. `results` is populated. */
+  /**
+   * Everyone has retired, and the closing settlement is being thrown —
+   * `scoreRolls` is the queue, one die per player per asset class, and the
+   * results screen is held back until the last of them has landed.
+   *
+   * A phase of its own rather than a flag on `gameOver`, because it is the
+   * one stretch of the game with no active player at all: everybody is
+   * retired, so `currentPlayerIndex` means nothing here and each die belongs
+   * to the player it is scoring rather than to whoever's turn it is. See
+   * `ScoreRoll`.
+   */
+  | 'scoring'
+  /** Everyone has retired and been scored. `results` is populated. */
   | 'gameOver'
 
 export interface GameState {
@@ -882,7 +907,52 @@ export interface GameState {
   readonly activePassedEvent: LandingEvent | null
   readonly log: readonly GameLogEntry[]
   readonly turn: number
+  /**
+   * The closing settlement's dice, in the order they are thrown — every
+   * house and every share portfolio still owed a final value, each holding
+   * the face it landed on once thrown. Built by `endTurn` the moment the
+   * last player retires and empty at every other point in the game, which is
+   * also why a save written before this existed reloads safely: nothing
+   * reads it outside `phase === 'scoring'`, and no such save can be in that
+   * phase.
+   */
+  readonly scoreRolls: readonly ScoreRoll[]
   readonly results: GameResults | null
+}
+
+/**
+ * Which of a player's holdings one closing die is settling.
+ *
+ * `house` is the sale of the home. `market` is the whole share portfolio at
+ * once — one closing price, applied to every holding at its own band. Split
+ * this way rather than one die per individual asset because a four-seat table
+ * where everybody holds a home and three stocks would otherwise ask for
+ * sixteen separate presses between the last retirement and the results
+ * screen, which is a chore rather than a climax; and because a market
+ * genuinely is one market, so a single closing face reading across a
+ * player's whole portfolio is truer than four unrelated ones. The two are
+ * kept apart from each other so a house and a portfolio still rise and fall
+ * independently, exactly as they always did.
+ */
+export type ScoreRollKind = 'house' | 'market'
+
+/**
+ * One die of the closing settlement — see `GamePhase['scoring']`.
+ *
+ * `face` is null while the die is still owed and holds what it landed on
+ * afterwards, so the queue is its own record of what has already been thrown:
+ * the results are assembled from these faces once the last one lands, rather
+ * than from a fresh set of numbers nobody watched. That is the whole point of
+ * the phase — a house's final value used to be drawn straight out of the
+ * random port inside `endTurn`, in the same tick the last player retired, and
+ * the player met the finished figure on the results screen with no die ever
+ * on screen.
+ */
+export interface ScoreRoll {
+  readonly playerId: PlayerId
+  readonly kind: ScoreRollKind
+  /** The face that decided it, or null while the die is still owed. */
+  readonly face: SpinValue | null
 }
 
 /** One payday or `event`-kind tile a move swept past, still owed its own card. */

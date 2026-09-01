@@ -14,6 +14,7 @@ import { spin } from '../usecases/spin'
 import { settle } from '../usecases/settle'
 import { choose } from '../usecases/choose'
 import { endTurn } from '../usecases/endTurn'
+import { scoreRoll } from '../usecases/scoreRoll'
 import { decideCpuCommand, valueOfSpace } from './decideCpuCommand'
 
 /**
@@ -91,6 +92,18 @@ const cpuTranscript = (seed: number, scaled: boolean, difficulty: 'normal' | 'ha
     steps += 1
     if (state.phase === 'moving' || state.phase === 'passingEvent') {
       state = settle(state, deps)
+      continue
+    }
+    /*
+     * The closing settlement: one die per house and per shareholding, thrown
+     * before the results exist. Driven straight rather than through
+     * `decideCpuCommand`, which answers only for the seat each die belongs
+     * to — the point of this test is the transcript being identical in both
+     * currencies, and a settlement die is thrown the same way whoever owns it.
+     */
+    if (state.phase === 'scoring') {
+      commands.push('scoreRoll')
+      state = scoreRoll(state, deps)
       continue
     }
     const command = decideCpuCommand(state)

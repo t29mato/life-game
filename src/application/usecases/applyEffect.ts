@@ -450,17 +450,24 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const collection = collectPaydays(player, 1, deps, economy)
         const updated = collection.player
         const delta = updated.money - player.money
-        const event = baseEvent(
-          space,
-          delta,
-          // Only where the receipt is actually working — the rate times the
-          // periods it adds up over. An edition that reads salary as one
-          // lump has no working to show, and printing the lump again under
-          // the plate that already shouts it is not a note, it is an echo.
-          currency.salaryDisplay ? [paydayReceipt(delta, currency)] : [],
-          emphasisOf(delta),
-          `Payday — ${player.name} clocks out with the packet in hand.`,
-        )
+        const event = {
+          ...baseEvent(
+            space,
+            delta,
+            // Only where the receipt is actually working — the rate times
+            // the periods it adds up over. An edition that reads salary as
+            // one lump has no working to show, and printing the lump again
+            // under the plate that already shouts it is not a note, it is
+            // an echo.
+            currency.salaryDisplay ? [paydayReceipt(delta, currency)] : [],
+            emphasisOf(delta),
+            `Payday — ${player.name} clocks out with the packet in hand.`,
+          ),
+          // The trade this packet was earned at, printed the same way a
+          // career fair's own table already draws it — see `careerIcon`'s
+          // doc comment on `LandingEvent`.
+          ...(player.career === null ? {} : { careerIcon: player.career.icon }),
+        }
         const log = appendLog(state, player.id, `${player.name} collects payday: ${paydayReceipt(delta, currency)}.`, 'money-in')
         return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
       }

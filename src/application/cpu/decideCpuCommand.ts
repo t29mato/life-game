@@ -30,6 +30,7 @@ import { expectedChildValue } from '@domain/rules/children'
 import { expectedMarriageValue } from '@domain/rules/marriage'
 import { expectedTuitionCost, tuitionSpecFor } from '@domain/rules/tuition'
 import type { GameCommand } from '../GameStore'
+import { nextScoreRoll } from '../usecases/settlement'
 import {
   BANK_LOAN_OPTION_ID,
   BANK_REPAY_OPTION_ID,
@@ -906,6 +907,26 @@ function pickOption(decision: Decision, context: Context): DecisionOption | null
  * current player is human or nothing is owed. Pure; deterministic.
  */
 export function decideCpuCommand(state: GameState): GameCommand | null {
+  /*
+   * The closing settlement is answered before the active-player test below,
+   * because in `scoring` there is no active player to test: everybody is
+   * retired and `currentPlayerIndex` still points at whoever happened to go
+   * last. Each settlement die belongs to the seat it is scoring, so that is
+   * the seat asked whether a computer owns this throw.
+   *
+   * Like the `spin` commands below, this says only *what* a computer seat
+   * would do, never how it reaches the store: the shell throws a computer's
+   * settlement die through `EventSpinModal`'s own unattended roll, so the
+   * number is watched landing rather than simply appearing — which is why
+   * `scoring` is absent from both `CPU_PHASES_*` lists in `App.tsx`.
+   */
+  if (state.phase === 'scoring') {
+    const owed = nextScoreRoll(state.scoreRolls)
+    if (!owed) return null
+    const owner = state.players.find((entry) => entry.id === owed.playerId)
+    return owner?.isCpu ? { type: 'scoreRoll' } : null
+  }
+
   const player = state.players[state.currentPlayerIndex]
   // A seat that has just retired is still the current player for one more
   // `endTurn`, so retirement must not silence the computer.

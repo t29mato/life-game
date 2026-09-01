@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { GamePhase, GameState, NewGameConfig } from '@domain/model/types'
 import { decideCpuCommand } from './cpu/decideCpuCommand'
+import { nextScoreRoll } from './usecases/settlement'
 import { createSeededRandom, createInMemoryRepository, createInMemoryStatsRepository } from './testing/fakes'
 import { createGameStore } from './createGameStore'
 import type { GameStore } from './GameStore'
@@ -102,6 +103,11 @@ describe('full game integration', () => {
           store.dispatch({ type: 'choose', optionId: firstOption.id })
           break
         }
+        // One die per house and per shareholding, thrown before the
+        // results are assembled. See `scoreRoll`.
+        case 'scoring':
+          store.dispatch({ type: 'scoreRoll' })
+          break
         case 'resolved':
           store.dispatch({ type: 'endTurn' })
           break
@@ -126,6 +132,9 @@ describe('full game integration', () => {
       else if (state.phase === 'awaitingDecision') {
         store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
       } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })
+      // One die per house and per shareholding, thrown before the results
+      // exist at all. See `scoreRoll`.
+      else if (state.phase === 'scoring') store.dispatch({ type: 'scoreRoll' })
     }
 
     expectWellFormedGameOver(store.getState(), 3)
@@ -219,6 +228,20 @@ describe('all-computer game', () => {
 
       if (state.phase === 'moving' || state.phase === 'passingEvent') {
         store.dispatch({ type: 'settle' })
+        continue
+      }
+
+      /*
+       * The closing settlement belongs to nobody's turn — everybody is
+       * retired, so `currentPlayerIndex` says nothing about whose die is
+       * owed. Each one belongs to the seat it is scoring, and the CPU keeps
+       * its hands off a person's die here exactly as it does everywhere else.
+       */
+      if (state.phase === 'scoring') {
+        const owed = nextScoreRoll(state.scoreRolls)!
+        const owner = state.players.find((entry) => entry.id === owed.playerId)!
+        expect(decideCpuCommand(state)).toEqual(owner.isCpu ? { type: 'scoreRoll' } : null)
+        store.dispatch({ type: 'scoreRoll' })
         continue
       }
 

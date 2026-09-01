@@ -11,6 +11,7 @@ import { spin } from './usecases/spin'
 import { settle } from './usecases/settle'
 import { choose } from './usecases/choose'
 import { endTurn } from './usecases/endTurn'
+import { scoreRoll } from './usecases/scoreRoll'
 import { appendLog } from './usecases/logging'
 
 export interface GameStoreDeps {
@@ -38,6 +39,7 @@ function buildInitialState(): GameState {
     activePassedEvent: null,
     log: [],
     turn: 1,
+    scoreRolls: [],
     results: null,
   }
 }
@@ -123,6 +125,21 @@ export function createGameStore(deps: GameStoreDeps): GameStore {
             const next = endTurn(state, deps)
             setState(next)
             // Autosave every turn so a closed tab never costs more than one move.
+            deps.repository.save(AUTOSAVE_SLOT, next)
+            recordIfFinished(next)
+            return
+          }
+          case 'scoreRoll': {
+            const next = scoreRoll(state, deps)
+            setState(next)
+            /*
+             * Saved and filed on exactly the same terms as a turn. The
+             * settlement is several presses long now, so a tab closed
+             * halfway through it must come back to the dice still owed
+             * rather than to the turn before everybody retired — and the
+             * hall of records is only written by the throw that actually
+             * reaches `gameOver`, which `recordIfFinished` already checks.
+             */
             deps.repository.save(AUTOSAVE_SLOT, next)
             recordIfFinished(next)
             return

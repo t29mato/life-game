@@ -247,6 +247,26 @@ describe('EventCard', () => {
     expect(screen.queryByText(/^\d(st|nd|rd|th)$/)).not.toBeInTheDocument()
   })
 
+  it('prints the trade a payday was earned at, as its own portrait', () => {
+    mockReducedMotion(true)
+    const { container } = render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <EventCard event={makeEvent({ careerIcon: 'career:line-cook' })} onDismiss={() => {}} />
+      </AudioProvider>,
+    )
+    expect(container.querySelector('[data-family]')).not.toBeNull()
+  })
+
+  it('prints no career portrait on a card with nothing to show one for', () => {
+    mockReducedMotion(true)
+    const { container } = render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <EventCard event={makeEvent()} onDismiss={() => {}} />
+      </AudioProvider>,
+    )
+    expect(container.querySelector('[data-family]')).toBeNull()
+  })
+
   it('renders a transfer lane for every player whose balance this landing moved', () => {
     mockReducedMotion(true)
     render(

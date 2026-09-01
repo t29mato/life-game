@@ -445,6 +445,9 @@ describe('choose', () => {
       expect(next.lastEvent!.notes.join(' ')).not.toContain('Rolled')
       expect(next.lastEvent!.notes).toEqual(['Between jobs, so you pick up shifts.'])
       expect(next.lastEvent!.narration).toContain(formatMoney(CASUAL_WAGE_PER_PIP * 4))
+      // Nobody to draw a portrait of — a casual player between jobs has no
+      // trade for the card to name.
+      expect(next.lastEvent!.careerIcon).toBeUndefined()
     })
 
     it('spins for an unsteady career payday at its own rate, not the casual one', () => {
@@ -459,6 +462,7 @@ describe('choose', () => {
       const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
 
       expect(next.players[0]!.money).toBe(career.payPerPip! * 5)
+      expect(next.lastEvent!.careerIcon).toBe(career.icon)
     })
 
     it('rejects an option id the wheel never offered', () => {

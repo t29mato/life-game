@@ -20,17 +20,29 @@ function retirementBonusFor(rank: number | null, edition: Edition): Money {
 }
 
 /**
+ * A caller's own dice for the final valuations.
+ *
+ * Both take the player they are valuing for, which the caller cannot recover
+ * any other way: the closing settlement throws one die per *player* per asset
+ * class and then reads the results back off those recorded faces, so "whose
+ * house is this" is the question it has to be able to answer. A caller with a
+ * flat rate, or a genuinely per-asset roll, simply ignores the argument.
+ */
+export type ResaleRoll = (house: House, player: Player) => Money
+export type StockRoll = (stock: Stock, player: Player) => Money
+
+/**
  * Cashes out every share at whatever the caller's roll says it is worth today.
  *
  * A holding whose stock has vanished from the catalogue is worth nothing rather
  * than throwing: a stale save should cost a player their shares, not the whole
  * results screen.
  */
-function cashOutStocks(player: Player, rollStock: (stock: Stock) => Money, edition: Edition): Money {
+function cashOutStocks(player: Player, rollStock: StockRoll, edition: Edition): Money {
   return player.stocks.reduce((sum, holding) => {
     const stock = findStock(holding.stockId, edition)
     if (!stock) return sum
-    return sum + rollStock(stock) * holding.shares
+    return sum + rollStock(stock, player) * holding.shares
   }, 0)
 }
 
@@ -72,15 +84,15 @@ function scoreChildren(
 
 function scorePlayer(
   player: Player,
-  rollResale: (house: House) => Money,
-  rollStock: (stock: Stock) => Money,
+  rollResale: ResaleRoll,
+  rollStock: StockRoll,
   difficulty: Difficulty | undefined,
   edition: Edition,
   rollChildSpin?: () => SpinValue,
 ): Omit<PlayerResult, 'rank'> {
   const cash = player.money
   const lifeTileValue = player.lifeTiles.reduce((sum, tile) => sum + tile.value, 0)
-  const houseValue = player.house ? rollResale(player.house) : 0
+  const houseValue = player.house ? rollResale(player.house, player) : 0
   const stockValue = cashOutStocks(player, rollStock, edition)
   const insurancePayout = player.insurance.includes('life') ? edition.economy.lifeInsurancePayout : 0
   const { childrenBonus, childStars } = scoreChildren(player, rollChildSpin, edition)
@@ -126,8 +138,8 @@ function scorePlayer(
  */
 export function computeResults(
   players: readonly Player[],
-  rollResale: (house: House) => Money,
-  rollStock: (stock: Stock) => Money,
+  rollResale: ResaleRoll,
+  rollStock: StockRoll,
   difficulty?: Difficulty,
   edition: Edition = EDITION_USA,
   rollChildSpin?: () => SpinValue,

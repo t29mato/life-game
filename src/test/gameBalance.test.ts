@@ -148,8 +148,15 @@ const playGame = (
     const state = store.getState()
 
     // A computer seat decides for itself; the human seats follow the fixed
-    // `optionBias` strategy so a run stays reproducible.
-    if (state.phase !== 'moving' && state.players[state.currentPlayerIndex]?.isCpu) {
+    // `optionBias` strategy so a run stays reproducible. `scoring` is excluded
+    // alongside `moving` because neither belongs to the current player:
+    // everybody is retired by then, and each settlement die belongs to the
+    // seat it is scoring, so the switch below throws all of them the same way.
+    if (
+      state.phase !== 'moving' &&
+      state.phase !== 'scoring' &&
+      state.players[state.currentPlayerIndex]?.isCpu
+    ) {
       if (state.phase === 'resolved') leaderHistory.push(leaderIdOf(state))
       const command = decideCpuCommand(state)
       expect(command, `CPU had nothing to do in phase "${state.phase}"`).not.toBeNull()
@@ -197,6 +204,11 @@ const playGame = (
         })
         break
       }
+      // Everybody has retired; the closing settlement owes one die per
+      // house and per shareholding before the results exist. See `scoreRoll`.
+      case 'scoring':
+        store.dispatch({ type: 'scoreRoll' })
+        break
       case 'resolved':
         leaderHistory.push(leaderIdOf(state))
         options.landings?.push(state.players[state.currentPlayerIndex]!.spaceId)

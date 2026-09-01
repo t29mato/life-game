@@ -128,6 +128,15 @@ describe('applyEffect', () => {
       expect(next.log[0]!.tone).toBe('money-in')
     })
 
+    it('prints the trade this packet was earned at', () => {
+      const career = BASIC_CAREERS.find((c) => c.payPerPip === undefined)!
+      const player = fixturePlayer({ money: 1_000, career })
+      const state = fixtureState({ players: [player] })
+      const space = fixtureSpace({ effect: { type: 'payday' } })
+      const { event } = applyEffect(state, space, { random: createFakeRandom() })
+      expect(event.careerIcon).toBe(career.icon)
+    })
+
     it('holds a casual payday for the player to spin themselves, touching neither money nor the wheel', () => {
       const player = fixturePlayer({ money: 1_000, career: null })
       const state = fixtureState({ players: [player] })
