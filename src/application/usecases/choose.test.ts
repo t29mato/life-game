@@ -8,10 +8,12 @@ import {
   SHARES_PER_PURCHASE,
   WEDDING_GIFT,
 } from '@domain/model/constants'
+import { createBoard } from '@domain/board/createBoard'
+import { allEditions } from '@domain/edition/registry'
 import { BASIC_CAREERS, USA_ECONOMY } from '@domain/edition/usa'
 import { HOUSES } from '@domain/edition/usa'
 import { STOCKS } from '@domain/edition/usa'
-import { insuranceOptionId, VALUE_SPIN_OPTION_ID } from './applyEffect'
+import { applyEffect, insuranceOptionId, VALUE_SPIN_OPTION_ID } from './applyEffect'
 import { formatMoney } from './format'
 import { branchDecision } from './branch'
 import { TRADE_YEAR_STORIES } from '@domain/rules/tradeYear'
@@ -1018,5 +1020,104 @@ describe('the die that decided a card', () => {
     const next = choose(state, BANK_DECLINE_OPTION_ID, { random: createFakeRandom() })
 
     expect(next.lastEvent!.rolled).toBeUndefined()
+  })
+})
+
+/*
+ * The invariant behind `DecisionOption.turnsTheDie`, checked against what the
+ * resolvers actually do rather than against anyone's memory of them.
+ *
+ * The shell cannot hold a card back for a die it does not know is coming. A
+ * single-option value spin is obvious — the decision *is* a die — but the same
+ * roll hides inside an ordinary decision card the moment a second option
+ * exists to weigh, and `choose` resolves it in the very tick it is dispatched.
+ * That is exactly how a career fair and The Number both came to hand a player
+ * a finished card stamped "Rolled 6" with no die ever on screen: each guard
+ * along the way was correct, and none of them knew a roll was owed.
+ *
+ * So every option in the game is walked here, on every edition's real board,
+ * and the flag is held to the only thing that makes it true: whether answering
+ * with it actually calls `random.spin()`.
+ */
+describe('every option that reaches for the die says so', () => {
+  /** Equipped for as many tiles as one player can plausibly be, so the walk below reaches them. */
+  function walker(edition: ReturnType<typeof allEditions>[number], withCareer: boolean) {
+    const career = edition.careers.basic[0]
+    return fixturePlayer({
+      money: 5_000_000,
+      career: withCareer && career ? career : null,
+      hasDegree: true,
+      isMarried: true,
+      loans: 2,
+    })
+  }
+
+  it('marks exactly the options whose answer turns the die, on every board in the game', () => {
+    const rolling: string[] = []
+    const still: string[] = []
+
+    for (const edition of allEditions()) {
+      const board = createBoard('normal', edition)
+      for (const space of Object.values(board.spaces)) {
+        for (const withCareer of [true, false]) {
+          const player = walker(edition, withCareer)
+          const base = fixtureState({
+            board,
+            editionId: edition.id,
+            players: [{ ...player, spaceId: space.id }],
+          })
+
+          let raised
+          try {
+            raised = applyEffect(base, space, { random: createFakeRandom() })
+          } catch {
+            continue
+          }
+          const decisionRaised = raised.state.pendingDecision
+          // A fork's options are roads, and answering one needs movement
+          // context this walk has no business inventing.
+          if (!decisionRaised || decisionRaised.kind === 'branch') continue
+
+          for (const option of decisionRaised.options) {
+            const random = createFakeRandom()
+            let answered
+            try {
+              answered = choose({ ...raised.state, phase: 'awaitingDecision' }, option.id, { random })
+            } catch {
+              continue
+            }
+            const label = `${edition.id}/${space.id}/${option.id}`
+
+            // `rolled` is what the finished card prints; `lastSpin` is what
+            // the die on screen animates to. Publishing one without the other
+            // leaves a die with no number to settle on — it never turns, and
+            // the turn hangs behind it, waiting on an animation that cannot
+            // start. `resolveRetireEarly` did exactly that.
+            if (answered.lastEvent?.rolled !== undefined) {
+              expect(
+                { option: label, lastSpin: answered.lastSpin },
+                `"${label}" printed a rolled face but no lastSpin for the die to land on`,
+              ).toEqual({ option: label, lastSpin: answered.lastEvent.rolled })
+            }
+            if (random.calls.spins > 0) rolling.push(label)
+            else still.push(label)
+
+            expect(
+              { option: label, turnsTheDie: option.turnsTheDie === true },
+              `answering "${label}" ${random.calls.spins > 0 ? 'turns the die but is not marked turnsTheDie — the shell will show its result with no die on screen' : 'never turns the die but is marked turnsTheDie — the shell will ask for a press nothing is waiting on'}`,
+            ).toEqual({ option: label, turnsTheDie: random.calls.spins > 0 })
+          }
+        }
+      }
+    }
+
+    // A walk that reached nothing would pass every assertion above by never
+    // making one, so it has to prove it found both kinds.
+    expect(rolling.length).toBeGreaterThan(0)
+    expect(still.length).toBeGreaterThan(0)
+    // The two the player actually reported, by name, so a route that stopped
+    // offering either would fail here rather than quietly narrowing the test.
+    expect(rolling.some((entry) => entry.includes('main-career-fair'))).toBe(true)
+    expect(rolling.some((entry) => entry.includes('sunset-number'))).toBe(true)
   })
 })

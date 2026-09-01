@@ -1082,13 +1082,21 @@ function resolveRetireEarly(state: GameState, optionId: string, deps: UseCaseDep
     rolled: spin,
   }
 
-  return resolved(
-    state,
-    replacePlayer(state.players, updated),
-    event,
-    `${player.name} retires early: ${money(economy.fireNumber)} into the fund, a roll of ${spin}, ${money(payout)} back.`,
-    'milestone',
-  )
+  return {
+    ...resolved(
+      state,
+      replacePlayer(state.players, updated),
+      event,
+      `${player.name} retires early: ${money(economy.fireNumber)} into the fund, a roll of ${spin}, ${money(payout)} back.`,
+      'milestone',
+    ),
+    // …and so does the number the die on screen has to land on. `rolled` is
+    // what the finished card prints; `lastSpin` is what the die animates to,
+    // and a roll that publishes one without the other leaves a die with
+    // nothing to settle on — it simply never turns, and the turn hangs behind
+    // it. `resolveValueSpin` stamps both through its own wrapper.
+    lastSpin: spin,
+  }
 }
 
 /** Answers `state.pendingDecision`, dispatching on its `kind`. */

@@ -11,7 +11,8 @@ import {
   createInMemoryStatsRepository,
   createSeededRandom,
 } from '@application/testing/fakes'
-import type { GameState, NewGamePlayer, SpinValue } from '@domain/model/types'
+import { findCareer } from '@domain/edition/lookup'
+import type { GameState, NewGamePlayer, Player, SpinValue } from '@domain/model/types'
 
 import { App } from './App'
 import { createFakeAudioPort } from './dev/fakeAudio'
@@ -819,6 +820,149 @@ describe('a roll the player only drove past', () => {
 
     // And the loop still runs itself from there — delayed, never deadlocked.
     await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), { timeout: 5000 })
+  })
+})
+
+/*
+ * The other half of the same promise, and the half that kept breaking.
+ *
+ * A single-option value spin gets `EventSpinModal` and a die somebody has to
+ * press. But a decision card with a *second* option to weigh — Career Fair's
+ * "Roll" beside "Stay as a Stylist", The Number's "Call it a life" beside
+ * "Keep working" — is answered inside `DecisionModal`, and the store resolves
+ * that answer's roll in the very same dispatch. Nothing in the shell knew the
+ * answer was going to turn the die, so nothing held the outcome back: the
+ * card arrived already stamped "Rolled 6", career switched or retirement
+ * final, with no die ever on screen. The player reported it, twice, as the
+ * game rolling for them behind their back.
+ *
+ * These run the *real* use cases against the *real* board rather than a
+ * hand-written decision, because the bug was never in what the card said —
+ * it was in which options actually reach for the die, which is exactly the
+ * thing a hand-written stand-in gets to assume.
+ */
+describe('a decision card answered by turning the die', () => {
+  /**
+   * A real store parked on one tile with `settle` already run, so the pending
+   * decision under test is the one the game genuinely raises there.
+   */
+  function standingOn(spaceId: string, overrides: Partial<Player>, seed = 4): GameStore {
+    const repository = createInMemoryRepository()
+    const store = createGameStore({
+      random: createSeededRandom(seed),
+      repository,
+      stats: createInMemoryStatsRepository(),
+    })
+    const base = startedGame().getState()
+    const player: Player = { ...base.players[0]!, ...overrides, spaceId }
+    repository.save(1, {
+      ...base,
+      players: [player, ...base.players.slice(1)],
+      currentPlayerIndex: 0,
+      phase: 'moving',
+      movementPath: [],
+      pendingPath: [],
+      pendingPassedItems: [],
+      stepsRemaining: 0,
+      pendingDecision: null,
+      lastEvent: null,
+    })
+    store.dispatch({ type: 'load', slot: 1 })
+    store.dispatch({ type: 'settle' })
+    return store
+  }
+
+  it('throws a die the player can watch before the Career Fair card says what they rolled', async () => {
+    const store = standingOn('main-career-fair', {
+      career: findCareer('career-stylist')!,
+      money: 120_000,
+    })
+    // Two offers *and* the option to stay put, which is what routes this
+    // through the decision card rather than straight to the die.
+    expect(store.getState().pendingDecision?.options).toHaveLength(2)
+
+    render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('option', { name: /^roll/i }))
+
+    // The die, not the answer. Before the fix the outcome card was already
+    // here, "Rolled 6" and a new job printed on it, one tick after the press.
+    const die = within(screen.getByRole('dialog')).getByRole('button', { name: /^roll$/i })
+    expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Rolled$/)).not.toBeInTheDocument()
+
+    // Nothing happens on its own: it is a person's roll, so it waits on them.
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
+
+    // …and only once they throw it and it lands does the card arrive.
+    await user.click(die)
+    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), {
+      timeout: 8000,
+    })
+    expect(screen.getByText(/^Rolled$/)).toBeInTheDocument()
+  })
+
+  it('throws a die the player can watch before The Number pays their fund out', async () => {
+    const store = standingOn('sunset-number', { money: 900_000 })
+    const decision = store.getState().pendingDecision
+    expect(decision?.kind).toBe('retire')
+    // Affordable, so the card offers stopping *and* walking on — a real
+    // choice, made on the card, whose "yes" then turns the die.
+    expect(decision?.options).toHaveLength(2)
+
+    render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('option', { name: /call it a life/i }))
+
+    const die = within(screen.getByRole('dialog')).getByRole('button', { name: /^roll$/i })
+    expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Rolled$/)).not.toBeInTheDocument()
+
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
+
+    await user.click(die)
+    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), {
+      timeout: 8000,
+    })
+    expect(screen.getByText(/^Rolled$/)).toBeInTheDocument()
+  })
+
+  /*
+   * The other half of the same change, and the one that would deadlock if it
+   * were wrong: a computer seat's answer is parked exactly the way a person's
+   * is, so it has to reach the die by itself from there. Nothing in this test
+   * ever presses anything.
+   */
+  it("plays a computer seat's own die-turning answer through the same die, unattended", async () => {
+    const store = standingOn('sunset-number', { money: 900_000, isCpu: true })
+    expect(store.getState().pendingDecision?.kind).toBe('retire')
+
+    render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    // It picks, the die throws itself, the card arrives — a seat that parked
+    // its answer and never got to the die would simply hang here for good.
+    await waitFor(() => expect(screen.getByText(/^Rolled$/)).toBeInTheDocument(), { timeout: 15000 })
+    expect(store.getState().players[0]!.isRetired).toBe(true)
+  })
+
+  it('leaves a decision that never touches the die exactly as it was', async () => {
+    const store = standingOn('main-career-fair', {
+      career: findCareer('career-stylist')!,
+      money: 120_000,
+    })
+    render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('option', { name: /^stay as a/i }))
+
+    // Staying put decides nothing a die could have decided, so there is
+    // nothing to watch and the card is readable straight away.
+    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument())
+    expect(screen.queryByText(/^Rolled$/)).not.toBeInTheDocument()
   })
 })
 

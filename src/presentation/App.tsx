@@ -14,7 +14,15 @@ import { AUTOSAVE_SLOT, SAVE_SLOT_COUNT } from '@application/ports/GameRepositor
 import type { PlayerProfileRepositoryPort } from '@application/ports/PlayerProfileRepositoryPort'
 import { CPU_THINK_MS, decideCpuCommand } from '@application/cpu/decideCpuCommand'
 import { forkRoadNames, roadName } from '@application/usecases/branch'
-import type { Decision, GamePhase, GameState, LandingEvent, NewGameConfig } from '@domain/model/types'
+import type {
+  Decision,
+  DecisionOption,
+  GamePhase,
+  GameState,
+  LandingEvent,
+  NewGameConfig,
+  RollTableRow,
+} from '@domain/model/types'
 import { spinOriginOf, type SpinOrigin } from '@domain/rules/spin'
 
 import styles from './App.module.css'
@@ -92,6 +100,31 @@ const CPU_PHASES_ALL_COMPUTER: readonly GamePhase[] = [
 
 /** Both presses a fork asks for: the road, then how far down it. */
 const SPIN_PHASES: readonly GamePhase[] = ['awaitingSpin', 'awaitingDistanceSpin']
+
+/**
+ * Everything `EventSpinModal` needs to put a die on screen, plus the answer
+ * the press behind it will dispatch. A decision reaches the die by two roads
+ * — as its only option, or as the one option on a card that picked it — and
+ * this is what makes them the same thing from the modal's side.
+ */
+interface EventSpinRequest {
+  readonly optionId: string
+  readonly prompt: string
+  readonly stakes: string
+  readonly table?: readonly RollTableRow[]
+}
+
+function spinRequestFor(decision: Decision, option: DecisionOption | undefined): EventSpinRequest | null {
+  if (!option) return null
+  return {
+    optionId: option.id,
+    prompt: decision.prompt,
+    stakes: option.description || decision.prompt,
+    // `exactOptionalPropertyTypes`: an explicit `undefined` is not the same
+    // thing as the key being absent, and most rolls have nothing to tabulate.
+    ...(option.table === undefined ? {} : { table: option.table }),
+  }
+}
 
 const MANUAL_SLOTS = Array.from({ length: SAVE_SLOT_COUNT - 1 }, (_, index) => index + 1)
 
@@ -280,23 +313,89 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
       : null
 
   /*
-   * The decision `EventSpinModal` shows text for. `state.pendingDecision`
-   * clears the instant `choose` is dispatched — same reasoning as
-   * `activeSpin` above, and updated the same way, so the modal has
-   * something to render from until its own die finishes rolling.
+   * The other way a decision asks for the die, and the one that kept
+   * going wrong.
+   *
+   * A card with a second option to weigh keeps its card — "Roll" beside
+   * "Stay as a Stylist" at the career fair, "Call it a life" beside "Keep
+   * working" at The Number — but answering with the *first* of those still
+   * turns the die, and `choose` resolves that roll in the very same tick it
+   * is dispatched. Dispatching straight from the card therefore jumped to a
+   * finished result stamped "Rolled 6", with no die ever on screen: reported
+   * twice, on two different tiles, as the game rolling behind the player's
+   * back.
+   *
+   * So an option that says it turns the die (`DecisionOption.turnsTheDie`,
+   * which the domain marks because only the domain can know) does not
+   * dispatch anything when it is picked. It parks the answer here, the card
+   * gives way to the die, and it is the *press on the die* that dispatches —
+   * exactly the shape a single-option value spin has always had. The card
+   * asks whether to gamble; the die is the gamble.
    */
-  const [displayedEventDecision, setDisplayedEventDecision] = useState<Decision | null>(null)
+  const [chosenDieOptionId, setChosenDieOptionId] = useState<string | null>(null)
+  const chosenDieOption =
+    state.phase === 'awaitingDecision' && chosenDieOptionId
+      ? (state.pendingDecision?.options.find((option) => option.id === chosenDieOptionId) ?? null)
+      : null
+
+  /*
+   * What the die on screen is being thrown for, whichever way it was asked
+   * for. `state.pendingDecision` clears the instant `choose` is dispatched —
+   * same reasoning as `activeSpin` above — so this is latched below into
+   * something the modal can still render from while its die finishes.
+   *
+   * Memoised because it is a freshly built object and two things downstream
+   * key off its identity: the latch below, which would otherwise set state on
+   * every render and spin the component forever, and the computer seat's own
+   * timer, which would otherwise be cancelled and restarted just as often.
+   * Everything it is built from comes straight off the store, so a stable
+   * state gives a stable request.
+   */
+  const eventSpinRequest = useMemo<EventSpinRequest | null>(() => {
+    if (singleSpinDecision) return spinRequestFor(singleSpinDecision, singleSpinDecision.options[0])
+    if (chosenDieOption && state.pendingDecision) {
+      return spinRequestFor(state.pendingDecision, chosenDieOption)
+    }
+    return null
+  }, [singleSpinDecision, chosenDieOption, state.pendingDecision])
+
+  const [displayedEventSpin, setDisplayedEventSpin] = useState<EventSpinRequest | null>(null)
   useEffect(() => {
-    if (singleSpinDecision) setDisplayedEventDecision(singleSpinDecision)
-  }, [singleSpinDecision])
+    if (eventSpinRequest) setDisplayedEventSpin(eventSpinRequest)
+  }, [eventSpinRequest])
 
   const handleValueSpin = useCallback(() => {
-    const optionId = singleSpinDecision?.options[0]?.id
+    const optionId = eventSpinRequest?.optionId
     if (!optionId) return
     setDieSettled(false)
     setActiveSpin('event')
     store.dispatch({ type: 'choose', optionId })
-  }, [singleSpinDecision, store])
+  }, [eventSpinRequest, store])
+
+  /*
+   * An answer picked off a decision card. Only the ones that turn the die
+   * are held back for it; everything else — a decline, a house at a listed
+   * price, a road at a fork — is settled by the answer itself and goes
+   * straight to the store, exactly as it always did.
+   */
+  const handleDecisionChoose = useCallback(
+    (optionId: string) => {
+      const option = store.getState().pendingDecision?.options.find((entry) => entry.id === optionId)
+      if (option?.turnsTheDie) {
+        setChosenDieOptionId(optionId)
+        return
+      }
+      store.dispatch({ type: 'choose', optionId })
+    },
+    [store],
+  )
+
+  // The parked answer is spent the moment the roll it armed is dispatched:
+  // `choose` clears `pendingDecision`, and the modal keeps rendering from
+  // `displayedEventSpin` until its die has landed.
+  useEffect(() => {
+    if (!state.pendingDecision) setChosenDieOptionId(null)
+  }, [state.pendingDecision])
 
   const handleMovementComplete = useCallback(() => {
     store.dispatch({ type: 'settle' })
@@ -400,7 +499,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
   // decision names the stakes through the animation `handleValueSpin` sets
   // off, which is why this checks `activeSpin` too and not just the (by
   // then already-cleared) decision. See the comment by `activeSpin` above.
-  const eventSpinVisible = (singleSpinDecision !== null || activeSpin === 'event') && !handoffVisible
+  const eventSpinVisible = (eventSpinRequest !== null || activeSpin === 'event') && !handoffVisible
 
   // --- live standings ----------------------------------------------------
   // Tie-aware, and priced at this game's difficulty and edition: a harder
@@ -427,16 +526,26 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
     if (!cpuActingPhases.includes(state.phase)) return
 
     const timer = window.setTimeout(() => {
-      // A single-option value spin is "press Spin" with nothing to weigh, so
-      // a computer seat takes it through the same visible die a person
-      // would rather than the number simply appearing — same reasoning as
-      // the ordinary move roll just below.
-      if (SPIN_PHASES.includes(state.phase) || singleSpinDecision) {
+      // A value spin is "press Spin" with nothing left to weigh, so a
+      // computer seat takes it through the same visible die a person would
+      // rather than the number simply appearing — same reasoning as the
+      // ordinary move roll just below.
+      if (SPIN_PHASES.includes(state.phase) || eventSpinRequest) {
         setAutoSpinToken((token) => token + 1)
         return
       }
       const command = decideCpuCommand(store.getState())
-      if (command) store.dispatch(command)
+      if (!command) return
+      // An answer that turns the die is parked rather than dispatched, for a
+      // computer seat exactly as for a person: the effect runs again, finds
+      // an `eventSpinRequest` waiting, and throws the die above. Without
+      // this a computer's own career fair or early retirement would resolve
+      // with nothing on screen — the very thing the human path just fixed.
+      if (command.type === 'choose') {
+        handleDecisionChoose(command.optionId)
+        return
+      }
+      store.dispatch(command)
     }, CPU_THINK_MS[state.phase as keyof typeof CPU_THINK_MS])
 
     return () => window.clearTimeout(timer)
@@ -448,7 +557,8 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
     passedSpinVisible,
     store,
     cpuActingPhases,
-    singleSpinDecision,
+    eventSpinRequest,
+    handleDecisionChoose,
   ])
 
   /*
@@ -472,7 +582,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
    * through the real button-press path, so it can't skip that step again.
    */
   const spinReady =
-    (SPIN_PHASES.includes(state.phase) || singleSpinDecision) && !handoffVisible && !activePlayer?.isCpu
+    (SPIN_PHASES.includes(state.phase) || eventSpinRequest) && !handoffVisible && !activePlayer?.isCpu
 
   /*
    * A fork asks two things, so the dock says two things.
@@ -824,7 +934,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
           />
         )}
 
-        {state.phase === 'awaitingDecision' && state.pendingDecision && !handoffVisible && !singleSpinDecision && (
+        {state.phase === 'awaitingDecision' && state.pendingDecision && !handoffVisible && !eventSpinRequest && (
           <DecisionModal
             decision={state.pendingDecision}
             board={state.board}
@@ -832,7 +942,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
             // like it is waiting for a person: it answers itself on a timer.
             isCpu={activePlayer?.isCpu === true}
             cpuPlayerName={activePlayer?.name ?? ''}
-            onChoose={(optionId) => store.dispatch({ type: 'choose', optionId })}
+            onChoose={handleDecisionChoose}
           />
         )}
 
@@ -840,11 +950,11 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
             marriage proposal, career choice. The tile position has nothing
             to do with any of these, so unlike the movement roll this one
             gets the middle of the screen rather than the board's own dock. */}
-        {eventSpinVisible && displayedEventDecision && (
+        {eventSpinVisible && displayedEventSpin && (
           <EventSpinModal
-            prompt={displayedEventDecision.prompt}
-            stakes={displayedEventDecision.options[0]?.description || displayedEventDecision.prompt}
-            table={displayedEventDecision.options[0]?.table}
+            prompt={displayedEventSpin.prompt}
+            stakes={displayedEventSpin.stakes}
+            table={displayedEventSpin.table}
             result={state.lastSpin}
             onSpin={handleValueSpin}
             onSpinComplete={handleSpinComplete}

@@ -558,6 +558,27 @@ export interface DecisionOption {
    * named options that are not rolled for.
    */
   readonly table?: readonly RollTableRow[]
+  /**
+   * True when answering with this option turns the die.
+   *
+   * The shell cannot work this out for itself. A single-option value spin is
+   * obvious — the whole decision *is* a die, and it gets `EventSpinModal` —
+   * but the moment a second option exists to weigh, the same roll hides
+   * inside an ordinary decision card: "Roll" beside "Stay as a Stylist" at
+   * the career fair, "Call it a life" beside "Keep working" at The Number.
+   * Choosing one of those dispatches `choose`, which resolves the roll in the
+   * very same tick, so without this flag the shell had no way to know a die
+   * was owed and simply showed the finished card — already stamped "Rolled
+   * 6", career switched or retirement final, with nothing ever on screen for
+   * the player to press or watch. They reported it twice as the game rolling
+   * behind their back, which is exactly what it was.
+   *
+   * Absent means the answer is settled the moment it is given: a decline, a
+   * purchase at a listed price, a road at a fork. `choose.test.ts` holds every
+   * option in the game to this — an option that reaches for `random.spin()`
+   * without saying so here fails there.
+   */
+  readonly turnsTheDie?: boolean
 }
 
 export interface Decision {

@@ -483,7 +483,9 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const decision: Decision = {
         kind: 'valueSpin',
         prompt: space.title,
-        options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Roll', description, icon: 'space:payday' }],
+        options: [
+          { id: VALUE_SPIN_OPTION_ID, turnsTheDie: true, label: 'Roll', description, icon: 'space:payday' },
+        ],
       }
       const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up to roll for the week's pay.`)
       const log = appendLog(state, player.id, `${player.name} is up for a payday roll.`, 'event')
@@ -537,6 +539,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
+            turnsTheDie: true,
             label: 'Roll',
             // The title and the narration above this have already said what
             // tile this is; the table below says exactly what each face is
@@ -643,6 +646,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
+            turnsTheDie: true,
             label: 'Roll',
             description: `${effect.reason} You need a ${needed} or higher (out of ${SPIN_FACES}) to move up to ${next.title}. Miss it and you still take a raise.`,
             icon: 'space:pay-raise-talk',
@@ -702,6 +706,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
+            turnsTheDie: true,
             label: 'Roll',
             description: 'Roll to see who hires you.',
             icon: space.icon,
@@ -769,6 +774,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
+            turnsTheDie: true,
             label: 'Roll',
             description: `Roll — a ${marriage.proposalSpin} or higher (out of ${SPIN_FACES}) and it's a yes outright. Lower gets a kinder second ask before it's a no.`,
             icon: 'space:wedding-day',
@@ -810,6 +816,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
+            turnsTheDie: true,
             label: 'Roll',
             description: `${effect.reason} Below a ${household.breakEvenSpin} and the spending outran the account; at or above it, two incomes carried the month.`,
             icon: 'finance:bank-visit',
@@ -859,6 +866,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
+            turnsTheDie: true,
             label: 'Roll',
             description: `${effect.reason} Nobody is offering you a different job — only this one, for another year. A career year is worth ${money(stake)} to a ${career.title}, and the worst year on the die costs the same.`,
             icon: career.icon,
@@ -887,6 +895,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
+            turnsTheDie: true,
             label: 'Roll',
             description: `Roll for the gift envelopes — ${money(effect.celebrationPerPip)} a pip you roll, 1 to ${SPIN_FACES}.`,
             icon: 'space:new-baby',
@@ -1005,6 +1014,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
+            turnsTheDie: true,
             label: 'Roll',
             description: `${effect.reason} ${money(effect.perPip)} a pip you roll, 1 to ${SPIN_FACES} — higher is always better.`,
             icon: 'space:payday',
@@ -1037,6 +1047,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       if (affordable) {
         options.push({
           id: FIRE_RETIRE_OPTION_ID,
+          turnsTheDie: true,
           label: 'Call it a life',
           description: `Put ${money(fireNumber)} into the fund and stop working today. One roll decides what it comes back as — anything from ${money(firePayoutPerPip)} to ${money(firePayoutPerPip * SPIN_FACES)} — and you take the next retirement place, forfeiting every payday still on the road.`,
           icon: 'space:retirement-fund',
@@ -1135,6 +1146,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const options: DecisionOption[] = [
         {
           id: VALUE_SPIN_OPTION_ID,
+          turnsTheDie: true,
           label: 'Roll',
           description: 'Roll to see which one you take.',
           icon: space.icon,
