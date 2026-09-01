@@ -358,14 +358,62 @@ export function restPoint(board: Board, projection: BoardProjection, space: Spac
   return { x: leaned.x + (density.x - leaned.x) * DENSITY_PULL, y: leaned.y + (density.y - leaned.y) * DENSITY_PULL }
 }
 
-/** The shot a player plans their next spin from: `space`, at `REST_ZOOM`, leaning toward the road ahead. */
+/**
+ * How far below the frame's centre the rest shot seats the active car, as a
+ * fraction of the height the frame actually shows on screen.
+ *
+ * The die is glued to the exact centre of the screen — an explicit
+ * requirement, see `.rollDock` in App.module.css — and the rest shot used to
+ * aim at exactly the tile that die is asking about, which parked the car
+ * directly underneath the die's felt mat. Worst at the opening fork, where
+ * both cars still share the start tile *and* the fork rail is up, but true
+ * of every turn a player spends deciding whether to press. The die cannot
+ * move; the board underneath it can — so the frame holds the board a little
+ * higher and the car waits in the clear band below the mat instead.
+ *
+ * A fraction of the *visible* height rather than a tile count on purpose:
+ * the mat is sized in screen pixels, so the clearance that matters is a
+ * screen distance — the same slice of screen whatever board or window shape
+ * the shot is framing, where a tile count would drift with every zoom's
+ * worth of `aspectStretch`. Sized for the fork-rail case — the rail rides
+ * above the die in a centred column, nudging the die itself down toward the
+ * car — rather than swapping between two framings by whether a rail happens
+ * to be showing, which would read as the camera flinching.
+ */
+export const REST_DIE_CLEARANCE = 0.22
+
+/**
+ * The height of board a shot at `zoom` actually puts on screen, in viewBox
+ * units. Not `shotRect`'s own height whenever the container is wider than
+ * the fixed viewBox: the drawing's `preserveAspectRatio="xMidYMid slice"`
+ * fills the container's width first and crops the excess off the top and
+ * bottom evenly, so a wide window sees only the vertical middle of the rect
+ * the shot nominally covers. (A tall container crops sideways instead and
+ * shows the rect's full height.)
+ */
+function visibleHeight(projection: BoardProjection, zoom: number, containerAspect: number): number {
+  const viewAspect = projection.viewWidth / projection.viewHeight
+  const verticalCrop = Math.max(1, containerAspect / viewAspect)
+  return projection.viewHeight / (zoom * aspectStretch(projection, containerAspect) * verticalCrop)
+}
+
+/**
+ * The shot a player plans their next spin from: `space`, at `REST_ZOOM`,
+ * leaning toward the road ahead — and held high enough that the car sits
+ * below the die pinned to the centre of the screen, not underneath it (see
+ * `REST_DIE_CLEARANCE`). Near the top edge of the board `focusShot`'s own
+ * clamp takes back what it must of that clearance rather than showing past
+ * the edge of the card.
+ */
 export function restShot(
   board: Board,
   projection: BoardProjection,
   space: Space,
   containerAspect: number = projection.viewWidth / projection.viewHeight,
 ): CameraShot {
-  return focusShot(projection, restPoint(board, projection, space), REST_ZOOM, containerAspect)
+  const at = restPoint(board, projection, space)
+  const lift = visibleHeight(projection, REST_ZOOM, containerAspect) * REST_DIE_CLEARANCE
+  return focusShot(projection, { x: at.x, y: at.y - lift }, REST_ZOOM, containerAspect)
 }
 
 /**

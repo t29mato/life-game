@@ -17,6 +17,7 @@ import {
   FLYTHROUGH_ZOOM,
   FOLLOW_ZOOM,
   MILESTONE_ZOOM,
+  REST_DIE_CLEARANCE,
   REST_ZOOM,
   RESOLVE_ZOOM,
   WIDE_SHOT_PADDING_TILES,
@@ -427,11 +428,49 @@ describe('restPoint', () => {
 })
 
 describe('restShot', () => {
-  it('frames the rest point at REST_ZOOM', () => {
+  it('frames the rest point at REST_ZOOM, lifted so the car clears the die pinned to screen centre', () => {
     const at = model.spaces['s4'] as Space
+    const point = restPoint(model, projection, at)
+    // At the default aspect nothing is cropped, so the visible height is
+    // exactly the height the shot's own rect covers.
+    const lift =
+      shotRect(projection, { cx: point.x, cy: point.y, zoom: REST_ZOOM }).height * REST_DIE_CLEARANCE
     expect(restShot(model, projection, at)).toEqual(
-      focusShot(projection, restPoint(model, projection, at), REST_ZOOM),
+      focusShot(projection, { x: point.x, y: point.y - lift }, REST_ZOOM),
     )
+  })
+
+  it('seats the car below the frame centre, not underneath the die', () => {
+    // A middle-row space, far enough from the board's top edge that the
+    // clamp cannot silently take the whole clearance back.
+    const at = model.spaces['s4'] as Space
+    const shot = restShot(model, projection, at)
+    const unlifted = focusShot(projection, restPoint(model, projection, at), REST_ZOOM)
+    expect(shot.cy).toBeLessThan(unlifted.cy)
+  })
+
+  it('lifts by the same slice of *screen*, not of board, when a wide container crops vertically', () => {
+    const at = model.spaces['s4'] as Space
+    const point = restPoint(model, projection, at)
+    const viewAspect = projection.viewWidth / projection.viewHeight
+    const wide = viewAspect * 2
+    // `slice` fills a doubled aspect's width and crops half the shot's rect
+    // off the top and bottom — the height actually on screen is the rect's
+    // own height over that same factor, and the lift follows the screen.
+    const rect = shotRect(projection, { cx: point.x, cy: point.y, zoom: REST_ZOOM }, wide)
+    const lift = (rect.height / 2) * REST_DIE_CLEARANCE
+    expect(restShot(model, projection, at, wide)).toEqual(
+      focusShot(projection, { x: point.x, y: point.y - lift }, REST_ZOOM, wide),
+    )
+  })
+
+  it('never lifts the frame past the top edge of the board', () => {
+    // A space in the top row: the unlifted frame is already pressed against
+    // the edge, so the lift is absorbed by the clamp rather than showing
+    // past the card.
+    const at = model.spaces['s0'] as Space
+    const rect = shotRect(projection, restShot(model, projection, at))
+    expect(rect.y).toBeGreaterThanOrEqual(0)
   })
 })
 
