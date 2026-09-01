@@ -489,7 +489,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
   const pressable = !handoffVisible && activePlayer !== undefined && !activePlayer.isCpu
   const forkAhead =
     pressable && activePlayer && state.phase === 'awaitingSpin'
-      ? forkRoadNames(state.board, activePlayer.spaceId)
+      ? forkRoadNames(state.board, activePlayer.spaceId, activePlayer)
       : undefined
   const roadTaken =
     pressable && state.phase === 'awaitingDistanceSpin' && state.chosenExit

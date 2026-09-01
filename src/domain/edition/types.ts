@@ -94,6 +94,19 @@ export interface EconomyConstants {
   readonly startingMoney: Money
   /** What the tuition bill actually settles for, decided by the wheel. */
   readonly tuition: TuitionSpec
+  /**
+   * What going back for the doctorate settles for. Optional, alongside
+   * `CareerPools.doctorate`, for exactly the same reason: an edition with no
+   * grad school on its board never sends this bill.
+   *
+   * It is priced against `tuition` rather than invented: the second degree
+   * costs more than the first *and* is taken by somebody with fewer paydays
+   * left to earn it back, which is most of what makes the road a gamble
+   * rather than an upgrade. The bands are shaped differently too — a doctoral
+   * candidate is more often funded than forgiven, so the good end of this
+   * table is a stipend rather than a full ride.
+   */
+  readonly doctorateTuition?: TuitionSpec
   /** Principal received per loan taken. */
   readonly loanPrincipal: Money
   /**
@@ -311,10 +324,20 @@ export interface HouseholdSpec {
   readonly shareOfPayday: number
 }
 
-/** The two pools a career fair can deal from. A degree unlocks the second. */
+/**
+ * The shelves a career fair can deal from. A degree unlocks the second, and a
+ * doctorate the third.
+ *
+ * `doctorate` is optional, and that is the rollout story rather than an
+ * oversight: a country whose board has no grad school on it never consults the
+ * shelf, so requiring one would be asking that edition to invent careers no
+ * fair can ever deal. An edition that *does* put a `doctorate` tile on its
+ * route needs one, and `validateRoute` is what says so.
+ */
 export interface CareerPools {
   readonly basic: readonly Career[]
   readonly graduate: readonly Career[]
+  readonly doctorate?: readonly Career[]
 }
 
 /**

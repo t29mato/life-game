@@ -4,6 +4,8 @@ import type { Edition } from './types'
 import { EDITION_USA } from './usa'
 import {
   careerPoolFor,
+  careerTierOf,
+  lowerTier,
   findCareer,
   findHouse,
   findLifeTile,
@@ -36,9 +38,13 @@ const career = (id: string, over: Partial<Career> = {}): Career => ({
 })
 
 /** An edition with hand-written ladders, so the walk can be checked exactly. */
-const editionWith = (basic: readonly Career[], graduate: readonly Career[] = []): Edition => ({
+const editionWith = (
+  basic: readonly Career[],
+  graduate: readonly Career[] = [],
+  doctorate?: readonly Career[],
+): Edition => ({
   ...EDITION_USA,
-  careers: { basic, graduate },
+  careers: { basic, graduate, ...(doctorate ? { doctorate } : {}) },
 })
 
 const playerWith = (over: Partial<Player> = {}): Player => ({
@@ -50,6 +56,7 @@ const playerWith = (over: Partial<Player> = {}): Player => ({
   loans: 0,
   career: null,
   hasDegree: false,
+  hasDoctorate: false,
   isMarried: false,
   children: 0,
   house: null,
@@ -72,25 +79,25 @@ describe('ladders', () => {
         career('b1', { promotesTo: 'b2' }),
         career('b2'),
       ])
-      expect(hiringPoolFor(edition, false).map((c) => c.id)).toEqual(['a1', 'b1'])
+      expect(hiringPoolFor(edition, 'basic').map((c) => c.id)).toEqual(['a1', 'b1'])
     })
 
     it('treats a pool with no chains at all as a pool of one-rung ladders', () => {
       // An edition that has not written any ladders still gets a working fair.
       const edition = editionWith([career('x'), career('y')])
-      expect(hiringPoolFor(edition, false).map((c) => c.id)).toEqual(['x', 'y'])
+      expect(hiringPoolFor(edition, 'basic').map((c) => c.id)).toEqual(['x', 'y'])
     })
 
     it('switches to the graduate ladders for a player with a degree', () => {
       const edition = editionWith([career('basic1')], [career('grad1', { promotesTo: 'grad2' }), career('grad2')])
-      expect(hiringPoolFor(edition, true).map((c) => c.id)).toEqual(['grad1'])
+      expect(hiringPoolFor(edition, 'graduate').map((c) => c.id)).toEqual(['grad1'])
     })
 
     it('never offers the real board a job somebody has to be promoted into', () => {
-      for (const hasDegree of [false, true]) {
-        const pool = careerPoolFor(EDITION_USA, hasDegree)
+      for (const tier of ['basic', 'graduate', 'doctorate'] as const) {
+        const pool = careerPoolFor(EDITION_USA, tier)
         const pointedAt = new Set(pool.map((c) => c.promotesTo).filter(Boolean))
-        for (const hire of hiringPoolFor(EDITION_USA, hasDegree)) {
+        for (const hire of hiringPoolFor(EDITION_USA, tier)) {
           expect(pointedAt.has(hire.id)).toBe(false)
         }
       }
@@ -120,7 +127,7 @@ describe('ladders', () => {
       // A loop is a mistake, but the walk must terminate so the mistake is a
       // failed catalogue test rather than a hung game.
       const edition = editionWith([career('l1', { promotesTo: 'l2' }), career('l2', { promotesTo: 'l1' })])
-      expect(hiringPoolFor(edition, false)).toHaveLength(0)
+      expect(hiringPoolFor(edition, 'basic')).toHaveLength(0)
       expect(ladderPositionOf('l1', edition)).toBeUndefined()
     })
 
@@ -184,7 +191,7 @@ describe('ladders', () => {
       career('short1', { promotesTo: 'short2' }),
       career('short2'),
     ])
-    const entry = (id: string) => hiringPoolFor(edition, false).find((c) => c.id === id)!
+    const entry = (id: string) => hiringPoolFor(edition, 'basic').find((c) => c.id === id)!
 
     it('joins a new trade at the level already reached, not at the bottom', () => {
       expect(rungFor(entry('tall1'), 2, edition).id).toBe('tall2')
@@ -232,9 +239,106 @@ describe('catalogue lookups', () => {
   })
 
   it('offers every rung for lookup, not merely the ones a fair deals', () => {
-    expect(careerPoolFor(EDITION_USA, false).length).toBeGreaterThan(
-      hiringPoolFor(EDITION_USA, false).length,
+    expect(careerPoolFor(EDITION_USA, 'basic').length).toBeGreaterThan(
+      hiringPoolFor(EDITION_USA, 'basic').length,
     )
-    expect(careerPoolFor(EDITION_USA, true)).toBe(EDITION_USA.careers.graduate)
+    expect(careerPoolFor(EDITION_USA, 'graduate')).toBe(EDITION_USA.careers.graduate)
+  })
+})
+
+/**
+ * The third shelf, and the two small functions that decide which one a fair
+ * deals from.
+ *
+ * Both of them exist because a shelf is now a rung on a hierarchy rather than
+ * a boolean, and a hierarchy has two questions a boolean never had: what is
+ * this player entitled to, and what does *this fair* have on the table.
+ */
+describe('career tiers', () => {
+  const basics = [career('basic1')]
+  const grads = [career('grad1')]
+  const docs = [career('doc1')]
+
+  describe('careerTierOf', () => {
+    it('reads a player with no schooling as the basic shelf', () => {
+      expect(careerTierOf(playerWith())).toBe('basic')
+    })
+
+    it('reads a degree as the graduate shelf', () => {
+      expect(careerTierOf(playerWith({ hasDegree: true }))).toBe('graduate')
+    })
+
+    it('reads a doctorate as the doctoral shelf', () => {
+      expect(careerTierOf(playerWith({ hasDegree: true, hasDoctorate: true }))).toBe('doctorate')
+    })
+  })
+
+  describe('lowerTier', () => {
+    it('hands a school-leaver the basic pool at a graduate fair', () => {
+      expect(lowerTier('graduate', 'basic')).toBe('basic')
+    })
+
+    it('hands a doctor only what the fair in front of them deals', () => {
+      expect(lowerTier('basic', 'doctorate')).toBe('basic')
+      expect(lowerTier('graduate', 'doctorate')).toBe('graduate')
+    })
+
+    it('is the doctoral shelf only when both sides say so', () => {
+      expect(lowerTier('doctorate', 'doctorate')).toBe('doctorate')
+    })
+  })
+
+  describe('the doctoral shelf', () => {
+    it('deals from the doctoral pool when the edition has written one', () => {
+      const edition = editionWith(basics, grads, docs)
+      expect(hiringPoolFor(edition, 'doctorate').map((c) => c.id)).toEqual(['doc1'])
+      expect(careerPoolFor(edition, 'doctorate').map((c) => c.id)).toEqual(['doc1'])
+    })
+
+    /*
+     * The rollout fallback, and the reason it is not an error. Four of the five
+     * countries have no grad school on their board yet, so nothing can ever ask
+     * them for a doctor — but a shared engine should not have to know which
+     * countries are finished, and answering with the shelf below is the only
+     * honest thing left to answer.
+     */
+    it('falls back to the graduate shelf on an edition that has written none', () => {
+      const edition = editionWith(basics, grads)
+      expect(hiringPoolFor(edition, 'doctorate').map((c) => c.id)).toEqual(['grad1'])
+      expect(careerPoolFor(edition, 'doctorate').map((c) => c.id)).toEqual(['grad1'])
+    })
+
+    it('indexes doctoral careers by id, so a save reloads its doctor into a real job', () => {
+      const edition = editionWith(basics, grads, docs)
+      expect(findCareer('doc1', edition)?.id).toBe('doc1')
+      expect(ladderPositionOf('doc1', edition)?.rung).toBe(1)
+    })
+
+    /*
+     * Compared at the door, which is where the comparison is actually made: a
+     * fair deals bottom rungs and nothing else, so "the doctorate pays better"
+     * has to be true of the offers on the table rather than of the whole
+     * catalogue. It is not true rung for rung and is not meant to be — a
+     * postdoc earns less than a corporate lawyer who has already been promoted
+     * once, which is both realistic and the reason the shelf is a floor rather
+     * than a ceiling.
+     */
+    it('gives the USA board a doctoral shelf whose worst offer beats the graduate hall\'s best', () => {
+      const graduateBest = Math.max(...hiringPoolFor(EDITION_USA, 'graduate').map((c) => c.salary))
+      const doctoralWorst = Math.min(...hiringPoolFor(EDITION_USA, 'doctorate').map((c) => c.salary))
+      expect(doctoralWorst).toBeGreaterThan(graduateBest)
+    })
+
+    /*
+     * The one number the doctoral shelf is not allowed to beat. See
+     * `DOCTORATE_CAREERS` — the school-leaver's best life out-earning every
+     * qualified job on the board is where Straight to Work's volatility comes
+     * from, and it is the opening fork's whole argument.
+     */
+    it('never out-earns the top of a basic ladder', () => {
+      const basicTop = Math.max(...EDITION_USA.careers.basic.map((c) => c.salary))
+      const doctoralTop = Math.max(...(EDITION_USA.careers.doctorate ?? []).map((c) => c.salary))
+      expect(doctoralTop).toBeLessThan(basicTop)
+    })
   })
 })

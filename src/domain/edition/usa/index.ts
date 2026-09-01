@@ -1,5 +1,5 @@
 import type { Edition } from '../types'
-import { BASIC_CAREERS, GRADUATE_CAREERS } from './careers'
+import { BASIC_CAREERS, DOCTORATE_CAREERS, GRADUATE_CAREERS } from './careers'
 import { HOUSES } from './houses'
 import { LIFE_TILE_DECK } from './lifeTiles'
 import { ROUTE_USA } from './route'
@@ -20,13 +20,13 @@ export const EDITION_USA: Edition = {
   currency: USA_CURRENCY,
   economy: USA_ECONOMY,
   route: ROUTE_USA,
-  careers: { basic: BASIC_CAREERS, graduate: GRADUATE_CAREERS },
+  careers: { basic: BASIC_CAREERS, graduate: GRADUATE_CAREERS, doctorate: DOCTORATE_CAREERS },
   houses: HOUSES,
   lifeTiles: LIFE_TILE_DECK,
   stocks: STOCKS,
 }
 
-export { BASIC_CAREERS, GRADUATE_CAREERS } from './careers'
+export { BASIC_CAREERS, DOCTORATE_CAREERS, GRADUATE_CAREERS } from './careers'
 export { HOUSES } from './houses'
 export { LIFE_TILE_DECK } from './lifeTiles'
 export { ROUTE_USA } from './route'

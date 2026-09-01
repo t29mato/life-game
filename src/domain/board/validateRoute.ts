@@ -60,6 +60,7 @@ const AUTO_RESOLVABLE_EFFECT_TYPES: readonly SpaceEffect['type'][] = [
   'gainMoney',
   'payMoney',
   'graduate',
+  'doctorate',
   'tuition',
   'chooseCareer',
   'careerChange',
@@ -326,6 +327,46 @@ export function validateRoute(route: RouteDefinition, edition: Edition): readonl
     }
     if (names.size === 1) {
       say(`fork "${segment.at.id}" offers "${[...names][0]}" twice — its two roads need different names`)
+    }
+    /*
+     * A junction nobody can leave.
+     *
+     * A gated road is one `resolveForkBranch` will not send an unqualified
+     * player down — see `LaneIdentity.requires`. Gate both sides and there is
+     * no road left for somebody who qualifies for neither, so the gate falls
+     * open and the fork silently stops meaning anything. That is worth
+     * catching here rather than discovering as a player on the wrong road.
+     */
+    if (segment.branches.every((branch) => branch.identity.requires !== undefined)) {
+      say(
+        `both roads out of fork "${segment.at.id}" are gated — a player who qualifies for neither has nowhere to go, so at least one road out of every fork has to be open to everybody`,
+      )
+    }
+  }
+
+  // --- the doctorate needs the content that pays it off --------------------
+
+  /*
+   * A grad school with nothing behind it.
+   *
+   * The doctoral shelf and the doctoral bill are both optional on an edition,
+   * because four of the five countries have no grad school on their board yet
+   * and inventing careers no fair can deal is not a thing to ask of them. The
+   * moment a route *does* carry the tile, though, both become required: the
+   * engine falls back to the graduate shelf and the undergraduate bill rather
+   * than crashing, which means an edition that forgot them ships a road that
+   * charges the wrong money for a qualification that buys nothing.
+   */
+  if (written.some((space) => space.effect.type === 'doctorate')) {
+    if (!edition.careers.doctorate || edition.careers.doctorate.length === 0) {
+      say(
+        'this route awards a doctorate, but the edition has no "doctorate" career pool — the qualification would open a shelf with nothing on it, and the fair would deal graduate work to a doctor',
+      )
+    }
+    if (!edition.economy.doctorateTuition) {
+      say(
+        'this route awards a doctorate, but the edition has no "doctorateTuition" — the grad school would send an undergraduate bill for a second degree',
+      )
     }
   }
 

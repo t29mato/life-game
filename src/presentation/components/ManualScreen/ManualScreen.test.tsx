@@ -93,7 +93,11 @@ describe('ManualScreen', () => {
         renderManual()
         await user.click(screen.getByRole('tab', { name }))
         const section = screen.getByLabelText(`${name} careers`)
-        for (const career of [...edition.careers.basic, ...edition.careers.graduate]) {
+        for (const career of [
+          ...edition.careers.basic,
+          ...edition.careers.graduate,
+          ...(edition.careers.doctorate ?? []),
+        ]) {
           const card = within(section).getByLabelText(career.title)
           expect(within(card).getByText(career.title)).toBeInTheDocument()
           // The plaque's bespoke portrait, not a bare text row.
@@ -111,8 +115,8 @@ describe('ManualScreen', () => {
         renderManual()
         await user.click(screen.getByRole('tab', { name }))
         const section = screen.getByLabelText(`${name} careers`)
-        for (const degree of [false, true]) {
-          for (const entry of hiringPoolFor(edition, degree)) {
+        for (const tier of ['basic', 'graduate', 'doctorate'] as const) {
+          for (const entry of hiringPoolFor(edition, tier)) {
             const rungs = ladderPositionOf(entry.id, edition)?.rungs ?? [entry]
             if (rungs.length < 2) continue
             const cards = within(section).getAllByLabelText(/./, { selector: 'article' })

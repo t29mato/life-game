@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactElement } from 'react'
-import type { Career, SpaceTone } from '@domain/model/types'
+import type { Career, CareerTier, SpaceTone } from '@domain/model/types'
 import type { IconName } from '@domain/model/icons'
 import type { CurrencySpec, Edition } from '@domain/edition/types'
 import { allEditions, DEFAULT_EDITION_ID } from '@domain/edition/registry'
@@ -159,8 +159,16 @@ function editionShelf(): readonly Edition[] {
  * the hiring pool plus the chain each entry heads, so the grouping can never
  * disagree with what `promotesTo` actually says.
  */
-function laddersFor(edition: Edition, degree: boolean): readonly (readonly Career[])[] {
-  return hiringPoolFor(edition, degree).map((entry) => ladderPositionOf(entry.id, edition)?.rungs ?? [entry])
+function laddersFor(edition: Edition, tier: CareerTier): readonly (readonly Career[])[] {
+  /*
+   * The manual lists what a country actually holds, not what a hiring hall
+   * would fall back to. `hiringPoolFor` answers a doctoral question with the
+   * graduate shelf on an edition that has not written one — right for a fair,
+   * which has to deal *something* to a doctor — and here it would print every
+   * graduate ladder a second time under a heading the country cannot honour.
+   */
+  if (tier === 'doctorate' && !edition.careers.doctorate?.length) return []
+  return hiringPoolFor(edition, tier).map((entry) => ladderPositionOf(entry.id, edition)?.rungs ?? [entry])
 }
 
 /**
@@ -244,10 +252,19 @@ function Ladder({
   )
 }
 
+/**
+ * The shelves, in the order the schooling ladder climbs them.
+ *
+ * The doctoral one draws nothing at all for an edition that has not written
+ * it — `laddersFor` comes back empty and the whole block is skipped — so a
+ * country with no grad school on its board simply shows two pools, exactly as
+ * this screen always did.
+ */
 const POOLS = [
-  { degree: false, label: 'Straight from the fair', hint: 'no degree needed' },
-  { degree: true, label: 'The graduate pool', hint: 'degree required' },
-] as const
+  { tier: 'basic', label: 'Straight from the fair', hint: 'no degree needed' },
+  { tier: 'graduate', label: 'The graduate pool', hint: 'degree required' },
+  { tier: 'doctorate', label: 'The doctoral pool', hint: 'doctorate required' },
+] as const satisfies readonly { readonly tier: CareerTier; readonly label: string; readonly hint: string }[]
 
 /**
  * `phase === 'setup'`, opened from the title screen: the game's own
@@ -445,11 +462,14 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
             <h3 className={styles.editionName}>{editionDisplayName(shownEdition)}</h3>
             <span className={styles.editionMeta}>
               counts in {shownEdition.currency.symbol} ·{' '}
-              {shownEdition.careers.basic.length + shownEdition.careers.graduate.length} trades
+              {shownEdition.careers.basic.length +
+                shownEdition.careers.graduate.length +
+                (shownEdition.careers.doctorate?.length ?? 0)}{' '}
+              trades
             </span>
           </header>
           {POOLS.map((pool) => {
-            const ladders = laddersFor(shownEdition, pool.degree)
+            const ladders = laddersFor(shownEdition, pool.tier)
             if (ladders.length === 0) return null
             return (
               <div key={pool.label} className={styles.pool}>

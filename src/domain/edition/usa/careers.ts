@@ -697,3 +697,143 @@ export const GRADUATE_CAREERS: readonly Career[] = [
     isCalling: true,
   },
 ]
+
+/**
+ * Careers only a doctorate opens, and the one rung above each.
+ *
+ * The graduate promise, turned up: two rungs again, and the same single climb
+ * that lands four times in six. What the third shelf buys is not a different
+ * *shape* of life, it is the same dependable one moved up — entry $80k-$88k
+ * against the graduate pool's $54.9k-$68k, top $87k-$94k against its
+ * $62k-$81k. A whole doctoral life fits inside $14,000, half the graduate
+ * pool's own $26,100: this is the most predictable money on the board, and
+ * that is the whole of what it sells.
+ *
+ * **The ceiling is deliberate, and it is the number to defend.** The basic
+ * pool tops out at $148,400, and "the school-leaver's best life beats every
+ * graduate job on the board by most of half again" is not decoration — it is
+ * where Straight to Work's volatility comes from, and the reason the opening
+ * fork is a fork at all. A doctoral shelf written above that ceiling would
+ * take the argument away from the road that needs it most and hand it to the
+ * road that already had a degree. So the doctorate is the *highest floor* on
+ * the board and not the highest ceiling: nobody holding one ever scrapes by,
+ * and the courier who ended up running the agency still out-earns all of them.
+ *
+ * The figures are measured rather than chosen — `gameBalance.test.ts` holds
+ * both ends. Written first at entry $86k-$92k and top $103k-$114k, the shelf
+ * made College Lane the wider road and pushed the board's mean final score
+ * from $647,574 to $713,530, past the $710,000 the economy is allowed to
+ * reach. These are what fit: work spread 243,193 against college's 216,063,
+ * and a mean of $704,963.
+ *
+ * No callings here, and that is a statement rather than an omission. A calling
+ * is work paid in something other than money, offered to somebody who might
+ * need that answer; this shelf's whole promise is the money and the certainty.
+ * The vet and the professor stay one shelf down, where they read as a choice.
+ *
+ * Every one of them is salaried. Nothing on this shelf is paid by the wheel —
+ * ten years of training is exactly the thing you buy a predictable income
+ * with, and the royalty ladder that lets a graduate gamble stays where it is.
+ */
+export const DOCTORATE_CAREERS: readonly Career[] = [
+  {
+    id: 'career-surgical-fellow',
+    title: 'Surgical Fellow',
+    salary: 80_000,
+    raiseStep: 8_000,
+    requiresDegree: true,
+    icon: 'career:surgeon',
+    description: 'The operation nobody else on the rota has done before, twice a week, with somebody watching.',
+    promotesTo: 'career-consultant-surgeon',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-consultant-surgeon',
+    title: 'Consultant Surgeon',
+    salary: 87_000,
+    raiseStep: 8_800,
+    requiresDegree: true,
+    icon: 'career:surgeon',
+    description: 'Takes the cases the other hospitals send on, and writes the paper about how it went.',
+  },
+  {
+    id: 'career-postdoctoral-fellow',
+    title: 'Postdoc Fellow',
+    salary: 81_000,
+    raiseStep: 8_200,
+    requiresDegree: true,
+    icon: 'career:professor',
+    description: 'Three years, one question, and a grant that runs out slightly before the answer does.',
+    promotesTo: 'career-research-professor',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-research-professor',
+    title: 'Research Chair',
+    salary: 88_000,
+    raiseStep: 8_900,
+    requiresDegree: true,
+    icon: 'career:professor',
+    description: 'Runs the lab, raises the money, and lets six other people put their names first.',
+  },
+  {
+    id: 'career-propulsion-researcher',
+    title: 'Propulsion Fellow',
+    salary: 84_000,
+    raiseStep: 8_400,
+    requiresDegree: true,
+    icon: 'career:rocket-engineer',
+    description: 'Spends four years on a nozzle the size of a hat, and shaves a tonne off the launch mass.',
+    promotesTo: 'career-chief-propulsion-engineer',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-chief-propulsion-engineer',
+    title: 'Chief Engineer',
+    salary: 90_000,
+    raiseStep: 9_100,
+    requiresDegree: true,
+    icon: 'career:rocket-engineer',
+    description: 'Signs the drawing that says the engine will light, and is in the room when it does.',
+  },
+  {
+    id: 'career-ml-scientist',
+    title: 'Research Scientist',
+    salary: 86_000,
+    raiseStep: 8_600,
+    requiresDegree: true,
+    icon: 'career:robotics-engineer',
+    description: 'Reads two hundred papers, writes the two hundred and first, and it is the one people use.',
+    promotesTo: 'career-principal-scientist',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-principal-scientist',
+    title: 'Principal Scientist',
+    salary: 93_000,
+    raiseStep: 9_400,
+    requiresDegree: true,
+    icon: 'career:robotics-engineer',
+    description: 'Picks which of the lab\'s forty ideas get a year each, and is wrong about roughly half.',
+  },
+  {
+    id: 'career-climate-modeller',
+    title: 'Climate Modeller',
+    salary: 88_000,
+    raiseStep: 8_800,
+    requiresDegree: true,
+    icon: 'career:geologist',
+    description: 'Runs the ocean for a hundred years overnight, and checks it against a century of tide gauges.',
+    promotesTo: 'career-chief-climate-scientist',
+    promotionSpin: FIRST_STEP,
+  },
+  {
+    id: 'career-chief-climate-scientist',
+    title: 'Chief Scientist',
+    salary: 94_000,
+    raiseStep: 9_500,
+    requiresDegree: true,
+    icon: 'career:geologist',
+    description: 'Explains to a select committee, patiently and for the ninth time, what the error bars mean.',
+  },
+]

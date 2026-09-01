@@ -163,7 +163,7 @@ describe('the USA edition is the game that was already here', () => {
   it('offers a fair enough trades to choose between, in both pools', () => {
     // What the board deals is bottom rungs, and there have to be plenty: the
     // career-change tiles re-draw two every time they fire.
-    expect(hiringPoolFor(EDITION_USA, false).length).toBeGreaterThanOrEqual(10)
-    expect(hiringPoolFor(EDITION_USA, true).length).toBeGreaterThanOrEqual(10)
+    expect(hiringPoolFor(EDITION_USA, 'basic').length).toBeGreaterThanOrEqual(10)
+    expect(hiringPoolFor(EDITION_USA, 'graduate').length).toBeGreaterThanOrEqual(10)
   })
 })

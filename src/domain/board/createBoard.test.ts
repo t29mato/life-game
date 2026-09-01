@@ -148,13 +148,17 @@ describe.each(DIFFICULTIES)('createBoard(%s)', (difficulty) => {
   })
 
   /*
-   * Four, since the mid-career fork went in. The board had three decisions of
-   * consequence on it and a nine-spin corridor between the first two, which is
-   * where attention went. The fourth is the corridor's missing question.
+   * Five, since the grad school went in. Four of them are the decisions of
+   * consequence the board has always had — the opening lane, the mid-career
+   * corridor's missing question, marriage, and the house. The fifth is the
+   * doctorate, and it is the only fork on the board that is not offered to
+   * everybody: it hangs off the probation review, which is also where the
+   * opening fork's two roads come back together, so it cost the trunk a
+   * junction rather than a tile.
    */
-  it('has exactly four forks: start, mid-career, marriage, and home buying', () => {
+  it('has exactly five forks: start, grad school, mid-career, marriage, and home buying', () => {
     const forks = Object.values(board.spaces).filter((s) => s.next.length > 1)
-    expect(forks).toHaveLength(4)
+    expect(forks).toHaveLength(5)
     expect(board.spaces[board.startSpaceId]!.next.length).toBe(2)
 
     const marriage = Object.values(board.spaces).find((s) => s.effect.type === 'getMarried')
@@ -162,9 +166,17 @@ describe.each(DIFFICULTIES)('createBoard(%s)', (difficulty) => {
     const homeBuying = Object.values(board.spaces).find((s) => s.effect.type === 'buyHouse')
     expect(homeBuying!.next.length).toBe(2)
 
-    // The fourth one is the only one that is neither the start nor a milestone,
-    // and it lives between the first two: no lane may sit in a corridor.
-    const milestones = new Set([board.startSpaceId, marriage!.id, homeBuying!.id])
+    // The grad-school junction names itself by the road it offers, which is
+    // the one road on the board that states a condition.
+    const gradSchool = forks.filter((fork) =>
+      fork.next.some((id) => board.spaces[id]?.lane?.requires === 'degree'),
+    )
+    expect(gradSchool).toHaveLength(1)
+
+    // The remaining one is neither the start, nor a milestone, nor the grad
+    // school, and it lives between the first two: no lane may sit in a
+    // corridor.
+    const milestones = new Set([board.startSpaceId, marriage!.id, homeBuying!.id, gradSchool[0]!.id])
     const midCareer = forks.filter((fork) => !milestones.has(fork.id))
     expect(midCareer).toHaveLength(1)
     expect(canReach(board, midCareer[0]!.id, marriage!.id)).toBe(true)

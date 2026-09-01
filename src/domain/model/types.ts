@@ -79,6 +79,22 @@ export type SpaceTone = 'blue' | 'orange' | 'green' | 'pink' | 'purple' | 'gold'
 // Catalogue items
 // ---------------------------------------------------------------------------
 
+/**
+ * How far a player's schooling reaches, and which shelf of work that opens.
+ *
+ * Three rungs of one ladder rather than three unrelated pools, and the order
+ * matters: a tile names the *best* shelf it can deal from, a player carries
+ * the best shelf they are entitled to, and a fair deals from whichever of the
+ * two is lower. That is what lets the school-leaver's own job fair and the
+ * graduate's stand on the same board without either one having to check who
+ * is standing on it.
+ *
+ * `doctorate` is the only tier an edition may decline to write. A country
+ * whose board has no grad school never consults the shelf, so requiring one
+ * would be asking four editions to invent careers nobody can be dealt.
+ */
+export type CareerTier = 'basic' | 'graduate' | 'doctorate'
+
 export interface Career {
   readonly id: CareerId
   readonly title: string
@@ -231,7 +247,21 @@ export type SpaceEffect =
    * as `getMarried` and `household` read their own sums from the edition
    * rather than carrying one on the tile.
    */
-  | { readonly type: 'tuition'; readonly reason: string }
+  | {
+      readonly type: 'tuition'
+      readonly reason: string
+      /**
+       * Which of the edition's tuition bills this tile is settling.
+       *
+       * Absent is the first degree, which is what every board had when there
+       * was only one bill to send. A grad school charges its own, out of
+       * `EconomyConstants.doctorateTuition`, and it is a separate spec rather
+       * than a multiplier on the first because the two bills are not the same
+       * shape of gamble: an undergraduate can win a full ride, and a doctoral
+       * candidate is far more likely to be funded than to be forgiven.
+       */
+      readonly bill?: 'doctorate'
+    }
   /**
    * A review: spin, and climb a rung if the wheel says so.
    *
@@ -244,8 +274,25 @@ export type SpaceEffect =
    */
   | { readonly type: 'promotion'; readonly reason: string }
   | { readonly type: 'gainLifeTiles'; readonly count: number }
-  | { readonly type: 'chooseCareer'; readonly pool: 'graduate' | 'basic' }
+  /**
+   * A hall of booths. `pool` is the best shelf *this fair* deals from, not
+   * the shelf the player gets: a graduate fair hands a school-leaver the
+   * basic pool, exactly as it always did, and the rule generalises to three
+   * tiers as "whichever of the two is lower".
+   */
+  | { readonly type: 'chooseCareer'; readonly pool: CareerTier }
   | { readonly type: 'graduate' }
+  /**
+   * The doctorate, and the third rung of the schooling ladder.
+   *
+   * Its own effect rather than a flag on `graduate`, because the two are
+   * different milestones on different roads: everybody who walks College Lane
+   * graduates, and only whoever the wheel sends back to school ever reaches
+   * this. It opens the `doctorate` career shelf and nothing else — the pay
+   * rise arrives at the fair a tile or two later, where the player can see
+   * what it bought them.
+   */
+  | { readonly type: 'doctorate' }
   | { readonly type: 'getMarried' }
   /**
    * The joint account, settled by the wheel. Married players only.
@@ -363,6 +410,26 @@ export interface LaneIdentity {
   readonly name: string
   /** One line on what the road costs and what it pays back. */
   readonly summary: string
+  /**
+   * What a player must already hold before this road is open to them at all.
+   *
+   * The board's first genuinely *conditional* road, and the reason it is a
+   * property of the lane rather than a rule written into a country's route:
+   * grad school is not a third lane off the opening fork, it is the next rung
+   * of one that starts at College Lane, and somebody who took Straight to Work
+   * has no more business being sent down it than they have graduating twice.
+   *
+   * The gate is enforced in exactly one place — `resolveForkBranch` in
+   * `application/usecases/branch.ts`, which is the single point every fork in
+   * the game is settled through — so a road that is closed to a player is
+   * simply never the road the die picks for them, and the fork rail never
+   * offers it either. `validateRoute` refuses a fork whose *both* roads are
+   * gated, since that is a junction nobody can leave.
+   *
+   * Absent means the road is open to everybody, which is every other road on
+   * every board.
+   */
+  readonly requires?: 'degree'
 }
 
 export interface Board {
@@ -388,6 +455,18 @@ export interface Player {
   readonly loans: number
   readonly career: Career | null
   readonly hasDegree: boolean
+  /**
+   * Went back, and finished.
+   *
+   * Its own flag rather than a level on `hasDegree`, so that every existing
+   * reading of "did they go to college" keeps working untouched — a doctor
+   * still has a degree, and the mortarboard, the graduate pool and the CPU's
+   * own lane valuation all still see one. What this adds on top is the third
+   * career shelf, and it can only ever be true of somebody for whom
+   * `hasDegree` is already true: the only tile that sets it stands on a road
+   * gated behind the degree (see `LaneIdentity.requires`).
+   */
+  readonly hasDoctorate: boolean
   readonly isMarried: boolean
   readonly children: number
   readonly house: House | null

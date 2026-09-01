@@ -36,7 +36,7 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
   // first exit off *any* tile, so `resolveForkBranch` alone would answer for
   // an ordinary one-road tile too — and read that road as a fork settled.
   if (state.chosenExit === null && isFork(state.board, player.spaceId)) {
-    const branchTaken = resolveForkBranch(state.board, player.spaceId, spinValue)
+    const branchTaken = resolveForkBranch(state.board, player.spaceId, spinValue, player)
     if (branchTaken !== undefined) {
       const label = roadName(state.board, branchTaken)
       const forkLog = `${player.name} rolls a ${spinValue} — the fork sends them onto ${label}.`

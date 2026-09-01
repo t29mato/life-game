@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import type { SpaceEffect } from '../../model/types'
 import { spacesOf } from '../../board/route'
 import { EDITION_USA } from '../usa'
+// The USA route as this edition still mirrors it — see the file for why the
+// grad-school fork is folded back out, and when this import goes away.
+import { USA_SKELETON } from '../../../test/editionParity'
 import { EDITION_JAPAN } from './index'
 
 /**
@@ -94,7 +97,7 @@ describe('the japan economy is the tuned USA economy at ×100', () => {
 })
 
 describe('the japan route is the measured skeleton, tile for tile', () => {
-  const usaSpaces = spacesOf(EDITION_USA.route)
+  const usaSpaces = spacesOf(USA_SKELETON)
   const japanSpaces = spacesOf(EDITION_JAPAN.route)
 
   /** The two sums an effect can carry, for the ×100 comparison. */
@@ -118,7 +121,7 @@ describe('the japan route is the measured skeleton, tile for tile', () => {
 
   it('walks the same shape: segment for segment, lane for lane', () => {
     expect(EDITION_JAPAN.route.segments.map((s) => s.kind)).toEqual(
-      EDITION_USA.route.segments.map((s) => s.kind),
+      USA_SKELETON.segments.map((s) => s.kind),
     )
     expect(japanSpaces).toHaveLength(usaSpaces.length)
   })

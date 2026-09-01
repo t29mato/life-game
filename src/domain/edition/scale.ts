@@ -68,6 +68,18 @@ const scaleByDifficulty = (
 const scaleEconomy = (economy: EconomyConstants, factor: number): EconomyConstants => ({
   startingMoney: economy.startingMoney * factor,
   tuition: { outcomes: economy.tuition.outcomes.map((band) => scaleTuitionOutcome(band, factor)) },
+  /*
+   * Spread conditionally rather than written as `undefined`: the contract runs
+   * under `exactOptionalPropertyTypes`, and an edition with no grad school has
+   * no doctoral bill rather than one whose value is nothing.
+   */
+  ...(economy.doctorateTuition
+    ? {
+        doctorateTuition: {
+          outcomes: economy.doctorateTuition.outcomes.map((band) => scaleTuitionOutcome(band, factor)),
+        },
+      }
+    : {}),
   loanPrincipal: economy.loanPrincipal * factor,
   loanRepayment: scaleByDifficulty(economy.loanRepayment, factor),
   earlyLoanRepayment: scaleByDifficulty(economy.earlyLoanRepayment, factor),
@@ -135,6 +147,9 @@ export function scaleEdition(base: Edition, factor: number, options: ScaleOption
     careers: {
       basic: base.careers.basic.map((career) => scaleCareer(career, factor)),
       graduate: base.careers.graduate.map((career) => scaleCareer(career, factor)),
+      ...(base.careers.doctorate
+        ? { doctorate: base.careers.doctorate.map((career) => scaleCareer(career, factor)) }
+        : {}),
     },
     houses: base.houses.map((house) => scaleHouse(house, factor)),
     lifeTiles: base.lifeTiles.map((tile) => scaleTile(tile, factor)),

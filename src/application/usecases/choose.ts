@@ -15,7 +15,7 @@ import { editionOf } from '@domain/edition/registry'
 import { findCareer, findHouse, findStock, nextRungOf } from '@domain/edition/lookup'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
 import { marriageBandFor } from '@domain/rules/marriage'
-import { tuitionBandFor } from '@domain/rules/tuition'
+import { tuitionBandFor, tuitionSpecFor } from '@domain/rules/tuition'
 import {
   addInsurance,
   addLifeTiles,
@@ -521,7 +521,10 @@ function resolveTuitionSpin(
   money: (amount: Money) => string,
 ): GameState {
   const { economy } = edition
-  const band = tuitionBandFor(economy.tuition.outcomes, spinValue)
+  // Which of the two bills this tile is sending — the tile says so, and
+  // `applyEffect` printed the same spec's bands before the press.
+  const bill = space?.effect.type === 'tuition' ? space.effect.bill : undefined
+  const band = tuitionBandFor(tuitionSpecFor(bill, economy).outcomes, spinValue)
   const updated = band.cost > 0 ? debitPlayer(player, band.cost, economy) : player
   const delta = updated.money - player.money
   const loansTaken = updated.loans - player.loans

@@ -90,13 +90,13 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
    */
   if (state.stepsRemaining > 0 && space.next.length > 1) {
     const roll = state.stepsRemaining as SpinValue
-    const branchTaken = resolveForkBranch(state.board, space.id, roll)
+    const branchTaken = resolveForkBranch(state.board, space.id, roll, player)
     if (branchTaken === undefined) {
       // Defensive only: `resolveForkBranch` returns a road whenever `next`
       // actually holds one, which a fork (`next.length > 1`) always does.
       return {
         ...state,
-        pendingDecision: branchDecision(state.board, space.id, state.stepsRemaining),
+        pendingDecision: branchDecision(state.board, space.id, state.stepsRemaining, player),
         phase: 'awaitingDecision',
       }
     }

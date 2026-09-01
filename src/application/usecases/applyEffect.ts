@@ -21,13 +21,16 @@ import type { CurrencySpec, EconomyConstants, Edition, TuitionSpec } from '@doma
 import { USA_ECONOMY } from '@domain/edition/usa'
 import { editionOf } from '@domain/edition/registry'
 import {
+  careerTierOf,
   hiringPoolFor,
   ladderPositionOf,
+  lowerTier,
   nextRungOf,
   rungFor,
   seniorityOf,
 } from '@domain/edition/lookup'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
+import { tuitionSpecFor } from '@domain/rules/tuition'
 import {
   addChildren,
   addLifeTiles,
@@ -35,6 +38,7 @@ import {
   creditPlayer,
   debitPlayer,
   divorcePlayer,
+  doctoratePlayer,
   graduatePlayer,
   hasCalling,
   hasInsurance,
@@ -538,7 +542,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             // worth. Nothing here needs to repeat either.
             description: 'Roll to find out what you owe.',
             icon: 'space:tuition-bill',
-            table: tuitionBands(economy.tuition, currency),
+            table: tuitionBands(tuitionSpecFor(effect.bill, economy), currency),
           },
         ],
       }
@@ -671,8 +675,15 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
     }
 
     case 'chooseCareer': {
-      // Bottom rungs only. Nobody walks out of a job fair running a salon.
-      const pool = hiringPoolFor(edition, effect.pool === 'graduate' && player.hasDegree)
+      /*
+       * Bottom rungs only. Nobody walks out of a job fair running a salon.
+       *
+       * The shelf is the lower of what the fair deals and what the player is
+       * entitled to — which is precisely what "a graduate fair hands a
+       * school-leaver the basic pool" has always meant, said in a way that
+       * keeps meaning it now there are three shelves rather than two.
+       */
+      const pool = hiringPoolFor(edition, lowerTier(effect.pool, careerTierOf(player)))
       const [first, second] = deps.random.shuffle(pool).slice(0, 2) as [Career, Career]
 
       /*
@@ -713,6 +724,19 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         `Cap in the air! ${player.name} is a graduate, and the big careers just opened up.`,
       )
       const log = appendLog(state, player.id, `${player.name} graduates and earns a degree!`, 'milestone')
+      return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
+    }
+
+    case 'doctorate': {
+      const updated = doctoratePlayer(player)
+      const event = baseEvent(
+        space,
+        0,
+        ['Earned a doctorate!'],
+        'milestone',
+        `Doctor ${player.name}. Years of it, and the work nobody else is qualified for is open now.`,
+      )
+      const log = appendLog(state, player.id, `${player.name} is awarded a doctorate!`, 'milestone')
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
     }
 
@@ -1026,7 +1050,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        */
       const here = player.career ? ladderPositionOf(player.career.id, edition) : undefined
       const seniority = seniorityOf(player, edition)
-      const pool = hiringPoolFor(edition, player.hasDegree).filter((entry) => entry.id !== here?.entry.id)
+      const pool = hiringPoolFor(edition, careerTierOf(player)).filter((entry) => entry.id !== here?.entry.id)
       const [first, second] = deps.random
         .shuffle(pool)
         .slice(0, 2)

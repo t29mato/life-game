@@ -45,6 +45,7 @@ export function createPlayer(
     loans: 0,
     career: null,
     hasDegree: false,
+    hasDoctorate: false,
     isMarried: false,
     children: 0,
     house: null,
@@ -194,6 +195,20 @@ export function hasCalling(player: Player): boolean {
 
 export function graduatePlayer(player: Player): Player {
   return { ...player, hasDegree: true }
+}
+
+/**
+ * The doctorate.
+ *
+ * Sets the degree as well, and not defensively: the only road that reaches
+ * this tile is gated behind having one, so the flag is already true and
+ * writing it again costs nothing — but a doctorate that could somehow exist
+ * without a degree would quietly close the graduate shelf to whoever held it,
+ * and no invariant in the game is worth leaving to the board's good behaviour
+ * when it can be stated here in four characters.
+ */
+export function doctoratePlayer(player: Player): Player {
+  return { ...player, hasDegree: true, hasDoctorate: true }
 }
 
 export function marryPlayer(player: Player): Player {

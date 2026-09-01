@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { LifeTile } from '@domain/model/types'
 import { CASUAL_WAGE_PER_PIP, EARLY_LOAN_REPAYMENT, INSURANCE_PREMIUM } from '@domain/model/constants'
-import { BASIC_CAREERS, GRADUATE_CAREERS, USA_ECONOMY } from '@domain/edition/usa'
+import { BASIC_CAREERS, DOCTORATE_CAREERS, GRADUATE_CAREERS, USA_ECONOMY } from '@domain/edition/usa'
 import { expectedMarriageValue } from '@domain/rules/marriage'
 import { HOUSES } from '@domain/edition/usa'
 import { STOCKS } from '@domain/edition/usa'
@@ -298,6 +298,99 @@ describe('applyEffect', () => {
       const { state: next, event } = applyEffect(state, space, { random: createFakeRandom() })
       expect(next.players[0]!.hasDegree).toBe(true)
       expect(event.notes).toContain('Earned a degree!')
+    })
+  })
+
+  describe('doctorate', () => {
+    it('grants a doctorate', () => {
+      const player = fixturePlayer({ hasDegree: true })
+      const state = fixtureState({ players: [player] })
+      const space = fixtureSpace({ effect: { type: 'doctorate' } })
+      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom() })
+      expect(next.players[0]!.hasDoctorate).toBe(true)
+      expect(event.notes).toContain('Earned a doctorate!')
+    })
+
+    /*
+     * The only road to this tile is gated behind the degree, so the flag is
+     * already true when anyone reaches it. Setting it anyway costs nothing and
+     * means a doctorate can never exist that quietly closes the graduate shelf
+     * to whoever holds it — see `doctoratePlayer`.
+     */
+    it('carries the degree with it, so the two flags can never disagree', () => {
+      const state = fixtureState({ players: [fixturePlayer({ hasDegree: false })] })
+      const space = fixtureSpace({ effect: { type: 'doctorate' } })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      expect(next.players[0]!.hasDegree).toBe(true)
+      expect(next.players[0]!.hasDoctorate).toBe(true)
+    })
+  })
+
+  describe('the shelf a career fair deals from', () => {
+    const offered = (state: ReturnType<typeof fixtureState>, pool: 'basic' | 'graduate' | 'doctorate') => {
+      const space = fixtureSpace({ effect: { type: 'chooseCareer', pool } })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      return next.pendingDecision!.offeredCareerIds!
+    }
+
+    const idsIn = (careers: readonly { readonly id: string }[]) => new Set(careers.map((c) => c.id))
+
+    it('hands a school-leaver the basic pool at a graduate fair, exactly as it always did', () => {
+      const state = fixtureState({ players: [fixturePlayer({ hasDegree: false })] })
+      const basics = idsIn(BASIC_CAREERS)
+      for (const id of offered(state, 'graduate')) expect(basics.has(id)).toBe(true)
+    })
+
+    /*
+     * A doctor at a graduate fair is still only offered what that fair has on
+     * the table. The rule is "the lower of the two shelves", and this is the
+     * half of it that is easy to get backwards.
+     */
+    it('hands a doctor the graduate pool at a graduate fair', () => {
+      const state = fixtureState({
+        players: [fixturePlayer({ hasDegree: true, hasDoctorate: true })],
+      })
+      const graduates = idsIn(GRADUATE_CAREERS)
+      for (const id of offered(state, 'graduate')) expect(graduates.has(id)).toBe(true)
+    })
+
+    it('hands a graduate the graduate pool at a doctoral fair', () => {
+      const state = fixtureState({ players: [fixturePlayer({ hasDegree: true })] })
+      const graduates = idsIn(GRADUATE_CAREERS)
+      for (const id of offered(state, 'doctorate')) expect(graduates.has(id)).toBe(true)
+    })
+
+    it('hands a doctor the doctoral pool at a doctoral fair', () => {
+      const state = fixtureState({
+        players: [fixturePlayer({ hasDegree: true, hasDoctorate: true })],
+      })
+      const doctors = idsIn(DOCTORATE_CAREERS)
+      for (const id of offered(state, 'doctorate')) expect(doctors.has(id)).toBe(true)
+    })
+  })
+
+  describe('the tuition bill a tile sends', () => {
+    const bandsOf = (bill?: 'doctorate') => {
+      const state = fixtureState({ players: [fixturePlayer()] })
+      const space = fixtureSpace({
+        effect: { type: 'tuition', reason: 'Fees', ...(bill ? { bill } : {}) },
+      })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      return next.pendingDecision!.options[0]!.table!.map((row) => row.amount)
+    }
+
+    it('prints the undergraduate bands when the tile does not say otherwise', () => {
+      expect(bandsOf()).toEqual(['$90,000', '$52,000', '$28,000', 'Full ride'])
+    })
+
+    /*
+     * The doctoral table, and the two facts about it worth pinning: it is a
+     * different table, and its worst face is cheaper than the undergraduate
+     * one's. See `doctorateTuition` — the bad end is what forces borrowing, and
+     * on Very Hard borrowing is what turns a road into a trap.
+     */
+    it('prints the doctoral bands when the tile says so', () => {
+      expect(bandsOf('doctorate')).toEqual(['$54,000', '$48,000', '$40,000', '$30,000'])
     })
   })
 

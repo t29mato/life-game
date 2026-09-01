@@ -15,6 +15,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     loans: 0,
     career: null,
     hasDegree: false,
+    hasDoctorate: false,
     isMarried: false,
     children: 0,
     house: null,

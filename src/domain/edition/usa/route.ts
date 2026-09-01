@@ -237,6 +237,140 @@ const WORK_LANE: readonly SpaceContent[] = [
 ]
 
 /**
+ * Grad School: College Lane's own sequel, and the only road on the board that
+ * checks who is standing at the junction.
+ *
+ * It is reached in the middle of a working life rather than straight out of
+ * the graduation gown — see `GRAD_SCHOOL_FORK` for the two measurements that
+ * put it there — so read the tiles as somebody with a job giving it up.
+ *
+ * The gate is `identity.requires` on the branch below, and it is enforced in
+ * one place — `resolveForkBranch` — so a player who took Straight to Work is
+ * never sent down here by the die and is never even shown the road. That is
+ * the whole of what makes this a third rung on an existing ladder rather than
+ * a fourth lane off the opening fork: you cannot get a doctorate without a
+ * degree, and the board should not have to explain that to anybody.
+ *
+ * Six tiles, and none of them gated by difficulty. That is a layout promise
+ * rather than a content one: a fork's two roads are drawn on the rows above
+ * and below the trunk and cost the trunk row `max(lane) + 2` columns, so a
+ * lane that grows on Hard would move the whole serpentine at Hard and nowhere
+ * else. The harder settings bite through `harsher` rewrites in place instead,
+ * which change what a tile says and costs without changing how many there are.
+ *
+ * There is deliberately no payday on it. The years not earning are the road's
+ * real price — the bill is only the half of it anybody sees coming — and a
+ * wage packet in the middle would quietly refund it.
+ */
+const GRAD_SCHOOL_LANE: readonly SpaceContent[] = [
+  {
+    /*
+     * An `event`, not a `stop`, and not an ordinary tile either.
+     *
+     * The same argument College Lane's own tuition stop is written on: a cost
+     * five walkers in six spin straight over is decoration, not a cost, and
+     * this is the single largest bill on the board. It is an `event` rather
+     * than a `stop` because it settles on one press with nothing to weigh —
+     * the road was already chosen at the junction — so halting the move as
+     * well would spend a turn asking a question that has been answered.
+     */
+    id: 'grad-1', kind: 'event', title: 'Doctoral Fees',
+    description: 'Enrolment, bench fees, and four years of rent to find, with no salary coming in behind it. The funding letter decides how much of that is yours.',
+    effect: { type: 'tuition', reason: 'Doctoral fees', bill: 'doctorate' },
+    tone: 'blue', icon: 'space:tuition-bill',
+  },
+  flavour('grad-2', 'Lab Nights', 'The building empties at six and you are still there at one, and you would not be anywhere else.', 'blue', 'space:finals-week', {
+    from: 'hard',
+    description: 'The building empties at six and you are still there at one — and the third rebuild of the rig comes out of your own pocket.',
+    effect: { type: 'payMoney', amount: 2_600, reason: 'Rebuilding the rig' },
+  }),
+  {
+    /*
+     * The one bit of income on the lane, and it is deliberately not a payday.
+     * Teaching two seminars a week is a stipend, not a salary — it does not
+     * scale with the career you left behind, and it never arrives for being
+     * passed. It is here so the lane is not four straight tiles of paying out.
+     */
+    id: 'grad-3', kind: 'normal', title: 'Teaching Stipend',
+    description: 'Two seminars a week, forty first-years, and a small cheque that arrives on the last Friday of the month.',
+    effect: { type: 'gainMoney', amount: 4_000, reason: 'Teaching stipend' },
+    tone: 'blue', icon: 'space:campus-job',
+  },
+  {
+    /*
+     * A flat grant rather than a LIFE tile, and the reason is measured.
+     *
+     * A LIFE tile is drawn from a deck of varying values, so it is *variance*
+     * — and every tile on this lane is variance charged to college players
+     * alone, on a board whose opening fork rests on Straight to Work being the
+     * wider road (`gameBalance.test.ts` asserts exactly that). The doctoral
+     * bill already spends most of the room there is; a random prize on top of
+     * it tipped College Lane into being the wider one. A fixed sum says the
+     * same thing about the work and costs the comparison nothing.
+     */
+    id: 'grad-4', kind: 'normal', title: 'Grant Award',
+    description: 'The proposal you rewrote twice is funded on the third try, and the panel says so in writing.',
+    effect: { type: 'gainMoney', amount: 3_000, reason: 'Research grant' },
+    tone: 'blue', icon: 'space:scholarship-win',
+  },
+  {
+    id: 'grad-5', kind: 'event', title: 'The Defence',
+    description: 'Three hours in a small room with the people who know the field best, and at the end of it they call you doctor.',
+    effect: { type: 'doctorate' },
+    tone: 'blue', icon: 'space:cap-and-gown',
+  },
+  {
+    /*
+     * What the whole road was for, and a `careerChange` rather than a fresh
+     * `chooseCareer` for one reason that matters: a career is a ladder, and a
+     * surgeon who spent four years earning a doctorate should not come back to
+     * the bottom of a new one. `careerChange` deals at the rung the player has
+     * already reached (`rungFor`), off whichever shelf they are now entitled
+     * to — which, one tile after The Defence, is the doctoral one.
+     *
+     * Compulsory, for the same reason Job-Hopper Alley's re-draw is: this road
+     * *is* the appointment. A player who could stand here and decline would
+     * have bought a doctorate and kept their old job, which is not a decision,
+     * it is a refund.
+     */
+    id: 'grad-6', kind: 'event', title: 'The Appointment',
+    description: 'The letter comes on paper, with a title on it that took ten years and is yours for good.',
+    effect: { type: 'careerChange', reason: 'The work a doctorate opens', compulsory: true },
+    tone: 'gold', icon: 'space:grad-job-fair',
+  },
+]
+
+/**
+ * Keep Working: the road for everybody the grad school is not for — and for
+ * everybody it is for who rolled the other half of the die.
+ *
+ * Three tiles against Grad School's six, and one of them is a payday. That
+ * ratio is the argument in miniature: this side is shorter, it is earning, and
+ * it reaches the rest of the board sooner. The payday is the road's whole
+ * case and it has to be a real one — a flat sum would say "you are earning"
+ * without saying *what you earn*, and what a school-leaver earns is the widest
+ * number on the board. Measured on the board this fork was first built for,
+ * swapping this payday for a fixed bonus took Straight to Work's own spread
+ * from 242,453 down to 210,718 and handed the volatility to College Lane,
+ * which is the one thing the opening fork cannot afford. See
+ * `GRAD_SCHOOL_FORK` for why the junction sits where it does; past the
+ * mid-career crossroads this payday costs Job-Hopper Alley nothing.
+ *
+ * It stays cheap in tiles for the same layout reason Grad School stays
+ * ungated: the trunk row pays for the longer of the two lanes.
+ */
+const KEEP_WORKING_LANE: readonly SpaceContent[] = [
+  flavour('stay-1', 'Steady Year', 'No drama, no upheaval, and a quiet competence that people have started to rely on.', 'orange', 'space:steady-hustle'),
+  payday('stay-payday', 'A deposit lands while somebody you know is filling in a funding form.'),
+  {
+    id: 'stay-3', kind: 'normal', title: 'Night Class',
+    description: 'One evening a week, no doctorate at the end of it, and a certificate that turns out to be worth having anyway.',
+    effect: { type: 'payMoney', amount: 6_000, reason: 'Evening course fees' },
+    tone: 'orange', icon: 'space:campus-job',
+  },
+]
+
+/**
  * Main Street, first half: the years between the first wage and the first
  * serious decision about where the wage comes from.
  *
@@ -414,7 +548,17 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
   },
 ]
 
-/** Main Street, second half: the review, the layoff, the hall of booths, and the ring. */
+/**
+ * Main Street, second half, up to the junction: the review and the audit.
+ *
+ * Cut in two by the grad-school fork — see `GRAD_SCHOOL_FORK`. The layoff and
+ * the hall of booths move to the far side of it, which changes nothing about
+ * their own promise (they are still adjacent, still in that order) and buys the
+ * board the one thing the layout engine needs here: a stretch of trunk between
+ * two forks. Two junctions back to back leave the first one's branches reaching
+ * for a merge tile the second one has already pushed onto a fresh row, and the
+ * connector drawn between them crosses the board.
+ */
 const MAIN_STREET_LATE: readonly SpaceContent[] = [
   {
     /*
@@ -440,6 +584,66 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
     'A polite letter, a long afternoon with a shoebox of receipts, and a number at the bottom of it.',
     { type: 'payMoney', amount: 15_000, reason: 'Tax audit settlement' },
     'slate', 'space:refund-check'),
+]
+
+
+/**
+ * Holiday Gifts, and the junction the grad school hangs off.
+ *
+ * Two jobs on one tile, deliberately. The doctorate needed a junction and the
+ * board did not need another space: a new one would be a tile *and* a fork
+ * press charged to everybody at the table, including the half who never went
+ * to college and can therefore never take the road it offers. So the question
+ * is asked at a tile that was already here, whose money and whose kind are
+ * untouched — an ordinary tile, $800 to each rival, exactly as it has always
+ * been, so a player who lands on it has the same year they always had and a
+ * player who sweeps past it still pays nothing.
+ *
+ * **Why here, and not at the probation review.** Six months into a first job
+ * is the more obvious place to ask, and it is where this was built first. It
+ * does not survive measurement, for two reasons that both come from the same
+ * fact — a road only college players can take is a coin flip charged to one
+ * side of the opening fork:
+ *
+ *  1. *Straight to Work has to stay the volatile road.* With the junction that
+ *     early, the doctorate's better wage is multiplied by nearly every payday
+ *     left on the board, which made College Lane the wider road (measured:
+ *     work 222,927 against college 250,450, where the board's own guarantee is
+ *     work > college). Here, with only the back half of the route to earn it
+ *     back in, it measures work 243,193 against college 216,063 — the promise
+ *     restored, and with a wider margin than the fold-out board's own.
+ *  2. *A wage banked before the mid-career crossroads cannot be evened out by
+ *     it.* Job-Hopper Alley's whole argument is that a re-draw pulls you toward
+ *     the middle of your band, so it is the flatter road; a payday collected
+ *     just *before* the crossroads is variance the re-draw can no longer reach.
+ *     With the junction early, the road opposite the grad school had to carry
+ *     one, and it pushed a school-leaver's alley spread to 1.121x their road
+ *     spread — the fork's guarantee inverted, against a tolerance of 1.1. Past
+ *     the crossroads the same payday is collected at the re-drawn wage and
+ *     measures 0.964x instead.
+ *
+ * The story is better here too, which is a happy accident rather than the
+ * argument: going back to study is a thing people do in the middle of a
+ * working life, with a job to give up and a reason to.
+ */
+const GRAD_SCHOOL_FORK: SpaceContent = {
+  id: 'main-gifts', kind: 'normal', title: 'Holiday Gifts',
+  description: 'A present for everyone at the table, chosen with more thought than budget. Over dinner somebody mentions they are going back to study, and the road forks here.',
+  effect: { type: 'payEach', amount: 800, reason: 'A present for everyone' },
+  tone: 'slate', icon: 'space:surprise-bonus',
+}
+
+/**
+ * Main Street, after the grad-school fork: the layoff, the hall of booths, and
+ * the road to the ring.
+ *
+ * Both roads out of the junction rejoin here, so a fresh doctor and somebody
+ * who stayed in work walk the same layoff and the same fair — which is the
+ * right way round. A doctorate is not a shield, and the fair deals from
+ * whichever shelf the player is entitled to, so being re-hired after one is
+ * still being re-hired as a doctor.
+ */
+const MAIN_STREET_AFTER_GRAD: readonly SpaceContent[] = [
   {
     // Sits with `main-layoff` immediately in front of the career fair below,
     // for the same reason: two ways to lose the job, one hall of booths to fix
@@ -467,12 +671,6 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
     description: 'A hall full of booths, free pens, and two offers you have to pick between.',
     effect: { type: 'careerChange', reason: 'A fresh start at the career fair' },
     tone: 'orange', icon: 'space:career-fair-return',
-  },
-  {
-    id: 'main-gifts', kind: 'normal', title: 'Holiday Gifts',
-    description: 'A present for everyone at the table, chosen with more thought than budget.',
-    effect: { type: 'payEach', amount: 800, reason: 'A present for everyone' },
-    tone: 'slate', icon: 'space:surprise-bonus',
   },
 ]
 
@@ -875,6 +1073,32 @@ const WORK_BRANCH: RouteBranch = {
   spaces: WORK_LANE,
 }
 
+/**
+ * The one branch on any board that names a condition.
+ *
+ * The summary has to do two jobs the others do not: make the case, and be
+ * readable by the half of the table who will never be offered it. So it argues
+ * for the road in the first breath and admits what it costs in the second,
+ * exactly like the other seven — the fact that it is only ever *shown* to a
+ * graduate is the gate's business, not the sentence's.
+ */
+const GRAD_SCHOOL_BRANCH: RouteBranch = {
+  identity: {
+    name: 'Grad School',
+    summary: 'Go back for four more years and come out qualified for work nobody else at this table can take. You pay for it up front, again, and every payday you miss in there is one they are collecting.',
+    requires: 'degree',
+  },
+  spaces: GRAD_SCHOOL_LANE,
+}
+
+const KEEP_WORKING_BRANCH: RouteBranch = {
+  identity: {
+    name: 'Keep Working',
+    summary: 'Stay in the job you have. The money is smaller than a doctor\'s and it keeps arriving — including for the four years they spend in a library.',
+  },
+  spaces: KEEP_WORKING_LANE,
+}
+
 const COMPANY_BRANCH: RouteBranch = {
   identity: {
     name: 'Company Road',
@@ -929,6 +1153,8 @@ export const ROUTE_USA: RouteDefinition = {
     run('main street', MAIN_STREET_EARLY),
     fork(MID_CAREER_FORK, COMPANY_BRANCH, HOPPER_BRANCH),
     run('main street, after the fork', MAIN_STREET_LATE),
+    fork(GRAD_SCHOOL_FORK, GRAD_SCHOOL_BRANCH, KEEP_WORKING_BRANCH),
+    run('main street, after the grad-school fork', MAIN_STREET_AFTER_GRAD),
     fork(MARRIAGE, FAMILY_BRANCH, FAST_BRANCH),
     run('midtown', MIDTOWN),
     fork(HOME_BUYING, RISKY_BRANCH, SAFE_BRANCH),

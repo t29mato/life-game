@@ -120,6 +120,51 @@ export const USA_FR: EditionTranslation = {
       description: 'Six mois plus tard, quelqu’un s’assoit avec un formulaire et vous demande comment ça se passe, selon vous. Lancez le dé.',
       reason: 'La fin de la période d’essai',
     },
+    'grad-1': {
+      title: 'Frais de doctorat',
+      description: 'Inscription, frais de laboratoire et quatre ans de loyer à trouver, sans salaire derrière. La lettre de financement décide de la part qui vous revient.',
+      reason: 'Frais de doctorat',
+    },
+    'grad-2': {
+      title: 'Nuits au labo',
+      description: 'Le bâtiment se vide à dix-huit heures et vous y êtes encore à une heure du matin, et vous ne voudriez être nulle part ailleurs.',
+      harsher: {
+        description: 'Le bâtiment se vide à dix-huit heures et vous y êtes encore à une heure du matin — et la troisième reconstruction du montage sort de votre poche.',
+        reason: 'Reconstruction du montage',
+      },
+    },
+    'grad-3': {
+      title: 'Bourse d’enseignement',
+      description: 'Deux séminaires par semaine, quarante étudiants de première année, et un petit chèque qui arrive le dernier vendredi du mois.',
+      reason: 'Bourse d’enseignement',
+    },
+    'grad-4': {
+      title: 'Bourse de recherche',
+      description: 'Le projet que vous avez réécrit deux fois est financé à la troisième tentative, et le jury le dit par écrit.',
+      reason: 'Bourse de recherche',
+    },
+    'grad-5': {
+      title: 'La soutenance',
+      description: 'Trois heures dans une petite salle avec les gens qui connaissent le mieux le domaine, et au bout ils vous appellent docteur.',
+    },
+    'grad-6': {
+      title: 'La nomination',
+      description: 'La lettre arrive sur papier, avec un titre qui a pris dix ans et qui est à vous pour de bon.',
+      reason: 'Le travail qu’ouvre un doctorat',
+    },
+    'stay-1': {
+      title: 'Année tranquille',
+      description: 'Pas de drame, pas de bouleversement, et une compétence tranquille sur laquelle on a commencé à compter.',
+    },
+    'stay-payday': {
+      title: 'Jour de paie',
+      description: 'Un virement tombe pendant qu’une connaissance remplit un dossier de financement.',
+    },
+    'stay-3': {
+      title: 'Cours du soir',
+      description: 'Un soir par semaine, aucun doctorat au bout, et une attestation qui s’avère tout de même utile.',
+      reason: 'Frais de cours du soir',
+    },
     'main-bank': {
       title: 'Passage à la banque',
       description: 'Le conseiller fait glisser un café sur le bureau et demande où en est votre argent.',
@@ -204,7 +249,7 @@ export const USA_FR: EditionTranslation = {
     },
     'main-gifts': {
       title: 'Cadeaux de Noël',
-      description: 'Un cadeau pour chaque personne autour de la table, choisi avec plus d’attention que de budget.',
+      description: 'Un cadeau pour chaque personne autour de la table, choisi avec plus d’attention que de budget. Au dîner, quelqu’un mentionne qu’il reprend ses études, et la route bifurque ici.',
       reason: 'Un cadeau pour chacun',
     },
     marriage: {
@@ -463,6 +508,14 @@ export const USA_FR: EditionTranslation = {
     'Straight to Work': {
       name: 'Direct au boulot',
       summary: 'Gagner sa vie dès vendredi pendant que les autres défont encore leurs cartons. Pas de frais de scolarité, pas de filet, et une échelle de métier dont le premier barreau est rude et le dernier bat n’importe quel diplômé de cette table.',
+    },
+    'Grad School': {
+      name: 'École doctorale',
+      summary: 'Repartez pour quatre ans et ressortez qualifié pour un travail que personne d’autre à cette table ne peut prendre. Vous payez d’avance, encore, et chaque jour de paie manqué là-dedans, ce sont eux qui l’encaissent.',
+    },
+    'Keep Working': {
+      name: 'Rester en poste',
+      summary: 'Gardez le poste que vous avez. L’argent est plus modeste que celui d’un docteur et il continue de rentrer — y compris pendant les quatre ans qu’ils passent en bibliothèque.',
     },
     'Company Road': {
       name: 'Route de la Boîte',

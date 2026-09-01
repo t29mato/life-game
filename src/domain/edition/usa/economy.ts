@@ -67,6 +67,58 @@ export const USA_ECONOMY: EconomyConstants = {
       },
     ],
   },
+  /**
+   * Going back, and why the bill is the smaller half of what it costs.
+   *
+   * Mean **$45,667**, against the first degree's $52,000 — and yes, that is
+   * *less*, which is the opposite of what this was written as. The money is
+   * not where the price of this road lives. A doctorate is six tiles walked
+   * with no wage coming in, taken in the middle of a working life by somebody
+   * who already has a graduate job to give up; the payday foregone is worth
+   * $55,000-$80,000 on its own, so the road costs about $105,000 all in and
+   * the bill is barely two fifths of it. Charging more on the *tile* would not
+   * make the road heavier so much as delete it, which is exactly the argument
+   * `SpaceContent.unscaled` makes about college tuition one degree down.
+   *
+   * The Very Hard board is what set the ceiling, and it set it hard. This bill
+   * lands mid-career on a player who is rarely holding it in cash, so it is
+   * paid in loans — and Very Hard's bank wants $50,000 back for every $20,000
+   * it lends. At a $51,000 mean the college seats' win rate there measured
+   * exactly 0.350 against a floor of 0.350; at $89,000 it measured 0.317, and
+   * College Lane had stopped being a choice and become a trap. Every $10,000
+   * on this line is roughly a point of that win rate.
+   *
+   * The bands are flatter than the undergraduate table's for the same reason.
+   * It is the *bad end* that forces the borrowing, so the spread here is worth
+   * less than the mean is: there is no full ride at the top, because a funded
+   * studentship is a waiver and a stipend you still live thinly on, and no
+   * six-figure disaster at the bottom either. Same 2/2/1/1 split over the six
+   * faces the undergraduate table uses, so the two read as one system.
+   */
+  doctorateTuition: {
+    outcomes: [
+      {
+        upTo: 2,
+        note: 'The funding runs out in year two and the department is very sorry. The rest of it is yours to find.',
+        cost: 54_000,
+      },
+      {
+        upTo: 4,
+        note: 'Fees, bench costs and four years of rent, with a teaching stipend that covers rather less than half.',
+        cost: 48_000,
+      },
+      {
+        upTo: 5,
+        note: 'A partial studentship covers most of the fees. You still have to eat, and you do so cheaply.',
+        cost: 40_000,
+      },
+      {
+        upTo: 6,
+        note: 'A fully funded studentship: fees waived, a stipend paid, and four years of instant noodles.',
+        cost: 30_000,
+      },
+    ],
+  },
   loanPrincipal: 20_000,
   /**
    * Normal is the game exactly as it has always played; the harder rates are

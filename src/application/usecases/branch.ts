@@ -1,4 +1,4 @@
-import type { Board, Decision, DecisionOption, GameState, SpaceId, SpinValue } from '@domain/model/types'
+import type { Board, Decision, DecisionOption, GameState, Player, SpaceId, SpinValue } from '@domain/model/types'
 import { SPIN_FACES } from '@domain/model/constants'
 
 /**
@@ -19,6 +19,44 @@ import { SPIN_FACES } from '@domain/model/constants'
 
 export function isFork(board: Board, spaceId: SpaceId): boolean {
   return (board.spaces[spaceId]?.next.length ?? 0) > 1
+}
+
+/**
+ * Whether this road is open to this player at all.
+ *
+ * The board's one conditional road is grad school, and the condition is the
+ * degree — see `LaneIdentity.requires`, where the vocabulary lives and why it
+ * is a property of the lane rather than of a country's route. Every other road
+ * ever written is open to everybody, so this answers `true` for all of them
+ * without the lane having to say anything.
+ *
+ * A missing space answers `true` rather than `false`, deliberately: a road
+ * that is not on the board is somebody else's bug to report, and failing
+ * *open* here degrades to exactly the behaviour that shipped before gates
+ * existed rather than quietly stranding a player at a junction.
+ */
+export function roadIsOpenTo(board: Board, roadId: SpaceId, player: Player): boolean {
+  const requires = board.spaces[roadId]?.lane?.requires
+  if (requires === undefined) return true
+  return requires === 'degree' && player.hasDegree
+}
+
+/**
+ * The roads out of `spaceId` this player may actually be sent down, in roll
+ * order. Empty when `spaceId` is not a fork.
+ *
+ * This is the one place the gate is applied, and everything else about a fork
+ * — which road a roll picks, which names the rail prints — is expressed in
+ * terms of it, so a closed road cannot be offered by one and taken by the
+ * other. If a route ever gates both roads of a fork the whole list survives:
+ * a junction nobody can leave is a broken board, not a player's problem, and
+ * `validateRoute` refuses one long before anybody plays it.
+ */
+function roadsOpenTo(board: Board, spaceId: SpaceId, player: Player): readonly SpaceId[] {
+  const space = board.spaces[spaceId]
+  if (!space || space.next.length < 2) return []
+  const open = space.next.filter((roadId) => roadIsOpenTo(board, roadId, player))
+  return open.length > 0 ? open : space.next
 }
 
 /**
@@ -45,10 +83,18 @@ export function roadName(board: Board, spaceId: SpaceId): string {
  * rather than *by* the press they had just made. This is what the rail
  * shows instead, ahead of the spin, so a fork stays visibly a fork.
  */
-export function forkRoadNames(board: Board, spaceId: SpaceId): readonly [string, string] | undefined {
-  const space = board.spaces[spaceId]
-  if (!space || space.next.length < 2) return undefined
-  const [firstId, secondId] = space.next
+export function forkRoadNames(
+  board: Board,
+  spaceId: SpaceId,
+  player: Player,
+): readonly [string, string] | undefined {
+  const open = roadsOpenTo(board, spaceId, player)
+  // A player only one of whose roads is open is not standing at a fork, they
+  // are standing on the road. Naming two of them would promise a choice the
+  // die has already been told not to make — the exact misreading this rail
+  // was built to prevent, arriving from the other direction.
+  if (open.length < 2) return undefined
+  const [firstId, secondId] = open
   return [roadName(board, firstId!), roadName(board, secondId!)]
 }
 
@@ -60,12 +106,28 @@ export function forkRoadNames(board: Board, spaceId: SpaceId): readonly [string,
  * started elsewhere and reaches the fork with distance still owed, where it
  * still doubles as the distance) so both split the six faces the same way.
  */
-export function resolveForkBranch(board: Board, spaceId: SpaceId, roll: SpinValue): SpaceId | undefined {
-  const space = board.spaces[spaceId]
+export function resolveForkBranch(
+  board: Board,
+  spaceId: SpaceId,
+  roll: SpinValue,
+  player: Player,
+): SpaceId | undefined {
+  const open = roadsOpenTo(board, spaceId, player)
+  /*
+   * The whole gate, in one line, and this is the only line it needs.
+   *
+   * `spin` resolves *any* tile with two exits through here, and so does the
+   * mid-move case in `settle` — there is no third way onto a road anywhere in
+   * the game — so a road filtered out here is a road that cannot be reached,
+   * full stop. Somebody who never went to college is left with one road, and
+   * one road is not a fork: they take it whatever the die says, which is
+   * exactly what "grad school was never on the table" means mechanically.
+   */
+  if (open.length < 2) return open[0] ?? board.spaces[spaceId]?.next[0]
   // An even split over the die's six faces: the low half takes the first road,
   // the high half the second, exactly as the low and high halves of the old
   // ten-wedge wheel did.
-  return space?.next[roll <= SPIN_FACES / 2 ? 0 : 1]
+  return open[roll <= SPIN_FACES / 2 ? 0 : 1]
 }
 
 /**
@@ -73,11 +135,20 @@ export function resolveForkBranch(board: Board, spaceId: SpaceId, roll: SpinValu
  * the fork interrupts a move in progress, and null when the choice is being
  * made before the wheel is spun at all.
  */
-export function branchDecision(board: Board, spaceId: SpaceId, steps: number | null): Decision {
+export function branchDecision(
+  board: Board,
+  spaceId: SpaceId,
+  steps: number | null,
+  player: Player,
+): Decision {
   const space = board.spaces[spaceId]
   if (!space) throw new Error(`branchDecision: unknown space "${spaceId}"`)
 
-  const options: DecisionOption[] = space.next.map((nextId) => {
+  // Gated the same way the die is. Nothing reaches this in the live game any
+  // more, but a fallback that offered a road `resolveForkBranch` refuses is a
+  // fallback that would hand out the very thing the gate exists to withhold.
+  const roads = roadsOpenTo(board, spaceId, player)
+  const options: DecisionOption[] = (roads.length > 0 ? roads : space.next).map((nextId) => {
     const target = board.spaces[nextId]
     if (!target) throw new Error(`branchDecision: fork points to unknown space "${nextId}"`)
     return {

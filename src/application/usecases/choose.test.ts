@@ -867,7 +867,7 @@ describe('a fork is chosen before the wheel is spun', () => {
       currentPlayerIndex: 0,
       phase: 'awaitingDecision',
       stepsRemaining: 0,
-      pendingDecision: branchDecision(board, 'fork', null),
+      pendingDecision: branchDecision(board, 'fork', null, fixturePlayer()),
     })
 
     const chosen = board.spaces['fork']!.next[0]!
@@ -883,7 +883,7 @@ describe('a fork is chosen before the wheel is spun', () => {
 
   it('does not reveal the distance in the prompt, since it is not rolled yet', () => {
     const board = fixtureMovementBoard()
-    const decision = branchDecision(board, 'fork', null)
+    const decision = branchDecision(board, 'fork', null, fixturePlayer())
     expect(decision.prompt).not.toMatch(/\d+\s+space/)
     expect(decision.prompt).toContain('then roll')
   })
@@ -896,7 +896,7 @@ describe('a fork is chosen before the wheel is spun', () => {
       currentPlayerIndex: 0,
       phase: 'awaitingDecision',
       stepsRemaining: 2,
-      pendingDecision: branchDecision(board, 'fork', 2),
+      pendingDecision: branchDecision(board, 'fork', 2, fixturePlayer()),
     })
 
     const next = choose(state, board.spaces['fork']!.next[0]!, { random: createFakeRandom() })

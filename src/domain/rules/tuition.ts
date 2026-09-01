@@ -1,6 +1,6 @@
 import type { Money, SpinValue } from '../model/types'
 import { SPIN_FACES } from '../model/constants'
-import type { TuitionOutcome, TuitionSpec } from '../edition/types'
+import type { EconomyConstants, TuitionOutcome, TuitionSpec } from '../edition/types'
 
 /**
  * What the wheel does to the tuition bill.
@@ -20,6 +20,23 @@ import type { TuitionOutcome, TuitionSpec } from '../edition/types'
  * anything an edition forgot to cover, which is the only sane reading of a
  * table that does not reach the top face.
  */
+/**
+ * Which bill a `tuition` tile is sending.
+ *
+ * There are two of them on a board with a grad school on it, and the tile
+ * names which — see `SpaceEffect`'s `tuition` variant. An edition that has not
+ * written a doctoral bill falls back to its undergraduate one rather than
+ * charging nothing, which is the same fallback the career shelves make and is
+ * only ever reachable on a board that has a grad school without the economy to
+ * price it; `validateRoute` refuses to ship one of those.
+ */
+export function tuitionSpecFor(
+  bill: 'doctorate' | undefined,
+  economy: Pick<EconomyConstants, 'tuition' | 'doctorateTuition'>,
+): TuitionSpec {
+  return bill === 'doctorate' ? (economy.doctorateTuition ?? economy.tuition) : economy.tuition
+}
+
 export function tuitionBandFor(outcomes: readonly TuitionOutcome[], spun: SpinValue): TuitionOutcome {
   return outcomes.find((band) => spun <= band.upTo) ?? (outcomes[outcomes.length - 1] as TuitionOutcome)
 }

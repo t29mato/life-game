@@ -1,6 +1,7 @@
 import type {
   Career,
   CareerId,
+  CareerTier,
   House,
   HouseId,
   LifeTile,
@@ -53,8 +54,30 @@ interface EditionIndex {
   readonly lifeTiles: ReadonlyMap<LifeTileId, LifeTile>
   readonly stocks: ReadonlyMap<StockId, Stock>
   readonly ladders: ReadonlyMap<CareerId, LadderPosition>
-  /** Bottom rungs only, split the way the two pools are. */
-  readonly hiring: { readonly basic: readonly Career[]; readonly graduate: readonly Career[] }
+  /** Bottom rungs only, split the way the shelves are. */
+  readonly hiring: Readonly<Record<CareerTier, readonly Career[]>>
+}
+
+/** Every shelf an edition can hold, worst first. The order is the hierarchy. */
+const TIERS: readonly CareerTier[] = ['basic', 'graduate', 'doctorate']
+
+/**
+ * The lower of two tiers.
+ *
+ * What a fair actually deals from. A tile names the best shelf it can reach
+ * and a player carries the best shelf they are entitled to, and neither one
+ * alone is the answer: a graduate fair hands a school-leaver the basic pool,
+ * and a doctor who walks into a school-leaver's fair is still only offered
+ * what that fair has on the table.
+ */
+export function lowerTier(a: CareerTier, b: CareerTier): CareerTier {
+  return TIERS.indexOf(a) <= TIERS.indexOf(b) ? a : b
+}
+
+/** The best shelf this player's schooling entitles them to. */
+export function careerTierOf(player: Player): CareerTier {
+  if (player.hasDoctorate) return 'doctorate'
+  return player.hasDegree ? 'graduate' : 'basic'
 }
 
 /**
@@ -95,15 +118,26 @@ function indexOf(edition: Edition): EditionIndex {
 
   const basicLadders = laddersIn(edition.careers.basic)
   const graduateLadders = laddersIn(edition.careers.graduate)
+  // An edition with no grad school on its board writes no doctoral shelf, and
+  // an empty one indexes to an empty everything rather than to a special case.
+  const doctorateLadders = laddersIn(edition.careers.doctorate ?? [])
   const ladders = new Map<CareerId, LadderPosition>()
-  for (const rungs of [...basicLadders, ...graduateLadders]) {
+  for (const rungs of [...basicLadders, ...graduateLadders, ...doctorateLadders]) {
     rungs.forEach((career, index) => {
       ladders.set(career.id, { entry: rungs[0]!, rung: index + 1, height: rungs.length, rungs })
     })
   }
 
   const built: EditionIndex = {
-    careers: new Map([...edition.careers.basic, ...edition.careers.graduate].map((c) => [c.id, c])),
+    // Every shelf, so that a career carried in a save still resolves to the
+    // job it names. Leaving the doctoral shelf out of this one map would let
+    // `findCareer` come back empty for a doctor reloading their own game,
+    // which reads downstream as a ladder that lost its rungs.
+    careers: new Map(
+      [...edition.careers.basic, ...edition.careers.graduate, ...(edition.careers.doctorate ?? [])].map(
+        (c) => [c.id, c],
+      ),
+    ),
     houses: new Map(edition.houses.map((house) => [house.id, house])),
     lifeTiles: new Map(edition.lifeTiles.map((tile) => [tile.id, tile])),
     stocks: new Map(edition.stocks.map((stock) => [stock.id, stock])),
@@ -111,6 +145,7 @@ function indexOf(edition: Edition): EditionIndex {
     hiring: {
       basic: basicLadders.map((rungs) => rungs[0]!),
       graduate: graduateLadders.map((rungs) => rungs[0]!),
+      doctorate: doctorateLadders.map((rungs) => rungs[0]!),
     },
   }
   INDEXES.set(edition, built)
@@ -134,12 +169,17 @@ export function findStock(id: StockId, edition: Edition = EDITION_USA): Stock | 
 }
 
 /**
- * Every rung of every ladder a player is entitled to. A degree unlocks the
- * better pool. This is the pool for *looking things up in*; what a fair is
- * allowed to deal is `hiringPoolFor`.
+ * Every rung of every ladder on one shelf. This is the pool for *looking
+ * things up in*; what a fair is allowed to deal is `hiringPoolFor`.
+ *
+ * An edition asked for a shelf it has not written falls back to the one below
+ * rather than dealing nothing. That is not defensive padding — it is the only
+ * honest answer while the doctorate rolls out one country at a time, and it
+ * keeps a shared engine from having to know which countries are finished.
  */
-export function careerPoolFor(edition: Edition, hasDegree: boolean): readonly Career[] {
-  return hasDegree ? edition.careers.graduate : edition.careers.basic
+export function careerPoolFor(edition: Edition, tier: CareerTier): readonly Career[] {
+  if (tier === 'doctorate') return edition.careers.doctorate ?? edition.careers.graduate
+  return tier === 'graduate' ? edition.careers.graduate : edition.careers.basic
 }
 
 /**
@@ -150,9 +190,12 @@ export function careerPoolFor(edition: Edition, hasDegree: boolean): readonly Ca
  * flat list and the fair drew two of it at random. A fair deals the door in,
  * and the rest of the ladder is climbed.
  */
-export function hiringPoolFor(edition: Edition, hasDegree: boolean): readonly Career[] {
-  const { basic, graduate } = indexOf(edition).hiring
-  return hasDegree ? graduate : basic
+export function hiringPoolFor(edition: Edition, tier: CareerTier): readonly Career[] {
+  const hiring = indexOf(edition).hiring
+  // Same fallback `careerPoolFor` makes, and for the same reason: an edition
+  // with no doctoral shelf hires its doctors off the graduate one.
+  if (tier === 'doctorate') return hiring.doctorate.length > 0 ? hiring.doctorate : hiring.graduate
+  return tier === 'graduate' ? hiring.graduate : hiring.basic
 }
 
 /** Where `id` sits on its ladder, or undefined if the edition has never heard of it. */

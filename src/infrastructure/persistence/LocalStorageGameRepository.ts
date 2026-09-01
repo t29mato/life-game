@@ -9,9 +9,12 @@ export const SAVE_KEY_PREFIX = 'life-journey:save:'
  * so a version-1 snapshot is half-shaped and must never be loaded. Round 3
  * took `boardLength` away again — a session is one length now — and with it
  * every space a longer board carried, so a version-2 snapshot is a game whose
- * pawns stand on tiles this build cannot draw.
+ * pawns stand on tiles this build cannot draw. Round 4 added the grad school:
+ * `Player` gained `hasDoctorate`, which a version-3 save has no value for, and
+ * the USA route grew a fork where a version-3 board has a plain tile — so a
+ * doctor loaded from one would be a player the engine believes never studied.
  */
-export const SAVE_VERSION = 3
+export const SAVE_VERSION = 4
 
 function keyFor(slot: number): string {
   return `${SAVE_KEY_PREFIX}${slot}`

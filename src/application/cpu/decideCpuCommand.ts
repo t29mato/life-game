@@ -1,6 +1,7 @@
 import type {
   Board,
   Career,
+  CareerTier,
   Decision,
   DecisionOption,
   GameState,
@@ -15,17 +16,19 @@ import { SHARES_PER_PURCHASE } from '@domain/model/constants'
 import { difficultyProfile, earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
 import { editionOf } from '@domain/edition/registry'
 import {
+  careerTierOf,
   findCareer,
   findHouse,
   findStock,
   hiringPoolFor,
   ladderPositionOf,
+  lowerTier,
   nextRungOf,
 } from '@domain/edition/lookup'
 import { AVERAGE_SPIN, expectedPayday, isCoveredAgainst, totalShares } from '@domain/rules/player'
 import { expectedChildValue } from '@domain/rules/children'
 import { expectedMarriageValue } from '@domain/rules/marriage'
-import { expectedTuitionCost } from '@domain/rules/tuition'
+import { expectedTuitionCost, tuitionSpecFor } from '@domain/rules/tuition'
 import type { GameCommand } from '../GameStore'
 import {
   BANK_LOAN_OPTION_ID,
@@ -171,6 +174,7 @@ export const meanFairSalary = (careers: readonly { readonly salary: Money }[]): 
 interface CatalogueAverages {
   readonly basicFairSalary: Money
   readonly graduateFairSalary: Money
+  readonly doctorateFairSalary: Money
   readonly averageTileValue: Money
 }
 
@@ -183,8 +187,9 @@ function averagesOf(edition: Edition): CatalogueAverages {
   const built: CatalogueAverages = {
     // Bottom rungs only: a fair cannot deal anything else, so pricing it off
     // the whole pool would value a first job at what a salon owner earns.
-    basicFairSalary: meanFairSalary(hiringPoolFor(edition, false)),
-    graduateFairSalary: meanFairSalary(hiringPoolFor(edition, true)),
+    basicFairSalary: meanFairSalary(hiringPoolFor(edition, 'basic')),
+    graduateFairSalary: meanFairSalary(hiringPoolFor(edition, 'graduate')),
+    doctorateFairSalary: meanFairSalary(hiringPoolFor(edition, 'doctorate')),
     averageTileValue: tiles.reduce((sum, tile) => sum + tile.value, 0) / Math.max(1, tiles.length),
   }
   AVERAGES.set(edition, built)
@@ -292,7 +297,13 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
 
   const edition = editionOf(state)
   const { economy } = edition
-  const { basicFairSalary, graduateFairSalary, averageTileValue } = averagesOf(edition)
+  const { basicFairSalary, graduateFairSalary, doctorateFairSalary, averageTileValue } =
+    averagesOf(edition)
+  const fairSalaryBy: Readonly<Record<CareerTier, Money>> = {
+    basic: basicFairSalary,
+    graduate: graduateFairSalary,
+    doctorate: doctorateFairSalary,
+  }
   const casualPayday = casualPaydayOf(economy)
   /*
    * The flat prices below — what a degree is worth, what a house-hunting stop
@@ -323,7 +334,10 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
        * computer seat's read on the College Lane fork does not move just
        * because the bill itself got more interesting.
        */
-      return -expectedTuitionCost(economy.tuition)
+      // Whichever of the two bills this tile sends — the doctoral one is the
+      // heavier, and a lane priced at the undergraduate figure would look like
+      // a bargain it is not.
+      return -expectedTuitionCost(tuitionSpecFor(effect.bill, economy))
     case 'promotion': {
       /*
        * A review is worth the rung above it, discounted by the odds of getting
@@ -346,14 +360,25 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
       // Only worth something to a player with no job to lose, and worth the
       // salary times every payday still ahead of them.
       if (player.career) return 0
-      const salary =
-        effect.pool === 'graduate' && player.hasDegree ? graduateFairSalary : basicFairSalary
+      // The same "lower of the two shelves" rule the fair itself deals by —
+      // see `chooseCareer` in `applyEffect.ts`. A seat that priced a doctoral
+      // fair at doctoral money while holding no doctorate would walk toward a
+      // hall that has nothing on that table for it.
+      const salary = fairSalaryBy[lowerTier(effect.pool, careerTierOf(player))]
       // What the job *adds*: an unemployed player is already earning casual
       // shifts at every one of those paydays.
       return (salary - casualPayday) * paydaysAhead
     }
     case 'graduate':
       return player.hasDegree ? 0 : units(40)
+    /*
+     * Worth what the degree is worth, and no more, because the two open the
+     * same kind of door: a better shelf at the next fair. The fair itself is
+     * scored separately and is where the actual money shows up — this is the
+     * qualification, priced as the key rather than as the room.
+     */
+    case 'doctorate':
+      return player.hasDoctorate ? 0 : units(40)
     case 'getMarried':
       /*
        * The envelopes, plus whatever the wheel's own bands are worth.
@@ -718,6 +743,12 @@ function scoreBranch(option: DecisionOption, context: Context, decision: Decisio
   let walked: Player = {
     ...player,
     hasDegree: player.hasDegree || [...mine].some((id) => board.spaces[id]?.effect.type === 'graduate'),
+    // The same argument one rung up: Grad School Lane hands out the doctorate
+    // and then, two tiles later, the fair that is only worth anything to
+    // somebody holding one. Scored against today's player, the lane would
+    // price its own payoff at graduate money and never argue for itself.
+    hasDoctorate:
+      player.hasDoctorate || [...mine].some((id) => board.spaces[id]?.effect.type === 'doctorate'),
   }
 
   /*

@@ -210,6 +210,80 @@ describe('the two roads out of a fork', () => {
   })
 })
 
+/**
+ * The gate on a road, checked from the side a validator can see: the route.
+ *
+ * `LaneIdentity.requires` is enforced at run time in one place — see
+ * `resolveForkBranch` — and these are the two ways an author can write a route
+ * that makes the gate meaningless before anybody plays it.
+ */
+describe('a road that states a condition', () => {
+  it('lets the shipped route through: one gated road, and it has an open sibling', () => {
+    const gated = EDITION_USA.route.segments.flatMap((segment) =>
+      segment.kind === 'fork' ? segment.branches.filter((b) => b.identity.requires) : [],
+    )
+    expect(gated.map((b) => b.identity.name)).toEqual(['Grad School'])
+    expect(check(EDITION_USA.route)).toEqual([])
+  })
+
+  /*
+   * Gate both sides and there is no road left for somebody who qualifies for
+   * neither, so the gate falls open and the fork silently stops meaning
+   * anything. Better caught here than discovered as a player on a road the
+   * board said was not theirs.
+   */
+  it('refuses a fork whose every road is gated', () => {
+    const broken = editBranch(EDITION_USA.route, 'Keep Working', {
+      identity: { name: 'Keep Working', summary: 'Stay in the job you have.', requires: 'degree' },
+    })
+    expect(complains(broken, 'both roads').join('\n')).toMatch(/gated|nowhere to go/i)
+  })
+})
+
+/**
+ * A grad school with nothing behind it.
+ *
+ * The doctoral shelf and the doctoral bill are both optional on an edition,
+ * because four of the five countries have no grad school on their board yet.
+ * The moment a route carries the tile, both become required — the engine falls
+ * back rather than crashing, which is exactly why nothing else would notice.
+ */
+describe('the doctorate needs the content that pays it off', () => {
+  /*
+   * An edition as the other four still are: no doctoral shelf, no doctoral
+   * bill. `exactOptionalPropertyTypes` is on, so these are *absent* rather
+   * than set to nothing — which is also how an edition that has never heard of
+   * grad school actually writes itself.
+   */
+  const { doctorateTuition: _bill, ...economyWithoutBill } = EDITION_USA.economy
+  const withoutDoctoralContent = {
+    ...EDITION_USA,
+    careers: { basic: EDITION_USA.careers.basic, graduate: EDITION_USA.careers.graduate },
+    economy: economyWithoutBill,
+  }
+
+  it('says so when the edition has no doctoral career pool', () => {
+    const problems = validateRoute(EDITION_USA.route, {
+      ...withoutDoctoralContent,
+      economy: EDITION_USA.economy,
+    })
+    expect(problems.join('\n')).toMatch(/no "doctorate" career pool/)
+  })
+
+  it('says so when the edition has no doctoral tuition', () => {
+    const problems = validateRoute(EDITION_USA.route, { ...EDITION_USA, economy: economyWithoutBill })
+    expect(problems.join('\n')).toMatch(/no "doctorateTuition"/)
+  })
+
+  it('says nothing about either on a route that awards no doctorate', () => {
+    const noDoctorate = mapSpaces(EDITION_USA.route, (space) =>
+      space.effect.type === 'doctorate' ? { ...space, effect: { type: 'none' as const } } : space,
+    )
+    const problems = validateRoute(noDoctorate, withoutDoctoralContent)
+    expect(problems.join('\n')).not.toMatch(/doctorate|doctorateTuition/)
+  })
+})
+
 describe('the milestones the engine cannot do without', () => {
   it('notices a degree that only exists on the harshest setting', () => {
     const broken = editSpace(EDITION_USA.route, 'college-8', { appearsFrom: 'veryHard' })
@@ -315,8 +389,12 @@ describe('the board a route builds', () => {
 
   it('catches an orphan nothing points at', () => {
     const orphaned = withSpaces((spaces) => {
-      const before = Object.values(spaces).find((s) => s.next.includes('main-bank'))!
-      spaces[before.id] = { ...before, next: ['main-4'] }
+      // Every road into it, not just the first: `main-bank` is the head of a
+      // trunk run, so both roads out of the grad-school fork point at it and
+      // rewiring one of them leaves the other still pointing at the "orphan".
+      for (const before of Object.values(spaces).filter((s) => s.next.includes('main-bank'))) {
+        spaces[before.id] = { ...before, next: ['main-9'] }
+      }
     })
     expect(boardProblems(orphaned, 'standard/normal').join('\n')).toMatch(/main-bank/)
   })
@@ -404,8 +482,8 @@ describe('a route shape no shipped edition has', () => {
   it('builds a board with four forks, every road named', () => {
     const board = createBoard('normal', { ...EDITION_USA, route })
     const forks = Object.values(board.spaces).filter((space) => space.next.length > 1)
-    // Four on the shipped route, and this one makes five.
-    expect(forks).toHaveLength(5)
+    // Five on the shipped route, and this one makes six.
+    expect(forks).toHaveLength(6)
     for (const forked of forks) {
       for (const headId of forked.next) {
         expect(board.spaces[headId]?.lane?.name, `${forked.id} -> ${headId}`).toBeTruthy()

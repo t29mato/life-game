@@ -497,7 +497,7 @@ describe('decideCpuCommand — branches', () => {
     expect(chosen(jobless)).toBe('payingLane')
 
     const meanBasic = BASIC_CAREERS.reduce((sum, c) => sum + c.salary, 0) / BASIC_CAREERS.length
-    expect(meanFairSalary(hiringPoolFor(EDITION_USA, false))).toBeLessThan(meanBasic)
+    expect(meanFairSalary(hiringPoolFor(EDITION_USA, 'basic'))).toBeLessThan(meanBasic)
   })
 
   it('falls back safely when a branch names a space the board does not hold', () => {
@@ -672,7 +672,7 @@ describe('decideCpuCommand — pay the wheel decides', () => {
      * would be worth what a salon owner earns, and a computer seat would walk
      * past the road that leads to one to get to the fair.
      */
-    const hiring = hiringPoolFor(EDITION_USA, false)
+    const hiring = hiringPoolFor(EDITION_USA, 'basic')
     expect(price).toBeGreaterThan(0)
     expect(price).toBe((meanFairSalary(hiring) - CASUAL_WAGE_PER_PIP * AVERAGE_SPIN) * paydaysAhead)
     expect(meanFairSalary(hiring)).toBeLessThan(
