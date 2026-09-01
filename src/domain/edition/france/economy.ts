@@ -87,8 +87,8 @@ export const FRANCE_ECONOMY: EconomyConstants = {
    * constraint that matters: children hang off this tile.
    */
   marriage: {
-    proposalSpin: 2,
-    secondAskSpin: 2,
+    proposalSpin: 4,
+    secondAskSpin: 4,
     rescued: {
       upTo: 6,
       note: 'They said yes the second time — and moved in with a leased car, an unpaid fine from a speed camera near Limoges, and a very relaxed attitude to both.',

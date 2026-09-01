@@ -138,7 +138,8 @@ export const USA_ECONOMY: EconomyConstants = {
   weddingGift: 10_000,
   divorceSettlement: 15_000,
   /**
-   * The wheel decides the marriage, not just the wedding.
+   * The wheel decides the marriage, not just the wedding — and, now, whether
+   * there is one at all.
    *
    * Read down the bands and it is a life rather than a prize: a proposal that
    * had to be asked twice brings someone who is still paying off a car they
@@ -147,12 +148,25 @@ export const USA_ECONOMY: EconomyConstants = {
    * and only the top of the wheel is the unambiguously good one, where a second
    * income walks in the door with savings behind it.
    *
+   * `proposalSpin: 4` and `secondAskSpin: 4` mean a 1-in-4 life stays single at
+   * this tile: half the table falls under the first ask's bar, and half of
+   * those again fail the second — 0.5 × 0.5 = 25%. This used to be 2 and 2, a
+   * 1-in-36 chance nobody at the table ever actually saw, which is what "not
+   * everybody marries" needs to mean *in practice*, not just in the code path
+   * `resolveMarriageSpin` already had sitting unused. A refusal is not a worse
+   * roll than a rescued proposal — it pays a LIFE tile and skips every band on
+   * this table, married or not, which is deliberate: staying single is a
+   * different life, not a failed one.
+   *
    * The bad end really is a loss — at a two-player table a rescued proposal
    * finishes $2,000 down and the runaway reception barely clears the envelopes —
    * and the mean is still comfortably positive, which is the constraint that
    * matters. Marriage has to stay worth doing: a negative expectation would mean
    * nobody ever marries, and the whole family side of the board, children
-   * included, hangs off this tile. `marriage.test.ts` is what holds that.
+   * included, hangs off this tile. `marriage.test.ts` is what holds that — and
+   * it still holds at 25% single, because staying single moves zero dollars
+   * rather than a negative one; it dilutes the mean toward zero, it does not
+   * drag it there.
    *
    * The wedding is deliberately the *smaller* half of the downside. A flat bill
    * is regressive — it lands hardest on the player with least, who on this board
@@ -165,8 +179,8 @@ export const USA_ECONOMY: EconomyConstants = {
    * everything.
    */
   marriage: {
-    proposalSpin: 2,
-    secondAskSpin: 2,
+    proposalSpin: 4,
+    secondAskSpin: 4,
     rescued: {
       upTo: 6,
       note: 'They said yes the second time — and moved in with a car loan, a store card and a very relaxed attitude to both.',

@@ -95,8 +95,8 @@ export const INDIA_ECONOMY: EconomyConstants = {
    * is the constraint that matters: children hang off this tile.
    */
   marriage: {
-    proposalSpin: 2,
-    secondAskSpin: 2,
+    proposalSpin: 4,
+    secondAskSpin: 4,
     rescued: {
       upTo: 6,
       note: 'They said yes the second time — and moved in with three maxed credit cards, an EMI on a phone from two phones ago, and a very relaxed attitude to both.',

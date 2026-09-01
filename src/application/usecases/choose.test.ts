@@ -565,8 +565,8 @@ describe('choose', () => {
           pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
         })
 
-        // First spin (1) is under the bar, so a second (2) is drawn automatically.
-        const random = createFakeRandom({ spins: [1, 2] })
+        // First spin (1) is under the bar, so a second (4) is drawn automatically.
+        const random = createFakeRandom({ spins: [1, 4] })
         const next = choose(state, VALUE_SPIN_OPTION_ID, { random })
 
         expect(random.calls.spins).toBe(2)

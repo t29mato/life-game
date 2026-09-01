@@ -96,8 +96,8 @@ export const JAPAN_ECONOMY: EconomyConstants = {
    * constraint that matters: children hang off this tile.
    */
   marriage: {
-    proposalSpin: 2,
-    secondAskSpin: 2,
+    proposalSpin: 4,
+    secondAskSpin: 4,
     rescued: {
       upTo: 6,
       note: 'They said yes the second time — and moved in with a revolving card balance, a parking space for a car they no longer own, and a very relaxed attitude to both.',
