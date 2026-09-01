@@ -12,6 +12,8 @@ import {
 import { SPIN_FACES } from '../domain/model/constants'
 import type { Board, Difficulty, GameState, PlayerColor, SpaceId, SpinValue } from '../domain/model/types'
 import { estimateNetWorth } from '../domain/rules/scoring'
+import { DIFFICULTIES } from '../domain/rules/difficulty'
+import { expectedTradeYearValue } from '../domain/rules/tradeYear'
 
 /**
  * A fork is the wheel's own call now — see `spin.ts` — so pinning a seat to a
@@ -980,6 +982,124 @@ describe('insurance pays off, rarely but really', () => {
       .filter((effect) => effect.type === 'payMoney' && effect.hazard !== undefined)
       .map((effect) => (effect.type === 'payMoney' ? effect.hazard : undefined))
     expect(new Set(hazards)).toEqual(new Set(['fire', 'accident']))
+  })
+})
+
+/**
+ * The board's answer to "there are too many career changes".
+ *
+ * The complaint was measured before it was acted on. Across 360 seeded
+ * player-lives on the standard board, career churn broke down as: one career
+ * fair offered to **every** player (1.000 per life, the layoff's only way back
+ * and load-bearing), the doctorate's own appointment (0.117), Job-Hopper
+ * Alley's re-draw (0.036) and a Fast Track headhunting that fired **three
+ * times in 360 lives** (0.008) — because the far road out of a mid-move fork is
+ * entered on what is left of a high roll, so a lane's opening tiles are reached
+ * by almost nobody. Very Hard added a compulsory reorganisation on top, at
+ * 0.256.
+ *
+ * So the board had five ways to change a career and nothing whatsoever to say
+ * about doing one. The two churn tiles that were not a whole road's premise are
+ * `tradeYear` tiles now, and a third sits on the trunk where scenery used to
+ * be. What is asserted below is that the trade came off: fewer forced changes,
+ * and a year in the trade that a player actually meets.
+ */
+describe('the board says as much about doing a job as about changing one', () => {
+  const yearsAndChurn = (difficulty?: Difficulty) => {
+    let lives = 0
+    let years = 0
+    let churn = 0
+    for (const seed of SEEDS) {
+      const { finalState } = playGame(seed, 3, seed, difficulty ? { difficulty } : {})
+      lives += finalState.players.length
+      for (const entry of finalState.log) {
+        if (/year as a /.test(entry.message)) years += 1
+        // Every line a career actually changes hands on, whichever tile did it.
+        if (/must pick a new career|weighs up two offers|loses their job as a/.test(entry.message)) {
+          churn += 1
+        }
+      }
+    }
+    return { years: years / lives, churn: churn / lives }
+  }
+
+  const normal = yearsAndChurn()
+  const veryHard = yearsAndChurn('veryHard')
+
+  it('gives nearly every player a year in their own trade', () => {
+    // Measured at 0.81 per player-life. It is not 1.0 and should not be: the
+    // guaranteed tile is the last one before retirement, and a player who took
+    // the number and stopped early has no last year at work to have.
+    expect(normal.years).toBeGreaterThan(0.6)
+    expect(normal.years).toBeLessThan(1.2)
+  })
+
+  it('leaves the trade year competitive with the churn beside it', () => {
+    // The point of the whole exercise, in one ratio: two career lines on the
+    // log for every five that are about a job changing hands, where the answer
+    // used to be none at all. Measured at 0.42 on the standard board and 0.56
+    // on very hard. (The denominator is deliberately generous — it counts the
+    // hiring fairs a career fair logs in the same words — so this is a floor
+    // under the ratio and not a flattering reading of it.)
+    expect(normal.years / normal.churn).toBeGreaterThan(0.3)
+    expect(veryHard.years / veryHard.churn).toBeGreaterThan(0.3)
+  })
+
+  /*
+   * Very Hard carried a compulsory reorganisation nobody was asked about — the
+   * most-fired forced career change on the board — and it is a trade year now.
+   * Measured: career-change offers per life fell from 1.375 to 1.122, and
+   * changes actually taken from 0.617 to 0.394, while the hardest board gained
+   * the most years in the trade of any board.
+   */
+  it('cut the hardest board\'s churn hardest, where it was worst', () => {
+    expect(veryHard.years).toBeGreaterThan(normal.years)
+  })
+
+  /**
+   * The three career changes the board is allowed to keep, named.
+   *
+   * Every one of them earns it. `main-career-fair` is the only way back from a
+   * layoff and `validateRoute` refuses a board without one. `hopper-move` and
+   * `grad-6` are each the *entire premise* of a road a player chose to walk —
+   * Job-Hopper Alley is the re-draw, and the doctorate is the appointment it
+   * bought. A fourth appearing here is churn arriving by accident, which is
+   * exactly how the board got five of them in the first place.
+   */
+  it('keeps only the career changes that are a road\'s reason to exist', () => {
+    for (const difficulty of DIFFICULTIES) {
+      const board = playGame(1, 2, 0, { difficulty }).finalState.board
+      const changes = Object.values(board.spaces)
+        .filter((space) => space.effect.type === 'careerChange')
+        .map((space) => space.id)
+        .sort()
+      expect(changes, difficulty).toEqual(['grad-6', 'hopper-move', 'main-career-fair'])
+    }
+  })
+
+  /*
+   * The tile is a story and a swing, never an income. It is worth exactly zero
+   * over the die at every salary in every edition (`tradeYear.test.ts` is where
+   * that is proved); this is the same claim made where a *board* can break it —
+   * put a `tradeYear` on a tile with a lopsided stake, or scale one by
+   * difficulty, and the board starts quietly paying people for having a job.
+   */
+  it('never pays out on average, on any board', () => {
+    for (const difficulty of DIFFICULTIES) {
+      const board = playGame(1, 2, 0, { difficulty }).finalState.board
+      const years = Object.values(board.spaces).filter((space) => space.effect.type === 'tradeYear')
+      expect(years.length, difficulty).toBeGreaterThan(0)
+      for (const space of years) {
+        const effect = space.effect
+        if (effect.type !== 'tradeYear') continue
+        for (const salary of [24_000, 54_950, 148_400]) {
+          expect(
+            expectedTradeYearValue(salary, effect.share, 100),
+            `${space.id} at ${difficulty}`,
+          ).toBe(0)
+        }
+      }
+    }
   })
 })
 

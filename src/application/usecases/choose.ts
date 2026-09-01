@@ -16,6 +16,7 @@ import { findCareer, findHouse, findStock, nextRungOf } from '@domain/edition/lo
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
 import { marriageBandFor } from '@domain/rules/marriage'
 import { tuitionBandFor, tuitionSpecFor } from '@domain/rules/tuition'
+import { tradeYearFor } from '@domain/rules/tradeYear'
 import {
   addInsurance,
   addLifeTiles,
@@ -769,6 +770,69 @@ function resolveHouseholdSpin(
 }
 
 /**
+ * The year the trade had, settled.
+ *
+ * The card is put together out of three parts that each say a different thing,
+ * which is the rule every event card on this board follows. The plate carries
+ * the money and the die is printed above it, so neither is repeated here. The
+ * narration is the family's own vignette — the reveal the roll was for. And
+ * the one note is the fact that separates this tile from every other career
+ * tile on the board: the job did not change. A player who has just watched a
+ * health inspector close their kitchen deserves to be told, in the ledger,
+ * that they are still a Restaurant Owner in the morning.
+ *
+ * The card wears the trade's own portrait rather than the tile's glyph, for
+ * the same reason a career fair's roll table does: this is a thing that
+ * happened to *that* work, and the plaque says which work faster than any
+ * sentence can.
+ */
+function resolveTradeYearSpin(
+  state: GameState,
+  player: Player,
+  space: Space | undefined,
+  spinValue: SpinValue,
+  share: number,
+  edition: ReturnType<typeof editionOf>,
+  money: (amount: Money) => string,
+): GameState {
+  const { economy, currency } = edition
+  const career = player.career
+  const year = tradeYearFor(career, spinValue, share, currency.tileRounding)
+  // `applyEffect` never raises this decision for a player without a career, so
+  // there is no live path here — the guard only keeps the types honest for a
+  // decision built by hand in a test.
+  if (!year || !career) {
+    const event = outcomeEvent(space, player, 'The Year in the Trade', 0, [], 'normal', `${player.name} has no trade to have a year in.`)
+    return resolved(state, state.players, event, `${player.name} is between jobs, so the year passes them by.`, 'info')
+  }
+
+  const updated =
+    year.swing >= 0 ? creditPlayer(player, year.swing) : debitPlayer(player, -year.swing, economy)
+  const delta = updated.money - player.money
+  const event: LandingEvent = {
+    ...outcomeEvent(
+      space,
+      player,
+      'The Year in the Trade',
+      delta,
+      [`Still a ${career.title}, on the same rung.`],
+      emphasisForMoney(delta, economy),
+      year.story,
+    ),
+    icon: career.icon,
+  }
+  return resolved(
+    state,
+    replacePlayer(state.players, updated),
+    event,
+    year.swing >= 0
+      ? `${player.name} has a good year as a ${career.title}, rolling a ${spinValue}: ${money(delta)}.`
+      : `${player.name} has a bad year as a ${career.title}, rolling a ${spinValue}: ${money(delta)}.`,
+    year.swing >= 0 ? 'money-in' : 'money-out',
+  )
+}
+
+/**
  * The roll every wheel-decided tile held back until now — a `spinForMoney`
  * tile, an unsteady payday, a promotion review, a marriage proposal, or the
  * joint account. `applyEffect` named the stakes and stopped there in every
@@ -887,6 +951,10 @@ function spinOutcome(
 
   if (space?.effect.type === 'household') {
     return resolveHouseholdSpin(state, player, space, spinValue, edition, money)
+  }
+
+  if (space?.effect.type === 'tradeYear') {
+    return resolveTradeYearSpin(state, player, space, spinValue, space.effect.share, edition, money)
   }
 
   if (space?.effect.type === 'haveChildren') {

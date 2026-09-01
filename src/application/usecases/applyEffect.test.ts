@@ -474,6 +474,55 @@ describe('applyEffect', () => {
     })
   })
 
+  describe('tradeYear', () => {
+    const YEAR = {
+      effect: { type: 'tradeYear', reason: 'A year of long hours.', share: 0.5 },
+    } as const
+    const COOK = BASIC_CAREERS.find((career) => career.id === 'career-line-cook')!
+
+    it('holds for the player to roll, and names what a career year is worth to them', () => {
+      const player = fixturePlayer({ career: COOK, money: 100_000 })
+      const state = fixtureState({ players: [player] })
+      const random = createFakeRandom({ spins: [6] })
+      const { state: next } = applyEffect(state, fixtureSpace(YEAR), { random })
+
+      expect(random.calls.spins).toBe(0)
+      expect(next.players[0]!.money).toBe(100_000)
+      expect(next.pendingDecision?.kind).toBe('valueSpin')
+      expect(next.pendingDecision?.options).toHaveLength(1)
+
+      // Half a Line Cook's $54,950, rounded to the USA board's hundreds.
+      const description = next.pendingDecision?.options[0]?.description ?? ''
+      expect(description).toContain(formatMoney(27_500))
+      expect(description).toContain('Line Cook')
+      // The one promise that separates this from every other career tile.
+      expect(description).toContain('Nobody is offering you a different job')
+    })
+
+    it('wears the trade\'s own portrait on the button, not the tile\'s glyph', () => {
+      const player = fixturePlayer({ career: COOK })
+      const state = fixtureState({ players: [player] })
+      const { state: next } = applyEffect(state, fixtureSpace(YEAR), { random: createFakeRandom() })
+      expect(next.pendingDecision?.options[0]?.icon).toBe(COOK.icon)
+    })
+
+    it('passes a player with no career by entirely, without touching the wheel', () => {
+      // No trade, no year in it — and no spin burned on one either, which
+      // would shift every later draw. Same rule the joint account applies to
+      // a single player.
+      const player = fixturePlayer({ career: null, money: 100_000 })
+      const state = fixtureState({ players: [player] })
+      const random = createFakeRandom({ spins: [1] })
+      const { state: next, event } = applyEffect(state, fixtureSpace(YEAR), { random })
+
+      expect(event.moneyDelta).toBe(0)
+      expect(next.players[0]!.money).toBe(100_000)
+      expect(random.calls.spins).toBe(0)
+      expect(next.pendingDecision).toBeNull()
+      expect(next.log[0]!.tone).toBe('info')
+    })
+  })
+
   describe('divorce', () => {
     const SPLIT = { effect: { type: 'divorce', reason: 'Divorce settlement' } } as const
 

@@ -728,19 +728,42 @@ const FAMILY_LANE: readonly SpaceContent[] = [
 const FAST_TRACK: readonly SpaceContent[] = [
   payday('fast-3', 'Overtime finally shows up on the pay stub.'),
   {
-    id: 'fast-headhunted', kind: 'normal', title: 'Headhunted',
-    description: 'A recruiter calls your cell phone during a meeting with two offers and no patience.',
-    effect: { type: 'careerChange', reason: 'Headhunted for something new' },
-    tone: 'orange', icon: 'space:headhunted',
+    /*
+     * This was Headhunted — a third career re-draw, on a board that already
+     * had four — and it was measured out of a job before it was rewritten.
+     * Across 360 seeded player-lives it raised its offer **three times**: the
+     * second road out of a fork can only be entered by a high roll, and the
+     * remaining distance is what is left of that same roll, so a lane's
+     * opening tiles are reached by almost nobody. Job-Hopper Alley's own
+     * re-draw and the doctorate's appointment are each a whole road's reason
+     * to exist; this one was a fifth way to change jobs that fired 0.8% of the
+     * time, which is the definition of the least load-bearing tile on the
+     * board. It is now the Fast Track's own year in the trade, in the same
+     * slot, so the lane's shape and the board's layout are untouched.
+     */
+    id: 'fast-headhunted', kind: 'normal', title: 'The Year You Had',
+    description: 'Twelve months of early starts and late trains, and a figure at the end of them that nobody in the building could have predicted in January.',
+    effect: { type: 'tradeYear', reason: 'A year of long hours, and what they came to.', share: 0.5 },
+    tone: 'orange', icon: 'space:overtime-shift',
   },
   setback('hard', 'fast-burnout', 'Burnout Leave',
     'Six weeks signed off, and the paycheck is a great deal lighter by the time you walk back in.',
     { type: 'payMoney', amount: 12_000, reason: 'Unpaid leave' },
     'orange', 'space:steady-hustle'),
-  // Very Hard only, matching the restructure below: without it, a Very Hard
-  // player headhunted onto this lane could be reorganized into yet another
-  // role a few tiles later without ever banking a payday from the one in
-  // between.
+  /*
+   * Very Hard only. It was put here to close a specific gap — a player
+   * headhunted at the top of this lane could be reorganised into yet another
+   * role a few tiles later without ever banking a payday from the job in
+   * between — and both of those career changes have since become years in the
+   * trade, so the gap it was covering is closed for good.
+   *
+   * It stays anyway, and the reason is measured rather than sentimental: Very
+   * Hard's bust share was re-measured *with* this payroll on the lane (see the
+   * knife-edge test in `gameBalance.test.ts`, which names this tile), and
+   * taking a wage off the hardest board is a difficulty change wearing a
+   * tidy-up's clothes. What it now buys is plainer than what it was built for:
+   * one guaranteed wage on the lane the hardest board hits hardest.
+   */
   {
     id: 'fast-payday-severance', kind: 'payday', title: 'Year-End Payroll',
     description: 'The year winds down, and whatever this job pays lands one more time before everything changes again.',
@@ -748,10 +771,24 @@ const FAST_TRACK: readonly SpaceContent[] = [
     tone: 'green', icon: 'space:bonus-season', appearsFrom: 'veryHard',
   },
   {
-    id: 'fast-restructure', kind: 'normal', title: 'Restructure',
-    description: 'The company reorganizes overnight, and your name turns up in a different job entirely.',
-    // Nobody asked, which is what a reorganisation is.
-    effect: { type: 'careerChange', reason: 'Reorganized into a new role', compulsory: true },
+    /*
+     * This was Restructure — "the company reorganizes overnight, and your name
+     * turns up in a different job entirely", compulsory, nobody asked — and it
+     * was the most-fired forced career change on the whole board: 0.256 per
+     * player-life on Very Hard, against Job-Hopper Alley's 0.025 and the
+     * doctorate's 0.094. Those two are each a whole road's reason to exist and
+     * a player chose them; this one simply arrived, on the one difficulty
+     * already handing out two layoffs on the trunk, and it is the tile the
+     * complaint about career churn was really about.
+     *
+     * It keeps the slot and the gate, so Very Hard still has one more thing
+     * happen on this lane than the easier boards do. What happens is now a bad
+     * year rather than a new employer — the same overnight reorganisation seen
+     * from the inside, by somebody who still has the same job in the morning.
+     */
+    id: 'fast-restructure', kind: 'normal', title: 'Reorganization',
+    description: 'The company is taken apart and put back together overnight. Your name is still on the same door, and nothing else about the year is the same.',
+    effect: { type: 'tradeYear', reason: 'A year nobody at the top planned for.', share: 0.5 },
     tone: 'orange', icon: 'space:career-fair-return', appearsFrom: 'veryHard',
   },
   {
@@ -1028,7 +1065,40 @@ const SUNSET_STRIP: readonly SpaceContent[] = [
     'One last brown envelope arrives before the office door closes behind you for good.',
     { type: 'payMoney', amount: 22_000, reason: 'Final tax bill' },
     'slate', 'space:refund-check'),
-  flavour('sunset-3', 'Sunset Ahead', 'The finish line is close enough to see the glow.', 'slate', 'space:sunset-ahead'),
+  {
+    /*
+     * The last year in the trade, and the board's one guaranteed word about
+     * the work a player actually does.
+     *
+     * This was Sunset Ahead — a `flavour` tile, effect `none`, pure scenery —
+     * so it is the only ungated tile on the trunk that could be given a job
+     * without taking one away from somebody. That mattered: a `tradeYear` on
+     * a tile that already paid a life tile or a raise would have been the new
+     * feature quietly billed to the old one.
+     *
+     * An `event` rather than an ordinary tile, and this is the whole reason
+     * the conversion is worth doing at all. Landed on, a tile like this is met
+     * by roughly one player-life in four, which is how a board ends up with
+     * five ways to *change* a career and nothing at all to say about doing
+     * one. Passed or landed on, every player at the table gets exactly one
+     * year in their own trade per game — set against the one career fair
+     * every player also gets — and the board finally says as much about the
+     * work as about the job title.
+     *
+     * It costs nothing to put it here. The tile is worth zero on average by
+     * construction (`expectedTradeYearValue`), so no mean this game is
+     * balanced on moves; what it adds is spread, and the last act of the
+     * route is exactly where the route's own spec asks for spread. It is also
+     * the one place a year in the trade can be a *last* year, which is a
+     * better story than a year in the middle of a working life, and it is
+     * forfeited by anybody who took the number and stopped early — as it
+     * should be. You cannot have a year at work after you have left.
+     */
+    id: 'sunset-3', kind: 'event', title: 'The Last Year',
+    description: 'One more year of the work you have done all your life, and then the keys go back. Everybody wants to know how it went.',
+    effect: { type: 'tradeYear', reason: 'The last year in the trade.', share: 0.5 },
+    tone: 'slate', icon: 'space:sunset-ahead',
+  },
 ]
 
 const RETIREMENT: SpaceContent = {

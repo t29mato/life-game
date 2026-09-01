@@ -273,6 +273,28 @@ export type SpaceEffect =
    * paid in the currency their work actually deals in.
    */
   | { readonly type: 'promotion'; readonly reason: string }
+  /**
+   * A year in the work the player already does — and the only career tile on
+   * the board that leaves the career alone.
+   *
+   * Everything else that touches a job takes it, swaps it, or promotes
+   * somebody out of it, so a restaurant owner and a climate modeller lived the
+   * same life tile for tile with a different number on their payday. This one
+   * is resolved against the trade the player is *holding*: the family it
+   * belongs to (see `src/domain/rules/careerFamily.ts`) picks the year's
+   * story, and the die picks which of that family's six years happened. Nobody
+   * is hired, nobody is laid off, and the ladder is exactly where it was.
+   *
+   * `share` is the stake, written as a fraction of a year's salary rather than
+   * a sum of money, so the swing means the same thing to a Salon Apprentice
+   * and a Salon Owner. The die is symmetric about its middle, so the best year
+   * pays what the worst one costs and the tile is worth nothing on average —
+   * see `expectedTradeYearValue`, which is what says so in a test.
+   *
+   * A player with no career has no year to have, and the tile passes them by
+   * entirely, the same way `household` passes a single player by.
+   */
+  | { readonly type: 'tradeYear'; readonly reason: string; readonly share: number }
   | { readonly type: 'gainLifeTiles'; readonly count: number }
   /**
    * A hall of booths. `pool` is the best shelf *this fair* deals from, not

@@ -24,14 +24,88 @@ import { EDITION_USA } from '@domain/edition/usa'
  * Nothing else is touched, so an edition that drifts from the USA board in any
  * other way still fails, loudly, in the suite that has always caught it.
  *
+ * The trade year is the second thing, and it is rolling out the same way and
+ * for the same reason — see `TRADE_YEAR_TILES` below.
+ *
  * **This file is meant to be deleted.** When the last of the four has its own
- * grad school, `USA_SKELETON` is `EDITION_USA.route` again and every import of
- * it should go back to naming the real thing. Until then the fold below is the
- * honest statement of how far behind the other boards are: exactly one fork.
+ * grad school and its own trade year, `USA_SKELETON` is `EDITION_USA.route`
+ * again and every import of it should go back to naming the real thing. Until
+ * then the folds below are the honest statement of how far behind the other
+ * boards are: exactly one fork and three tiles.
  */
 
 /** The junction the doctorate hangs off — a plain trunk tile before it did. */
 const GRAD_SCHOOL_JUNCTION = 'main-gifts'
+
+/**
+ * The two USA tiles a `tradeYear` took over, as the four other boards still
+ * carry them.
+ *
+ * Same discipline as the grad-school fold: USA first, so the tile's shape and
+ * its effect on the board's spread are measured once rather than five times.
+ * Only the *mechanical* fields are restored, because those are the only ones
+ * the parity suites read — the four editions have always written their own
+ * words, and a copy edit that drifted would still fail the test that catches
+ * it. Both entries are the tile exactly as it stood the day before the trade
+ * year landed: two Fast Track re-draws — one measured at three firings in 360
+ * player-lives, one Very Hard's own — and a scenery tile at the end of the
+ * sunset strip.
+ */
+const TRADE_YEAR_TILES: Readonly<Record<string, SpaceContent>> = {
+  'fast-headhunted': {
+    id: 'fast-headhunted',
+    kind: 'normal',
+    title: 'Headhunted',
+    description: 'A recruiter calls your cell phone during a meeting with two offers and no patience.',
+    effect: { type: 'careerChange', reason: 'Headhunted for something new' },
+    tone: 'orange',
+    icon: 'space:headhunted',
+  },
+  'fast-restructure': {
+    id: 'fast-restructure',
+    kind: 'normal',
+    title: 'Restructure',
+    description: 'The company reorganizes overnight, and your name turns up in a different job entirely.',
+    effect: { type: 'careerChange', reason: 'Reorganized into a new role', compulsory: true },
+    tone: 'orange',
+    icon: 'space:career-fair-return',
+    appearsFrom: 'veryHard',
+  },
+  'sunset-3': {
+    id: 'sunset-3',
+    kind: 'normal',
+    title: 'Sunset Ahead',
+    description: 'The finish line is close enough to see the glow.',
+    effect: { type: 'none' },
+    tone: 'slate',
+    icon: 'space:sunset-ahead',
+  },
+}
+
+/** Puts a tile back the way the other four boards still have it, if it is one. */
+function beforeTheTradeYear(space: SpaceContent): SpaceContent {
+  return TRADE_YEAR_TILES[space.id] ?? space
+}
+
+function foldTradeYearsBack(route: RouteDefinition): RouteDefinition {
+  const lane = <T extends { readonly spaces: readonly SpaceContent[] }>(source: T): T => ({
+    ...source,
+    spaces: source.spaces.map(beforeTheTradeYear),
+  })
+  return {
+    ...route,
+    segments: route.segments.map((segment) =>
+      segment.kind === 'run'
+        ? { ...segment, lane: lane(segment.lane) }
+        : {
+            ...segment,
+            at: beforeTheTradeYear(segment.at),
+            branches: [lane(segment.branches[0]), lane(segment.branches[1])] as const,
+          },
+    ),
+    terminal: beforeTheTradeYear(route.terminal),
+  }
+}
 
 function foldGradSchoolBack(route: RouteDefinition): RouteDefinition {
   const segments: RouteSegment[] = []
@@ -66,4 +140,4 @@ function foldGradSchoolBack(route: RouteDefinition): RouteDefinition {
   return { ...route, segments }
 }
 
-export const USA_SKELETON: RouteDefinition = foldGradSchoolBack(EDITION_USA.route)
+export const USA_SKELETON: RouteDefinition = foldTradeYearsBack(foldGradSchoolBack(EDITION_USA.route))

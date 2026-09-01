@@ -14,6 +14,7 @@ import { STOCKS } from '@domain/edition/usa'
 import { insuranceOptionId, VALUE_SPIN_OPTION_ID } from './applyEffect'
 import { formatMoney } from './format'
 import { branchDecision } from './branch'
+import { TRADE_YEAR_STORIES } from '@domain/rules/tradeYear'
 import { fixtureMovementBoard, fixturePlayer, fixtureState } from '../testing/fixtures'
 import { createFakeRandom } from '../testing/fakes'
 import {
@@ -627,6 +628,80 @@ describe('choose', () => {
 
         expect(next.players[0]!.money).toBeGreaterThan(100_000)
         expect(next.lastEvent!.moneyDelta).toBeGreaterThan(0)
+      })
+    })
+
+    describe('tradeYear', () => {
+      const board = fixtureMovementBoard()
+      const COOK = BASIC_CAREERS.find((career) => career.id === 'career-line-cook')!
+      const yearSpace = {
+        ...board.spaces.a!,
+        effect: { type: 'tradeYear' as const, reason: 'A year of long hours.', share: 0.5 },
+      }
+      const stateOn = (spin: 1 | 2 | 3 | 4 | 5 | 6, career = COOK) => {
+        const player = fixturePlayer({ spaceId: 'a', career, money: 100_000 })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: yearSpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+        return choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [spin] }) })
+      }
+
+      it('costs a bad year, and the worst face costs half a year of pay', () => {
+        const next = stateOn(1)
+        // Half of a Line Cook's $54,950, rounded to the board's hundreds.
+        expect(next.players[0]!.money).toBe(100_000 - 27_500)
+        expect(next.lastEvent!.moneyDelta).toBe(-27_500)
+        expect(next.log.at(-1)!.tone).toBe('money-out')
+      })
+
+      it('pays a good year exactly what the bad one cost', () => {
+        expect(stateOn(6).players[0]!.money).toBe(100_000 + 27_500)
+        expect(stateOn(6).lastEvent!.moneyDelta).toBe(27_500)
+        expect(stateOn(6).log.at(-1)!.tone).toBe('money-in')
+      })
+
+      it('never leaves the year even — the middle faces still swing', () => {
+        expect(stateOn(3).lastEvent!.moneyDelta).toBeLessThan(0)
+        expect(stateOn(4).lastEvent!.moneyDelta).toBeGreaterThan(0)
+      })
+
+      /*
+       * The whole point of the tile, and the thing that makes it an
+       * alternative to a career change rather than another one: whatever the
+       * die said, the same person walks into the same job in the morning.
+       */
+      it('leaves the career, the ladder and the salary exactly where they were', () => {
+        for (const spin of [1, 3, 6] as const) {
+          const next = stateOn(spin)
+          expect(next.players[0]!.career).toEqual(COOK)
+          expect(next.players[0]!.carriedSeniority).toBeUndefined()
+          expect(next.lastEvent!.notes.join(' ')).toContain('Still a Line Cook, on the same rung.')
+        }
+      })
+
+      it('tells the family story for the face, and wears the trade\'s portrait', () => {
+        const kitchen = stateOn(1)
+        expect(kitchen.lastEvent!.narration).toBe(TRADE_YEAR_STORIES.kitchen[0])
+        expect(kitchen.lastEvent!.icon).toBe(COOK.icon)
+
+        // The same face, a different family, a different year entirely.
+        const surgeon = BASIC_CAREERS[0]!
+        const care = stateOn(1, { ...surgeon, icon: 'career:surgeon', salary: 54_950 })
+        expect(care.lastEvent!.narration).toBe(TRADE_YEAR_STORIES.care[0])
+      })
+
+      it('scales with what the player earns rather than with a figure on the tile', () => {
+        const apprentice = BASIC_CAREERS.find((career) => career.id === 'career-salon-apprentice')!
+        const owner = BASIC_CAREERS.find((career) => career.id === 'career-salon-owner')!
+        const small = stateOn(6, apprentice).lastEvent!.moneyDelta
+        const large = stateOn(6, owner).lastEvent!.moneyDelta
+        expect(large).toBeGreaterThan(small * 3)
+      })
+
+      it('prints the die that decided it', () => {
+        expect(stateOn(5).lastEvent!.rolled).toBe(5)
       })
     })
 

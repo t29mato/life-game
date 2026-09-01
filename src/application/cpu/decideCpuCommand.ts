@@ -441,6 +441,18 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
        */
       if (!player.career) return units(30)
       return effect.compulsory ? -units(5) : units(3)
+    case 'tradeYear':
+      /*
+       * Worth nothing, and worth saying so out loud rather than falling
+       * through to a default.
+       *
+       * The die is symmetric about its middle, so a good year pays exactly
+       * what a bad one costs (`expectedTradeYearValue`), and a seat that
+       * priced this tile at anything but zero would be walking toward or away
+       * from a coin it cannot influence. It is worth nothing to somebody with
+       * no career either, for the plainer reason that the tile passes them by.
+       */
+      return 0
     case 'loseCareer':
       // Being laid off costs the drop from the wage to casual shifts, not the
       // whole wage: the pay window still pays something on the way out.

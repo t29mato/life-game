@@ -290,9 +290,9 @@ export const USA_JA: EditionTranslation = {
       description: '残業代がやっと給与明細に載る。',
     },
     'fast-headhunted': {
-      title: 'ヘッドハンティング',
-      description: '会議中に携帯が鳴る。エージェントは案件を二つ抱え、待つ気はまるでない。',
-      reason: '引き抜きの話が来た',
+      title: '今年という一年',
+      description: '早朝出勤と終電の十二か月。その先に出てくる数字は、一月の時点では社内の誰にも予想できなかったものだ。',
+      reason: '長時間労働の一年と、その結果。',
     },
     'fast-burnout': {
       title: '燃え尽きて休職',
@@ -304,9 +304,9 @@ export const USA_JA: EditionTranslation = {
       description: '一年が終わりに近づく。何もかもがまた変わる前に、今の仕事の給料がもう一度だけ振り込まれる。',
     },
     'fast-restructure': {
-      title: '組織再編',
-      description: '会社が一夜で組織を組み替え、自分の名前がまったく別の職務の欄に載っている。',
-      reason: '組織再編で配置換え',
+      title: 'あの組織再編',
+      description: '会社が一夜で解体され、組み直される。ドアの名前はそのままで、この一年のそれ以外は何ひとつ同じではない。',
+      reason: '上の誰も想定していなかった一年。',
     },
     'fast-trading-floor': {
       title: 'トレーディングフロア',
@@ -493,8 +493,9 @@ export const USA_JA: EditionTranslation = {
       reason: '最後の税金',
     },
     'sunset-3': {
-      title: '夕暮れが見える',
-      description: 'ゴールの明かりが見えるところまで来た。',
+      title: '最後の一年',
+      description: '一生続けてきた仕事を、もう一年だけ。それが終われば鍵を返す。どんな一年だったのか、みんなが知りたがっている。',
+      reason: 'この道での最後の一年。',
     },
     retirement: {
       title: '引退',

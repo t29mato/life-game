@@ -31,6 +31,7 @@ import {
 } from '@domain/edition/lookup'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
 import { tuitionSpecFor } from '@domain/rules/tuition'
+import { bestTradeYear } from '@domain/rules/tradeYear'
 import {
   addChildren,
   addLifeTiles,
@@ -817,6 +818,55 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       }
       const event = baseEvent(space, 0, [], 'normal', `${player.name} opens the joint statement.`)
       const log = appendLog(state, player.id, `${player.name} is up for the roll: how did the joint account do?`, 'event')
+      return { state: { ...state, log, pendingDecision: decision }, event }
+    }
+
+    case 'tradeYear': {
+      /*
+       * No job, no year. A player between jobs is not doing the work this tile
+       * is about, so it passes them by entirely — the same rule the joint
+       * account applies to a single player, and the same rule the driver's own
+       * career gear already fails closed on. It is also what keeps the tile
+       * honest as an *alternative* to a career change rather than a second one:
+       * it never hires anybody, so it can never be somebody's way back.
+       */
+      const career = player.career
+      if (!career) {
+        const event = baseEvent(
+          space,
+          0,
+          [effect.reason],
+          'normal',
+          `${player.name} has no trade to have a year in. The year happens to somebody else.`,
+        )
+        const log = appendLog(state, player.id, `${player.name} is between jobs, so the year passes them by.`, 'info')
+        return { state: { ...state, log, pendingDecision: null }, event }
+      }
+
+      /*
+       * Deferred to `resolveValueSpin` in `choose.ts`, like every other
+       * wheel-decided tile — and the framing names the stake rather than the
+       * outcome. What the player is told before pressing is how much is
+       * riding on it, in their own money; *which* of their trade's six years
+       * happened is the reveal, so there is deliberately no roll table here.
+       * A table would print all six vignettes above the die and leave nothing
+       * for it to turn up.
+       */
+      const stake = bestTradeYear(career.salary, effect.share, currency.tileRounding)
+      const decision: Decision = {
+        kind: 'valueSpin',
+        prompt: space.title,
+        options: [
+          {
+            id: VALUE_SPIN_OPTION_ID,
+            label: 'Roll',
+            description: `${effect.reason} Nobody is offering you a different job — only this one, for another year. A career year is worth ${money(stake)} to a ${career.title}, and the worst year on the die costs the same.`,
+            icon: career.icon,
+          },
+        ],
+      }
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} looks back on the year in the trade.`)
+      const log = appendLog(state, player.id, `${player.name} is up for the roll: what kind of year was it?`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 

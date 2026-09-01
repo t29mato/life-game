@@ -288,9 +288,9 @@ export const USA_FR: EditionTranslation = {
       description: 'Les heures supplémentaires apparaissent enfin sur la fiche de paie.',
     },
     'fast-headhunted': {
-      title: 'Approché',
-      description: 'Un chasseur de têtes appelle votre portable en pleine réunion, avec deux offres et aucune patience.',
-      reason: 'Approché pour autre chose',
+      title: 'L’année écoulée',
+      description: 'Douze mois de départs à l’aube et de trains du soir, et un chiffre au bout que personne dans l’immeuble n’aurait prédit en janvier.',
+      reason: 'Une année de longues journées, et ce qu’elles ont rapporté.',
     },
     'fast-burnout': {
       title: 'Arrêt pour burn-out',
@@ -302,9 +302,9 @@ export const USA_FR: EditionTranslation = {
       description: 'L’année s’achève, et ce que ce poste paie tombe une dernière fois avant que tout change encore.',
     },
     'fast-restructure': {
-      title: 'Réorganisation',
-      description: 'L’entreprise se réorganise du jour au lendemain, et votre nom apparaît sur un poste complètement différent.',
-      reason: 'Réaffecté après réorganisation',
+      title: 'La réorganisation',
+      description: 'L’entreprise est démontée puis remontée du jour au lendemain. Votre nom est toujours sur la même porte, et plus rien d’autre de l’année ne se ressemble.',
+      reason: 'Une année que personne en haut n’avait prévue.',
     },
     'fast-trading-floor': {
       title: 'Salle des marchés',
@@ -491,8 +491,9 @@ export const USA_FR: EditionTranslation = {
       reason: 'Dernier avis d’imposition',
     },
     'sunset-3': {
-      title: 'Le couchant approche',
-      description: 'La ligne d’arrivée est assez proche pour qu’on en voie la lueur.',
+      title: 'La dernière année',
+      description: 'Une année de plus du métier que vous avez fait toute votre vie, puis vous rendez les clés. Tout le monde veut savoir comment elle s’est passée.',
+      reason: 'La dernière année du métier.',
     },
     retirement: {
       title: 'Retraite',

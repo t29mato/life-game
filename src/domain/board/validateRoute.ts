@@ -67,6 +67,10 @@ const AUTO_RESOLVABLE_EFFECT_TYPES: readonly SpaceEffect['type'][] = [
   'promotion',
   'getMarried',
   'haveChildren',
+  // One "Roll" and nothing else, exactly like `promotion`: which of the
+  // trade's six years happened is the die's business alone, and a player with
+  // no trade is passed by without being asked anything at all.
+  'tradeYear',
 ]
 
 // ---------------------------------------------------------------------------
