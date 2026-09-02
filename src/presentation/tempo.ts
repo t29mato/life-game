@@ -116,4 +116,36 @@ export const TEMPO = {
    * all of it.
    */
   rollFlightSeconds: 0.62,
+
+  /**
+   * The title wordmark's idle breath — the attract loop. Rule 2 ("no dead
+   * air") applies to a screen nobody has pressed anything on yet as much as
+   * it does to a turn: a title card that is perfectly still reads as a
+   * screenshot, and a player's first question becomes "has it loaded?"
+   * rather than "which of these two buttons do I want?".
+   *
+   * Long and slow on purpose. This is the one animation on screen that is
+   * *not* answering an input, so it must never compete with the two buttons
+   * beneath it for attention — the eye should catch the movement only if it
+   * rests there. Deliberately out of phase with the drifting scenery behind
+   * it and the ring of pieces around it, for the same reason those are out
+   * of phase with each other: three things breathing on one clock read as
+   * one mechanism.
+   */
+  titleIdleSeconds: 7.2,
+
+  /**
+   * One step of the new-game flow arriving. The flow is players → country →
+   * difficulty, one decision per screen, and each press swaps the whole
+   * middle of the screen — so there has to be *some* motion saying which
+   * direction the flow just went, or the screen appears to have teleported
+   * and a player loses their place in a three-step sequence.
+   *
+   * Kept under a quarter of a second: this sits directly between a press and
+   * its answer, which rule 1 caps at 500ms for a die and which a menu should
+   * beat comfortably. It is an entrance only — the outgoing step is not
+   * animated out, because waiting for a screen to leave before the next one
+   * arrives is exactly the dead beat this file exists to delete.
+   */
+  titleStepSeconds: 0.22,
 } as const

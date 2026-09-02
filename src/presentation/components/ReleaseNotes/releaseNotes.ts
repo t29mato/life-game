@@ -32,6 +32,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
     version: __APP_VERSION__,
     date: 'August 29, 2026',
     whatsNew: [
+      'The title screen is a title screen again: the logo, and two buttons — Continue, or New Game. A new game then asks one thing at a time, on its own screen, with big cards to choose from: who is playing, which country you are living it in, and how hard a life you want. Back is always in the top-left corner, Start Game is never below the fold, and walking out of a half-finished setup keeps everything you had already picked.',
       'A key to the board, dealt once before your very first roll and kept in the Handbook after that: what the coin means, what the arrows mean, what the red-and-white stripe means, and what the colour under a tile is telling you.',
       'Tap any tile and the card now opens with what actually happens there — "-$1,800", "LIFE tile +1" — with the story underneath it rather than in place of it.',
     ],
@@ -43,6 +44,8 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
       'The four kinds of card no longer look alike. A tile you only drove over gets a smaller, lighter card that slides up from below; a choice is bound in purple; a Life Milestone keeps its gold and its confetti.',
       'Cards say one thing at a time. The outcome, the number, and one footnote — anything else folds away behind a press instead of crowding the same card.',
       'One name per thing: it is the die, and you roll it. These notes said "the wheel" and "spin" in places the game itself never did.',
+      'The five country boards each get a card of their own on the country screen, all the same size, each saying what it counts in, what you start with and what the work pays there. None of them is tucked behind another.',
+      'Music and sound effects have moved off the title screen and behind its gear, where the ones in the game already live.',
     ],
     fixes: [
       'Fixed the pictures that did not match their tiles. The bank had been drawn as a rising stock chart, so landing on a chart could open "borrow a loan?"; a bill at the end of probation was drawn as a coin; a tile where nothing happens wore the rent arrow. Every tile of every board was checked against what it actually does.',

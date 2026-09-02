@@ -148,8 +148,13 @@ describe('remembering players', () => {
     const profiles = createInMemoryProfileRepository()
     render(<App store={newStore()} audio={createFakeAudioPort()} profiles={profiles} />)
 
+    // The title screen is a flow now (#36), not one long form: New Game,
+    // then players → country → difficulty, with Start on the last step.
+    await user.click(screen.getByRole('button', { name: 'New Game' }))
     const group2 = screen.getByRole('group', { name: 'Player 2 seat type' })
     await user.click(within(group2).getByRole('button', { name: 'CPU' }))
+    await user.click(screen.getByRole('button', { name: /next: the country/i }))
+    await user.click(screen.getByRole('button', { name: /next: the difficulty/i }))
     await user.click(screen.getByRole('button', { name: /start game/i }))
 
     expect(profiles.list().map((profile) => profile.name)).toEqual(['Player 1'])
@@ -161,7 +166,8 @@ describe('App play loop', () => {
   it('shows the title screen while the game is in setup', () => {
     render(<App store={newStore()} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
-    expect(screen.getByRole('button', { name: /start game/i })).toBeInTheDocument()
+    // The box lid, not the setup form: two buttons and nothing else asked.
+    expect(screen.getByRole('button', { name: 'New Game' })).toBeInTheDocument()
   })
 
   it('shows the board and the active player once a game has started', () => {

@@ -19,12 +19,22 @@ import { expect, test, type Page } from '@playwright/test'
  * project's own screenshots have used at some point.
  */
 
+/**
+ * The title is a flow rather than one long form since #36: the lid offers
+ * Continue and New Game, and the new game asks players → country →
+ * difficulty, one screen at a time. So this walks it — and walking it is
+ * itself worth something here, since it means a broken step shows up as a
+ * failure in the layout suite too.
+ */
 async function startGame(page: Page): Promise<void> {
   await page.goto('/')
-  await page.getByText('Japancounts in ¥', { exact: false }).first().click()
+  await page.getByRole('button', { name: 'New Game' }).click()
   const cpuToggles = page.getByRole('button', { name: 'CPU', exact: true })
   const count = await cpuToggles.count()
   for (let i = 0; i < count; i += 1) await cpuToggles.nth(i).click()
+  await page.getByRole('button', { name: /next: the country/i }).click()
+  await page.getByRole('button', { name: /^Japan edition\./i }).click()
+  await page.getByRole('button', { name: /next: the difficulty/i }).click()
   await page.getByRole('button', { name: /start game/i }).click()
   const ready = page.getByRole('button', { name: /i'm ready/i })
   if (await ready.isVisible().catch(() => false)) await ready.click()
