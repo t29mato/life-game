@@ -121,13 +121,24 @@
   color: var(--ink);
 }
 
+/* A slow drift rather than the old up-down bob: each piece wanders a small
+   loop of its own — sideways as well as up — and the pieces are given long,
+   mutually prime-ish durations in TitleScreen.tsx so the ring around the
+   wordmark never falls into step with itself and starts reading as one
+   mechanism. */
 @keyframes bob {
   0%,
   100% {
-    transform: translateY(0) rotate(-8deg);
+    transform: translate3d(0, 0, 0) rotate(-8deg);
   }
-  50% {
-    transform: translateY(-18px) rotate(9deg);
+  30% {
+    transform: translate3d(7px, -16px, 0) rotate(6deg);
+  }
+  62% {
+    transform: translate3d(-8px, -9px, 0) rotate(10deg);
+  }
+  82% {
+    transform: translate3d(-3px, 6px, 0) rotate(-3deg);
   }
 }
 
@@ -916,14 +927,13 @@
 }
 
 /* Discreet — legible but never competing with the wordmark or Start button. */
-.buildBar {
-  position: absolute;
-  top: clamp(10px, 1.6vw, 20px);
-  right: clamp(12px, 2vw, 26px);
-  z-index: 2;
+/* The last line on the page: the build, centred, quiet, and — unlike the
+   corner it used to sit in — laid out by the same column flow as everything
+   else, so no offset can push it under the screen's own clip. */
+.footer {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  justify-content: center;
+  padding-top: 0.4rem;
 }
 
 .versionTag {
@@ -933,26 +943,6 @@
   letter-spacing: 0.04em;
   color: var(--ink-faint);
   opacity: 0.75;
-}
-
-/* A quiet link, not a control competing with Start. */
-.notesLink {
-  padding: 3px 8px;
-  font: inherit;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--ink-soft, var(--ink-faint));
-  cursor: pointer;
-  background: none;
-  border: none;
-  border-radius: var(--radius-sm, 6px);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.notesLink:hover {
-  color: var(--ink);
 }
 
 @media (prefers-reduced-motion: reduce) {

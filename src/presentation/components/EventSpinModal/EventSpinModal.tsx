@@ -123,12 +123,18 @@ export function EventSpinModal({
             (a single threshold, a flat rate) have nothing to tabulate. */}
         {table && table.length > 0 ? <RollTable rows={table} /> : null}
 
+        {/* The die is the whole point of this card, so it is also its A
+            button: focus lands on it as the card opens and Space or Enter
+            throws it, without the player first having to find it with the
+            mouse. Nobody is pressing an unattended throw, so it claims
+            neither focus nor the keys. */}
         <Dice
           result={result}
           disabled={false}
           onRoll={onSpin}
           onRollComplete={onSpinComplete}
           autoRollToken={unattended ? selfToken : autoSpinToken}
+          primary={!unattended}
         />
       </motion.div>
     </div>

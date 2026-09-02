@@ -111,6 +111,12 @@ already in `--font-rounded`.
 - TypeScript is strict, including `noUncheckedIndexedAccess` and
   `exactOptionalPropertyTypes`.
 - Keyboard operable with a visible focus ring; `aria-live` regions preserved.
+- **Every screen names one primary action** and puts focus on it, and Space
+  *and* Enter both press it from anywhere on the page — the die, Continue,
+  the choice under the cursor. `usePrimaryAction` is the whole of that
+  contract; nothing should grow a second keyboard path to the same button.
+  The focus ring is 4px of sea blue with a 3px stand-off (`:focus-visible`
+  in `index.css`) because that ring is now the game's cursor, not a courtesy.
 - Works from 360 px phones to wide desktops.
 
 ## 7. Board coordinates

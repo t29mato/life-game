@@ -7,6 +7,7 @@ import { GameIcon } from '../../icons/GameIcon'
 import { useAudio } from '../../hooks/useAudio'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { usePrimaryAction } from '../../hooks/usePrimaryAction'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { RollingNumber } from '../RollingNumber/RollingNumber'
 import { Confetti } from '../Confetti/Confetti'
@@ -33,6 +34,7 @@ const FLASH_RESET_DELAY = 420
 /** The modal shown once a landing effect has resolved. */
 export function EventCard({ event, onDismiss, editionId }: EventCardProps): ReactElement {
   const containerRef = useModalFocusTrap<HTMLDivElement>(onDismiss)
+  const primaryRef = usePrimaryAction<HTMLButtonElement>(true)
   const reduceMotion = usePrefersReducedMotion()
   const audio = useAudio()
   const { currency } = editionFor(editionId)
@@ -276,8 +278,13 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
             </ul>
           ) : null}
 
+          {/* Continue is this card's A button: it takes focus as the card
+              lands, and Space or Enter presses it from wherever the player's
+              focus happened to be. The card's own focus trap already put
+              focus here — this is what makes the *key* reliable too, on the
+              same one control. */}
           <div className={styles.continue}>
-            <ChunkyButton variant="primary" size="lg" fullWidth onClick={onDismiss}>
+            <ChunkyButton ref={primaryRef} variant="primary" size="lg" fullWidth onClick={onDismiss}>
               Continue
             </ChunkyButton>
           </div>

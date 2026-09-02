@@ -28,6 +28,7 @@ export type UiIconName =
   | 'medal-bronze'
   | 'ribbon'
   | 'book'
+  | 'gear'
 
 export interface UiIconProps {
   readonly name: UiIconName
@@ -157,6 +158,16 @@ function Glyph({ name }: { readonly name: UiIconName }): ReactElement {
         <g fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round" strokeLinecap="round">
           <path d="M12 6.2C10.2 4.8 7.4 4.4 4.2 4.8v13.4c3.2-.4 6-.0 7.8 1.4 1.8-1.4 4.6-1.8 7.8-1.4V4.8c-3.2-.4-6 0-7.8 1.4Z" />
           <path d="M12 6.2v13.4" />
+        </g>
+      )
+    /* Eight teeth, struck as one path — the settings mark everywhere, and
+       the only glyph in this set that stands alone with no label beside it,
+       so it is drawn a touch heavier than the outline icons around it. */
+    case 'gear':
+      return (
+        <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round">
+          <path d="M12 3.2l1.5 2.1 2.5-.6.6 2.5 2.4 1-1 2.4 1.6 2-2 1.6.3 2.6-2.6.3-1 2.4-2.3-1.2-2.3 1.2-1-2.4-2.6-.3.3-2.6-2-1.6 1.6-2-1-2.4 2.4-1 .6-2.5 2.5.6Z" />
+          <circle cx="12" cy="12" r="3.1" />
         </g>
       )
     case 'medal-gold':

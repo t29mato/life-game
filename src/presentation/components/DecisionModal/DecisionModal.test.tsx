@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { Board, Decision, Space } from '@domain/model/types'
@@ -265,6 +265,49 @@ describe('DecisionModal', () => {
     )
     await user.keyboard('{ArrowDown}{Enter}')
     expect(onChoose).toHaveBeenCalledWith('b')
+  })
+
+  /*
+   * Issue #33: the same key presses the same kind of thing on every screen.
+   * Space rolls the die and dismisses a card, so it must also take the
+   * option under the cursor here — and the hint has to say so, or the
+   * consistency is real but invisible.
+   */
+  it('calls onChoose on Space as well as Enter', async () => {
+    const user = userEvent.setup()
+    const onChoose = vi.fn()
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <DecisionModal decision={makeDecision()} board={makeBoard()} onChoose={onChoose} />
+      </AudioProvider>,
+    )
+    await user.keyboard('{ArrowDown}[Space]')
+    expect(onChoose).toHaveBeenCalledWith('b')
+  })
+
+  it('takes the first option on a key pressed with focus nowhere in particular', () => {
+    const onChoose = vi.fn()
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <DecisionModal decision={makeDecision()} board={makeBoard()} onChoose={onChoose} />
+      </AudioProvider>,
+    )
+    ;(document.activeElement as HTMLElement).blur()
+
+    fireEvent.keyDown(window, { key: ' ' })
+
+    expect(onChoose).toHaveBeenCalledWith('a')
+  })
+
+  it('names both keys in its hint', () => {
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <DecisionModal decision={makeDecision()} board={makeBoard()} onChoose={() => {}} />
+      </AudioProvider>,
+    )
+    const hint = screen.getByText(/to browse/).closest('p') as HTMLElement
+    expect(hint).toHaveTextContent('Enter')
+    expect(hint).toHaveTextContent('Space')
   })
 
   it('calls onChoose when an option is clicked', async () => {

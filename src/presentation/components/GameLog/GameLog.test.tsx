@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import type { GameLogEntry } from '@domain/model/types'
 import { GameLog } from './GameLog'
 
@@ -44,6 +45,29 @@ describe('GameLog', () => {
   it('has an aria-live polite region for turn/money announcements', () => {
     const { container } = render(<GameLog entries={[entry({})]} />)
     expect(container.querySelector('[aria-live="polite"]')).not.toBeNull()
+  })
+
+  /*
+   * Issue #35. Close used to be a separate button floating above the drawer
+   * this panel sits in — outside the panel entirely, reading as a header
+   * control beside Quit. It belongs to the panel, on the panel's own rule.
+   */
+  it('carries a Close inside its heading when it is given one', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    render(<GameLog entries={[entry({})]} onClose={onClose} />)
+
+    const close = screen.getByRole('button', { name: /close the log/i })
+    expect(screen.getByRole('heading')).toContainElement(close)
+
+    await user.click(close)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('draws no close control at all when nothing can be closed', () => {
+    render(<GameLog entries={[entry({})]} />)
+
+    expect(screen.queryByRole('button', { name: /close/i })).not.toBeInTheDocument()
   })
 
   it('tags an upset entry distinctly from an ordinary loss', () => {

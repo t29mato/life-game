@@ -63,6 +63,32 @@
   background: var(--surface-sunken);
 }
 
+/* The panel's own way out, sitting on the heading rule beside the count.
+   A quiet round target rather than a chunky button: this closes a drawer, it
+   does not decide anything, and the heading row is 0.7rem type. */
+.close {
+  display: grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  margin: -0.15rem -0.15rem -0.15rem 0;
+  padding: 0;
+  font-size: 1.05rem;
+  line-height: 1;
+  font-weight: 900;
+  color: var(--ink-soft);
+  cursor: pointer;
+  background: var(--surface-sunken);
+  border: none;
+  border-radius: var(--radius-full);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.close:hover {
+  color: var(--ink);
+  background: var(--canvas-deep);
+}
+
 .list {
   display: flex;
   flex: 1 1 auto;

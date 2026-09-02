@@ -29,7 +29,7 @@ import { spinOriginOf, type SpinOrigin } from '@domain/rules/spin'
 
 import styles from './App.module.css'
 import { StatusModal } from './components/StatusModal/StatusModal'
-import { AudioToggle } from './components/AudioToggle/AudioToggle'
+import { SettingsSheet } from './components/SettingsSheet/SettingsSheet'
 import { Board } from './components/Board/Board'
 import { ChunkyButton } from './components/ChunkyButton/ChunkyButton'
 import { DecisionModal } from './components/DecisionModal/DecisionModal'
@@ -615,36 +615,6 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
   ])
 
   /*
-   * Space rolls the die from anywhere on the page. The die used to sit in
-   * the rail on the far side of a wide desktop screen from wherever a
-   * player's cursor actually is, and this was the answer to that; the die
-   * has since moved to the centre of the screen, which is the better answer,
-   * but a keyboard is still a keyboard. It backs off the moment focus is
-   * already on some other control, so it can never double-fire alongside
-   * that control's own native Enter/Space handling (the die's own button
-   * included) and never eats a Space a player meant for typing.
-   *
-   * Routed through `autoSpinToken` — the same trigger the computer seat
-   * uses — rather than calling `handleSpin`/`handleValueSpin` directly.
-   * Those are the *store* side of a press; the die's own `handleRoll`
-   * (inside `Dice`) is what actually arms the animation before calling
-   * them. Calling them straight from here skipped that arming step
-   * entirely: the store still committed the roll, but the die had never
-   * been told to expect a result, so it never animated, never reported
-   * back, and sat disabled for the rest of the game. `autoSpinToken` goes
-   * through the real button-press path, so it can't skip that step again.
-   */
-  const spinReady =
-    ((SPIN_PHASES.includes(state.phase) || eventSpinRequest) && !handoffVisible && !activePlayer?.isCpu) ||
-    /*
-     * A settlement die is pressable by the seat it belongs to, not by
-     * whoever `currentPlayerIndex` happens to point at: everybody is retired
-     * by now, so there is no active player for the ordinary test to read.
-     * A computer's own holding throws itself and is not waiting on a key.
-     */
-    (displayedScoreRoll !== null && scoreRollPrompt !== null && !scoreRollPrompt.isCpu)
-
-  /*
    * A fork asks two things, so the dock says two things.
    *
    * Before the first press it names both roads and the faces that take them
@@ -674,26 +644,6 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
    * and the hop counter until the move resolves.
    */
   const carDriving = state.phase === 'moving' && dieSettled
-  useEffect(() => {
-    if (!spinReady) return
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== ' ') return
-      const active = document.activeElement
-      const focusedControl =
-        active instanceof HTMLElement &&
-        (active.tagName === 'BUTTON' ||
-          active.tagName === 'INPUT' ||
-          active.tagName === 'TEXTAREA' ||
-          active.tagName === 'SELECT' ||
-          active.tagName === 'A' ||
-          active.isContentEditable)
-      if (focusedControl) return
-      event.preventDefault()
-      setAutoSpinToken((token) => token + 1)
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [spinReady])
 
   // --- game log drawer ---------------------------------------------------
   // The scrolling feed is rarely needed mid-turn, so it stays off screen and
@@ -717,6 +667,30 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
   // header's old Status button is gone — an always-visible control that
   // opens the same modal made it a second name for the same door.
   const [statusOpen, setStatusOpen] = useState(false)
+
+  // --- settings sheet ------------------------------------------------------
+  // Music and SFX used to be two switches standing in the header for the
+  // whole game, beside the turn display, the log, the save menu and Quit —
+  // five kinds of thing in one row, and the one that matters most (whose turn
+  // it is) the least able to be big. They fold into one gear here and open
+  // the sheet below, which is where a setting belongs: found when wanted,
+  // absent otherwise.
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  /*
+   * Whether the board's own die is the screen's A button — see
+   * `usePrimaryAction`. Only when the press is genuinely this die's: not
+   * while a modal has one of its own on screen, not while the device is
+   * being handed over, not on a computer seat's turn, and not underneath a
+   * sheet the player opened over the board.
+   */
+  const dieIsPrimary =
+    SPIN_PHASES.includes(state.phase) &&
+    !eventSpinVisible &&
+    !handoffVisible &&
+    !statusOpen &&
+    !settingsOpen &&
+    activePlayer?.isCpu !== true
 
   // --- opening camera sweep ----------------------------------------------
   const [introPending, setIntroPending] = useState(false)
@@ -803,7 +777,6 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
           </div>
 
           <div className={styles.topActions}>
-            <AudioToggle />
             <ChunkyButton
               variant="secondary"
               size="sm"
@@ -852,6 +825,18 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                 </div>
               )}
             </div>
+            {/* One gear where two switches used to stand. Icon-only on
+                purpose: it is the least urgent control in the row, and the
+                room it gives back goes to the turn display. */}
+            <ChunkyButton
+              variant="secondary"
+              size="sm"
+              icon="gear"
+              aria-label="Settings"
+              aria-expanded={settingsOpen}
+              aria-haspopup="dialog"
+              onClick={() => setSettingsOpen(true)}
+            />
             <ChunkyButton
               variant="ghost"
               size="sm"
@@ -950,6 +935,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                     onRoll={handleSpin}
                     onRollComplete={handleSpinComplete}
                     autoRollToken={autoSpinToken}
+                    primary={dieIsPrimary}
                     compact
                   />
                 </div>
@@ -982,16 +968,17 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
           </div>
         )}
 
+        {/* Close belongs to the panel, not to the air above it: it used to
+            float outside the drawer's top-right corner, reading as a second
+            header control beside Quit rather than as this panel's own. It is
+            in the log's heading row now — see `GameLog`. */}
         {logOpen && (
           <div className={styles.logDrawer} id="game-log-drawer">
-            <div className={styles.logDrawerBar}>
-              <ChunkyButton variant="secondary" size="sm" icon="exit" onClick={() => setLogOpen(false)}>
-                Close
-              </ChunkyButton>
-            </div>
-            <GameLog entries={state.log} />
+            <GameLog entries={state.log} onClose={() => setLogOpen(false)} />
           </div>
         )}
+
+        {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
 
         {statusOpen && (
           <StatusModal

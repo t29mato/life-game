@@ -1,4 +1,4 @@
-import { useRef, type ButtonHTMLAttributes, type ReactElement } from 'react'
+import { useRef, type ButtonHTMLAttributes, type ReactElement, type Ref } from 'react'
 import { useAudio } from '../../hooks/useAudio'
 import { UiIcon, type UiIconName } from '../../icons/ui'
 import styles from './ChunkyButton.module.css'
@@ -13,6 +13,13 @@ export interface ChunkyButtonProps
   /** Leading glyph, drawn from the game's own icon set. Purely decorative — hidden from AT. */
   readonly icon?: UiIconName | undefined
   readonly fullWidth?: boolean
+  /**
+   * The underlying `<button>`, so a caller can name this control as the
+   * screen's primary action (`usePrimaryAction`) and have focus and the A
+   * button land on it. React 19 passes `ref` as an ordinary prop, so it
+   * simply rides along with the rest of the button attributes.
+   */
+  readonly ref?: Ref<HTMLButtonElement>
 }
 
 /**
