@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { Board, Space, SpaceEffect, SpaceId } from '../model/types'
 import { ALL_ICON_NAMES } from '../model/icons'
+import { allEditions } from '../edition/registry'
+import { EDITION_USA } from '../edition/usa'
 import { DIFFICULTIES } from '../rules/difficulty'
 import { createBoard } from './createBoard'
 
@@ -885,5 +887,65 @@ describe('a fork names the road, not the first tile on it', () => {
     for (const space of Object.values(board.spaces)) {
       if (space.lane) expect(laneHeads.has(space.id), `"${space.id}" is labelled but no fork leads to it`).toBe(true)
     }
+  })
+})
+
+/**
+ * Regression coverage for the layout engine collision described in
+ * `docs/known-issues.md` ("Tightening the board's row spacing collides two
+ * tiles onto the same square") and GitHub issue #5.
+ *
+ * `layoutFork` used to place a fork's two branches on `forkY - 1`/`forkY + 1`
+ * with no awareness of any other row already placed elsewhere on the route —
+ * and the ordinary switchback cursor (`step`) picked its own rows the same
+ * blind way — so at a `rowStep` under 3 an unrelated fork's branch row and an
+ * ordinary switchback row could land on the exact same `(x, y)`, and two
+ * different spaces ended up drawn on one square. `createBoard`'s `rowStep`
+ * parameter exists precisely so this can be stress-tested without ever
+ * touching the shipped default (`ROW_STEP`, still 3 — see the test below that
+ * pins it).
+ */
+describe('a tightened row step never collides two tiles onto one square', () => {
+  // 2 is the exact spacing the known issue reproduced the collision at, on
+  // every edition and every difficulty — not a synthetic worst case.
+  const TIGHTENED_ROW_STEP = 2
+
+  const cases = allEditions().flatMap((edition) =>
+    DIFFICULTIES.map((difficulty) => [`${edition.id}/${difficulty}`, edition, difficulty] as const),
+  )
+
+  it.each(cases)('%s has no duplicate layout coordinates at rowStep=2', (_label, edition, difficulty) => {
+    const board = createBoard(difficulty, edition, TIGHTENED_ROW_STEP)
+    const coords = Object.values(board.spaces).map((s) => `${s.layout.x},${s.layout.y}`)
+    expect(new Set(coords).size).toBe(coords.length)
+  })
+
+  // Even tighter than the issue's own repro, so this can't quietly start
+  // relying on 2 specifically rather than the collision check being general.
+  it.each(cases)('%s has no duplicate layout coordinates at rowStep=1', (_label, edition, difficulty) => {
+    const board = createBoard(difficulty, edition, 1)
+    const coords = Object.values(board.spaces).map((s) => `${s.layout.x},${s.layout.y}`)
+    expect(new Set(coords).size).toBe(coords.length)
+  })
+
+  it('still every layout coordinate inside the (larger, tighter-packed) board bounds', () => {
+    const board = createBoard('veryHard', EDITION_USA, TIGHTENED_ROW_STEP)
+    for (const space of Object.values(board.spaces)) {
+      expect(space.layout.x).toBeGreaterThanOrEqual(0)
+      expect(space.layout.x).toBeLessThanOrEqual(board.width)
+      expect(space.layout.y).toBeGreaterThanOrEqual(0)
+      expect(space.layout.y).toBeLessThanOrEqual(board.height)
+    }
+  })
+
+  /*
+   * The issue is about making a lower `ROW_STEP` *safe*, not about shipping
+   * one — this pins the shipped default without needing to export the
+   * private `ROW_STEP` constant to do it.
+   */
+  it('keeps the default the same board `createBoard` always produced (rowStep still 3)', () => {
+    expect(createBoard('normal')).toEqual(createBoard('normal', EDITION_USA, 3))
+    expect(createBoard('hard')).toEqual(createBoard('hard', EDITION_USA, 3))
+    expect(createBoard('veryHard')).toEqual(createBoard('veryHard', EDITION_USA, 3))
   })
 })
