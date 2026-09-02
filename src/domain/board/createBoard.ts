@@ -519,6 +519,7 @@ export function createBoard(
       tone: content.tone,
       icon: content.icon,
       ...(content.lane ? { lane: content.lane } : {}),
+      ...(content.footnote ? { footnote: content.footnote } : {}),
     }
   }
 

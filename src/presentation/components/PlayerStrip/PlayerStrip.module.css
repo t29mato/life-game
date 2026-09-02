@@ -115,6 +115,44 @@
   color: var(--negative-dark);
 }
 
+/* The figure the ordinal is actually sorted on, under the cash it is not.
+   Quieter than the wallet on purpose — the wallet is what moves this turn,
+   this is what decides the race — but present, because a badge that ranks a
+   player by a number they cannot see is a badge with no reason on it. */
+.worth {
+  display: flex;
+  align-items: baseline;
+  gap: 0.28rem;
+  line-height: 1.1;
+}
+
+.worthLabel {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.worthValue {
+  font-size: 0.74rem;
+  font-weight: 800;
+  font-variant-numeric: var(--tabular);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* The rank and the debt tag stack: the ordinal on top, the reason for it
+   underneath, so the two are read as one statement rather than as a badge
+   and an unrelated number. */
+.badges {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
 .rank {
   flex: none;
   padding: 0.12rem 0.42rem;
@@ -125,6 +163,22 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.08em;
   color: var(--ink-soft);
+  cursor: help;
+}
+
+/* Debt, in the same roof red every bill on the board is printed in. */
+.loans {
+  flex: none;
+  padding: 0.08rem 0.36rem;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--negative) 20%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--negative) 45%, transparent);
+  font-size: 0.6rem;
+  font-weight: 900;
+  font-variant-numeric: var(--tabular);
+  color: var(--negative-dark);
+  white-space: nowrap;
+  cursor: help;
 }
 
 .retired {
@@ -157,14 +211,29 @@
 }
 
 @media (max-width: 560px) {
-  /* Four seats on a narrow phone: the ordinals and the affordance label are
-     the first facts to go — the dome, name and wallet are the glance. */
-  .rank {
+  /* Four seats on a narrow phone: the affordance label is the first thing to
+     go — but never the ordinal or the reason for it, which used to be the
+     first casualty here and is the one pairing this band exists to keep
+     together. The worth line drops its label instead and keeps its figure. */
+  .openLabel {
     display: none;
   }
 
-  .openLabel {
+  .worthLabel {
     display: none;
+  }
+
+  .worthValue {
+    font-size: 0.68rem;
+  }
+
+  .rank {
+    padding: 0.1rem 0.34rem;
+    font-size: 0.58rem;
+  }
+
+  .loans {
+    font-size: 0.54rem;
   }
 
   /* Wide enough for the default "PLAYER 1"-style names to survive whole —

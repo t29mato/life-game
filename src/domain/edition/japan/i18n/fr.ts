@@ -79,6 +79,7 @@ export const JAPAN_FR: EditionTranslation = {
       title: 'Première enveloppe',
       description: 'Votre toute première paie tombe et paraît énorme. Selon l’usage, vous invitez vos parents au restaurant, et ils vous laissent payer avec une fierté visible.',
       reason: 'Première enveloppe de paie',
+      footnote: 'Un mois entamé, pas un mois complet — vous avez été placé en cours de mois. La première enveloppe entière, c’est la prochaine case « Jour de paie ».',
     },
     'jp-work-payday-1': {
       title: 'Jour de paie',

@@ -62,24 +62,3 @@ export function raiseNote(previousSalary: Money, newSalary: Money, currency: Cur
   const rate = salaryRate(newSalary, currency)
   return `${adjective} pay up ${formatMoney(delta, currency)} — now ${formatMoney(rate, currency)} a ${unit}`
 }
-
-/**
- * The note that reports a forced borrow, with both sums in it.
- *
- * A bill the player cannot cover is settled by the bank without asking, so this
- * note is the only moment the debt is ever announced. "Took out 2 loans" says
- * the player is in debt but not how deep: `principal` is what the bank handed
- * over, `settlement` is what it takes back at retirement, and the gap between
- * them is the interest — which is the part a player is deciding about when they
- * choose whether to sell shares instead.
- */
-export function loanNote(
-  loansTaken: number,
-  principal: Money,
-  settlement: Money,
-  currency: CurrencySpec = USA_CURRENCY,
-): string {
-  const money = (amount: Money): string => formatMoney(amount, currency)
-  const count = `${loansTaken} loan${loansTaken > 1 ? 's' : ''}`
-  return `Took out ${count} — ${money(loansTaken * principal)} borrowed, ${money(loansTaken * settlement)} due at retirement.`
-}

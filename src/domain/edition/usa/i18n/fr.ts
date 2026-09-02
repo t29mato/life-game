@@ -78,6 +78,7 @@ export const USA_FR: EditionTranslation = {
       title: 'Première paie',
       description: 'Votre toute première paie tombe et elle paraît énorme.',
       reason: 'Première paie',
+      footnote: 'Un mois entamé, pas un mois complet — vous avez été embauché en cours de mois. La première paie entière, c’est la prochaine case « Jour de paie ».',
     },
     'work-payday-1': {
       title: 'Jour de paie',

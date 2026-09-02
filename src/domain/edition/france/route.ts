@@ -114,6 +114,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     id: 'fr-work-first-payslip', kind: 'normal', title: 'First Pay Slip',
     description: 'Your first French pay slip has forty lines on it. Your actual salary is somewhere below four different kinds of tax, but it still feels like a lot.',
     effect: { type: 'gainMoney', amount: 2_000, reason: 'First pay packet' },
+    footnote: 'Part of a month, not a whole one — you signed part-way through it. The first full slip is the next Payday square.',
     tone: 'orange', icon: 'space:first-paycheck',
   },
   payday('fr-work-payday-1', 'A full month worked, and the money lands while your friends are still students.', missedPayday(

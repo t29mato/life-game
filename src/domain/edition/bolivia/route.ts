@@ -112,6 +112,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     id: 'bo-work-first-pay', kind: 'normal', title: 'First Week\'s Takings',
     description: 'Your first real money lands in your hand, folded small. Following custom, you buy the family Sunday lunch with it, and they let you pay with visible pride.',
     effect: { type: 'gainMoney', amount: 2_000, reason: 'First week\'s takings' },
+    footnote: 'One week at the stall, not a month — the first full month\'s money is the next Payday square.',
     tone: 'orange', icon: 'space:first-paycheck',
   },
   payday('bo-work-payday-1', 'A full month\'s work in your pocket while your classmates are still queueing to enrol.', missedPayday(

@@ -119,19 +119,21 @@ describe('edition translation overlays', () => {
       })
 
       /*
-       * `reason` and `harsher` are the two fields that exist on some tiles and
-       * not others, so they are the two that drift. A missing one strands a log
+       * `reason`, `footnote` and `harsher` are the fields that exist on some
+       * tiles and not others, so they are the ones that drift. A missing one strands a log
        * line or a whole Hard-difficulty sentence in English; a stray one is a
        * translation of something the tile no longer has, which is a sign the
        * route moved underneath the overlay.
        */
-      it('translates a reason and a hardship exactly where the English tile has one', () => {
+      it('translates a reason, a footnote and a hardship exactly where the English tile has one', () => {
         const problems: string[] = []
         for (const space of spaces) {
           const text = overlay.spaces[space.id]
           if (!text) continue
           if (hasReason(space.effect) && !text.reason) problems.push(`space ${space.id}: no reason`)
           if (!hasReason(space.effect) && text.reason) problems.push(`space ${space.id}: reason on a tile with none`)
+          if (space.footnote && !text.footnote) problems.push(`space ${space.id}: no footnote`)
+          if (!space.footnote && text.footnote) problems.push(`space ${space.id}: footnote on a tile with none`)
           if (!space.harsher && text.harsher) problems.push(`space ${space.id}: hardship on a tile with none`)
           if (!space.harsher) continue
           if (!text.harsher?.description) problems.push(`space ${space.id}: hardship not translated`)

@@ -111,6 +111,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     id: 'in-work-first-salary', kind: 'normal', title: 'First Salary',
     description: 'Your very first pay lands and feels enormous. Following custom, you buy sweets for the whole street and press the first note into your mother\'s hand, and she keeps it forever.',
     effect: { type: 'gainMoney', amount: 200_000, reason: 'First salary' },
+    footnote: 'Part of a month, not a whole one — you joined part-way through it. The first full salary is the next Payday square.',
     tone: 'orange', icon: 'space:first-paycheck',
   },
   payday('in-work-payday-1', 'A full month on the rolls, and the credit lands while your classmates are still queueing for lecture seats.', missedPayday(

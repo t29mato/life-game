@@ -82,6 +82,7 @@ export const BOLIVIA_JA: EditionTranslation = {
       title: '最初の週の売り上げ',
       description: '初めての自分のお金が、小さく折りたたまれて手の中に来る。習わしどおり家族の日曜の昼食をおごると、二人は誇らしさを隠さずに払わせてくれる。',
       reason: '最初の週の取り分',
+      footnote: '売り場に立った一週間分で、ひと月分ではない。まるひと月分の稼ぎが入るのは次の「給料日」のマス。',
     },
     'bo-work-payday-1': {
       title: '給料日',

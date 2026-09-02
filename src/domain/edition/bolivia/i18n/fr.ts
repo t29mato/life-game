@@ -83,6 +83,7 @@ export const BOLIVIA_FR: EditionTranslation = {
       title: 'La recette de la semaine',
       description: 'Votre premier vrai argent arrive dans votre main, plié tout petit. Selon l’usage, vous offrez le déjeuner du dimanche à la famille, et ils vous laissent payer avec une fierté visible.',
       reason: 'La recette de la première semaine',
+      footnote: 'Une semaine au stand, pas un mois — l’argent d’un mois entier, c’est la prochaine case « Jour de paie ».',
     },
     'bo-work-payday-1': {
       title: 'Jour de paie',

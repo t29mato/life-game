@@ -1374,9 +1374,11 @@ describe('the player strip', () => {
     for (const name of ['Ada', 'Ben', 'Cy', 'Dee']) {
       expect(within(strip()).getByText(name)).toBeInTheDocument()
     }
-    // Cash is the one figure a glance earns; everyone opens with the same
-    // stake, so one balance per seat.
-    expect(within(strip()).getAllByText(/\$/).length).toBe(4)
+    // Two figures per seat now: the cash, which is what moves this turn, and
+    // the net worth, which is what the ordinal beside it is actually sorted
+    // on. The second one is there because a rank decided by a number the
+    // player cannot see is a rank with no reason on it.
+    expect(within(strip()).getAllByText(/\$/).length).toBe(8)
   })
 
   it('carries each seat\'s live standing — a tie shares 1st rather than inventing an order', () => {

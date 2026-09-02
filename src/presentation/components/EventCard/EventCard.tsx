@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import { motion } from 'framer-motion'
 import type { EditionId, LandingEvent } from '@domain/model/types'
 import { editionFor } from '@domain/edition/registry'
@@ -22,17 +22,42 @@ export interface EventCardProps {
   readonly onDismiss: () => void
   /** Which edition's money the delta is printed in. Defaults to the original board. */
   readonly editionId?: EditionId
+  /**
+   * Fired once this card's own count-up has landed on the balance it was
+   * rolling towards — B4's other half.
+   *
+   * The HUD behind the card reads the store directly, so it used to print
+   * the final figure while the card's digits were still turning: the result
+   * spoiled by the very strip the count-up was building suspense for. The
+   * card is the one thing that knows when its number has actually settled,
+   * so it says so, and the strip waits to be told. Not called at all on a
+   * card that moved no money — there is nothing to wait for.
+   */
+  readonly onMoneyLanded?: () => void
 }
 
 // Cards from before `emphasis` existed still tint gold for a milestone —
 // keep honouring that so nothing already tagged that way goes quiet.
 const MILESTONE_TONES = new Set(['gold'])
 const REVEAL_DELAY = 240
+/**
+ * A card that both charged the player and borrowed for them is read in two
+ * beats, so the balance waits for both to have been said. The rows animate in
+ * at 0.14s and 0.42s (see `.beatPaid`/`.beatBorrowed` in the stylesheet); the
+ * wallet starts moving once the second one has landed, which is the whole
+ * point — the player watches what they *paid*, then what they *borrowed*, and
+ * only then where that left them. One number arriving first would once again
+ * be one number carrying two meanings.
+ */
+const BORROWED_REVEAL_DELAY = 760
 const BURST_DELAY = 460
 const FLASH_RESET_DELAY = 420
 
+/** How long `RollingNumber` is given to roll the balance, in seconds. */
+const COUNT_UP_SECONDS = 0.7
+
 /** The modal shown once a landing effect has resolved. */
-export function EventCard({ event, onDismiss, editionId }: EventCardProps): ReactElement {
+export function EventCard({ event, onDismiss, editionId, onMoneyLanded }: EventCardProps): ReactElement {
   const containerRef = useModalFocusTrap<HTMLDivElement>(onDismiss)
   const primaryRef = usePrimaryAction<HTMLButtonElement>(true)
   const reduceMotion = usePrefersReducedMotion()
@@ -44,6 +69,22 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
   const [burstTick, setBurstTick] = useState(0)
   const [coinTick, setCoinTick] = useState(0)
   const [flashing, setFlashing] = useState(false)
+  // Read fresh through a ref for the same reason `RollingNumber` reads
+  // `format` that way: a caller passing an inline arrow must not be able to
+  // restart the reveal, the coins and the confetti on every render.
+  const onMoneyLandedRef = useRef(onMoneyLanded)
+  onMoneyLandedRef.current = onMoneyLanded
+
+  /*
+   * B1: a card that charged the player and borrowed to cover it is two
+   * facts, and `moneyDelta` is their sum — which on the biggest bill on the
+   * board comes out *positive*. Everything below that reads the direction of
+   * this card asks `paidOut`, not the sign of the delta, so the tuition that
+   * left a player $52,000 poorer in the ledger never again lands as a green
+   * band, a rising coin sound and an upward arrow.
+   */
+  const borrowing = event.borrowing
+  const paidOut = borrowing ? borrowing.charge > 0 : event.moneyDelta < 0
 
   const emphasis = event.emphasis ?? 'normal'
   const isMilestone = emphasis === 'milestone' || (event.emphasis === undefined && MILESTONE_TONES.has(event.tone))
@@ -59,9 +100,21 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
       // every landing with money on it, not only a milestone's confetti.
       if (event.moneyDelta !== 0 || (event.transfers?.length ?? 0) > 0) {
         setCoinTick((tick) => tick + 1)
-        audio.playSfx(event.moneyDelta >= 0 ? 'coinGain' : 'coinLose')
+        audio.playSfx(paidOut ? 'coinLose' : 'coinGain')
       }
-    }, reduceMotion ? 0 : REVEAL_DELAY)
+    }, reduceMotion ? 0 : borrowing ? BORROWED_REVEAL_DELAY : REVEAL_DELAY)
+
+    /*
+     * The moment the digits stop. Measured rather than observed, because
+     * `RollingNumber` is driven by a spring-eased tween with no completion
+     * event of its own to subscribe to — and a strip that unfreezes a
+     * fraction late costs nothing, while one that unfreezes early is the
+     * whole bug. Reduced motion has no roll to wait for, so it lands at once.
+     */
+    const settleTimer = setTimeout(
+      () => onMoneyLandedRef.current?.(),
+      reduceMotion ? 0 : (borrowing ? BORROWED_REVEAL_DELAY : REVEAL_DELAY) + COUNT_UP_SECONDS * 1000,
+    )
 
     let burstTimer: ReturnType<typeof setTimeout> | undefined
     if (isMilestone) {
@@ -82,11 +135,12 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
 
     return () => {
       clearTimeout(revealTimer)
+      clearTimeout(settleTimer)
       if (burstTimer) clearTimeout(burstTimer)
       if (flashTimer) clearTimeout(flashTimer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [event, isMilestone, isCutIn, reduceMotion])
+  }, [event, isMilestone, isCutIn, reduceMotion, borrowing])
 
   // A pill that always read "$0" told a player their landing had a dollar
   // figure attached and then that figure was always nothing — clutter, not
@@ -95,7 +149,14 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
   // renders in full regardless.
   const hasMoneyDelta = event.moneyDelta !== 0
   const direction = event.moneyDelta > 0 ? 'up' : 'down'
-  const deltaClassName = direction === 'up' ? styles.deltaPositive : styles.deltaNegative
+  // A borrowed card takes neither the green plate nor the red one: the two
+  // rows inside it carry their own colours, and a single band around both
+  // would be the merged meaning all over again, just in a different hue.
+  const deltaClassName = borrowing
+    ? styles.deltaBorrowed
+    : direction === 'up'
+      ? styles.deltaPositive
+      : styles.deltaNegative
   const arrow = direction === 'up' ? '▲' : '▼'
 
   // The tone tints the whole card: header band, medallion ring, edge stripe.
@@ -198,7 +259,33 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
               has to agree with it, not re-derive it. */}
           {hasMoneyDelta && event.balanceAfter !== undefined ? (
             <div className={`${styles.moneyPlate} ${deltaClassName}`}>
-              <CoinBurst burstKey={coinTick} kind={event.moneyDelta >= 0 ? 'gain' : 'lose'} />
+              <CoinBurst burstKey={coinTick} kind={paidOut ? 'lose' : 'gain'} />
+              {/* B1, the two beats. The payment first, in red, always signed
+                  with a minus; then the loan, in the borrowed colour, saying
+                  in the same breath what it costs to settle. Neither is the
+                  other, and neither of them is the balance. */}
+              {borrowing ? (
+                <div className={styles.beats}>
+                  {borrowing.charge > 0 ? (
+                    <p className={`${styles.beat} ${styles.beatPaid}`}>
+                      <span className={styles.beatLabel}>Paid</span>
+                      <span className={`${styles.beatAmount} tabular-num`}>
+                        {moneyDelta(-borrowing.charge)}
+                      </span>
+                    </p>
+                  ) : null}
+                  <p className={`${styles.beat} ${styles.beatBorrowed}`}>
+                    <span className={styles.beatLabel}>Borrowed</span>
+                    <span className={`${styles.beatAmount} tabular-num`}>
+                      {moneyDelta(borrowing.borrowed)}
+                    </span>
+                  </p>
+                  <p className={styles.beatTerms}>
+                    {borrowing.loans === 1 ? '1 loan' : `${borrowing.loans} loans`} —{' '}
+                    {money(borrowing.dueAtRetirement)} to repay at retirement
+                  </p>
+                </div>
+              ) : null}
               <div className={styles.moneyRow}>
                 <span className={`${styles.moneyBefore} tabular-num`}>
                   {money(event.balanceAfter - event.moneyDelta)}
@@ -210,15 +297,21 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
                   className={`${styles.moneyAfter} tabular-num`}
                   value={revealed ? event.balanceAfter : event.balanceAfter - event.moneyDelta}
                   format={money}
-                  duration={0.7}
+                  duration={COUNT_UP_SECONDS}
                 />
               </div>
-              <span className={styles.moneyDeltaChip}>
-                <span className={styles.deltaArrow} aria-hidden="true">
-                  {arrow}
+              {/* The net, folded under the balance — but never on a borrowed
+                  card, where a lone "▲ +$8,000" under a $52,000 bill is
+                  precisely the sentence this whole plate exists to stop
+                  anybody reading. The two rows above already said it. */}
+              {borrowing ? null : (
+                <span className={styles.moneyDeltaChip}>
+                  <span className={styles.deltaArrow} aria-hidden="true">
+                    {arrow}
+                  </span>
+                  {moneyDelta(event.moneyDelta)}
                 </span>
-                {moneyDelta(event.moneyDelta)}
-              </span>
+              )}
             </div>
           ) : null}
 
@@ -267,6 +360,13 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
               ))}
             </div>
           ) : null}
+
+          {/* B5: the small print under a figure that otherwise looks wrong —
+              "$37,000 every payday" and then "First Paycheck +$2,000" with
+              nothing on the card to reconcile them. Written on the tile
+              itself (`Space.footnote`), because only the tile knows why its
+              own number is the size it is. */}
+          {event.footnote ? <p className={styles.footnote}>{event.footnote}</p> : null}
 
           {event.notes.length > 0 ? (
             <ul className={styles.notes}>

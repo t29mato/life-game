@@ -81,6 +81,7 @@ export const FRANCE_FR: EditionTranslation = {
       title: 'Première fiche de paie',
       description: 'Votre première fiche de paie compte quarante lignes. Votre salaire réel se trouve quelque part sous quatre sortes de cotisations, et il paraît quand même énorme.',
       reason: 'Première paie',
+      footnote: 'Un mois entamé, pas un mois complet — vous avez signé en cours de mois. La première fiche entière, c’est la prochaine case « Jour de paie ».',
     },
     'fr-work-payday-1': {
       title: 'Jour de paie',

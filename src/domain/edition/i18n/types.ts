@@ -75,6 +75,14 @@ export interface SpaceText {
   readonly title?: string
   readonly description?: string
   readonly reason?: string
+  /**
+   * See `Space.footnote` — the one line defending a figure on the tile that
+   * otherwise looks wrong. A fourth string rather than folded into
+   * `description` because it is read in a different place and a different
+   * voice: the description is the story, this is the small print under the
+   * number, and a reader who never wonders about the number never needs it.
+   */
+  readonly footnote?: string
   readonly harsher?: HardshipText
 }
 

@@ -129,44 +129,93 @@
   color: var(--ink-faint);
 }
 
-.career {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--ink-soft, var(--ink));
-}
-
-/* One quiet line of life facts — marital status, children, degree — dotted
-   apart the way the sidebar's chips sit apart, but flatter: this card lists
-   a lot more beneath it, so the facts stay a statement rather than a row of
-   pills competing with the ledger. */
-.facts {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.2rem 0.5rem;
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--ink-soft, var(--ink));
-}
-
-.fact {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.28rem;
-}
-
-.fact + .fact::before {
-  content: '·';
-  margin-right: 0.5rem;
-  color: var(--ink-faint);
-}
-
 .factIcon {
   display: inline-flex;
   flex: none;
+}
+
+/* ---- The shelf ----------------------------------------------------------
+   The card used to lead with a two-column table at 0.78rem, which is the
+   furthest thing on screen from a Nintendo status screen and the nearest
+   thing to a spreadsheet. What a player owns is a set of *objects* — a job,
+   a house, the people in the car, a stack of LIFE tiles — and the board
+   already draws every one of them. So they are drawn, at the size an icon
+   deserves, in the board's own moulded-tile material.
+   ------------------------------------------------------------------------ */
+.shelf {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+}
+
+.shelfTile {
+  flex: 1 1 5.4rem;
+  min-width: 5.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.5rem 0.4rem 0.45rem;
+  text-align: center;
+  border-radius: var(--radius-md, 10px);
+  background: var(--surface-grad, var(--surface));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--border-strong) 32%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 1px 0 color-mix(in srgb, var(--border-strong) 45%, transparent);
+}
+
+.shelfIcon {
+  display: inline-flex;
+  line-height: 0;
+}
+
+.shelfLabel {
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.shelfValue {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  color: var(--ink-faint);
+}
+
+/* The one tile that subtracts, in the same roof red as every bill. */
+.debtTile {
+  background: color-mix(in srgb, var(--negative) 12%, var(--surface));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--negative) 45%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.debtTile .shelfLabel,
+.debtTile .shelfValue {
+  color: var(--negative-dark);
+}
+
+/* ---- The breakdown, folded ---------------------------------------------- */
+.breakdown {
+  font-size: 0.78rem;
+}
+
+.breakdownSummary {
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.breakdownSummary:hover {
+  color: var(--ink-soft, var(--ink));
 }
 
 .ledger {
@@ -177,7 +226,6 @@
   flex-direction: column;
   gap: 0.3rem;
   border-top: 1px dashed rgba(92, 70, 34, 0.18);
-  border-bottom: 1px dashed rgba(92, 70, 34, 0.18);
 }
 
 .ledgerLine {
@@ -218,22 +266,36 @@
   color: var(--ink);
 }
 
+/* One number, and it is the loudest thing on the card — the same rule the
+   design contract states for money everywhere else, finally applied to the
+   figure that actually decides who is winning. */
 .total {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-weight: 800;
+  flex-direction: column;
+  gap: 0.05rem;
   color: var(--ink);
 }
 
+.totalLabel {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
 .totalValue {
-  font-size: 1.15rem;
-  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.65rem, 6vw, 2.1rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  white-space: nowrap;
 }
 
 .totalNote {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   color: var(--ink-faint);
 }
 

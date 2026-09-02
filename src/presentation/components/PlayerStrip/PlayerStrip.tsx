@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactElement } from 'react'
-import type { EditionId, Player, PlayerId } from '@domain/model/types'
+import type { Difficulty, EditionId, Player, PlayerId } from '@domain/model/types'
 import { editionFor } from '@domain/edition/registry'
+import { loanRepaymentFor } from '@domain/rules/difficulty'
 import { formatMoney, formatOrdinal } from '../../format'
 import { UiIcon } from '../../icons/ui'
 import { RollingNumber } from '../RollingNumber/RollingNumber'
@@ -22,6 +23,12 @@ export interface PlayerStripProps {
    * editions has to know.
    */
   readonly editionId?: EditionId
+  /**
+   * What this table settles a loan at — the difference between a debt badge
+   * that reads $75,000 and one that reads $138,000. Same default as
+   * everywhere else this is optional.
+   */
+  readonly difficulty?: Difficulty
   /** Opens the full per-seat breakdown — `StatusModal`, in practice. */
   readonly onOpenStatus: () => void
 }
@@ -29,21 +36,31 @@ export interface PlayerStripProps {
 /**
  * Every seat on one band at the foot of the screen. This is a glance, not a
  * report: who is at the table (the coloured dome and name), whose turn it is
- * (that seat lights in its own colour), and how each wallet stands (cash,
- * the number that moves when something happens, plus the live ordinal).
- * Everything else the old rail cards spelled out — career, net worth's own
- * breakdown, tiles, policies — lives one press away: the whole strip is a
- * single button, and pressing anywhere on it opens `StatusModal`.
+ * (that seat lights in its own colour), and how each wallet stands.
+ *
+ * "How each wallet stands" used to mean cash and an ordinal, and that was a
+ * band that lied by omission: the ordinal is decided by *net worth*, so a
+ * player holding $12,000 wore a "1st" next to a player holding $18,000 and
+ * nothing on screen accounted for the difference — the −$75,000 of loans
+ * that did it was a modal away. A rank is not allowed to come out of a
+ * calculation the player cannot see, so the figure it is actually computed
+ * from is printed under the cash, and a debt heavy enough to move it wears
+ * its own red tag. Everything else — career, tiles, policies, each holding
+ * itemised — still lives one press away: the whole strip is a single button,
+ * and pressing anywhere on it opens `StatusModal`.
  */
 export function PlayerStrip({
   players,
   currentPlayerIndex,
   standings,
   editionId,
+  difficulty = 'normal',
   onOpenStatus,
 }: PlayerStripProps): ReactElement {
-  const { currency } = editionFor(editionId)
+  const edition = editionFor(editionId)
+  const { currency } = edition
   const money = (amount: number): string => formatMoney(amount, currency)
+  const loanSettlement = loanRepaymentFor(difficulty, edition)
 
   return (
     <button
@@ -63,7 +80,25 @@ export function PlayerStrip({
           '--seat-light': `var(--player-${player.color}-light)`,
           '--seat-dark': `var(--player-${player.color}-dark)`,
         } as CSSProperties
-        const rank = standings.get(player.id)?.rank
+        const standing = standings.get(player.id)
+        const rank = standing?.rank
+        const owed = player.loans * loanSettlement
+        /*
+         * The whole rank, in one sentence, for a hover or a long press —
+         * the same three figures the two visible lines carry, said in the
+         * order they add up. A `title` rather than a custom popover because
+         * this band is already one button: anything focusable inside it
+         * would be a second control where the player expects one.
+         */
+        const breakdown =
+          rank === undefined || standing === undefined
+            ? undefined
+            : [
+                `${formatOrdinal(rank)} on net worth ${money(standing.netWorth)}`,
+                `cash ${money(player.money)}`,
+                ...(player.loans > 0 ? [`${player.loans} loan${player.loans === 1 ? '' : 's'} to settle ${money(owed)}`] : []),
+                'plus house, shares, tiles and family',
+              ].join(' — ')
         return (
           <span
             key={player.id}
@@ -80,12 +115,41 @@ export function PlayerStrip({
                 value={player.money}
                 format={money}
               />
+              {/* The number the ordinal beside it is actually sorted on.
+                  Labelled, because an unlabelled second figure under a
+                  wallet is just a second wallet. */}
+              {standing !== undefined ? (
+                <span className={styles.worth}>
+                  <span className={styles.worthLabel}>Worth</span>
+                  <RollingNumber
+                    className={standing.netWorth < 0 ? `${styles.worthValue} ${styles.debt}` : styles.worthValue}
+                    value={standing.netWorth}
+                    format={money}
+                  />
+                </span>
+              ) : null}
             </span>
-            {player.isRetired ? (
-              <span className={styles.retired}>Retired</span>
-            ) : rank !== undefined ? (
-              <span className={styles.rank}>{formatOrdinal(rank)}</span>
-            ) : null}
+            <span className={styles.badges}>
+              {player.isRetired ? (
+                <span className={styles.retired}>Retired</span>
+              ) : rank !== undefined ? (
+                <span className={styles.rank} title={breakdown}>
+                  {formatOrdinal(rank)}
+                </span>
+              ) : null}
+              {/* The one holding that can make a rank look wrong, and the
+                  only one that is invisible in a wallet: debt. Red, and
+                  priced at what it actually takes to clear rather than at
+                  how many pieces of paper it is. */}
+              {player.loans > 0 ? (
+                <span
+                  className={styles.loans}
+                  title={`${player.loans} loan${player.loans === 1 ? '' : 's'} — ${money(owed)} to repay at retirement`}
+                >
+                  −{money(owed)}
+                </span>
+              ) : null}
+            </span>
           </span>
         )
       })}

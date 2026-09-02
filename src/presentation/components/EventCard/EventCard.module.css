@@ -438,6 +438,102 @@
   --plate-ink: #ffffff;
 }
 
+/* ---- The borrowed plate (B1) --------------------------------------------
+   A tuition bill settled by the bank moved the wallet *up*, so the card
+   painted the single largest charge on the board green and wrote "▲ +$8,000"
+   across it. The plate itself therefore takes no side at all here: it is
+   printed card, and the two rows on it carry the colour — the payment in
+   the same roof red every other bill uses, the loan in grape, which is the
+   board's own colour for something that is neither a gain nor a loss but a
+   thing you are now carrying.
+   ------------------------------------------------------------------------ */
+.deltaBorrowed {
+  --plate-light: #ffffff;
+  --plate: var(--surface);
+  --plate-dark: color-mix(in srgb, var(--border-strong) 32%, var(--surface));
+  --plate-lip: color-mix(in srgb, var(--border-strong) 62%, transparent);
+  --plate-ink: var(--ink);
+}
+
+.beats {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: 0.18rem;
+  width: 100%;
+  padding-bottom: 0.45rem;
+  margin-bottom: 0.1rem;
+  border-bottom: 1px dashed color-mix(in srgb, var(--border-strong) 55%, transparent);
+}
+
+.beat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.1rem;
+  margin: 0;
+  /* The two beats arrive in order — paid, then borrowed — so a player is
+     never shown a debt and a payment as one simultaneous event. The balance
+     below waits for both; see `BORROWED_REVEAL_DELAY`. */
+  animation: beatIn 0.34s var(--spring-bouncy, ease-out) backwards;
+}
+
+.beatLabel {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.beatAmount {
+  font-size: clamp(1.15rem, 5vw, 1.45rem);
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  white-space: nowrap;
+}
+
+.beatPaid {
+  color: var(--negative-dark);
+  animation-delay: 0.14s;
+}
+
+.beatBorrowed {
+  color: var(--candy-grape-dark);
+  animation-delay: 0.42s;
+}
+
+/* What the loan actually costs, said next to the loan rather than left for
+   the results screen to spring on somebody. */
+.beatTerms {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  color: var(--candy-grape-dark);
+  opacity: 0.9;
+  animation: beatIn 0.34s var(--spring-bouncy, ease-out) 0.56s backwards;
+}
+
+@keyframes beatIn {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beat,
+  .beatTerms {
+    animation: none;
+  }
+}
+
 /* ---- Life tiles & notes -------------------------------------------------- */
 .tiles {
   display: flex;
@@ -509,6 +605,20 @@
 .note::before {
   content: '✦ ';
   color: var(--candy-sun-dark);
+}
+
+/* ---- The footnote: small print under a number that looks wrong ----------
+   Deliberately quieter than a note. A note is part of the ledger — what
+   happened. This answers a question the player was about to ask about a
+   figure they can already see, so it reads as the fine print on a printed
+   card rather than another event. */
+.footnote {
+  margin: 0;
+  max-width: 34ch;
+  font-size: clamp(0.78rem, 2.9vw, 0.84rem);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink-faint);
 }
 
 .continue {
