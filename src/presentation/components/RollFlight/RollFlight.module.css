@@ -1,0 +1,37 @@
+/* ==========================================================================
+   RollFlight — the rolled number in flight, from the die towards the car.
+
+   Absolutely positioned over the middle of the roll dock so it needs to know
+   nothing about where either of them actually is: the die is docked at the
+   centre of the stage and the camera holds the active car near the same
+   spot, so "up from the centre" is the whole geometry. Pointer-transparent
+   and aria-hidden — the die's own live region already says the number aloud,
+   and this must never become a second thing to read or a target to click.
+   ========================================================================== */
+
+.chip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4rem;
+  height: 2.4rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--candy-sun) 0%, var(--candy-tangerine) 100%);
+  color: #3a2405;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 2px 3px rgba(92, 70, 34, 0.32),
+    0 14px 26px -10px rgba(92, 70, 34, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}

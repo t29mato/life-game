@@ -621,6 +621,30 @@
   color: var(--ink-faint);
 }
 
+/* ---- The road behind: what was passed on the way to this tile ------------
+   A footnote, and printed like one. Every line here already had its moment
+   on the board as a pop while the car was driving; this exists so the money
+   still adds up when somebody looks away, not to be read again. Ruled off
+   above so it never reads as one more thing this tile did. */
+.passedThrough {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed color-mix(in srgb, var(--ink-soft) 42%, transparent);
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.passedLine::before {
+  content: '↳ ';
+  opacity: 0.65;
+}
+
 .continue {
   margin-top: 0.55rem;
   width: 100%;

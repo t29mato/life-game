@@ -11,6 +11,7 @@ import type { SpinValue } from '@domain/model/types'
 import { useAudio } from '../../hooks/useAudio'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { usePrimaryAction } from '../../hooks/usePrimaryAction'
+import { TEMPO } from '../../tempo'
 import { FACE_PLACEMENTS, SETTLE_ROTATIONS, pipsFor } from './diceFaces'
 import { createDiceThrow } from './dicePhysics'
 import styles from './Dice.module.css'
@@ -33,8 +34,10 @@ export interface DiceProps {
    * Nominal seconds for the throw — launch, flight and every bounce. The
    * realised figure strays under a fifth either way with the randomised
    * launch; small values still force a fast run for tests. The default is
-   * unhurried on purpose: the throw is slow enough to read faces off
-   * mid-tumble, because a roll nobody can follow has no suspense in it.
+   * slow enough to read faces off mid-tumble — a roll nobody can follow has
+   * no suspense in it — but no slower: see `TEMPO.dieThrowSeconds` for why
+   * the old 1.4s was half a second of that suspense and half a second of a
+   * player wondering whether the tab had frozen.
    */
   readonly rollDuration?: number
   /**
@@ -77,9 +80,16 @@ const SQUASH_PULSE = 0.09
  * — so however far the physics happened to leave the cube from its resting
  * angle, the last roll runs at about the tumbling speed it grounded with,
  * never a flick to catch up nor a crawl to kill time.
+ *
+ * `PER_TURN` was 2.2, which priced a full owed turn at over a second of a die
+ * lying flat and visibly stopped while its number was still illegible — the
+ * beat a playtest read as the game having hung (issue #12). Halved: the
+ * proportionality that keeps a barely-tipped die from flicking is what
+ * matters here, not the absolute length, and at 1.1 the worst case is a shade
+ * over 400ms rather than 1.2s. See `src/presentation/tempo.ts`.
  */
-const SETTLE_TIME_FLOOR = 0.35
-const SETTLE_TIME_PER_TURN = 2.2
+const SETTLE_TIME_FLOOR = 0.32
+const SETTLE_TIME_PER_TURN = 1.1
 /**
  * A grounding die is still turning at several hundred degrees a second; a
  * settle owed less than this cannot absorb that and reads as a dead stop.
@@ -119,8 +129,8 @@ const REST_DRIFT_SPREAD = 0.14
  * be unmounted (an event modal closing over it) simply never reaches the
  * glide, and a press mid-glide launches from wherever the slide had got to.
  */
-const RETURN_DELAY = 0.9
-const RETURN_DURATION = 0.5
+const RETURN_DELAY = TEMPO.dieReturnDelaySeconds
+const RETURN_DURATION = TEMPO.dieReturnSeconds
 
 /**
  * The smallest angle at least `minTurns` whole turns forward of `from` that
@@ -250,8 +260,8 @@ export function Dice({
   onRoll,
   onRollComplete,
   autoRollToken = 0,
-  rollDuration = 1.4,
-  settleDuration = 0.42,
+  rollDuration = TEMPO.dieThrowSeconds,
+  settleDuration = TEMPO.dieSettleSeconds,
   compact = false,
   primary = false,
 }: DiceProps): ReactElement {

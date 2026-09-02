@@ -119,6 +119,71 @@ describe('Pawn', () => {
     expect(audio.sfxLog).toEqual(['hop', 'hop'])
   })
 
+  /*
+   * Issue #13. Anticipation is how animation says "this one matters", and the
+   * hop that decides where a turn resolves is the one that does — so the last
+   * tile of a *move* crouches first and travels a little slower. Only the
+   * caller can know which hop that is: a move reaches the car one leg at a
+   * time, and a leg ending on a swept-past tile still has road owed behind
+   * it. A car that gathered itself for a hop it was about to make three more
+   * of would read as a stumble, not an arrival.
+   */
+  describe('the final hop', () => {
+    it('takes longer than an ordinary one when the caller says it is the last', async () => {
+      mockReducedMotion(false)
+      const audio = createFakeAudioPort()
+      const ref = createRef<PawnHandle>()
+      render(
+        <AudioProvider audio={audio}>
+          <svg>
+            <Pawn
+              ref={ref}
+              color="blue"
+              restPosition={{ x: 0, y: 0 }}
+              hopDuration={0.05}
+              finalHopDuration={0.4}
+            />
+          </svg>
+        </AudioProvider>,
+      )
+
+      const ordinaryStart = Date.now()
+      await act(async () => {
+        await ref.current?.hopThrough([{ x: 10, y: 0 }])
+      })
+      const ordinary = Date.now() - ordinaryStart
+
+      const finalStart = Date.now()
+      await act(async () => {
+        await ref.current?.hopThrough([{ x: 20, y: 0 }], { final: true })
+      })
+      const final = Date.now() - finalStart
+
+      expect(final).toBeGreaterThan(ordinary)
+    })
+
+    it('crouches for nothing under reduced motion, and still lands', async () => {
+      mockReducedMotion(true)
+      const audio = createFakeAudioPort()
+      const ref = createRef<PawnHandle>()
+      render(
+        <AudioProvider audio={audio}>
+          <svg>
+            <Pawn ref={ref} color="blue" restPosition={{ x: 0, y: 0 }} finalHopDuration={30} />
+          </svg>
+        </AudioProvider>,
+      )
+
+      const started = Date.now()
+      await act(async () => {
+        await ref.current?.hopThrough([{ x: 10, y: 0 }], { final: true })
+      })
+
+      expect(Date.now() - started).toBeLessThan(2000)
+      expect(audio.sfxLog).toEqual(['hop'])
+    })
+  })
+
   describe('settling into a new bay', () => {
     /**
      * Reads the position framer-motion actually wrote for the car's body. A

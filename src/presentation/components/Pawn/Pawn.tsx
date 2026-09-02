@@ -15,6 +15,7 @@ import type { PlayerColor } from '@domain/model/types'
 import type { IconName } from '@domain/model/icons'
 import { useAudio } from '../../hooks/useAudio'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { TEMPO } from '../../tempo'
 import { FAMILY_PALETTE, type CareerFamily } from '../CareerPlaque/families'
 import { driverGearFamily } from './careerGear'
 import { driverRegalia, type Regalia } from './regalia'
@@ -27,9 +28,20 @@ export interface PawnPoint {
   readonly y: number
 }
 
+export interface HopOptions {
+  /**
+   * True when the last point in this path is the last tile of the whole move
+   * — not merely the last of this leg. Only the caller can know that: a move
+   * is handed to the car one leg at a time, and a leg that ends on a
+   * swept-past tile has more road owed behind it. Marks the hop that gets the
+   * crouch and the slower arc; see `anticipate` below.
+   */
+  readonly final?: boolean
+}
+
 export interface PawnHandle {
   /** Hops the token through each point in turn, firing `hop` sfx per landing. */
-  hopThrough(path: readonly PawnPoint[]): Promise<void>
+  hopThrough(path: readonly PawnPoint[], options?: HopOptions): Promise<void>
 }
 
 export interface PawnProps {
@@ -44,8 +56,19 @@ export interface PawnProps {
   readonly restPosition: PawnPoint
   /** Length of the car, in the surrounding SVG's user units. */
   readonly size?: number
-  /** Seconds per single hop. Overridable for tests. */
+  /**
+   * Seconds per single hop. Overridable for tests. See `TEMPO.pawnHopSeconds`
+   * — the number is a pacing decision, not a taste one, and it is argued
+   * about there alongside everything else a turn has to wait for.
+   */
   readonly hopDuration?: number
+  /**
+   * Seconds for the *last* hop of a path, which crouches first and then
+   * travels a little slower than the ones before it. Anticipation is how
+   * animation says "this one matters", and the hop that decides where the
+   * turn resolves is the one that does.
+   */
+  readonly finalHopDuration?: number
   /** Seconds to settle into a new bay when fanned rivals rearrange. */
   readonly settleDuration?: number
   /** Short label painted on the door, e.g. a player's initial. */
@@ -393,8 +416,9 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
     color,
     restPosition,
     size = 34,
-    hopDuration = 0.32,
-    settleDuration = 0.28,
+    hopDuration = TEMPO.pawnHopSeconds,
+    finalHopDuration = TEMPO.pawnFinalHopSeconds,
+    settleDuration = TEMPO.pawnSettleSeconds,
     label,
     name,
     isActive = false,
@@ -464,9 +488,41 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restPosition.x, restPosition.y])
 
+  /**
+   * The crouch before the last hop of a path. A car that simply sets off at
+   * the same speed for every tile has no way of saying which tile was the
+   * one that mattered; a body that gathers itself first does, in less than a
+   * tenth of a second. Skipped under reduced motion along with everything
+   * else, and skipped for every hop but the last, where it would only read
+   * as the car stuttering.
+   */
+  const anticipate = useCallback((): Promise<void> => {
+    if (reduceMotion) return Promise.resolve()
+    return new Promise((resolve) => {
+      const controls = animate(0, 1, {
+        duration: TEMPO.pawnAnticipationSeconds,
+        ease: 'easeOut',
+        onUpdate: (v) => {
+          // Down and wide, the way anything about to jump goes: a sine over
+          // the whole crouch so it comes back out of it into the launch
+          // rather than snapping straight.
+          const crouch = Math.sin(Math.PI * v)
+          scaleY.set(1 - 0.14 * crouch)
+          scaleX.set(1 + 0.1 * crouch)
+        },
+        onComplete: () => {
+          scaleX.set(1)
+          scaleY.set(1)
+          resolve()
+        },
+      })
+      activeControls.current.push(controls)
+    })
+  }, [reduceMotion, scaleX, scaleY])
+
   const hopOnce = useCallback(
-    (from: PawnPoint, to: PawnPoint): Promise<void> => {
-      const duration = reduceMotion ? 0.01 : hopDuration
+    (from: PawnPoint, to: PawnPoint, isLast: boolean): Promise<void> => {
+      const duration = reduceMotion ? 0.01 : isLast ? finalHopDuration : hopDuration
       return new Promise((resolve) => {
         const controls = animate(0, 1, {
           duration,
@@ -496,18 +552,32 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
         activeControls.current.push(controls)
       })
     },
-    [reduceMotion, hopDuration, size, x, groundY, liftY, scaleX, scaleY, shadowScale, shadowOpacity],
+    [
+      reduceMotion,
+      hopDuration,
+      finalHopDuration,
+      size,
+      x,
+      groundY,
+      liftY,
+      scaleX,
+      scaleY,
+      shadowScale,
+      shadowOpacity,
+    ],
   )
 
   useImperativeHandle(
     ref,
     () => ({
-      async hopThrough(path) {
+      async hopThrough(path, options) {
         isHopping.current = true
         try {
           let from: PawnPoint = { x: x.get(), y: groundY.get() }
-          for (const to of path) {
-            await hopOnce(from, to)
+          for (const [index, to] of path.entries()) {
+            const isLast = (options?.final ?? false) && index === path.length - 1
+            if (isLast) await anticipate()
+            await hopOnce(from, to, isLast)
             audio.playSfx('hop')
             from = to
           }
@@ -516,7 +586,7 @@ export const Pawn = forwardRef<PawnHandle, PawnProps>(function Pawn(
         }
       },
     }),
-    [hopOnce, audio, x, groundY],
+    [hopOnce, anticipate, audio, x, groundY],
   )
 
   /* The car is laid out on a unit grid — one unit is its full length — so every

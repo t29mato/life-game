@@ -1,0 +1,94 @@
+/* ==========================================================================
+   PassingPop — the receipt for a tile the car only drove over.
+
+   Built to the same moulded-plastic rules as every other raised object on
+   this table (three-layer shadow, inset highlight along the top edge), but
+   deliberately smaller and quieter than a card: it is not asking for
+   anything, and it must never read as a thing to be dismissed. It rides in
+   the roll dock, above the die and the hop counter, which is where the
+   camera is already holding the car — so it lands over the tile it is
+   talking about without needing to know where that tile is.
+   ========================================================================== */
+
+/* Carries the tone custom properties and nothing else — see the note in
+   PassingPop.tsx. `display: contents` so the pop itself stays a direct flex
+   child of the roll dock. */
+.holder {
+  display: contents;
+}
+
+.pop {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: min(24rem, 92%);
+  padding: 0.5rem 0.9rem 0.55rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: var(--pop-tone-bg, var(--surface));
+  color: var(--pop-tone-ink, var(--ink));
+  box-shadow:
+    0 2px 3px rgba(92, 70, 34, 0.28),
+    0 12px 24px -10px rgba(92, 70, 34, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(92, 70, 34, 0.22);
+  /* Nothing here takes a press, and the board underneath it is still being
+     panned and read while it is up. */
+  pointer-events: none;
+}
+
+.emblem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 2px var(--pop-tone-edge, var(--ink)),
+    var(--elev-1);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 800;
+  font-size: 0.86rem;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.amount {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+/* The same two candies the card's money plate is enamelled in, darkened to
+   the weight text needs — a pop is small, and the plate's own white-on-mint
+   would be unreadable at this size. */
+.amountUp {
+  color: color-mix(in srgb, #000 34%, var(--candy-mint-dark));
+}
+
+.amountDown {
+  color: color-mix(in srgb, #000 28%, var(--candy-coral-dark));
+}
+
+.note {
+  font-size: 0.76rem;
+  opacity: 0.78;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

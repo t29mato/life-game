@@ -1,0 +1,48 @@
+/* ==========================================================================
+   ChoiceToast — the receipt for a press, riding low over the board so it
+   never covers the die or the car above it. Small, dark, and short-lived:
+   this is punctuation, not a message.
+   ========================================================================== */
+
+.toast {
+  position: absolute;
+  bottom: 1.1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: min(20rem, 92%);
+  padding: 0.38rem 0.85rem 0.42rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--ink) 88%, transparent);
+  color: #fff;
+  box-shadow:
+    0 10px 22px -10px rgba(30, 22, 10, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+
+.tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: var(--candy-mint);
+  color: #10391f;
+  font-size: 0.85rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.label {
+  font-size: 0.86rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

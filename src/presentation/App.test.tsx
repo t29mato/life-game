@@ -863,6 +863,127 @@ describe('a roll the player only drove past', () => {
 })
 
 /*
+ * Issue #14. v1.15.0 gave every tile a move swept past its own full modal
+ * card with its own Continue button — a real fix for a real complaint (a
+ * tuition bill from three tiles back used to be folded silently into whatever
+ * different tile the car finally stopped on). What it cost was the turn: one
+ * five-tile move in the playtest produced "Payday → Moving Out → Payday →
+ * Payday", four cards, three of them identical, four presses, for four tiles
+ * nobody chose to land on.
+ *
+ * The tile is still named, still priced, still logged. It just stops asking.
+ */
+describe('a tile the car only drove over', () => {
+  function droveOver(overrides: Partial<GameState['activePassedEvent']> = {}): GameState {
+    const store = startedGame()
+    return {
+      ...store.getState(),
+      phase: 'passingEvent',
+      activePassedEvent: {
+        spaceId: 'payday-3',
+        title: 'Payday',
+        description: 'Collect your pay.',
+        icon: 'space:payday',
+        tone: 'green',
+        moneyDelta: 37_000,
+        lifeTilesGained: [],
+        notes: [],
+        ...overrides,
+      } as GameState['activePassedEvent'],
+    }
+  }
+
+  it('pops on the board instead of putting up a card to dismiss', () => {
+    render(
+      <App
+        store={createStubStore(droveOver())}
+        audio={createFakeAudioPort()}
+        profiles={createInMemoryProfileRepository()}
+      />,
+    )
+
+    // Named and priced, exactly as the card named and priced it…
+    expect(screen.getByText('Payday')).toBeInTheDocument()
+    expect(screen.getByText('+$37,000')).toBeInTheDocument()
+    // …and with nothing to press and nothing trapping focus.
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
+  })
+
+  it('carries on by itself, with nobody pressing anything', async () => {
+    const stub = createStubStore(droveOver())
+    render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    expect(stub.commands).not.toContainEqual({ type: 'settle' })
+    await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), { timeout: 5000 })
+  })
+
+  /*
+   * The one exception the playtest itself carved out, and the right one: a
+   * Life Milestone is the game telling you something about your life rather
+   * than handing you a receipt, it brings its own confetti, and a whole game
+   * holds a handful of them rather than three in one move.
+   */
+  it('still stops for a Life Milestone', () => {
+    render(
+      <App
+        store={createStubStore(droveOver({ title: 'Get Married', emphasis: 'milestone' }))}
+        audio={createFakeAudioPort()}
+        profiles={createInMemoryProfileRepository()}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument()
+  })
+
+  /*
+   * The dwell is not decoration — it is the entire time anybody has to read
+   * the pop — so a player who has asked for less motion still gets to read
+   * it. Shorter, never zero, and never skipped.
+   */
+  it('still gives a reduced-motion player time to read the pop', async () => {
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      media: '(prefers-reduced-motion: reduce)',
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })
+    try {
+      const stub = createStubStore(droveOver())
+      render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+      expect(screen.getByText('+$37,000')).toBeInTheDocument()
+      expect(stub.commands).not.toContainEqual({ type: 'settle' })
+      await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), { timeout: 5000 })
+    } finally {
+      window.matchMedia = originalMatchMedia
+    }
+  })
+
+  /*
+   * An all-computer table already dismisses its own cards on a timer. With
+   * the pop's own timer now doing the same job, two of them would race to
+   * dispatch the same `settle` — and the loser does not land on a no-op: it
+   * resolves the landing at the far end of the move, several tiles early.
+   */
+  it('dispatches exactly one settle at an all-computer table', async () => {
+    const state = droveOver()
+    const stub = createStubStore({
+      ...state,
+      players: state.players.map((player) => ({ ...player, isCpu: true })),
+    })
+    render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), { timeout: 5000 })
+    // Long enough for the CPU timer (`CPU_THINK_MS.passingEvent`) to have
+    // fired too, had it not been held off.
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    expect(stub.commands.filter((command) => command.type === 'settle')).toHaveLength(1)
+  })
+})
+
+/*
  * The other half of the same promise, and the half that kept breaking.
  *
  * A single-option value spin gets `EventSpinModal` and a die somebody has to
@@ -927,7 +1048,13 @@ describe('a decision card answered by turning the die', () => {
 
     // The die, not the answer. Before the fix the outcome card was already
     // here, "Rolled 6" and a new job printed on it, one tick after the press.
-    const die = within(screen.getByRole('dialog')).getByRole('button', { name: /^roll$/i })
+    // Awaited rather than read straight off: an answer is now held on the
+    // card for `TEMPO.choiceConfirmMs` before it reaches the store, so the
+    // die takes that long to arrive. See `DecisionModal`'s confirm beat.
+    const die = await waitFor(
+      () => within(screen.getByRole('dialog')).getByRole('button', { name: /^roll$/i }),
+      { timeout: 8000 },
+    )
     expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/^Rolled$/)).not.toBeInTheDocument()
 
@@ -956,7 +1083,12 @@ describe('a decision card answered by turning the die', () => {
     const user = userEvent.setup()
     await user.click(screen.getByRole('option', { name: /call it a life/i }))
 
-    const die = within(screen.getByRole('dialog')).getByRole('button', { name: /^roll$/i })
+    // Through the card's own confirm beat first — see the Career Fair test
+    // just above.
+    const die = await waitFor(
+      () => within(screen.getByRole('dialog')).getByRole('button', { name: /^roll$/i }),
+      { timeout: 8000 },
+    )
     expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/^Rolled$/)).not.toBeInTheDocument()
 
@@ -1448,13 +1580,57 @@ describe('the die stepping aside for the driving car', () => {
   })
 })
 
+/*
+ * The card is for the moment a device physically changes hands, and it used
+ * to fire on every human turn regardless — including the turn after a
+ * computer seat's, where nobody has moved and there is nothing to hand over.
+ * A full-screen modal asking permission to continue at a table where nothing
+ * happened is the interruption issue #15 is about.
+ */
 describe('passing the device', () => {
-  it('interrupts between turns when more than one seat is human', () => {
+  /**
+   * Walks a real store to the opening of the next turn — the only phase the
+   * handoff decision is ever made in — dispatching straight to the store
+   * rather than through the UI, so this stays about *which* turn opens and
+   * not about how a die is pressed.
+   */
+  function advanceToNextTurn(store: ReturnType<typeof createGameStore>): void {
+    const startedOn = store.getState().currentPlayerIndex
+    let guard = 0
+    while (guard < 200) {
+      const state = store.getState()
+      if (state.phase === 'awaitingSpin' && state.currentPlayerIndex !== startedOn) return
+      if (awaitsRoll(state.phase)) store.dispatch({ type: 'spin' })
+      else if (state.phase === 'moving' || state.phase === 'passingEvent') store.dispatch({ type: 'settle' })
+      else if (state.phase === 'awaitingDecision') {
+        store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
+      } else if (state.phase === 'resolved') store.dispatch({ type: 'endTurn' })
+      else return
+      guard += 1
+    }
+  }
+
+  it('announces the opening turn rather than asking for it — nobody has handed anything over yet', () => {
     const store = startedGame([
       { name: 'Ada', color: 'red', isCpu: false },
       { name: 'Ben', color: 'blue', isCpu: false },
     ])
     render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    expect(screen.queryByRole('button', { name: /ready/i })).not.toBeInTheDocument()
+    expect(screen.getByText('Ada’s turn')).toBeInTheDocument()
+  })
+
+  it('interrupts when the device really does pass from one person to another', async () => {
+    const store = startedGame([
+      { name: 'Ada', color: 'red', isCpu: false },
+      { name: 'Ben', color: 'blue', isCpu: false },
+    ])
+    render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    await act(async () => {
+      advanceToNextTurn(store)
+    })
 
     expect(screen.getByRole('button', { name: /ready/i })).toBeInTheDocument()
   })
@@ -1467,6 +1643,37 @@ describe('passing the device', () => {
     render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
     expect(screen.queryByRole('button', { name: /ready/i })).not.toBeInTheDocument()
+  })
+
+  it('lets a table that wants the beat every turn keep it', () => {
+    window.localStorage.setItem('life-journey:handoff-mode', 'always')
+    try {
+      const store = startedGame([
+        { name: 'Ada', color: 'red', isCpu: false },
+        { name: 'Ben', color: 'blue', isCpu: false },
+      ])
+      render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+      // Even the opening turn, which no device changed hands for.
+      expect(screen.getByRole('button', { name: /ready/i })).toBeInTheDocument()
+    } finally {
+      window.localStorage.clear()
+    }
+  })
+
+  it('offers the preference on the card itself, where a table is already thinking about handoffs', () => {
+    window.localStorage.setItem('life-journey:handoff-mode', 'always')
+    try {
+      const store = startedGame([
+        { name: 'Ada', color: 'red', isCpu: false },
+        { name: 'Ben', color: 'blue', isCpu: false },
+      ])
+      render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+      expect(screen.getByRole('checkbox', { name: /every turn/i })).toBeChecked()
+    } finally {
+      window.localStorage.clear()
+    }
   })
 })
 

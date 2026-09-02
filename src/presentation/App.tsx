@@ -22,8 +22,10 @@ import type {
   GameState,
   LandingEvent,
   NewGameConfig,
+  Player,
   RollTableRow,
   ScoreRoll,
+  SpinValue,
 } from '@domain/model/types'
 import { spinOriginOf, type SpinOrigin } from '@domain/rules/spin'
 
@@ -41,12 +43,18 @@ import { PlayerStrip } from './components/PlayerStrip/PlayerStrip'
 import { ResultsScreen } from './components/ResultsScreen/ResultsScreen'
 import { Dice } from './components/Dice/Dice'
 import { MoveCounter } from './components/MoveCounter/MoveCounter'
+import { ChoiceToast } from './components/ChoiceToast/ChoiceToast'
+import { PassingPop } from './components/PassingPop/PassingPop'
+import { RollFlight } from './components/RollFlight/RollFlight'
 import { TitleScreen } from './components/TitleScreen/TitleScreen'
+import { TurnBanner } from './components/TurnBanner/TurnBanner'
 import { TurnHandoff } from './components/TurnHandoff/TurnHandoff'
 import { UpdateBanner } from './components/UpdateBanner/UpdateBanner'
 import { AudioProvider } from './hooks/useAudio'
 import { useGameState } from './hooks/useGameState'
+import { useHandoffMode } from './hooks/useHandoffMode'
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
+import { TEMPO } from './tempo'
 import { UiIcon } from './icons/ui'
 
 export interface AppProps {
@@ -99,6 +107,20 @@ const CPU_PHASES_ALL_COMPUTER: readonly GamePhase[] = [
   'resolved',
   'passingEvent',
 ]
+
+/**
+ * Whether a tile the car merely drove over still stops the game with a card.
+ *
+ * Almost none of them do any more — see the passing-event effect below for
+ * the whole argument — but a Life Milestone is the exception the playtest
+ * itself carved out, and it is the right one. A milestone is not a receipt;
+ * it is the game telling you something about your life, it brings its own
+ * confetti, and there are a handful of them in a whole game rather than three
+ * in one move. It keeps its card, its Continue, and its celebration.
+ */
+function passedEventKeepsCard(event: LandingEvent | null): boolean {
+  return event?.emphasis === 'milestone'
+}
 
 /** Both presses a fork asks for: the road, then how far down it. */
 const SPIN_PHASES: readonly GamePhase[] = ['awaitingSpin', 'awaitingDistanceSpin']
@@ -196,6 +218,12 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
    * along with it, and it would never get the chance to call back at all.
    */
   const [activeSpin, setActiveSpin] = useState<SpinOrigin | null>(null)
+  // Read through a ref by `handleSpinComplete`, which every die on screen
+  // shares: the callback must stay identity-stable (a die captures it when it
+  // arms, exactly as `Board` does with its own parent callbacks) and still
+  // know which die it was that just landed.
+  const activeSpinRef = useRef<SpinOrigin | null>(null)
+  activeSpinRef.current = activeSpin
 
   const handleSpin = useCallback(() => {
     setDieSettled(false)
@@ -203,10 +231,36 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
     store.dispatch({ type: 'spin' })
   }, [store])
 
+  /*
+   * The rolled number, thrown clear of the die towards the car — see
+   * `RollFlight`. Only ever for a *movement* roll: it exists to carry a
+   * number from the thing that produced it to the thing about to act on it,
+   * and an event or settlement roll's die is already sitting in the middle of
+   * the card that is going to spend it.
+   *
+   * Tokened rather than valued, because the store legitimately rolls the same
+   * number twice in a row and a flight keyed on the digit alone would simply
+   * not happen the second time — the same trap `Dice`'s own `rollToken`
+   * exists to sidestep.
+   */
+  const [rollFlight, setRollFlight] = useState<{ readonly value: SpinValue; readonly token: number } | null>(
+    null,
+  )
+
   const handleSpinComplete = useCallback(() => {
+    if (activeSpinRef.current === 'movement') {
+      const value = store.getState().lastSpin
+      if (value !== null) setRollFlight((prev) => ({ value, token: (prev?.token ?? 0) + 1 }))
+    }
     setDieSettled(true)
     setActiveSpin(null)
-  }, [])
+  }, [store])
+
+  useEffect(() => {
+    if (rollFlight === null) return
+    const timer = window.setTimeout(() => setRollFlight(null), TEMPO.rollFlightSeconds * 1000)
+    return () => window.clearTimeout(timer)
+  }, [rollFlight])
 
   const reduceMotion = usePrefersReducedMotion()
 
@@ -253,6 +307,78 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
    * the die, not on the map — see `.rollDock` in App.module.css.
    */
   const [spacesLeft, setSpacesLeft] = useState<number | null>(null)
+
+  /*
+   * --- passing events: shown, not waited on ------------------------------
+   *
+   * v1.15.0 gave every tile a move swept past its own full card with its own
+   * Continue button, and that was a genuine fix for a genuine complaint: a
+   * tuition bill collected three tiles back used to be folded silently into
+   * whatever different tile the car finally stopped on, so a "Scholarship
+   * Win" card could quietly carry somebody else's bill and there was no way
+   * to tell. Each passed tile needed to be named, in its own right, as its
+   * own thing that happened. That much is still true and still done.
+   *
+   * What it cost was the turn. A five-tile move in the playtest produced
+   * "Payday → Moving Out → Payday → Payday" — four modal cards, three of them
+   * visually identical, four presses, for four tiles nobody chose to land on.
+   * The card was answering "what happened here?" by seizing the screen, which
+   * is the right answer for a landing (the player rolled for it, it is the
+   * point of the turn, and it usually asks something) and the wrong one for a
+   * tile the car went over at speed.
+   *
+   * So a passed tile keeps everything except the interruption: it pops on the
+   * board where it happened (`PassingPop`), keeps its own log line exactly as
+   * before, and is listed again as a footnote on the landing card that ends
+   * the move (`passedThrough` / `passedSummary.ts`), aggregated so three
+   * paydays read as one line. The store is untouched — the `passingEvent`
+   * phase, the queue, `applyPassedEvent` and every number they produce are
+   * all exactly as they were. The only change is who dismisses the phase:
+   * a timer instead of a person.
+   *
+   * A Life Milestone is the exception and keeps its card; see
+   * `passedEventKeepsCard`.
+   */
+  const [passedTrail, setPassedTrail] = useState<readonly LandingEvent[]>([])
+  const passedPopVisible =
+    state.phase === 'passingEvent' &&
+    passedEvent !== null &&
+    dieSettled &&
+    !passedSpinVisible &&
+    !passedEventKeepsCard(passedEvent)
+
+  /*
+   * The timer that replaces the press. Keyed on the card's own identity
+   * through a ref rather than on a boolean, for exactly the reason
+   * `watchedPassedEvent` above is: `settle` builds a fresh `LandingEvent` for
+   * every item it drains, an effect can re-run for the same one, and a
+   * *second* `settle` dispatched against an item already drained would not
+   * be a no-op — it would resolve the landing at the far end of the move
+   * early, several tiles before the car got there.
+   */
+  const advancedPassedEvent = useRef<LandingEvent | null>(null)
+  useEffect(() => {
+    if (!passedPopVisible || passedEvent === null) return
+    if (advancedPassedEvent.current === passedEvent) return
+
+    // The dwell is not motion — it is the whole time anybody has to read the
+    // pop — so reduced motion shortens it rather than deleting it. Two-thirds
+    // is enough to lose the pop's own spring-in without losing the words.
+    const dwell = reduceMotion ? TEMPO.passingPopMs * 0.66 : TEMPO.passingPopMs
+    const timer = window.setTimeout(() => {
+      advancedPassedEvent.current = passedEvent
+      setPassedTrail((trail) => [...trail, passedEvent])
+      store.dispatch({ type: 'settle' })
+    }, dwell)
+    return () => window.clearTimeout(timer)
+  }, [passedPopVisible, passedEvent, reduceMotion, store])
+
+  // The trail belongs to one move. It is spent by the landing card the move
+  // ends on and cleared as the next turn opens — never at `resolved`, which
+  // is when the card that has to print it goes up.
+  useEffect(() => {
+    if (state.phase === 'awaitingSpin' || state.phase === 'setup') setPassedTrail([])
+  }, [state.phase])
 
   /**
    * A `none`-effect landing — nothing gained, nothing lost, no payday passed
@@ -405,9 +531,32 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
    * price, a road at a fork — is settled by the answer itself and goes
    * straight to the store, exactly as it always did.
    */
+  /*
+   * The second half of the confirm beat — see `DecisionModal`, which holds
+   * the chosen option lit for `TEMPO.choiceConfirmMs` before this ever runs.
+   * The toast rides over the board *after* play has moved on, so a choice
+   * that changes nothing visible ("Walk on by" at the bank, the one the
+   * playtest actually caught) still leaves a mark saying it was heard.
+   *
+   * Deliberately not raised for a computer seat: a card it answered itself
+   * has been on screen saying so, and the log has the line.
+   */
+  const [choiceToast, setChoiceToast] = useState<{ readonly label: string; readonly token: number } | null>(
+    null,
+  )
+  useEffect(() => {
+    if (choiceToast === null) return
+    const timer = window.setTimeout(() => setChoiceToast(null), TEMPO.choiceToastMs)
+    return () => window.clearTimeout(timer)
+  }, [choiceToast])
+
   const handleDecisionChoose = useCallback(
     (optionId: string) => {
-      const option = store.getState().pendingDecision?.options.find((entry) => entry.id === optionId)
+      const current = store.getState()
+      const option = current.pendingDecision?.options.find((entry) => entry.id === optionId)
+      if (!current.players[current.currentPlayerIndex]?.isCpu && option) {
+        setChoiceToast((prev) => ({ label: option.label, token: (prev?.token ?? 0) + 1 }))
+      }
       if (option?.turnsTheDie) {
         setChosenDieOptionId(optionId)
         return
@@ -564,14 +713,80 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
    */
   const startingTurn = state.phase === 'awaitingSpin'
 
+  /*
+   * Whether the device actually has to change hands.
+   *
+   * The full-stop card is right for exactly one situation: the person who
+   * just played and the person about to play are two different people
+   * sharing one screen. It was firing far more often than that — every human
+   * turn, in every game with two human seats, including the turn after a
+   * computer's, where nothing has moved and nobody has to be found. A modal
+   * asking permission to continue when nobody has left the chair is the kind
+   * of interruption that reads as the game not knowing what is going on.
+   *
+   * So the card is now gated on a real handoff: the previous seat to hold the
+   * turn was human, and it was somebody else. A turn following a computer
+   * seat, or the very first turn of a game (whoever set it up is holding the
+   * device already), announces itself with `TurnBanner` and gets on with it.
+   *
+   * `'always'` puts it back the way it was, for a table that wants the beat
+   * regardless — see `useHandoffMode`, and the checkbox on the card itself.
+   */
+  const [handoffMode, setHandoffMode] = useHandoffMode()
+  /*
+   * Decided once per turn and then held, which is the only shape that works
+   * here. "Who held the previous turn" has to be read *before* it is
+   * overwritten with who holds this one, so it cannot be an effect (the card
+   * would appear for one render and then dismiss itself as the effect caught
+   * up) and it cannot be recomputed every render (every turn would become its
+   * own predecessor). Keyed on `turnKey`, so the write is idempotent and a
+   * double render under StrictMode reaches the same answer.
+   */
+  const handoffDecision = useRef<{ readonly key: string; readonly needed: boolean } | null>(null)
+  const lastTurnHolder = useRef<Player | null>(null)
+  if (startingTurn && activePlayer && turnKey && handoffDecision.current?.key !== turnKey) {
+    const previous = lastTurnHolder.current
+    handoffDecision.current = {
+      key: turnKey,
+      needed: previous !== null && !previous.isCpu && previous.id !== activePlayer.id,
+    }
+    lastTurnHolder.current = activePlayer
+  }
+  const devicePassesHands =
+    handoffDecision.current?.key === turnKey && handoffDecision.current.needed
+
   const handoffVisible =
     humanSeats >= 2 &&
     startingTurn &&
     activePlayer !== undefined &&
     !activePlayer.isCpu &&
+    (handoffMode === 'always' || devicePassesHands) &&
     handoffAcknowledged !== turnKey
 
   const handleHandoffReady = useCallback(() => setHandoffAcknowledged(turnKey), [turnKey])
+
+  /*
+   * The quiet half: a turn that opens with no device to hand over still has
+   * to say whose it is. The banner shows for `TEMPO.turnBannerMs` and leaves
+   * on its own — no press, and nothing underneath it is blocked while it is
+   * up, so a player who already knows can roll straight through it.
+   *
+   * Not shown for a computer seat's turn: the header badge already names the
+   * seat, and a banner announcing a turn nobody is going to take is one more
+   * thing crossing the screen for no reason.
+   */
+  const [bannerTurnKey, setBannerTurnKey] = useState<string | null>(null)
+  useEffect(() => {
+    if (!startingTurn || !activePlayer || activePlayer.isCpu) return
+    if (handoffVisible) return
+    if (turnKey === null) return
+    setBannerTurnKey(turnKey)
+    const timer = window.setTimeout(() => setBannerTurnKey(null), TEMPO.turnBannerMs)
+    return () => window.clearTimeout(timer)
+    // Keyed on the turn alone: a re-render mid-banner must not restart it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnKey, startingTurn])
+  const bannerVisible = bannerTurnKey !== null && bannerTurnKey === turnKey && !handoffVisible
 
   // Visible for the whole life of the die it owns — from the moment the
   // decision names the stakes through the animation `handleValueSpin` sets
@@ -602,6 +817,13 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
     // one out from under the roll it exists to show.
     if (!dieSettled || handoffVisible || passedSpinVisible) return
     if (!cpuActingPhases.includes(state.phase)) return
+    /* A passing event that pops rather than carding is already owned by the
+       dwell timer above — for a computer seat exactly as for a person. Two
+       timers racing to dispatch the same `settle` is not a double no-op: the
+       loser resolves the landing at the far end of the move early. The
+       computer's own hand is still needed for the one passed card that
+       survives, a Life Milestone at an all-computer table. */
+    if (passedPopVisible) return
 
     const timer = window.setTimeout(() => {
       // A value spin is "press Spin" with nothing left to weigh, so a
@@ -633,6 +855,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
     dieSettled,
     handoffVisible,
     passedSpinVisible,
+    passedPopVisible,
     store,
     cpuActingPhases,
     eventSpinRequest,
@@ -943,7 +1166,20 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                   </div>
                 )}
 
+                {/* A tile the car drove over, said out loud on the board
+                    rather than in front of it. Sits above the hop counter so
+                    the two read as one column: what just happened, and how
+                    much further there is to go. */}
+                {passedPopVisible && passedEvent && (
+                  <PassingPop key={passedEvent.spaceId} event={passedEvent} editionId={state.editionId} />
+                )}
+
                 {spacesLeft !== null && <MoveCounter spacesLeft={spacesLeft} />}
+
+                {/* The roll, leaving the die for the car. Absolutely
+                    positioned over the dock's centre, so it costs the column
+                    above no layout at all. */}
+                {rollFlight && <RollFlight key={rollFlight.token} value={rollFlight.value} />}
 
                 {/* `aria-hidden` while the event modal is up: this die is
                     inert then (disabled, and correctly so — there is nothing
@@ -966,6 +1202,17 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                 </div>
 
               </div>
+
+              {/* Whose turn it is, for a turn nobody had to hand the device
+                  over for. Inside the board stage rather than over the whole
+                  shell: it belongs to the board the player is about to move
+                  on, and it must never sit over the header's own turn badge
+                  saying the same thing twice. */}
+              {bannerVisible && activePlayer && <TurnBanner player={activePlayer} turn={state.turn} />}
+
+              {/* And the receipt for a choice already made, low over the
+                  board where it cannot cover the die. */}
+              {choiceToast && <ChoiceToast key={choiceToast.token} label={choiceToast.label} />}
             </div>
           </section>
 
@@ -1108,28 +1355,39 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
               event={state.lastEvent}
               editionId={state.editionId}
               onMoneyLanded={handleMoneyLanded}
+              // Everything the move drove over on the way here, as a
+              // footnote. This is the other half of the bargain the passing
+              // pops strike: nothing stopped the game to tell you, so the
+              // card that *does* stop it carries the accounting.
+              passedThrough={passedTrail}
               onDismiss={() => store.dispatch({ type: 'endTurn' })}
             />
           )}
 
-        {/* A payday or event tile crossed on the way to wherever the pawn
-            actually stopped — its own card, named for its own tile, shown
-            before the destination's. Dismissing is just calling `settle`
-            again: the same command that first drained this item off the
-            queue also advances past it, exactly the way a fork mid-move
-            already re-enters `settle` without a dedicated command of its
-            own. Never folded into the landing card's notes — that was the
-            whole complaint this phase exists to fix: a card with no tile of
-            its own to point to. A tile whose outcome a die decided holds its
-            card back until that die has been watched land, just above. */}
-        {state.phase === 'passingEvent' && state.activePassedEvent && dieSettled && !passedSpinVisible && (
-          <EventCard
-            event={state.activePassedEvent}
-            editionId={state.editionId}
-            onMoneyLanded={handleMoneyLanded}
-            onDismiss={() => store.dispatch({ type: 'settle' })}
-          />
-        )}
+        {/* The one passed tile that still stops the game: a Life Milestone.
+            Every other one pops on the board and gets out of the way (see
+            `PassingPop` in the dock above, and the effect that dismisses it).
+            A milestone is different in kind — it is the game telling you
+            something about your life rather than handing you a receipt, it
+            brings the confetti with it, and a whole game holds a handful of
+            them rather than three in one move. Dismissing is still just
+            calling `settle` again: the same command that first drained this
+            item off the queue also advances past it, exactly the way a fork
+            mid-move already re-enters `settle` without a command of its own.
+            A tile whose outcome a die decided holds its card back until that
+            die has been watched land, just above. */}
+        {state.phase === 'passingEvent' &&
+          state.activePassedEvent &&
+          dieSettled &&
+          !passedSpinVisible &&
+          passedEventKeepsCard(state.activePassedEvent) && (
+            <EventCard
+              event={state.activePassedEvent}
+              editionId={state.editionId}
+              onMoneyLanded={handleMoneyLanded}
+              onDismiss={() => store.dispatch({ type: 'settle' })}
+            />
+          )}
 
         {handoffVisible && activePlayer && (
           <TurnHandoff
@@ -1137,6 +1395,8 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
             turn={state.turn}
             rank={standings.get(activePlayer.id)?.rank ?? state.players.length}
             onReady={handleHandoffReady}
+            alwaysAsk={handoffMode === 'always'}
+            onAlwaysAskChange={(alwaysAsk) => setHandoffMode(alwaysAsk ? 'always' : 'auto')}
           />
         )}
       </div>

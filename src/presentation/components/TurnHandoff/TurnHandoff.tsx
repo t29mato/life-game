@@ -13,6 +13,14 @@ export interface TurnHandoffProps {
   readonly turn: number
   readonly rank: number
   readonly onReady: () => void
+  /**
+   * Whether this card is set to open *every* human turn, or only the ones
+   * where the device actually changes hands. Omitting both this and
+   * `onAlwaysAskChange` hides the control entirely, which is what a caller
+   * with no preference to offer should do.
+   */
+  readonly alwaysAsk?: boolean
+  readonly onAlwaysAskChange?: (alwaysAsk: boolean) => void
 }
 
 /**
@@ -21,7 +29,14 @@ export interface TurnHandoffProps {
  * what stops a player from missing their own turn — it is impossible to
  * mistake for anything but a full stop.
  */
-export function TurnHandoff({ player, turn, rank, onReady }: TurnHandoffProps): ReactElement {
+export function TurnHandoff({
+  player,
+  turn,
+  rank,
+  onReady,
+  alwaysAsk,
+  onAlwaysAskChange,
+}: TurnHandoffProps): ReactElement {
   // No `onEscape`: there is no valid way to cancel a handoff.
   const containerRef = useModalFocusTrap<HTMLDivElement>()
   // The one thing this screen is for — so the same key that rolls the die
@@ -81,6 +96,25 @@ export function TurnHandoff({ player, turn, rank, onReady }: TurnHandoffProps): 
             I&rsquo;m ready
           </ChunkyButton>
         </div>
+
+        {/* The setting lives on the thing it controls.
+            By default this card only opens a turn where the device actually
+            has to change hands — a turn following a computer seat, or one
+            following the same person, gets a banner instead (`TurnBanner`).
+            Some tables would rather have the full stop every time regardless,
+            and this is where they say so: it is the one screen where a player
+            is definitely thinking about handoffs, and the only screen a table
+            in either mode is guaranteed to still see. */}
+        {onAlwaysAskChange ? (
+          <label className={styles.always}>
+            <input
+              type="checkbox"
+              checked={alwaysAsk ?? false}
+              onChange={(event) => onAlwaysAskChange(event.currentTarget.checked)}
+            />
+            <span>Show this every turn</span>
+          </label>
+        ) : null}
       </motion.div>
     </div>
   )
