@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactElement } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type ReactElement } from 'react'
 import { motion } from 'framer-motion'
 import type { EditionId, LandingEvent } from '@domain/model/types'
 import { editionFor } from '@domain/edition/registry'
@@ -13,6 +13,7 @@ import { Confetti } from '../Confetti/Confetti'
 import { CoinBurst, TransferLane } from '../CoinFlight/CoinFlight'
 import { CareerPlaque } from '../CareerPlaque/CareerPlaque'
 import { isCareerIcon } from '../CareerPlaque/families'
+import { summarizePassedEvents } from './passedSummary'
 import styles from './EventCard.module.css'
 
 export interface EventCardProps {
@@ -21,6 +22,15 @@ export interface EventCardProps {
   readonly onDismiss: () => void
   /** Which edition's money the delta is printed in. Defaults to the original board. */
   readonly editionId?: EditionId
+  /**
+   * Everything the car drove over on the way to this tile, in the order it
+   * drove over them. Each of these already had its say on the board as a
+   * `PassingPop`; this is the receipt, aggregated by tile so three paydays
+   * read as one line. Never the tile this card is about — only what was
+   * passed *on the way* — and absent entirely on a card that ended a move
+   * nothing was passed on, which is most of them.
+   */
+  readonly passedThrough?: readonly LandingEvent[]
 }
 
 // Cards from before `emphasis` existed still tint gold for a milestone —
@@ -31,7 +41,12 @@ const BURST_DELAY = 460
 const FLASH_RESET_DELAY = 420
 
 /** The modal shown once a landing effect has resolved. */
-export function EventCard({ event, onDismiss, editionId }: EventCardProps): ReactElement {
+export function EventCard({
+  event,
+  onDismiss,
+  editionId,
+  passedThrough,
+}: EventCardProps): ReactElement {
   const containerRef = useModalFocusTrap<HTMLDivElement>(onDismiss)
   const reduceMotion = usePrefersReducedMotion()
   const audio = useAudio()
@@ -42,6 +57,10 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
   const [burstTick, setBurstTick] = useState(0)
   const [coinTick, setCoinTick] = useState(0)
   const [flashing, setFlashing] = useState(false)
+  const passedSummary = useMemo(
+    () => (passedThrough && passedThrough.length > 0 ? summarizePassedEvents(passedThrough, currency) : []),
+    [passedThrough, currency],
+  )
 
   const emphasis = event.emphasis ?? 'normal'
   const isMilestone = emphasis === 'milestone' || (event.emphasis === undefined && MILESTONE_TONES.has(event.tone))
@@ -271,6 +290,21 @@ export function EventCard({ event, onDismiss, editionId }: EventCardProps): Reac
               {event.notes.map((note, index) => (
                 <li key={index} className={styles.note}>
                   {note}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {/* The road behind this tile. Everything here already popped on the
+              board as it happened — this is the receipt, so a player who
+              looked away for a second can still account for their balance
+              without opening the log. Set below the notes and printed
+              quieter than them on purpose: it is about somewhere else. */}
+          {passedSummary.length > 0 ? (
+            <ul className={styles.passedThrough} aria-label="Passed on the way here">
+              {passedSummary.map((line) => (
+                <li key={line} className={styles.passedLine}>
+                  {line}
                 </li>
               ))}
             </ul>

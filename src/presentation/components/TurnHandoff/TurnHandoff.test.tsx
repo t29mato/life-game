@@ -108,4 +108,41 @@ describe('TurnHandoff', () => {
     await user.tab()
     expect(button).toHaveFocus()
   })
+
+  /*
+   * Issue #15's "configurable" half. The setting lives on the thing it
+   * controls: this is the one screen a player is definitely thinking about
+   * handoffs on, and — in either mode — the only screen a two-human table is
+   * guaranteed to still meet.
+   */
+  describe('the every-turn preference', () => {
+    it('is absent entirely when the caller has no preference to offer', () => {
+      mockReducedMotion(true)
+      renderHandoff()
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    })
+
+    it('reports a change to the caller', async () => {
+      mockReducedMotion(true)
+      const user = userEvent.setup()
+      const onAlwaysAskChange = vi.fn()
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <TurnHandoff
+            player={makePlayer()}
+            turn={4}
+            rank={2}
+            onReady={vi.fn()}
+            alwaysAsk={false}
+            onAlwaysAskChange={onAlwaysAskChange}
+          />
+        </AudioProvider>,
+      )
+
+      const checkbox = screen.getByRole('checkbox', { name: /every turn/i })
+      expect(checkbox).not.toBeChecked()
+      await user.click(checkbox)
+      expect(onAlwaysAskChange).toHaveBeenCalledWith(true)
+    })
+  })
 })

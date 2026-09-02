@@ -810,7 +810,13 @@ export function Board({
           focusShot(projection, target, approachZoom(step, total, closest), containerAspectRef.current),
           reduceMotion ? 0 : FOLLOW_SECONDS,
         )
-        await ref?.hopThrough([target])
+        /* The crouch belongs to the last tile of the *move*, not of this
+           leg: a leg that ends on a swept-past tile still has road owed
+           behind it, and a car that gathers itself for a hop it is going to
+           make three more of reads as a stumble rather than as an arrival. */
+        await ref?.hopThrough([target], {
+          final: step === total - 1 && pendingHopsRef.current === 0,
+        })
         spacesLeft -= 1
         onSpacesLeftChangeRef.current?.(spacesLeft)
       }

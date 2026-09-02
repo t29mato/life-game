@@ -177,6 +177,45 @@
   outline-offset: 3px;
 }
 
+/* ---- The confirm beat ---------------------------------------------------
+   The moment between a press and the game obeying it. The chosen option is
+   pressed *in* — lip gone, sunk on the page, ringed in the same mint the
+   money plate uses for a gain — and everything it was chosen over fades back
+   and stops offering itself. It lasts `TEMPO.choiceConfirmMs`, which is long
+   enough to see and too short to wait for.
+
+   `:disabled` is on every option by then (the beat must not take a second
+   answer), so these rules restate the shape rather than leaning on any
+   default disabled styling, and `opacity` is left to the dimmed rule alone
+   so a confirmed option never fades along with the ones it beat. */
+.optionConfirmed {
+  --lip: 0px;
+
+  background: var(--surface);
+  transform: translateY(3px) scale(0.995);
+  box-shadow:
+    0 0 0 3px var(--candy-mint),
+    0 4px 12px -6px rgba(92, 70, 34, 0.35);
+  animation: none;
+}
+
+.optionDimmed {
+  opacity: 0.34;
+  filter: saturate(0.6);
+  transform: translateY(0) scale(0.985);
+  animation: none;
+}
+
+/* Reduced motion keeps the beat and drops the travel: the ring and the fade
+   are what say "this one", and neither of them moves. */
+@media (prefers-reduced-motion: reduce) {
+  .optionConfirmed,
+  .optionDimmed {
+    transform: none;
+    transition: none;
+  }
+}
+
 /* A CPU's options are display-only: no pointer, no hover, no focus. The
    quiet chase of `cpuConsider` reads as the computer weighing each one in
    turn, so the pause feels like thought rather than a stalled UI. */

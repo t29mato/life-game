@@ -1,0 +1,83 @@
+/* ==========================================================================
+   TurnBanner — the announcement a turn gets when there is no device to hand
+   over. Same moulded plastic as everything else on this table, washed in the
+   incoming player's own colour so it is readable from across the room before
+   a single word of it is parsed — which is the whole job.
+
+   It sits near the top of the board rather than over its middle: the middle
+   belongs to the die and the car, and a banner that has to be waited out
+   before you can see what you are about to roll onto would be exactly the
+   interruption it exists to remove.
+   ========================================================================== */
+
+/* Carries the player-colour custom properties and nothing else — see the
+   note in TurnBanner.tsx. `display: contents` so the banner's own absolute
+   positioning still resolves against the board stage. */
+.holder {
+  display: contents;
+}
+
+.banner {
+  position: absolute;
+  top: 0.9rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  max-width: min(22rem, 92%);
+  padding: 0.42rem 1rem 0.48rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--player-light) 0%, var(--player-base) 100%);
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.28);
+  box-shadow:
+    0 2px 3px rgba(40, 28, 12, 0.3),
+    0 14px 26px -12px rgba(40, 28, 12, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -2px 0 var(--player-dark);
+  /* Announced, never operated. */
+  pointer-events: none;
+}
+
+.pip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  background: var(--player-dark);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.28);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.02rem;
+  min-width: 0;
+}
+
+.turn {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.82;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-weight: 900;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

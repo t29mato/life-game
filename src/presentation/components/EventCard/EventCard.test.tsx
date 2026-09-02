@@ -70,6 +70,38 @@ describe('EventCard', () => {
     expect(screen.getByText(/World Trip/)).toBeInTheDocument()
   })
 
+  /*
+   * The other half of demoting passing events (issue #14): nothing stopped
+   * the game to tell the player what they drove over, so the card that *does*
+   * stop it carries the accounting.
+   */
+  describe('the road behind', () => {
+    it('lists what was passed on the way here, aggregated', () => {
+      mockReducedMotion(true)
+      const payday = makeEvent({ title: 'Payday', moneyDelta: 37_000 })
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard
+            event={makeEvent({ title: 'Buy a House' })}
+            passedThrough={[payday, payday, payday]}
+            onDismiss={() => {}}
+          />
+        </AudioProvider>,
+      )
+      expect(screen.getByText('Passed Payday ×3 · +$111,000')).toBeInTheDocument()
+    })
+
+    it('says nothing at all when nothing was passed', () => {
+      mockReducedMotion(true)
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard event={makeEvent()} passedThrough={[]} onDismiss={() => {}} />
+        </AudioProvider>,
+      )
+      expect(screen.queryByLabelText(/passed on the way/i)).not.toBeInTheDocument()
+    })
+  })
+
   it('renders notes', () => {
     mockReducedMotion(true)
     const event = makeEvent({ notes: ['Salary raised to $65,000'] })

@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties, type KeyboardEvent, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactElement } from 'react'
 import { motion } from 'framer-motion'
 import type { Board, Decision } from '@domain/model/types'
 import { GameIcon } from '../../icons/GameIcon'
@@ -8,6 +8,7 @@ import { RollTable } from '../RollTable/RollTable'
 import { useAudio } from '../../hooks/useAudio'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { TEMPO } from '../../tempo'
 import { LANE_CHARACTER_LABEL, previewLane, summarizeLane } from './branchPreview'
 import styles from './DecisionModal.module.css'
 
@@ -58,6 +59,37 @@ export function DecisionModal({
   const reduceMotion = usePrefersReducedMotion()
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([])
   const cpuName = cpuPlayerName?.trim() || 'The computer'
+
+  /*
+   * --- the confirm beat ---------------------------------------------------
+   *
+   * A press used to go straight through to `onChoose`, and the card was gone
+   * in the same frame. For an option that *does* something visible — a house
+   * bought, a career taken — the next card covers for that. For "Walk on by"
+   * at the bank it does not: nothing changes, so the entire feedback for the
+   * press was the card disappearing, which is indistinguishable from the card
+   * disappearing for any other reason.
+   *
+   * So the press is now answered before it is obeyed. The chosen option stays
+   * lit; everything else on the card dims and stops taking presses; and only
+   * then does the answer go to the store, with `ChoiceToast` carrying it a
+   * moment further over the board once play has moved on.
+   *
+   * `TEMPO.choiceConfirmMs` deliberately survives `prefers-reduced-motion`:
+   * the dimming is motion and collapses with everything else, but "did that
+   * register?" is not a question a motion preference has an opinion about,
+   * and a player who has asked for less animation has asked for *less
+   * animation*, not for less certainty.
+   */
+  const [confirmedId, setConfirmedId] = useState<string | null>(null)
+  const onChooseRef = useRef(onChoose)
+  onChooseRef.current = onChoose
+
+  useEffect(() => {
+    if (confirmedId === null) return
+    const timer = window.setTimeout(() => onChooseRef.current(confirmedId), TEMPO.choiceConfirmMs)
+    return () => window.clearTimeout(timer)
+  }, [confirmedId])
 
   const focusOption = (index: number): void => {
     const count = decision.options.length
@@ -212,6 +244,9 @@ export function DecisionModal({
               )
             }
 
+            const isConfirmed = confirmedId === option.id
+            const isDimmed = confirmedId !== null && !isConfirmed
+
             return (
               <button
                 key={option.id}
@@ -220,13 +255,25 @@ export function DecisionModal({
                 }}
                 type="button"
                 role="option"
-                aria-selected="false"
-                className={styles.option}
+                aria-selected={isConfirmed}
+                className={[
+                  styles.option,
+                  isConfirmed ? styles.optionConfirmed : '',
+                  isDimmed ? styles.optionDimmed : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 style={{ '--stagger': `${index * 55}ms` } as CSSProperties}
                 onFocus={() => audio.playSfx('select')}
+                // Disabled from the moment any option is confirmed: the beat
+                // below is short, but it is long enough for a second press —
+                // on this option or another — and a decision answered twice
+                // is a bug the store would have every right to throw over.
+                disabled={confirmedId !== null}
                 onClick={() => {
+                  if (confirmedId !== null) return
                   audio.playSfx('confirm')
-                  onChoose(option.id)
+                  setConfirmedId(option.id)
                 }}
               >
                 {content}

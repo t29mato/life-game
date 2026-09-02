@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { Board, Decision, Space } from '@domain/model/types'
@@ -264,7 +264,9 @@ describe('DecisionModal', () => {
       </AudioProvider>,
     )
     await user.keyboard('{ArrowDown}{Enter}')
-    expect(onChoose).toHaveBeenCalledWith('b')
+    // Through the confirm beat: the answer is held for `TEMPO.choiceConfirmMs`
+    // before it reaches the store. See the confirm-beat suite below.
+    await waitFor(() => expect(onChoose).toHaveBeenCalledWith('b'))
   })
 
   it('calls onChoose when an option is clicked', async () => {
@@ -276,7 +278,58 @@ describe('DecisionModal', () => {
       </AudioProvider>,
     )
     await user.click(screen.getByRole('option', { name: /Artist/ }))
-    expect(onChoose).toHaveBeenCalledWith('c')
+    await waitFor(() => expect(onChoose).toHaveBeenCalledWith('c'))
+  })
+
+  /*
+   * The confirm beat (issue #16). Choosing used to produce no feedback at all
+   * — the card vanished and the next player's turn was on screen — which is
+   * worst for an option that changes nothing visible, like declining a loan.
+   */
+  describe('the confirm beat', () => {
+    it('holds the answer briefly instead of dispatching it in the same tick', async () => {
+      const user = userEvent.setup()
+      const onChoose = vi.fn()
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <DecisionModal decision={makeDecision()} board={makeBoard()} onChoose={onChoose} />
+        </AudioProvider>,
+      )
+      await user.click(screen.getByRole('option', { name: /Pilot/ }))
+      expect(onChoose).not.toHaveBeenCalled()
+      await waitFor(() => expect(onChoose).toHaveBeenCalledWith('b'))
+    })
+
+    it('marks the chosen option as selected while it is held', async () => {
+      const user = userEvent.setup()
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <DecisionModal decision={makeDecision()} board={makeBoard()} onChoose={() => {}} />
+        </AudioProvider>,
+      )
+      await user.click(screen.getByRole('option', { name: /Pilot/ }))
+      expect(screen.getByRole('option', { name: /Pilot/ })).toHaveAttribute('aria-selected', 'true')
+      expect(screen.getByRole('option', { name: /Chef/ })).toHaveAttribute('aria-selected', 'false')
+    })
+
+    /*
+     * The beat is short but it is not zero, and a decision answered twice is
+     * something the store would be entitled to throw over. Every option is
+     * disabled the moment one of them is confirmed.
+     */
+    it('takes no second answer while the beat is running', async () => {
+      const user = userEvent.setup()
+      const onChoose = vi.fn()
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <DecisionModal decision={makeDecision()} board={makeBoard()} onChoose={onChoose} />
+        </AudioProvider>,
+      )
+      await user.click(screen.getByRole('option', { name: /Pilot/ }))
+      await user.click(screen.getByRole('option', { name: /Chef/ }))
+      await waitFor(() => expect(onChoose).toHaveBeenCalledTimes(1))
+      expect(onChoose).toHaveBeenCalledWith('b')
+    })
   })
 
   it('renders a lane preview of the upcoming spaces for a branch decision', () => {
@@ -475,6 +528,6 @@ describe('DecisionModal', () => {
     expect(screen.getByText('The Crêpe Van Bet')).toBeInTheDocument()
     expect(screen.getByText(/higher is always better/)).toBeInTheDocument()
     await user.click(screen.getByRole('option', { name: /roll/i }))
-    expect(onChoose).toHaveBeenCalledWith('value-spin')
+    await waitFor(() => expect(onChoose).toHaveBeenCalledWith('value-spin'))
   })
 })
