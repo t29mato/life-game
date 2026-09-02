@@ -284,10 +284,14 @@ describe('DecisionModal', () => {
       </AudioProvider>,
     )
     await user.keyboard('{ArrowDown}[Space]')
-    expect(onChoose).toHaveBeenCalledWith('b')
+    // Through the confirm beat, like every other answer in this file: the key
+    // presses the option, and the option is held lit for a moment before it
+    // reports. Asserting synchronously here only passed while choosing was
+    // instant.
+    await waitFor(() => expect(onChoose).toHaveBeenCalledWith('b'))
   })
 
-  it('takes the first option on a key pressed with focus nowhere in particular', () => {
+  it('takes the first option on a key pressed with focus nowhere in particular', async () => {
     const onChoose = vi.fn()
     render(
       <AudioProvider audio={createFakeAudioPort()}>
@@ -298,7 +302,7 @@ describe('DecisionModal', () => {
 
     fireEvent.keyDown(window, { key: ' ' })
 
-    expect(onChoose).toHaveBeenCalledWith('a')
+    await waitFor(() => expect(onChoose).toHaveBeenCalledWith('a'))
   })
 
   it('names both keys in its hint', () => {
