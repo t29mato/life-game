@@ -43,16 +43,22 @@ import {
   approachZoom,
   arrivalZoom,
   cameraTransform,
+  clampUserZoom,
   flythroughShots,
   focusShot,
   handoffPanSeconds,
   restSequence,
+  stepUserZoom,
+  userZoomedShot,
   wideShot,
   RESOLVE_ZOOM,
+  USER_ZOOM_FIT,
   type CameraShot,
+  type CameraTransform,
 } from './camera'
 import { Pocket, Scenery } from './Scenery'
 import { TilePopover } from './TilePopover'
+import { ZoomControls } from './ZoomControls'
 import styles from './Board.module.css'
 
 export interface BoardProps {
@@ -148,6 +154,49 @@ const CAMERA_EASE: readonly [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 /** How far a pointer may drift from where it went down and still count as a tap on the tile under it, not a pan past it. */
 const TAP_THRESHOLD_PX = 6
+
+/**
+ * Seconds a zoom takes. Much shorter than a camera move: a press of + is a
+ * direct manipulation, and anything long enough to read as travel reads as
+ * lag instead. Long enough only that the map is seen to move rather than to
+ * cut.
+ */
+const ZOOM_SECONDS = 0.18
+
+/**
+ * How much zoom a pixel of wheel travel is worth, as an exponent — a
+ * notch of a typical mouse wheel (100px) is about a fifth of the way in,
+ * a trackpad's finer deltas accumulate smoothly to the same place.
+ */
+const WHEEL_ZOOM_PER_PIXEL = 0.0018
+
+/** What a line of wheel delta is worth in pixels, for the browsers that report `deltaMode: 1`. */
+const WHEEL_LINE_PIXELS = 16
+
+/**
+ * Whether the page behind the board has anything to scroll.
+ *
+ * A wheel over the map is ambiguous in a way a button never is: on the two
+ * locked layouts (`.shell` at phone and wide-desktop widths sets a hard
+ * height and `overflow: hidden`) there is no page scroll for it to mean, so
+ * taking it for zoom costs nothing. In the fallback layout — whatever odd
+ * window size neither of those blocks answers — the page *does* scroll, and
+ * a map that swallowed the wheel there would trap a player halfway down
+ * their own screen. So a plain wheel zooms only where scrolling is not on
+ * offer; `ctrlKey` (a trackpad pinch, or a held ctrl) is the browser's own
+ * unambiguous zoom gesture and is always taken.
+ */
+function pageCanScroll(): boolean {
+  const doc = document.documentElement
+  return doc.scrollHeight > doc.clientHeight + 1
+}
+
+/** The distance between the first two live pointers, or null while fewer than two are down. */
+function pinchSpread(pointers: ReadonlyMap<number, Point>): number | null {
+  const [first, second] = [...pointers.values()]
+  if (!first || !second) return null
+  return Math.hypot(second.x - first.x, second.y - first.y)
+}
 
 interface TileView {
   readonly space: Space
@@ -493,6 +542,26 @@ export function Board({
   /** True until the opening sweep is done: nothing else may touch the camera. */
   const flyingRef = useRef(introFlythrough)
 
+  /**
+   * How far the player has zoomed the map in themselves, on top of whatever
+   * shot the camera chose — see `userZoomedShot`. `USER_ZOOM_FIT` is every
+   * framing this component has ever produced, unchanged, which is where it
+   * starts and where the reset key puts it back.
+   *
+   * A `MotionValue`, and deliberately not React state and not the game
+   * store. Not the store, because none of this is the game: it is how one
+   * person is looking at it right now, no different from having scrolled a
+   * page — it must not travel in an autosave, must not reach the other
+   * players in a handoff, and the store's own state is the record of what
+   * has happened, which a zoom never is. Not React state either, because a
+   * pinch or a trackpad zoom changes this on every pointer frame, and the
+   * board is several thousand SVG nodes that must not re-render for a
+   * camera change — the same reason the shot itself is written straight
+   * onto a group's transform attribute a few lines below. `ZoomControls`
+   * subscribes to it and repaints alone.
+   */
+  const userZoom = useMotionValue(USER_ZOOM_FIT)
+
   /* The shot is written straight onto the group's `transform` attribute rather
      than handed to a `motion.g`. React never sets that attribute, so it can
      never reset the camera mid-move, and the identity transform is exactly the
@@ -509,25 +578,17 @@ export function Board({
     return () => stops.forEach((stop) => stop())
   }, [camX, camY, camScale])
 
-  const applyShot = useCallback(
-    (shot: CameraShot, seconds: number): Promise<void> => {
-      lastShotRef.current = shot
-      const target = cameraTransform(projection, shot, containerAspectRef.current)
-
-      /* On a narrow screen the drawing is wider than its column and pans. The
-         transform always lands the shot's centre on the middle of the drawing,
-         so keeping the drawing centred is all the panning that is ever needed. */
-      const surface = surfaceRef.current
-      if (surface) {
-        const overflow = surface.scrollWidth - surface.clientWidth
-        if (overflow > 1) {
-          surface.scrollTo({
-            left: clamp((surface.scrollWidth - surface.clientWidth) / 2, 0, overflow),
-            behavior: seconds > 0 ? 'smooth' : 'auto',
-          })
-        }
-      }
-
+  /**
+   * Move the camera to an already-computed transform.
+   *
+   * Split out from `applyShot` because a zoom does not have a shot: it acts
+   * on wherever the frame actually is — including wherever a free-look drag
+   * has since dragged it — rather than on where the camera last decided it
+   * ought to be. Both paths must stop the same running animations and record
+   * the same handles, which is exactly what this owns.
+   */
+  const driveCamera = useCallback(
+    (target: CameraTransform, seconds: number): Promise<void> => {
       cameraControls.current.forEach((controls) => controls.stop())
       cameraControls.current = []
 
@@ -548,7 +609,39 @@ export function Board({
       cameraControls.current = [...running]
       return Promise.all(running.map((controls) => controls.finished)).then(() => undefined)
     },
-    [projection, camX, camY, camScale],
+    [camX, camY, camScale],
+  )
+
+  const applyShot = useCallback(
+    (shot: CameraShot, seconds: number): Promise<void> => {
+      /* The shot is recorded as the camera chose it, *without* the player's
+         zoom folded in: it is the mark the camera is holding, and a reset has
+         to be able to go back to it exactly. The magnification is applied on
+         the way to the DOM and nowhere else. */
+      lastShotRef.current = shot
+      const target = cameraTransform(
+        projection,
+        userZoomedShot(shot, userZoom.get()),
+        containerAspectRef.current,
+      )
+
+      /* On a narrow screen the drawing is wider than its column and pans. The
+         transform always lands the shot's centre on the middle of the drawing,
+         so keeping the drawing centred is all the panning that is ever needed. */
+      const surface = surfaceRef.current
+      if (surface) {
+        const overflow = surface.scrollWidth - surface.clientWidth
+        if (overflow > 1) {
+          surface.scrollTo({
+            left: clamp((surface.scrollWidth - surface.clientWidth) / 2, 0, overflow),
+            behavior: seconds > 0 ? 'smooth' : 'auto',
+          })
+        }
+      }
+
+      return driveCamera(target, seconds)
+    },
+    [projection, userZoom, driveCamera],
   )
 
   useEffect(() => {
@@ -557,6 +650,99 @@ export function Board({
       cameraControls.current = []
     }
   }, [])
+
+  /* ── zoom ──────────────────────────────────────────────────────────────
+     The one part of the camera the player holds. Everything below routes
+     through `zoomTo`: the rail's keys, a wheel, a trackpad pinch and two
+     fingers on a phone all mean the same thing and must land in the same
+     place. */
+
+  /**
+   * Zoom the map to `requested`, holding whatever is at the middle of the
+   * frame where it is.
+   *
+   * Anchored on the frame's centre rather than on the pointer, at every
+   * entry point, on purpose: the centre of this particular screen is where
+   * the die sits and where the camera parks the active car, so it is the one
+   * spot a player is reliably already looking at — and one anchor for keys,
+   * wheel and pinch alike means the map behaves the same way however it is
+   * asked.
+   *
+   * Worked on the live transform, not by re-deriving a shot: by the time a
+   * player reaches for the zoom they may well have dragged the board
+   * somewhere of their own (free look, below), and re-framing on the last
+   * shot would snap that away as the price of a closer look. The reset key
+   * is where going back to the camera's own mark belongs.
+   *
+   * Mid-move is the one moment this stays out of: the movement effect is
+   * driving a shot per hop and the drag handler already refuses for the same
+   * reason. The new zoom is still recorded, so the very next hop's shot —
+   * a fraction of a second away — arrives at it.
+   */
+  const zoomTo = useCallback(
+    (requested: number): void => {
+      const previous = userZoom.get()
+      const next = clampUserZoom(requested)
+      if (next === previous) return
+      userZoom.set(next)
+      if (phase === 'moving') return
+
+      /* The player has taken the camera; the opening sweep, if it is still
+         running, has lost its claim on it — same bargain as a drag. */
+      flyingRef.current = false
+
+      const ratio = next / previous
+      const scale = camScale.get() * ratio
+      const held = (translate: number, span: number): number =>
+        clamp(span / 2 - (span / 2 - translate) * ratio, span * (1 - scale), 0)
+
+      void driveCamera(
+        {
+          x: held(camX.get(), projection.viewWidth),
+          y: held(camY.get(), projection.viewHeight),
+          scale,
+        },
+        reduceMotion ? 0 : ZOOM_SECONDS,
+      )
+    },
+    [userZoom, phase, driveCamera, camX, camY, camScale, projection, reduceMotion],
+  )
+
+  const zoomIn = useCallback(() => zoomTo(stepUserZoom(userZoom.get(), 1)), [zoomTo, userZoom])
+  const zoomOut = useCallback(() => zoomTo(stepUserZoom(userZoom.get(), -1)), [zoomTo, userZoom])
+
+  /**
+   * Back to the camera's own framing — the zoom let go of *and* the free-look
+   * pan with it, which is why this cannot just be `zoomTo(USER_ZOOM_FIT)`:
+   * a map dragged off its mark at fit has a zoom that is already 1 and still
+   * needs putting back.
+   */
+  const resetZoom = useCallback((): void => {
+    userZoom.set(USER_ZOOM_FIT)
+    if (phase === 'moving') return
+    flyingRef.current = false
+    void applyShot(lastShotRef.current, reduceMotion ? 0 : ZOOM_SECONDS)
+  }, [userZoom, phase, applyShot, reduceMotion])
+
+  /**
+   * Wheel and trackpad. Bound natively rather than through `onWheel` because
+   * React attaches wheel listeners passively, where `preventDefault` is
+   * ignored — and a zoom that does not consume the gesture leaves the
+   * browser free to zoom the whole page underneath it at the same time.
+   * `pageCanScroll` is what keeps this off an ordinary scroll.
+   */
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+    const onWheel = (event: WheelEvent): void => {
+      if (!event.ctrlKey && pageCanScroll()) return
+      event.preventDefault()
+      const pixels = event.deltaMode === 0 ? event.deltaY : event.deltaY * WHEEL_LINE_PIXELS
+      zoomTo(userZoom.get() * Math.exp(-pixels * WHEEL_ZOOM_PER_PIXEL))
+    }
+    svg.addEventListener('wheel', onWheel, { passive: false })
+    return () => svg.removeEventListener('wheel', onWheel)
+  }, [zoomTo, userZoom])
 
   /**
    * Free look: drag the board (swipe on touch) to pan it, and tap a tile
@@ -586,6 +772,19 @@ export function Board({
     readonly panning: boolean
     moved: number
   } | null>(null)
+  /**
+   * Every finger currently on the board, and the pinch a second one starts.
+   *
+   * Two fingers on a map mean zoom in every other app a player has ever
+   * used, and the board already claims the gesture from the browser
+   * (`touch-action: none` on `.svg`, for the pan) — so not answering it
+   * would mean the pinch simply did nothing, which reads as broken rather
+   * than as unsupported. The first finger's drag is abandoned the moment
+   * the second lands: a pinch that also panned would slide the map out from
+   * under the fingers doing the pinching.
+   */
+  const pointersRef = useRef<Map<number, Point>>(new Map())
+  const pinchRef = useRef<{ readonly spread: number; readonly zoom: number } | null>(null)
   const [selectedTile, setSelectedTile] = useState<{ readonly space: Space; readonly anchor: Point } | null>(
     null,
   )
@@ -593,6 +792,16 @@ export function Board({
   const handleBoardPointerDown = useCallback(
     (event: ReactPointerEvent<SVGSVGElement>) => {
       if (event.pointerType === 'mouse' && event.button !== 0) return
+      pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      event.currentTarget.setPointerCapture?.(event.pointerId)
+
+      const spread = pinchSpread(pointersRef.current)
+      if (spread !== null) {
+        dragRef.current = null
+        pinchRef.current = { spread, zoom: userZoom.get() }
+        return
+      }
+
       const panning = phase !== 'moving'
       dragRef.current = {
         pointerId: event.pointerId,
@@ -603,18 +812,27 @@ export function Board({
         panning,
         moved: 0,
       }
-      event.currentTarget.setPointerCapture?.(event.pointerId)
       if (panning) {
         cameraControls.current.forEach((controls) => controls.stop())
         cameraControls.current = []
         flyingRef.current = false
       }
     },
-    [phase, camX, camY],
+    [phase, camX, camY, userZoom],
   )
 
   const handleBoardPointerMove = useCallback(
     (event: ReactPointerEvent<SVGSVGElement>) => {
+      if (pointersRef.current.has(event.pointerId)) {
+        pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      }
+      const pinch = pinchRef.current
+      if (pinch) {
+        const spread = pinchSpread(pointersRef.current)
+        if (spread !== null && pinch.spread > 0) zoomTo((pinch.zoom * spread) / pinch.spread)
+        return
+      }
+
       const drag = dragRef.current
       if (!drag || event.pointerId !== drag.pointerId) return
       const dxScreen = event.clientX - drag.startX
@@ -636,11 +854,17 @@ export function Board({
       camX.set(clamp(drag.camX0 + dxScreen / renderScale, minX, 0))
       camY.set(clamp(drag.camY0 + dyScreen / renderScale, minY, 0))
     },
-    [projection, camX, camY, camScale],
+    [projection, camX, camY, camScale, zoomTo],
   )
 
   const handleBoardPointerUp = useCallback(
     (event: ReactPointerEvent<SVGSVGElement>) => {
+      pointersRef.current.delete(event.pointerId)
+      // The pinch is over as soon as one of its two fingers is: the finger
+      // still down is not a pan resumed halfway, and must not be treated as
+      // a tap on whatever tile it happens to be resting on either.
+      if (pointersRef.current.size < 2) pinchRef.current = null
+
       const drag = dragRef.current
       if (!drag || event.pointerId !== drag.pointerId) return
       dragRef.current = null
@@ -1258,6 +1482,15 @@ export function Board({
           </g>
         </svg>
       </div>
+
+      {/* Inside the card, over the map, and after the drawing in the DOM so
+          the keys are the last thing a tab pass through the board reaches
+          rather than something a keyboard has to get past to leave it.
+          Inside `.frame` matters for another reason too: the board's own
+          box is what `e2e/layout.spec.ts` measures against its grid cell,
+          and a control added as a *sibling* of the card would be a second
+          box in that cell for the layout to get wrong. */}
+      <ZoomControls zoom={userZoom} onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetZoom} />
 
       {/* The drawing is a single image to assistive technology, so who is on the
           board — and, above all, who is riding with them — is stated here in

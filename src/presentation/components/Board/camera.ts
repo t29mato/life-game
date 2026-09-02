@@ -52,6 +52,78 @@ export const MILESTONE_ZOOM = 1.85
 /** The opening sweep, high enough to read the road ahead. */
 export const FLYTHROUGH_ZOOM = 1.45
 
+/* ── the player's own zoom ─────────────────────────────────────────────────
+   Everything above is the camera deciding for itself what the moment calls
+   for. This is the one dial the *player* holds, and it deliberately sits on
+   top of all of it rather than beside it: a magnification applied to
+   whichever shot the camera would have taken anyway, so a player who has
+   zoomed in still gets the rest shot's lean down the road, the approach's
+   ease into a milestone, and the handoff pan to the next car — only closer.
+   A second, independent camera would have had to re-answer every one of
+   those questions, and would have answered them worse. */
+
+/** No magnification at all — exactly the framing every shot above was designed to produce. */
+export const USER_ZOOM_FIT = 1
+
+/**
+ * As close as the player may pull the map in, as a multiple of the shot's
+ * own zoom. Four is roughly two tiles across a phone's width at the rest
+ * shot — close enough to read a caption with a thumb over the screen, and
+ * short of the point where the board's card stock and the road's own strokes
+ * (drawn for a map, not for an inspection) start to look thin.
+ */
+export const USER_ZOOM_MAX = 4
+
+/**
+ * What one press of the + or − button is worth. A ratio rather than an
+ * addition, because zoom is felt multiplicatively: the same press has to
+ * read as the same size of change whether the map is at fit or already
+ * halfway in. Chosen so the whole range is six presses — few enough that
+ * reaching the far end is not a chore, coarse enough that a press is
+ * visibly worth pressing.
+ */
+export const USER_ZOOM_STEP = 1.32
+
+/**
+ * How near fit a stepped-down zoom has to land before it is taken to *be*
+ * fit. Float noise alone (1.32 / 1.32 is not exactly 1) would otherwise
+ * leave the map a hair inside fit with the zoom-out button still lit and
+ * nothing left to give, and a player stepping all the way back out is
+ * asking for the default framing, not for 100.3%.
+ */
+const USER_ZOOM_FIT_SNAP = 1.04
+
+/** The player's zoom, held inside the range the map is actually drawn for. */
+export function clampUserZoom(zoom: number): number {
+  // A pinch whose two fingers land on the same pixel divides by zero and
+  // hands us a NaN, which `clamp` would pass straight through and the
+  // transform would then write into the DOM as the string "NaN" — a blank
+  // board. Read as "no zoom asked for" instead; an infinity is just the far
+  // end of the range and clamps there like any other number.
+  if (Number.isNaN(zoom)) return USER_ZOOM_FIT
+  return clamp(zoom, USER_ZOOM_FIT, USER_ZOOM_MAX)
+}
+
+/** One press of the zoom controls: `direction` is +1 to close in, -1 to pull back. */
+export function stepUserZoom(zoom: number, direction: number): number {
+  const stepped = clampUserZoom(zoom * (direction >= 0 ? USER_ZOOM_STEP : 1 / USER_ZOOM_STEP))
+  return stepped <= USER_ZOOM_FIT * USER_ZOOM_FIT_SNAP ? USER_ZOOM_FIT : stepped
+}
+
+/**
+ * `shot`, magnified by however far the player has zoomed in.
+ *
+ * At fit it returns the shot itself, untouched and by identity — the
+ * default framing is not "the zoom feature happening to be set to 1", it is
+ * the same object the camera has always handed to `cameraTransform`, and
+ * every existing test that asserts an exact transform is still asserting
+ * against exactly that.
+ */
+export function userZoomedShot(shot: CameraShot, userZoom: number): CameraShot {
+  const zoom = clampUserZoom(userZoom)
+  return zoom === USER_ZOOM_FIT ? shot : { ...shot, zoom: shot.zoom * zoom }
+}
+
 /** How many hops out from a milestone the camera starts easing in. */
 const APPROACH_HOPS = 3
 

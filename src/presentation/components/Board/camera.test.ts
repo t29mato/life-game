@@ -5,6 +5,7 @@ import {
   approachZoom,
   arrivalZoom,
   cameraTransform,
+  clampUserZoom,
   flythroughShots,
   focusShot,
   handoffPanSeconds,
@@ -13,6 +14,8 @@ import {
   restSequence,
   routeBounds,
   shotRect,
+  stepUserZoom,
+  userZoomedShot,
   wideShot,
   FLYTHROUGH_ZOOM,
   FOLLOW_ZOOM,
@@ -20,6 +23,9 @@ import {
   REST_DIE_CLEARANCE,
   REST_ZOOM,
   RESOLVE_ZOOM,
+  USER_ZOOM_FIT,
+  USER_ZOOM_MAX,
+  USER_ZOOM_STEP,
   WIDE_SHOT_PADDING_TILES,
   type CameraShot,
 } from './camera'
@@ -670,5 +676,88 @@ describe('the distances themselves', () => {
     expect(REST_ZOOM).toBeGreaterThan(FOLLOW_ZOOM)
     expect(RESOLVE_ZOOM).toBeGreaterThan(REST_ZOOM)
     expect(MILESTONE_ZOOM).toBeGreaterThan(RESOLVE_ZOOM)
+  })
+})
+
+/**
+ * The player's own zoom sits on top of every shot above rather than beside
+ * them — see `userZoomedShot`. What these pin down is the contract the rest
+ * of the camera is entitled to rely on: at fit nothing whatsoever changes,
+ * the range is bounded at both ends, and a player who steps all the way back
+ * out lands exactly on fit rather than a hair inside it.
+ */
+describe('the player’s own zoom', () => {
+  it('leaves a shot completely alone at fit — the default framing is not a zoom level', () => {
+    const shot = focusShot(projection, { x: 500, y: 400 }, REST_ZOOM)
+
+    // By identity: this is the same object the camera has always handed to
+    // `cameraTransform`, not an equal one rebuilt through the zoom layer.
+    expect(userZoomedShot(shot, USER_ZOOM_FIT)).toBe(shot)
+    expect(cameraTransform(projection, userZoomedShot(shot, USER_ZOOM_FIT))).toEqual(
+      cameraTransform(projection, shot),
+    )
+  })
+
+  it('multiplies whatever zoom the shot itself asked for, keeping where it points', () => {
+    const shot = focusShot(projection, { x: 500, y: 400 }, REST_ZOOM)
+    const closer = userZoomedShot(shot, 2)
+
+    expect(closer.zoom).toBeCloseTo(REST_ZOOM * 2, 10)
+    expect(closer.cx).toBe(shot.cx)
+    expect(closer.cy).toBe(shot.cy)
+  })
+
+  it('shows strictly less board the further in the player zooms', () => {
+    const shot = focusShot(projection, { x: 500, y: 400 }, REST_ZOOM)
+    const fit = shotRect(projection, userZoomedShot(shot, USER_ZOOM_FIT))
+    const closer = shotRect(projection, userZoomedShot(shot, 2))
+
+    expect(closer.width).toBeLessThan(fit.width)
+    expect(closer.height).toBeLessThan(fit.height)
+  })
+
+  it('never pulls back past fit, however hard it is asked to', () => {
+    // Below fit is where the board stops covering the frame at all — the
+    // same floor `WIDE_ZOOM` holds inside `shotRect`.
+    expect(clampUserZoom(0.4)).toBe(USER_ZOOM_FIT)
+    expect(clampUserZoom(0)).toBe(USER_ZOOM_FIT)
+    expect(clampUserZoom(-3)).toBe(USER_ZOOM_FIT)
+    expect(clampUserZoom(Number.NaN)).toBe(USER_ZOOM_FIT)
+  })
+
+  it('never zooms past the limit, however hard it is asked to', () => {
+    expect(clampUserZoom(USER_ZOOM_MAX * 10)).toBe(USER_ZOOM_MAX)
+    expect(clampUserZoom(Number.POSITIVE_INFINITY)).toBe(USER_ZOOM_MAX)
+  })
+
+  it('steps in and back out by the same ratio', () => {
+    expect(stepUserZoom(USER_ZOOM_FIT, 1)).toBeCloseTo(USER_ZOOM_STEP, 10)
+    expect(stepUserZoom(2, 1)).toBeCloseTo(2 * USER_ZOOM_STEP, 10)
+    expect(stepUserZoom(2, -1)).toBeCloseTo(2 / USER_ZOOM_STEP, 10)
+  })
+
+  it('lands exactly on fit on the way back out, never a hair inside it', () => {
+    // Float noise alone would leave `x / STEP * STEP` a shade off 1, which
+    // is a zoom-out button still lit with nothing left to give.
+    expect(stepUserZoom(stepUserZoom(USER_ZOOM_FIT, 1), -1)).toBe(USER_ZOOM_FIT)
+    expect(stepUserZoom(1.02, -1)).toBe(USER_ZOOM_FIT)
+    expect(stepUserZoom(USER_ZOOM_FIT, -1)).toBe(USER_ZOOM_FIT)
+  })
+
+  it('walks the whole range in a handful of presses, and stops there', () => {
+    let zoom = USER_ZOOM_FIT
+    const presses: number[] = []
+    for (let i = 0; i < 20; i += 1) {
+      zoom = stepUserZoom(zoom, 1)
+      presses.push(zoom)
+    }
+
+    expect(zoom).toBe(USER_ZOOM_MAX)
+    // Few enough that the far end is reachable without a chore of pressing.
+    expect(presses.indexOf(USER_ZOOM_MAX)).toBeLessThanOrEqual(7)
+    // And monotone the whole way — no press ever gives ground back.
+    for (let i = 1; i < presses.length; i += 1) {
+      expect(presses[i] as number).toBeGreaterThanOrEqual(presses[i - 1] as number)
+    }
   })
 })

@@ -13,6 +13,8 @@ import { type ReactElement } from 'react'
 export type UiIconName =
   | 'dice'
   | 'plus'
+  | 'minus'
+  | 'zoom-fit'
   | 'rocket'
   | 'folder'
   | 'wallet'
@@ -54,6 +56,23 @@ function Glyph({ name }: { readonly name: UiIconName }): ReactElement {
           d="M12 4V20M4 12H20"
           stroke="currentColor"
           strokeWidth="2.6"
+          strokeLinecap="round"
+        />
+      )
+    case 'minus':
+      return (
+        <path d="M4 12H20" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+      )
+    /* Back to fit: four corner brackets closing on the whole map again — the
+       same bracket language the board itself uses to mark the space a car is
+       standing on, so "frame the lot" reads the same in both places. */
+    case 'zoom-fit':
+      return (
+        <path
+          d="M4 9V5.6C4 4.7 4.7 4 5.6 4H9M15 4h3.4c.9 0 1.6.7 1.6 1.6V9M20 15v3.4c0 .9-.7 1.6-1.6 1.6H15M9 20H5.6C4.7 20 4 19.3 4 18.4V15"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
           strokeLinecap="round"
         />
       )
