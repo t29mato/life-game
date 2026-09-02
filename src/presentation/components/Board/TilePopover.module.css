@@ -112,6 +112,30 @@
   color: var(--ink);
 }
 
+/* Line one: what the tile does. Loud, tabular where it is a figure, and
+   coloured by direction — the same green/red/purple the tile's own cut edge
+   is painted in on the board, so the card and the board agree on sight. */
+.effect {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.effect[data-sign='gain'] {
+  color: var(--candy-mint-dark);
+}
+
+.effect[data-sign='cost'] {
+  color: var(--candy-coral-dark);
+}
+
+.effect[data-sign='choice'] {
+  color: var(--candy-grape-dark);
+}
+
 .description {
   margin: 0;
   font-size: 0.86rem;

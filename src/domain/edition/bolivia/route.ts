@@ -131,7 +131,9 @@ const WORK_LANE: readonly SpaceContent[] = [
     id: 'bo-work-first-night', kind: 'normal', title: 'First Night In',
     description: 'You unpack by candlelight because the landlady still has not fixed the wiring on your floor.',
     effect: { type: 'none' },
-    tone: 'orange', icon: 'space:rent-due',
+    // Nothing happens here, so it does not wear the rent arrow. See the USA
+    // board's own First Night In.
+    tone: 'orange', icon: 'space:move-in-day',
   },
   {
     id: 'bo-work-association', kind: 'event', title: 'The Association Fee',
@@ -270,7 +272,10 @@ const MARKET_STREET_LATE: readonly SpaceContent[] = [
   setback('veryHard', 'bo-main-tax-audit', 'Tax Audit',
     'A very formal letter, a long afternoon with a shoebox of receipts, and a figure at the bottom that has clearly already been decided.',
     { type: 'payMoney', amount: 15_000, reason: 'Tax audit settlement' },
-    'slate', 'space:refund-check'),
+    // A brown envelope with a number at the bottom is a bill, and the
+    // refund cheque next door on the safe road is money coming the other
+    // way. One picture cannot be both.
+    'slate', 'space:tuition-bill'),
   {
     id: 'bo-main-contract-ends', kind: 'normal', title: 'Contract Ends',
     description: 'The contract everyone swore blind would renew in January is, very quietly, not renewed. The farewell cake is excellent.',
@@ -354,7 +359,7 @@ const CAREER_TRACK: readonly SpaceContent[] = [
   setback('hard', 'bo-fast-burnout', 'Burnout Leave',
     'Six weeks signed off with a doctor\'s note, and the envelope is a great deal lighter by the time you walk back in.',
     { type: 'payMoney', amount: 12_000, reason: 'Unpaid leave' },
-    'orange', 'space:steady-hustle'),
+    'orange', 'space:layoff-notice'),
   {
     id: 'bo-fast-payday-severance', kind: 'payday', title: 'Year-End Payroll',
     description: 'The year winds down, and whatever this job pays lands in your account one more time before everything changes again.',
@@ -457,7 +462,7 @@ const DOLLAR_ROAD: readonly SpaceContent[] = [
     id: 'bo-risky-bad-tip', kind: 'normal', title: 'Bad Stock Tip',
     description: 'The "sure thing" you announced to the whole table over dice night loses half its value in a week, and honour demands you buy everyone dinner about it.',
     effect: { type: 'payEach', amount: 2_000, reason: 'Bad stock tip' },
-    tone: 'pink', icon: 'space:stock-tip',
+    tone: 'pink', icon: 'space:market-crash',
   },
   {
     id: 'bo-risky-cacho', kind: 'normal', title: 'Dice Night',
@@ -589,7 +594,10 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   setback('veryHard', 'bo-sunset-final-tax', 'Final Tax Bill',
     'One last formal envelope from the tax office arrives before the shutters come down for good.',
     { type: 'payMoney', amount: 22_000, reason: 'Final tax bill' },
-    'slate', 'space:refund-check'),
+    // A brown envelope with a number at the bottom is a bill, and the
+    // refund cheque next door on the safe road is money coming the other
+    // way. One picture cannot be both.
+    'slate', 'space:tuition-bill'),
   flavour('bo-sunset-ahead', 'Sunset Ahead', 'From the rooftop, the mountain turns rose-gold at dusk, the way it has every evening you were too busy to look.', 'slate', 'space:sunset-ahead'),
 ]
 

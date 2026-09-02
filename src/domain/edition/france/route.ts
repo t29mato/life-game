@@ -133,7 +133,9 @@ const WORK_LANE: readonly SpaceContent[] = [
     id: 'fr-work-first-night', kind: 'normal', title: 'First Night In',
     description: 'You unpack by lamplight, because the overhead bulb has not made it off the shopping list yet.',
     effect: { type: 'none' },
-    tone: 'orange', icon: 'space:rent-due',
+    // Nothing happens here, so it does not wear the rent arrow. See the USA
+    // board's own First Night In.
+    tone: 'orange', icon: 'space:move-in-day',
   },
   {
     id: 'fr-work-gear', kind: 'event', title: 'Work Gear Deposit',
@@ -272,7 +274,10 @@ const BOULEVARD_LATE: readonly SpaceContent[] = [
   setback('veryHard', 'fr-main-tax-audit', 'Tax Audit',
     'A very polite letter from the tax office leads to a long afternoon sorting through a shoebox of receipts — and a final bill that seems to have been decided in advance.',
     { type: 'payMoney', amount: 15_000, reason: 'Tax audit settlement' },
-    'slate', 'space:refund-check'),
+    // A brown envelope with a number at the bottom is a bill, and the
+    // refund cheque next door on the safe road is money coming the other
+    // way. One picture cannot be both.
+    'slate', 'space:tuition-bill'),
   {
     id: 'fr-main-cdd-ends', kind: 'normal', title: 'The Fixed Term Ends',
     description: 'Your short-term contract, which everyone promised would become permanent, quietly is not renewed. The farewell card is very nice, at least.',
@@ -356,7 +361,7 @@ const EXECUTIVE_TRACK: readonly SpaceContent[] = [
   setback('hard', 'fr-fast-burnout', 'Burnout Leave',
     'A doctor signs you off work for six weeks and calmly uses the word "overwork." Your pay is much lighter by the time you return.',
     { type: 'payMoney', amount: 12_000, reason: 'Unpaid leave' },
-    'orange', 'space:steady-hustle'),
+    'orange', 'space:layoff-notice'),
   {
     id: 'fr-fast-payday-severance', kind: 'payday', title: 'Year-End Payroll',
     description: 'The year closes out, and whatever this job pays lands in your account one more time before the org chart is redrawn.',
@@ -459,7 +464,7 @@ const SPECULATION_STREET: readonly SpaceContent[] = [
     id: 'fr-risky-bad-tip', kind: 'normal', title: 'Bad Stock Tip',
     description: 'Your "sure thing" stock tanks in a week. You buy the table dinner to make up for recommending it in the first place.',
     effect: { type: 'payEach', amount: 2_000, reason: 'Bad stock tip' },
-    tone: 'pink', icon: 'space:stock-tip',
+    tone: 'pink', icon: 'space:market-crash',
   },
   {
     id: 'fr-risky-casino', kind: 'normal', title: 'The Casino Weekend',
@@ -591,7 +596,10 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   setback('veryHard', 'fr-sunset-final-tax', 'Final Tax Bill',
     'One last letter from the tax office arrives just before you retire for good.',
     { type: 'payMoney', amount: 22_000, reason: 'Final tax bill' },
-    'slate', 'space:refund-check'),
+    // A brown envelope with a number at the bottom is a bill, and the
+    // refund cheque next door on the safe road is money coming the other
+    // way. One picture cannot be both.
+    'slate', 'space:tuition-bill'),
   flavour('fr-sunset-ahead', 'Sunset Ahead', 'The plane trees along the old road flicker by in the evening light — the same way they always have, on evenings you were too busy to notice.', 'slate', 'space:sunset-ahead'),
 ]
 

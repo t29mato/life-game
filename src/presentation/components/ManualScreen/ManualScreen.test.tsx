@@ -31,6 +31,30 @@ afterEach(async () => {
   await new Promise((resolve) => setTimeout(resolve, 0))
 })
 
+describe('the Handbook agrees with the rules', () => {
+  /*
+   * D4: the booklet still said "A fork asks twice: pick the road first, then
+   * roll again" long after roads went onto the die. `resolveForkBranch` splits
+   * the six faces in half and nobody picks anything, so the booklet says that
+   * instead — and this test is what stops it drifting back.
+   */
+  it('says the die picks the road, not the player', () => {
+    renderManual()
+
+    const steps = screen.getByText('How a turn works').closest('section') as HTMLElement
+    expect(steps).toHaveTextContent(/the first picks the road for you/i)
+    expect(steps).toHaveTextContent(/1 to 3 one way, 4 to 6 the other/i)
+    expect(steps).not.toHaveTextContent(/pick the road first/i)
+  })
+
+  it('keeps the key to the board where a player can find it again', () => {
+    renderManual()
+
+    expect(screen.getByText('What the marks mean')).toBeInTheDocument()
+    expect(screen.getByText(/red-and-white stripe/i)).toBeInTheDocument()
+  })
+})
+
 describe('ManualScreen', () => {
   it('renders the masthead and the four booklet sections', () => {
     renderManual()

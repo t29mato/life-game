@@ -16,6 +16,7 @@ import { HOUSES, STOCKS } from '@domain/edition/usa'
 import type { GameState, NewGamePlayer, Player, SpinValue } from '@domain/model/types'
 
 import { App } from './App'
+import { forgetBoardLegend } from './components/BoardLegend/seen'
 import { createFakeAudioPort } from './dev/fakeAudio'
 
 const { useRegisterSWMock } = vi.hoisted(() => ({ useRegisterSWMock: vi.fn() }))
@@ -90,6 +91,48 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+})
+
+/*
+ * D1's other half: the board's marks now mean one thing each, and the game
+ * says so out loud, once. `src/test/setup.ts` marks the card seen before every
+ * test — a fresh jsdom is otherwise a first game every time — so these two
+ * clear the flag themselves.
+ */
+describe('the key to the board, dealt once', () => {
+  it('goes up over a first-ever game', () => {
+    forgetBoardLegend()
+    render(
+      <App store={startedGame()} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />,
+    )
+
+    expect(screen.getByRole('dialog', { name: /one picture, one meaning/i })).toBeInTheDocument()
+  })
+
+  it('never comes back once it has been read', async () => {
+    forgetBoardLegend()
+    const user = userEvent.setup()
+    const { unmount } = render(
+      <App store={startedGame()} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /got it/i }))
+    expect(screen.queryByRole('dialog', { name: /one picture, one meaning/i })).not.toBeInTheDocument()
+    unmount()
+
+    render(
+      <App store={startedGame()} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />,
+    )
+    expect(screen.queryByRole('dialog', { name: /one picture, one meaning/i })).not.toBeInTheDocument()
+  })
+
+  it('stays out of the way of a table that has played before', () => {
+    render(
+      <App store={startedGame()} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />,
+    )
+
+    expect(screen.queryByRole('dialog', { name: /one picture, one meaning/i })).not.toBeInTheDocument()
+  })
 })
 
 describe('remembering players', () => {
@@ -654,7 +697,13 @@ describe('a roll the player only drove past', () => {
         tone: 'purple',
         moneyDelta: 0,
         lifeTilesGained: [],
-        notes: ['Rolled a 3.', 'Ada becomes a Chef!'],
+        // One note, and it is the outcome. This fixture used to carry two —
+        // "Rolled a 3." and the hire — with the roll already printed on the
+        // card as the die and said again in the narration. A card shows its
+        // first note and folds the rest away now (see `EventCard`), so a
+        // fixture that buries the outcome under a repeat is a fixture that
+        // hides it.
+        notes: ['Ada becomes a Chef!'],
         emphasis: 'milestone',
         narration: 'A 3! Ada is hired as a Chef.',
         ...(rolled === undefined ? {} : { rolled }),
@@ -763,7 +812,9 @@ describe('a roll the player only drove past', () => {
     // A flat payday, a fixed charge: there is no die to watch, so the card is
     // readable the instant the pawn stops on the tile, same as it always was.
     expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument()
-    expect(screen.queryByText(/passing through/i)).not.toBeInTheDocument()
+    // No die screen in between. Asked by the card's own identity rather than
+    // by its words: the finished card names itself "Passing through" too now.
+    expect(screen.queryByTestId('event-spin')).not.toBeInTheDocument()
   })
 
   it('hands over the finished card immediately under reduced motion', () => {
@@ -785,7 +836,7 @@ describe('a roll the player only drove past', () => {
 
       // No die, no wait, no in-between state — the whole step collapses to
       // the card it was always leading to.
-      expect(screen.queryByText(/passing through/i)).not.toBeInTheDocument()
+      expect(screen.queryByTestId('event-spin')).not.toBeInTheDocument()
       expect(screen.getByText('Ada becomes a Chef!')).toBeInTheDocument()
     } finally {
       window.matchMedia = originalMatchMedia

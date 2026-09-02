@@ -51,7 +51,11 @@ describe('icon registry', () => {
   })
 
   it('keeps the small-size vocabulary small enough to read at tile size', () => {
-    expect(Object.keys(glyphArt).length).toBeLessThanOrEqual(16)
+    // Seventeen since the bank took a mark of its own. It had been sharing the
+    // rising chart with the stock market, which is how a playtester landed on
+    // a chart and was asked whether they wanted a loan. The ceiling is here to
+    // stop the set growing a glyph per subject — it is not a budget to spend.
+    expect(Object.keys(glyphArt).length).toBeLessThanOrEqual(17)
   })
 
   it('renders every category glyph at small sizes without throwing', () => {

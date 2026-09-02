@@ -5,6 +5,7 @@ import type { CurrencySpec, Edition } from '@domain/edition/types'
 import { allEditions, DEFAULT_EDITION_ID } from '@domain/edition/registry'
 import { hiringPoolFor, ladderPositionOf } from '@domain/edition/lookup'
 import { editionDisplayName, formatSalary } from '../../format'
+import { BoardLegendList } from '../BoardLegend/BoardLegend'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { GameIcon } from '../../icons/GameIcon'
 import { CareerPlaque } from '../CareerPlaque/CareerPlaque'
@@ -24,8 +25,16 @@ export interface ManualScreenProps {
  */
 const TURN_STEPS: readonly { readonly title: string; readonly body: string }[] = [
   {
+    /*
+     * This step used to read "A fork asks twice: pick the road first, then
+     * roll again" — which stopped being true when forks went onto the die.
+     * Nobody picks a road any more: the first roll picks it, 1-3 one way and
+     * 4-6 the other, and the second roll is the distance. Verified against
+     * `resolveForkBranch` and `spin` rather than taken on trust, because a
+     * handbook that disagrees with the rules is worse than no handbook.
+     */
     title: 'Roll the die',
-    body: 'Every turn starts with one roll, 1 to 6. A fork asks twice: pick the road first, then roll again for how far down it you drive.',
+    body: 'Every turn starts with one roll, 1 to 6. A fork takes two: the first picks the road for you — 1 to 3 one way, 4 to 6 the other — and the second is how far down it you drive.',
   },
   {
     title: 'Drive the road',
@@ -412,6 +421,13 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
             </li>
           ))}
         </ul>
+
+        {/* The key to the marks themselves — the same card a first-time
+            player is dealt once before their first roll, kept here for ever
+            so "what does the red-and-white stripe mean?" has an answer
+            inside the game rather than only in somebody's memory. */}
+        <h3 className={styles.subHeading}>What the marks mean</h3>
+        <BoardLegendList />
       </section>
 
       <section className={styles.section} aria-labelledby="manual-careers">
