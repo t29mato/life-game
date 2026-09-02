@@ -65,6 +65,25 @@
   border-radius: var(--radius-sm);
 }
 
+/* ---- Six faces, and a die still on screen underneath them ----------------
+   A die that pays per pip publishes a row per face. Six rows at the sizing
+   above is a quarter of a phone's screen of table sitting between the card's
+   stakes line and the die the player came here to press — so a table this
+   long keeps its columns and gives up its leading. Vertically only: see
+   `DENSE_ABOVE_ROWS` for why the six faces are not laid out side by side.
+   -------------------------------------------------------------------------- */
+.dense th,
+.dense td {
+  padding: 0.24rem 0.9rem;
+  font-size: 0.86rem;
+}
+
+.dense.compact th,
+.dense.compact td {
+  padding: 0.16rem 0.6rem;
+  font-size: 0.78rem;
+}
+
 /* ---- An offer row: plaque beside the trade, then its own money columns ---
    The name is the row's subject and stays as loud as one; `td:last-child`
    above would otherwise mute whichever column happens to come last, so the

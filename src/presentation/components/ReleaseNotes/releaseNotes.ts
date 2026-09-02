@@ -23,6 +23,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
     date: 'August 29, 2026',
     whatsNew: [],
     changes: [
+      "Every roll that decides money now shows you what each face of the die pays before you press it — 1 through 6, in your own edition's money. Paydays on unsteady work, casual shifts between jobs, a windfall, the gift envelopes at a birth, the joint account, the year in your trade, and the fund you retire early on. No more doing six multiplications in your head off a rate printed in a sentence.",
       "A payday or event tile you sweep past mid-move now gets its own card, named for that tile, shown right there before your turn's final card — no more guessing which stop a line in the notes actually came from.",
       "Payday itself always shows a card now, even on a flat salary with no wheel to spin — the money still changed, so it still gets a moment on screen.",
     ],

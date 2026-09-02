@@ -1,6 +1,7 @@
 import type { Money, SpinValue } from '../model/types'
 import { SPIN_FACES } from '../model/constants'
 import type { EconomyConstants, MarriageOutcome } from '../edition/types'
+import { SPIN_VALUES } from './diePayout'
 
 /**
  * What the wheel does at the altar.
@@ -40,10 +41,7 @@ export function marriageOutcomeValue(
 }
 
 /** Every face of the die, so an average is an average and not an estimate. */
-const EVERY_SPIN: readonly SpinValue[] = Array.from(
-  { length: SPIN_FACES },
-  (_, index) => (index + 1) as SpinValue,
-)
+const EVERY_SPIN = SPIN_VALUES
 
 /**
  * What marrying is worth on average, before anybody turns the wheel.
