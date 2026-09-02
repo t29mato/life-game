@@ -117,10 +117,12 @@ function spacesIn(segment: WalkedSegment): readonly SpaceContent[] {
 // ---------------------------------------------------------------------------
 // Layout engine: a simple serpentine cursor. Linear runs step column by
 // column, wrapping to a fresh row when they run out of width. Forks place
-// their two branches on the rows directly above and below the fork tile,
-// choosing whichever horizontal direction gives them room to stay on a
-// single row (so branches read as clean parallel lanes), then resume the
-// main cursor two rows below the fork for the reconverged path.
+// their two branches on the rows directly above and below the fork tile —
+// nudged one row further out if that row is already claimed by something
+// else on the route (see `LayoutState`/`freeBranchY`) — choosing whichever
+// horizontal direction gives them room to stay on a single row (so branches
+// read as clean parallel lanes), then resume the main cursor on the fork's
+// own row for the reconverged path.
 // ---------------------------------------------------------------------------
 
 const COLUMN_MIN = 1
@@ -160,21 +162,86 @@ interface Cursor {
   max: number
 }
 
+/**
+ * Everything one pass of the layout walk threads through.
+ *
+ * `used` is the fix for the collision this engine used to have: a fork's
+ * branches (`layoutFork`) and the ordinary switchback (`step`) used to pick a
+ * row's `y` from entirely separate arithmetic, so at a tight enough `rowStep`
+ * one could reuse a row the other had already put tiles on, and two different
+ * spaces would land on the same `(x, y)`. Every placement now claims its exact
+ * coordinate here, and every *later* placement — trunk or branch, anywhere
+ * else in the route — checks against it before committing to a row, so a
+ * collision is refused a square to land on instead of silently overwriting one.
+ *
+ * `rowStep` is threaded as data rather than read off the module constant so a
+ * test can lay a real route out at a tightened spacing without changing the
+ * shipped default (`ROW_STEP`, still `3`, still what `createBoard` uses).
+ */
+interface LayoutState {
+  readonly cursor: Cursor
+  readonly layout: Map<SpaceId, SpaceLayout>
+  readonly used: Set<string>
+  readonly rowStep: number
+}
+
+const coordKey = (x: number, y: number): string => `${x},${y}`
+
+/**
+ * Commits a tile's coordinate. Throws rather than silently overwriting if
+ * something else already claimed this exact square — every caller below is
+ * responsible for finding a free row *before* it gets here, so reaching this
+ * with a taken square is this engine's own bug, not a route author's.
+ */
+function place(state: LayoutState, id: SpaceId, x: number, y: number): void {
+  const key = coordKey(x, y)
+  if (state.used.has(key)) {
+    throw new Error(`createBoard: layout collision placing "${id}" at (${x}, ${y})`)
+  }
+  state.used.add(key)
+  state.layout.set(id, { x, y })
+}
+
+/** Whether every column the cursor could still reach on row `y` is unclaimed. */
+function rowIsFree(state: LayoutState, y: number): boolean {
+  for (let x = state.cursor.min; x <= state.cursor.max; x++) {
+    if (state.used.has(coordKey(x, y))) return false
+  }
+  return true
+}
+
+/**
+ * The next row down the ordinary switchback may turn onto.
+ *
+ * Ordinarily this is just one `rowStep` down. But a fork elsewhere on the
+ * trunk may have already put a branch on that exact row (see `layoutFork`),
+ * and at a tight `rowStep` more than one switchback turn can reach a row a
+ * fork already used. Skipping forward by whole `rowStep`s — rather than by
+ * one — keeps every trunk row on the same grid the rest of the board uses,
+ * instead of drifting the serpentine's rhythm out of step.
+ */
+function freeRowY(state: LayoutState): number {
+  let y = state.cursor.y + state.rowStep
+  while (!rowIsFree(state, y)) y += state.rowStep
+  return y
+}
+
 /** Advance one tile, dropping straight down to a new row at either edge. */
-function step(cursor: Cursor): void {
+function step(state: LayoutState): void {
+  const { cursor } = state
   const nextX = cursor.x + cursor.dir
   if (nextX < cursor.min || nextX > cursor.max) {
-    cursor.y += ROW_STEP
+    cursor.y = freeRowY(state)
     cursor.dir = (cursor.dir * -1) as 1 | -1
   } else {
     cursor.x = nextX
   }
 }
 
-function layoutLinear(cursor: Cursor, ids: readonly SpaceId[], layout: Map<SpaceId, SpaceLayout>): void {
+function layoutLinear(state: LayoutState, ids: readonly SpaceId[]): void {
   for (const id of ids) {
-    step(cursor)
-    layout.set(id, { x: cursor.x, y: cursor.y })
+    step(state)
+    place(state, id, state.cursor.x, state.cursor.y)
   }
 }
 
@@ -190,12 +257,15 @@ function roomAhead(cursor: Cursor): number {
  * Dropping a row is usually enough. When it is not — wide branches, or a trunk
  * run that happened to stop mid-row — the row itself is widened instead of
  * splitting the lane, because a branch broken over two rows stops reading as a
- * lane at all.
+ * lane at all. The widened columns are always fresh ground (bounds only ever
+ * grow, and no earlier row could have reached past them), so nothing further
+ * needs to check them for collisions.
  */
-function ensureRoom(cursor: Cursor, needed: number): void {
+function ensureRoom(state: LayoutState, needed: number): void {
+  const { cursor } = state
   if (roomAhead(cursor) >= needed) return
 
-  cursor.y += ROW_STEP
+  cursor.y = freeRowY(state)
   cursor.dir = (cursor.dir * -1) as 1 | -1
 
   if (roomAhead(cursor) >= needed) return
@@ -204,25 +274,58 @@ function ensureRoom(cursor: Cursor, needed: number): void {
 }
 
 /**
- * Spreads a branch evenly across `span` columns.
+ * Where a branch's tiles would fall, spread evenly across `span` columns.
  *
  * Branches are rarely the same length, and left to themselves the shorter one
  * finishes early — which drags a long diagonal across the board to reach the
  * merge tile. Stretching the shorter branch over the same span means both lanes
  * start and finish together and every join stays short.
+ *
+ * Positions only, not a placement: `freeBranchY` needs to test a candidate row
+ * before anything commits to it.
  */
-function layoutBranch(
+function branchPositions(
   ids: readonly SpaceId[],
   originX: number,
-  y: number,
   dir: 1 | -1,
   span: number,
-  layout: Map<SpaceId, SpaceLayout>,
-): void {
+): readonly { readonly id: SpaceId; readonly x: number }[] {
   const pitch = ids.length > 1 ? (span - 1) / (ids.length - 1) : 0
-  ids.forEach((id, index) => {
-    layout.set(id, { x: originX + dir * (1 + index * pitch), y })
-  })
+  return ids.map((id, index) => ({ id, x: originX + dir * (1 + index * pitch) }))
+}
+
+/** Whether a branch's whole row of tiles would land on entirely unclaimed squares. */
+function branchRowIsFree(
+  state: LayoutState,
+  positions: readonly { readonly x: number }[],
+  y: number,
+): boolean {
+  return positions.every((position) => !state.used.has(coordKey(position.x, y)))
+}
+
+/**
+ * The nearest row to `side` of the fork tile — starting at one row away, same
+ * as always — that nothing else on the route has already claimed under this
+ * branch's own columns. Growing the offset instead of the two branches ever
+ * colliding is what makes a tightened `rowStep` safe: see `LayoutState`.
+ */
+function freeBranchY(
+  state: LayoutState,
+  forkY: number,
+  side: 1 | -1,
+  positions: readonly { readonly x: number }[],
+): number {
+  let offset = 1
+  while (!branchRowIsFree(state, positions, forkY + side * offset)) offset += 1
+  return forkY + side * offset
+}
+
+function layoutBranch(
+  state: LayoutState,
+  positions: readonly { readonly id: SpaceId; readonly x: number }[],
+  y: number,
+): void {
+  for (const { id, x } of positions) place(state, id, x, y)
 }
 
 /**
@@ -233,23 +336,25 @@ function layoutBranch(
  * before the fork tile is committed rather than after.
  */
 function layoutFork(
-  cursor: Cursor,
+  state: LayoutState,
   forkId: SpaceId,
   branchAIds: readonly SpaceId[],
   branchBIds: readonly SpaceId[],
-  layout: Map<SpaceId, SpaceLayout>,
 ): void {
   const span = Math.max(branchAIds.length, branchBIds.length)
-  ensureRoom(cursor, span + 2)
+  ensureRoom(state, span + 2)
 
-  step(cursor)
+  step(state)
+  const { cursor } = state
   const forkX = cursor.x
   const forkY = cursor.y
   const dir = cursor.dir
-  layout.set(forkId, { x: forkX, y: forkY })
+  place(state, forkId, forkX, forkY)
 
-  layoutBranch(branchAIds, forkX, forkY - 1, dir, span, layout)
-  layoutBranch(branchBIds, forkX, forkY + 1, dir, span, layout)
+  const positionsA = branchPositions(branchAIds, forkX, dir, span)
+  const positionsB = branchPositions(branchBIds, forkX, dir, span)
+  layoutBranch(state, positionsA, freeBranchY(state, forkY, -1, positionsA))
+  layoutBranch(state, positionsB, freeBranchY(state, forkY, 1, positionsB))
 
   // Leave the cursor on the last branch column so the next linear step lands
   // the merge tile exactly one column past both lanes, back on the trunk row.
@@ -258,19 +363,29 @@ function layoutFork(
 
 const idsOf = (lane: readonly SpaceContent[]): readonly SpaceId[] => lane.map((content) => content.id)
 
-function computeLayout(walked: readonly WalkedSegment[], terminal: SpaceContent): Map<SpaceId, SpaceLayout> {
+/**
+ * `rowStep` defaults to the shipped constant; a test may pass a tighter one to
+ * stress the collision-avoidance above without ever changing what the game
+ * itself ships (see `LayoutState`).
+ */
+function computeLayout(
+  walked: readonly WalkedSegment[],
+  terminal: SpaceContent,
+  rowStep: number = ROW_STEP,
+): Map<SpaceId, SpaceLayout> {
   const layout = new Map<SpaceId, SpaceLayout>()
   // Starts one column behind the first, since every placement steps first.
   const cursor: Cursor = { x: COLUMN_MIN - 1, y: 2, dir: 1, min: COLUMN_MIN, max: COLUMN_MAX }
+  const state: LayoutState = { cursor, layout, used: new Set<string>(), rowStep }
 
   for (const segment of walked) {
     if (segment.kind === 'run') {
-      layoutLinear(cursor, idsOf(segment.spaces), layout)
+      layoutLinear(state, idsOf(segment.spaces))
     } else {
-      layoutFork(cursor, segment.at.id, idsOf(segment.branches[0]), idsOf(segment.branches[1]), layout)
+      layoutFork(state, segment.at.id, idsOf(segment.branches[0]), idsOf(segment.branches[1]))
     }
   }
-  layoutLinear(cursor, [terminal.id], layout)
+  layoutLinear(state, [terminal.id])
 
   return layout
 }
@@ -337,13 +452,23 @@ function priced(effect: SpaceEffect, amountFrom: EconomyAmountKey | undefined, e
   throw new Error(`createBoard: "${amountFrom}" cannot price a ${effect.type} effect`)
 }
 
-export function createBoard(difficulty: Difficulty = 'normal', edition: Edition = EDITION_USA): Board {
+/**
+ * `rowStep` exists for tests: it lays a real edition's route out at a
+ * tightened row spacing without ever changing what the game itself ships
+ * (`ROW_STEP`, the default here, same as it has always been) — see
+ * `LayoutState` in the layout engine above for why that used to be unsafe.
+ */
+export function createBoard(
+  difficulty: Difficulty = 'normal',
+  edition: Edition = EDITION_USA,
+  rowStep: number = ROW_STEP,
+): Board {
   const route = edition.route
   const walked = walkRoute(route, difficulty)
   const first = walked[0]
   if (first === undefined) throw new Error(`The ${edition.id} route has no segments`)
 
-  const layout = computeLayout(walked, route.terminal)
+  const layout = computeLayout(walked, route.terminal, rowStep)
   const nextById = computeWiring(walked, route.terminal)
 
   const allContent: readonly SpaceContent[] = [
@@ -352,21 +477,28 @@ export function createBoard(difficulty: Difficulty = 'normal', edition: Edition 
   ]
 
   // Widening a row can push the serpentine left of column zero, so everything
-  // is slid back into positive space before the bounds are measured.
+  // is slid back into positive space before the bounds are measured. A tile
+  // nudged away from a collision (`freeBranchY`, above) can equally push above
+  // row zero — two forks close enough together to share a trunk row both need
+  // their branches nudged off it near the very top of the board — so the same
+  // slide applies on `y` too, not just `x`.
   let minX = Infinity
+  let minY = Infinity
   for (const content of allContent) {
     const placed = layout.get(content.id)
     if (!placed) throw new Error(`Missing layout for space "${content.id}"`)
     minX = Math.min(minX, placed.x)
+    minY = Math.min(minY, placed.y)
   }
-  const shift = minX < COLUMN_MIN ? COLUMN_MIN - minX : 0
+  const shiftX = minX < COLUMN_MIN ? COLUMN_MIN - minX : 0
+  const shiftY = minY < 0 ? -minY : 0
 
   const spaces: Record<SpaceId, Space> = {}
   let maxX = 0
   let maxY = 0
   for (const content of allContent) {
     const placed = layout.get(content.id)!
-    const spaceLayout: SpaceLayout = { x: placed.x + shift, y: placed.y }
+    const spaceLayout: SpaceLayout = { x: placed.x + shiftX, y: placed.y + shiftY }
     const next = nextById.get(content.id)
     if (next === undefined) throw new Error(`Missing wiring for space "${content.id}"`)
     maxX = Math.max(maxX, spaceLayout.x)
