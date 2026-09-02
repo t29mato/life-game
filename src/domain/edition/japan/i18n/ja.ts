@@ -82,6 +82,7 @@ export const JAPAN_JA: EditionTranslation = {
       title: '初任給',
       description: '生まれて初めての給料はとんでもない大金に見える。習わしどおり親を食事に連れていくと、二人は誇らしさを隠さずに払わせてくれる。',
       reason: '初任給',
+      footnote: 'ひと月まるごとではなく、その途中から働き始めた分。まるひと月分が入るのは次の「給料日」のマス。',
     },
     'jp-work-payday-1': {
       title: '給料日',

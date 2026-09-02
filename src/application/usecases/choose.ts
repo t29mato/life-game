@@ -13,7 +13,7 @@ import { SHARES_PER_PURCHASE, SPIN_FACES } from '@domain/model/constants'
 import { nextMovementLeg, planMovementVia } from '@domain/board/movement'
 import { editionOf } from '@domain/edition/registry'
 import { findCareer, findHouse, findStock, nextRungOf } from '@domain/edition/lookup'
-import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
+import { earlyLoanRepaymentFor } from '@domain/rules/difficulty'
 import { marriageBandFor } from '@domain/rules/marriage'
 import { tuitionBandFor, tuitionSpecFor } from '@domain/rules/tuition'
 import { tradeYearFor } from '@domain/rules/tradeYear'
@@ -39,6 +39,7 @@ import {
   tradeUpHouse,
 } from '@domain/rules/player'
 import { withBalanceAfter } from './balanceAfter'
+import { withBorrowing } from './borrowing'
 import { withStandingChange } from './standingChange'
 import {
   BANK_DECLINE_OPTION_ID,
@@ -57,7 +58,7 @@ import {
   insuranceKindFromOptionId,
   rivalsOf,
 } from './applyEffect'
-import { formatMoney, loanNote, raiseNote, salaryPeriod, salaryRate } from './format'
+import { formatMoney, raiseNote, salaryPeriod, salaryRate } from './format'
 import { appendLog } from './logging'
 import type { UseCaseDeps } from './types'
 
@@ -90,6 +91,7 @@ function outcomeEvent(
     notes,
     emphasis,
     narration,
+    ...(space?.footnote ? { footnote: space.footnote } : {}),
   }
 }
 
@@ -100,9 +102,15 @@ function resolved(state: GameState, players: readonly Player[], event: LandingEv
   // that needs to report the balance the answer left behind — `players` here
   // is already the post-decision roster. See `withBalanceAfter`.
   const withBalance = player ? withBalanceAfter(event, players, player.id) : event
-  const settled = player
-    ? withStandingChange(withBalance, state.players, players, player.id, state.difficulty, state.editionId)
+  // The bank's own share of that movement, then where it left them in the
+  // standings — the same two rosters, read the same way, on the same one
+  // way out. See `withBorrowing`.
+  const withBorrow = player
+    ? withBorrowing(withBalance, state.players, players, player.id, state.difficulty, state.editionId)
     : withBalance
+  const settled = player
+    ? withStandingChange(withBorrow, state.players, players, player.id, state.difficulty, state.editionId)
+    : withBorrow
   return {
     ...state,
     players,
@@ -292,16 +300,10 @@ function resolveHouse(state: GameState, optionId: string): GameState {
   // A trade-up credits the old home at its list price; a first purchase does not.
   const updated = previous ? tradeUpHouse(player, house, economy) : buyHouseForPlayer(player, house, economy)
   const delta = updated.money - player.money
-  const loansTaken = updated.loans - player.loans
 
   // Which house, and which house it replaced, are the narration's own
   // sentence — what it cannot say is what the old place was credited at.
   const notes: string[] = previous ? [`Old home credited back at ${money(previous.price)}.`] : []
-  if (loansTaken > 0) {
-    notes.push(
-      loanNote(loansTaken, economy.loanPrincipal, loanRepaymentFor(state.difficulty, edition), currency),
-    )
-  }
 
   const narration = previous
     ? `Moving up in the world! ${player.name} trades the ${previous.name} for the ${house.name}.`
@@ -346,18 +348,12 @@ function resolveStock(state: GameState, optionId: string): GameState {
 
   const updated = buyShares(player, stock, SHARES_PER_PURCHASE, economy)
   const delta = updated.money - player.money
-  const loansTaken = updated.loans - player.loans
   const shareLabel = SHARES_PER_PURCHASE === 1 ? 'share' : 'shares'
 
   const notes = [
     `Bought ${SHARES_PER_PURCHASE} ${shareLabel} of ${stock.name} (${stock.ticker}).`,
     `Each share cashes out between ${money(stock.payoutRange[0])} and ${money(stock.payoutRange[1])} at retirement.`,
   ]
-  if (loansTaken > 0) {
-    notes.push(
-      loanNote(loansTaken, economy.loanPrincipal, loanRepaymentFor(state.difficulty, edition), currency),
-    )
-  }
 
   const event = outcomeEvent(
     space,
@@ -404,16 +400,10 @@ function resolveInsurance(state: GameState, optionId: string): GameState {
 
   const updated = addInsurance(player, kind, economy)
   const delta = updated.money - player.money
-  const loansTaken = updated.loans - player.loans
 
   const notes = [`Took out a ${kind} policy for ${money(economy.insurancePremium[kind])}.`]
   if (kind === 'life') notes.push('It matures at retirement and pays straight into the final total.')
   else notes.push(`A ${kind === 'home' ? 'house fire' : 'road accident'} now costs you nothing.`)
-  if (loansTaken > 0) {
-    notes.push(
-      loanNote(loansTaken, economy.loanPrincipal, loanRepaymentFor(state.difficulty, edition), currency),
-    )
-  }
 
   const event = outcomeEvent(
     space,
@@ -528,21 +518,19 @@ function resolveTuitionSpin(
   const band = tuitionBandFor(tuitionSpecFor(bill, economy).outcomes, spinValue)
   const updated = band.cost > 0 ? debitPlayer(player, band.cost, economy) : player
   const delta = updated.money - player.money
-  const loansTaken = updated.loans - player.loans
 
   /*
-   * Three facts, one home each. The die is printed on the card itself; the
-   * band's own line is the colour and says it once; the bill gets a note of
-   * its own because it is the one number the delta plate cannot be trusted
-   * for — a player who cannot cover it is topped up by the bank, so the
-   * plate reads the cash that actually moved, not what the semester cost.
-   * That forced borrowing is the other thing worth saying, and until now
-   * this tile was the one debit on the board that never mentioned it.
+   * Two facts, one home each. The die is printed on the card itself, and the
+   * band's own line is the colour and says it once. The bill used to need a
+   * note of its own because the plate could not be trusted for it — a player
+   * who cannot cover tuition is topped up by the bank, so the plate read the
+   * cash that moved rather than what the semester cost, and on a bad enough
+   * roll it read that cash as a *gain*. The plate now carries the charge and
+   * the loan as their own signed rows (`event.borrowing`), so the note that
+   * used to argue with it says nothing it does not already say — except on a
+   * full ride, where there is no plate at all and the good news needs saying.
    */
-  const notes = [band.cost > 0 ? `Tuition: ${money(band.cost)}` : 'No tuition due — a full ride.']
-  if (loansTaken > 0) {
-    notes.push(loanNote(loansTaken, economy.loanPrincipal, loanRepaymentFor(state.difficulty, edition), edition.currency))
-  }
+  const notes = band.cost > 0 ? [] : ['No tuition due — a full ride.']
 
   const event = outcomeEvent(space, player, 'Tuition Bill', delta, notes, emphasisForMoney(delta, economy), band.note)
   return resolved(

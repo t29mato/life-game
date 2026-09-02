@@ -78,6 +78,7 @@ export const FRANCE_JA: EditionTranslation = {
       title: '初めての給与明細',
       description: 'フランスの給与明細には四十行ある。手取りは四種類の社会保険料の下のどこかに埋まっているが、それでも大金に見える。',
       reason: '初任給',
+      footnote: 'ひと月まるごとではなく、その途中で契約した分。まるひと月分の明細が出るのは次の「給料日」のマス。',
     },
     'fr-work-payday-1': {
       title: '給料日',

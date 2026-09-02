@@ -398,4 +398,202 @@ describe('EventCard', () => {
       expect(screen.queryByTestId('confetti-field')).not.toBeInTheDocument()
     })
   })
+
+  /*
+   * B1. The card a real playtester read back: "$10,000 → $18,000 ▲ +$8,000"
+   * in a green band, over a $52,000 tuition bill settled by a $60,000 loan.
+   * The player was told they had profited from tuition. These tests are the
+   * ones a regression would hurt most, so they check both halves: the two
+   * signed rows are there, and the single merged green number is not.
+   */
+  describe('a bill the bank had to cover', () => {
+    const TUITION = makeEvent({
+      title: 'Tuition Bill',
+      tone: 'blue',
+      moneyDelta: 8_000,
+      balanceAfter: 18_000,
+      borrowing: { loans: 1, borrowed: 60_000, dueAtRetirement: 75_000, charge: 52_000 },
+    })
+
+    it('prints the payment and the loan as two separately signed rows', async () => {
+      mockReducedMotion(true)
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard event={TUITION} onDismiss={() => {}} />
+        </AudioProvider>,
+      )
+
+      await waitFor(() => expect(screen.getByText('Paid')).toBeInTheDocument())
+      expect(screen.getByText('-$52,000')).toBeInTheDocument()
+      expect(screen.getByText('Borrowed')).toBeInTheDocument()
+      expect(screen.getByText('+$60,000')).toBeInTheDocument()
+    })
+
+    it('never shows the net of the two as a gain', async () => {
+      mockReducedMotion(true)
+      const { container } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard event={TUITION} onDismiss={() => {}} />
+        </AudioProvider>,
+      )
+
+      await waitFor(() => expect(screen.getByText('Paid')).toBeInTheDocument())
+      // The exact string the playtest reported, and the arrow beside it.
+      expect(screen.queryByText('+$8,000')).not.toBeInTheDocument()
+      expect(screen.queryByText('▲')).not.toBeInTheDocument()
+      expect(container.querySelector(`.${styles.moneyDeltaChip}`)).toBeNull()
+    })
+
+    it('does not paint the plate green', async () => {
+      mockReducedMotion(true)
+      const { container } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard event={TUITION} onDismiss={() => {}} />
+        </AudioProvider>,
+      )
+
+      await waitFor(() => expect(screen.getByText('Paid')).toBeInTheDocument())
+      const plate = container.querySelector(`.${styles.moneyPlate}`)
+      expect(plate).not.toBeNull()
+      expect(plate?.className).not.toContain(styles.deltaPositive)
+      expect(plate?.className).toContain(styles.deltaBorrowed)
+    })
+
+    it('says what the loan costs to settle, beside the loan', async () => {
+      mockReducedMotion(true)
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard event={TUITION} onDismiss={() => {}} />
+        </AudioProvider>,
+      )
+
+      await waitFor(() =>
+        expect(screen.getByText('1 loan — $75,000 to repay at retirement')).toBeInTheDocument(),
+      )
+    })
+
+    it('counts the loans when one bill forced several', async () => {
+      mockReducedMotion(true)
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard
+            event={makeEvent({
+              moneyDelta: 4_000,
+              balanceAfter: 4_000,
+              borrowing: { loans: 3, borrowed: 60_000, dueAtRetirement: 75_000, charge: 56_000 },
+            })}
+            onDismiss={() => {}}
+          />
+        </AudioProvider>,
+      )
+
+      await waitFor(() =>
+        expect(screen.getByText('3 loans — $75,000 to repay at retirement')).toBeInTheDocument(),
+      )
+    })
+
+    it('shows only the borrow when nobody was billed for it', async () => {
+      mockReducedMotion(true)
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard
+            event={makeEvent({
+              title: 'The Bank',
+              moneyDelta: 60_000,
+              balanceAfter: 70_000,
+              borrowing: { loans: 1, borrowed: 60_000, dueAtRetirement: 75_000, charge: 0 },
+            })}
+            onDismiss={() => {}}
+          />
+        </AudioProvider>,
+      )
+
+      await waitFor(() => expect(screen.getByText('Borrowed')).toBeInTheDocument())
+      expect(screen.queryByText('Paid')).not.toBeInTheDocument()
+    })
+
+    it('leaves an ordinary payment alone', async () => {
+      mockReducedMotion(true)
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard
+            event={makeEvent({ moneyDelta: -52_000, balanceAfter: 48_000 })}
+            onDismiss={() => {}}
+          />
+        </AudioProvider>,
+      )
+
+      await waitFor(() => expect(screen.getByText('-$52,000')).toBeInTheDocument())
+      expect(screen.queryByText('Borrowed')).not.toBeInTheDocument()
+    })
+  })
+
+  /* B5. A figure that looks wrong beside the salary the player was just quoted. */
+  describe('the tile footnote', () => {
+    it('prints the tile\'s own explanation of a figure that looks wrong', () => {
+      mockReducedMotion(true)
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard
+            event={makeEvent({
+              title: 'First Paycheck',
+              footnote: 'Part of a month, not a whole one — the first full packet is the next Payday square.',
+            })}
+            onDismiss={() => {}}
+          />
+        </AudioProvider>,
+      )
+
+      expect(
+        screen.getByText(/Part of a month, not a whole one/),
+      ).toBeInTheDocument()
+    })
+
+    it('says nothing on a tile whose figure needs no defending', () => {
+      mockReducedMotion(true)
+      const { container } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard event={makeEvent()} onDismiss={() => {}} />
+        </AudioProvider>,
+      )
+
+      expect(container.querySelector(`.${styles.footnote}`)).toBeNull()
+    })
+  })
+
+  /* B4. The strip behind the card must not print the answer first. */
+  describe('telling the strip when the count-up has landed', () => {
+    it('reports once the digits have stopped, not when the card mounts', async () => {
+      mockReducedMotion(false)
+      const onMoneyLanded = vi.fn()
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard
+            event={makeEvent({ moneyDelta: 5_000, balanceAfter: 15_000 })}
+            onDismiss={() => {}}
+            onMoneyLanded={onMoneyLanded}
+          />
+        </AudioProvider>,
+      )
+
+      expect(onMoneyLanded).not.toHaveBeenCalled()
+      await waitFor(() => expect(onMoneyLanded).toHaveBeenCalled(), { timeout: 4000 })
+    })
+
+    it('reports at once when the player has asked for no motion', async () => {
+      mockReducedMotion(true)
+      const onMoneyLanded = vi.fn()
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard
+            event={makeEvent({ moneyDelta: 5_000, balanceAfter: 15_000 })}
+            onDismiss={() => {}}
+            onMoneyLanded={onMoneyLanded}
+          />
+        </AudioProvider>,
+      )
+
+      await waitFor(() => expect(onMoneyLanded).toHaveBeenCalled())
+    })
+  })
 })

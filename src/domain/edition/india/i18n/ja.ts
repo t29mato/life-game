@@ -84,6 +84,7 @@ export const INDIA_JA: EditionTranslation = {
       title: '初任給',
       description: '生まれて初めての給料はとんでもない大金に見える。習わしどおり通りじゅうに菓子を配り、最初の一枚を母の手に握らせる。母はそれを一生とっておく。',
       reason: '初任給',
+      footnote: 'ひと月まるごとではなく、その途中から勤めた分。まるひと月分が出るのは次の「給料日」のマス。',
     },
     'in-work-payday-1': {
       title: '給料日',

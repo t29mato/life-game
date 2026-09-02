@@ -293,10 +293,35 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
    * time that die goes up, and a balance that jumps while it is still
    * tumbling gives away the number it is tumbling towards.
    */
+  /*
+   * The other half of that promise, and the one v1.4.3's spoiler fix left
+   * open: the die had stopped, so the strip caught up — while the card's own
+   * count-up was still turning towards the same figure. The Payday card
+   * spent 0.7 seconds building to "$49,000" with "$49,000" already printed
+   * two inches below it.
+   *
+   * So the strip also waits on the card. `settledCard` is the card whose
+   * roll has finished, held by identity: `lastEvent`/`activePassedEvent` are
+   * fresh objects per landing, so a new card is never mistaken for one
+   * already counted. A card that moved no money has nothing to count and
+   * never latches; a card dismissed early stops being visible, which
+   * releases the hold on its own without needing to be told.
+   */
+  const [settledCard, setSettledCard] = useState<LandingEvent | null>(null)
+  const visibleMoneyCard =
+    state.phase === 'resolved'
+      ? state.lastEvent
+      : state.phase === 'passingEvent'
+        ? state.activePassedEvent
+        : null
+  const countUpPending =
+    visibleMoneyCard !== null && visibleMoneyCard.moneyDelta !== 0 && visibleMoneyCard !== settledCard
+  const handleMoneyLanded = useCallback(() => setSettledCard(visibleMoneyCard), [visibleMoneyCard])
+
   const [displayedPlayers, setDisplayedPlayers] = useState(state.players)
   useEffect(() => {
-    if (dieSettled && !passedSpinVisible) setDisplayedPlayers(state.players)
-  }, [dieSettled, passedSpinVisible, state.players])
+    if (dieSettled && !passedSpinVisible && !countUpPending) setDisplayedPlayers(state.players)
+  }, [dieSettled, passedSpinVisible, countUpPending, state.players])
 
   /*
    * A value-spin decision with nothing to weigh — the tuition bill, a
@@ -970,6 +995,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
           currentPlayerIndex={state.currentPlayerIndex}
           standings={standings}
           editionId={state.editionId}
+          difficulty={state.difficulty}
           onOpenStatus={() => setStatusOpen(true)}
         />
 
@@ -1094,6 +1120,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
             <EventCard
               event={state.lastEvent}
               editionId={state.editionId}
+              onMoneyLanded={handleMoneyLanded}
               onDismiss={() => store.dispatch({ type: 'endTurn' })}
             />
           )}
@@ -1112,6 +1139,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
           <EventCard
             event={state.activePassedEvent}
             editionId={state.editionId}
+            onMoneyLanded={handleMoneyLanded}
             onDismiss={() => store.dispatch({ type: 'settle' })}
           />
         )}

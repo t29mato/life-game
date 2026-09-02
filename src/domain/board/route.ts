@@ -88,6 +88,8 @@ export interface SpaceContent {
   readonly amountFrom?: EconomyAmountKey
   /** Set by the walker on the head of a branch, never written by hand. */
   readonly lane?: LaneIdentity
+  /** One line explaining a figure on this tile that otherwise looks wrong. See `Space.footnote`. */
+  readonly footnote?: string
 }
 
 /** A space that exists purely as a beat in the story, with nothing to resolve. */

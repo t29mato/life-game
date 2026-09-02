@@ -426,6 +426,20 @@ export interface Space {
    * deciding; "Move-In Day" does not.
    */
   readonly lane?: LaneIdentity
+  /**
+   * One line explaining a figure on this tile that otherwise looks wrong.
+   *
+   * A player hired at the job fair is told their trade pays $37,000 every
+   * payday, walks one tile, and is handed $2,000 — with nothing on the card
+   * saying why the two numbers disagree. The honest answer is a property of
+   * the tile ("you started part-way through the month; the first full packet
+   * is the next PAYDAY square"), so it is written on the tile rather than
+   * guessed at by whichever component happens to be drawing the number.
+   *
+   * Absent on every tile whose figure needs no defending, which is nearly
+   * all of them — a footnote on a tile that reads correctly is noise.
+   */
+  readonly footnote?: string
 }
 
 export interface LaneIdentity {
@@ -790,6 +804,53 @@ export interface LandingEvent {
    * the same way `balanceAfter` stays absent when nothing moved.
    */
   readonly careerIcon?: IconName
+  /** The landed tile's own `footnote`, carried onto the card that reports it. */
+  readonly footnote?: string
+  /**
+   * The bank stepping in, when it had to. See `Borrowing`.
+   *
+   * Absent on every card where the player paid out of their own pocket,
+   * which is nearly all of them.
+   */
+  readonly borrowing?: Borrowing
+}
+
+/**
+ * Money the player was *handed*, not money they earned — and the bill that
+ * forced the bank to hand it over.
+ *
+ * This exists because `moneyDelta` alone is a lie on exactly the cards where
+ * it matters most. A $52,000 tuition bill paid by a player holding $10,000 is
+ * settled by an automatic $60,000 loan, so the cash actually moves *up* by
+ * $8,000 and the card renders a green band reading "▲ +$8,000" over the
+ * single largest charge on the board. The player is told they profited from
+ * tuition. Two meanings — a payment and a debt — were being added together
+ * into one number, and no amount of colouring one number can un-merge them.
+ *
+ * So the two are carried apart. `charge` is what the tile actually cost;
+ * `borrowed` is what the bank put in to cover it; `moneyDelta` remains what
+ * the wallet did, which is now the *third* fact rather than a summary that
+ * hides the other two. Every figure is a positive magnitude — the direction
+ * belongs to the row that prints it, not to the sign of a stored number.
+ *
+ * Stamped centrally from the before/after rosters, exactly the way
+ * `balanceAfter` and `rankBefore`/`rankAfter` are, so no effect handler has
+ * to remember to report its own borrowing.
+ */
+export interface Borrowing {
+  /** How many loans the bank wrote — one card can force several at once. */
+  readonly loans: number
+  /** The principal handed over, all loans together. Always positive. */
+  readonly borrowed: Money
+  /** What settling those loans costs at retirement. Always positive, and always more than `borrowed` — the gap is the interest. */
+  readonly dueAtRetirement: Money
+  /**
+   * The bill that forced the borrow: what this card would have taken out of
+   * a wallet deep enough to cover it. Zero when nothing was charged at all
+   * — a player who walks into the bank and asks for a loan borrows without
+   * being billed for anything, and their card has one beat, not two.
+   */
+  readonly charge: Money
 }
 
 export interface MoneyTransfer {

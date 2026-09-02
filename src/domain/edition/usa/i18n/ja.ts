@@ -80,6 +80,7 @@ export const USA_JA: EditionTranslation = {
       title: '初任給',
       description: '生まれて初めての給料が振り込まれる。とんでもない大金に見える。',
       reason: '初任給',
+      footnote: 'ひと月まるごとではなく、その途中から働き始めた分。まるひと月分が入るのは次の「給料日」のマス。',
     },
     'work-payday-1': {
       title: '給料日',

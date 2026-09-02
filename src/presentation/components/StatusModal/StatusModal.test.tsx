@@ -165,4 +165,76 @@ describe('StatusModal', () => {
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  /*
+   * B6. The screen furthest from a Nintendo status screen: two columns of
+   * 0.78rem text with the one number that matters at the bottom. What a
+   * player owns is a set of objects the board already draws, and the total
+   * is the headline, not the footer.
+   */
+  describe('reading as a shelf of things rather than a spreadsheet', () => {
+    it('leads with net worth as the one big number', () => {
+      const player = makePlayer({ money: 40_000 })
+      const { container } = renderModal(
+        <StatusModal players={[player]} activePlayerId="p1" onClose={vi.fn()} />,
+      )
+
+      const headline = container.querySelector('[class*="totalValue"]')
+      expect(headline).toHaveTextContent('$40,000')
+      expect(screen.getByText('If the game ended now')).toBeInTheDocument()
+    })
+
+    it('shows the job, the home and the passengers as their own tiles', () => {
+      const player = makePlayer({
+        career: {
+          id: 'career-chef',
+          title: 'Line Cook',
+          salary: 45_000,
+          raiseStep: 5_000,
+          requiresDegree: false,
+          icon: 'career:food-truck-owner',
+          description: 'Long shifts, good food.',
+        },
+        house: {
+          id: 'house-tiny-cabin',
+          name: 'Tiny Cabin',
+          price: 60_000,
+          resaleRange: [40_000, 95_000],
+          icon: 'house:tiny-cabin',
+          description: 'One room, one hammock.',
+        },
+        isMarried: true,
+        children: 2,
+      })
+      renderModal(<StatusModal players={[player]} activePlayerId="p1" onClose={vi.fn()} />)
+
+      const card = screen.getByLabelText("Alice's status")
+      expect(card).toHaveTextContent('Line Cook')
+      expect(card).toHaveTextContent('Tiny Cabin')
+      expect(card).toHaveTextContent('Married')
+      expect(card).toHaveTextContent('2 children')
+    })
+
+    it('tags a loan in red rather than burying it in a row of a table', () => {
+      const { container } = renderModal(
+        <StatusModal players={[makePlayer({ loans: 2 })]} activePlayerId="p1" onClose={vi.fn()} />,
+      )
+
+      const tag = container.querySelector('[class*="debtTile"]')
+      expect(tag).not.toBeNull()
+      expect(tag).toHaveTextContent('2 loans')
+      expect(tag).toHaveTextContent('−$50,000')
+    })
+
+    it('keeps every itemised line, folded behind one summary', () => {
+      const { container } = renderModal(
+        <StatusModal players={[makePlayer()]} activePlayerId="p1" onClose={vi.fn()} />,
+      )
+
+      const details = container.querySelector('details')
+      expect(details).not.toBeNull()
+      expect(screen.getByText('Full breakdown')).toBeInTheDocument()
+      expect(details).toHaveTextContent('Cash')
+    })
+  })
 })

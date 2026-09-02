@@ -58,8 +58,9 @@ import {
   totalShares,
 } from '@domain/rules/player'
 import { withBalanceAfter } from './balanceAfter'
+import { withBorrowing } from './borrowing'
 import { withStandingChange } from './standingChange'
-import { formatMoney, loanNote, paydayReceipt, raiseNote, salaryPeriod, salaryRate } from './format'
+import { formatMoney, paydayReceipt, raiseNote, salaryPeriod, salaryRate } from './format'
 import { appendLog } from './logging'
 import { collectPaydays } from './payday'
 import type { UseCaseDeps } from './types'
@@ -259,6 +260,9 @@ function baseEvent(
     notes,
     emphasis,
     narration,
+    // The tile's own defence of a figure that looks wrong, carried across
+    // rather than restated — see `Space.footnote`.
+    ...(space.footnote ? { footnote: space.footnote } : {}),
   }
 }
 
@@ -390,8 +394,16 @@ export function applyEffect(state: GameState, space: Space, deps: UseCaseDeps): 
   const result = resolveEffect(state, space, deps)
   if (actingPlayerId === undefined) return result
   const withBalance = withBalanceAfter(result.event, result.state.players, actingPlayerId)
-  const event = withStandingChange(
+  const withBorrow = withBorrowing(
     withBalance,
+    state.players,
+    result.state.players,
+    actingPlayerId,
+    state.difficulty,
+    state.editionId,
+  )
+  const event = withStandingChange(
+    withBorrow,
     state.players,
     result.state.players,
     actingPlayerId,
@@ -415,8 +427,6 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
   const { marriage, household } = economy
   const money = (amount: Money): string => formatMoney(amount, currency)
   const emphasisOf = (delta: Money): LandingEmphasis => emphasisForMoney(delta, economy)
-  const borrowed = (loansTaken: number): string =>
-    loanNote(loansTaken, economy.loanPrincipal, loanRepaymentFor(state.difficulty, edition), currency)
 
   const effect = space.effect
 
@@ -479,9 +489,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
 
       const updated = debitPlayer(player, effect.amount, economy)
       const delta = updated.money - player.money
-      const loansTaken = updated.loans - player.loans
       const notes = [effect.reason]
-      if (loansTaken > 0) notes.push(borrowed(loansTaken))
       const emphasis = emphasisOf(delta)
       const narration =
         emphasis === 'big'
@@ -1496,9 +1504,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const owed = effect.amount * player.children
       const updated = debitPlayer(player, owed, economy)
       const delta = updated.money - player.money
-      const loansTaken = updated.loans - player.loans
       const notes = [effect.reason, `${player.children} × ${money(effect.amount)}`]
-      if (loansTaken > 0) notes.push(borrowed(loansTaken))
       const event = baseEvent(
         space,
         delta,
@@ -1569,13 +1575,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const settled = debitPlayer(player, economy.divorceSettlement, economy)
       const updated = divorcePlayer(settled)
       const delta = updated.money - player.money
-      const loansTaken = updated.loans - player.loans
       const notes = [effect.reason, `Settlement: ${money(economy.divorceSettlement)}`]
       if (hadChildren > 0) {
         const label = hadChildren === 1 ? 'child' : 'children'
         notes.push(`${hadChildren} ${label} leave with them.`)
       }
-      if (loansTaken > 0) notes.push(borrowed(loansTaken))
       const event = baseEvent(
         space,
         delta,

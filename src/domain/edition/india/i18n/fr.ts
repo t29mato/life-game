@@ -81,6 +81,7 @@ export const INDIA_FR: EditionTranslation = {
       title: 'Premier salaire',
       description: 'Votre toute première paie tombe et paraît énorme. Selon l’usage, vous offrez des sucreries à toute la rue et glissez le premier billet dans la main de votre mère, qui le gardera toujours.',
       reason: 'Premier salaire',
+      footnote: 'Un mois entamé, pas un mois complet — vous avez pris votre poste en cours de mois. Le premier salaire entier, c’est la prochaine case « Jour de paie ».',
     },
     'in-work-payday-1': {
       title: 'Jour de paie',

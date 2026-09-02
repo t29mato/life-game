@@ -109,6 +109,118 @@ function ledgerFor(
   return lines
 }
 
+/** One object on the shelf: what it is, drawn as the board draws it. */
+interface ShelfItem {
+  readonly key: string
+  readonly icon: IconName
+  readonly label: string
+  /** The figure it is worth, where it has one. A fact like "Graduate" has none. */
+  readonly value?: string
+  /** Prints in the board's roof red — the one shelf item that subtracts. */
+  readonly debt?: boolean
+}
+
+/**
+ * Everything this player is carrying, as tiles rather than as a table.
+ *
+ * The order is the order a life accumulates them — work, home, the people in
+ * the car, the money put away, the things done — with the debt last, in red,
+ * because the one holding a two-column ledger genuinely buries is the only
+ * one that counts *against* the big number above it.
+ */
+function shelfFor(
+  player: Player,
+  difficulty: Difficulty,
+  editionId: EditionId | undefined,
+): readonly ShelfItem[] {
+  const edition = editionFor(editionId)
+  const { currency, economy } = edition
+  const money = (amount: number): string => formatMoney(amount, currency)
+  const items: ShelfItem[] = []
+
+  items.push(
+    player.career
+      ? {
+          key: 'career',
+          icon: player.career.icon,
+          label: player.career.title,
+          value:
+            player.career.payPerPip === undefined
+              ? formatSalary(player.career.salary, currency)
+              : `${formatSalary(player.career.salary, currency)} on average`,
+        }
+      : { key: 'career', icon: 'space:first-job-fair', label: 'Unemployed', value: 'Casual shifts' },
+  )
+
+  if (player.house) {
+    items.push({
+      key: 'house',
+      icon: player.house.icon,
+      label: player.house.name,
+      value: money(player.house.price),
+    })
+  }
+
+  // The passengers, exactly as the pawn on the board carries them.
+  items.push({
+    key: 'marriage',
+    icon: 'space:wedding-day',
+    label: player.isMarried ? 'Married' : 'Single',
+  })
+  if (player.children > 0) {
+    items.push({
+      key: 'children',
+      icon: 'space:new-baby',
+      label: `${player.children} child${player.children === 1 ? '' : 'ren'}`,
+      value: money(expectedChildValue(player, economy) * player.children),
+    })
+  }
+  if (player.hasDegree) {
+    items.push({ key: 'degree', icon: 'space:cap-and-gown', label: 'Graduate' })
+  }
+
+  if (player.stocks.length > 0) {
+    const shares = player.stocks.reduce((sum, holding) => sum + holding.shares, 0)
+    const worth = player.stocks.reduce((sum, holding) => {
+      const stock = findStock(holding.stockId, edition)
+      if (!stock) return sum
+      const [low, high] = stock.payoutRange
+      return sum + ((low + high) / 2) * holding.shares
+    }, 0)
+    items.push({
+      key: 'shares',
+      icon: 'space:stock-tip',
+      label: `${shares} share${shares === 1 ? '' : 's'}`,
+      value: money(worth),
+    })
+  }
+
+  if (player.lifeTiles.length > 0) {
+    const worth = player.lifeTiles.reduce((sum, tile) => sum + tile.value, 0)
+    items.push({
+      key: 'tiles',
+      // Every `tile:*` id draws the same LIFE-tile card — the art is the
+      // token, not the story on it — so any of them names the shelf's own
+      // stack of them correctly.
+      icon: 'tile:marathon',
+      label: `${player.lifeTiles.length} LIFE tile${player.lifeTiles.length === 1 ? '' : 's'}`,
+      value: money(worth),
+    })
+  }
+
+  if (player.loans > 0) {
+    items.push({
+      key: 'loans',
+      icon: 'finance:bank-visit',
+      label: `${player.loans} loan${player.loans === 1 ? '' : 's'}`,
+      value: `−${money(player.loans * loanRepaymentFor(difficulty, edition))}`,
+      debt: true,
+    })
+  }
+
+  return items
+}
+
 function PlayerStatus({
   player,
   isActive,
@@ -133,6 +245,8 @@ function PlayerStatus({
     '--player-dark': `var(--player-${player.color}-dark)`,
   } as CSSProperties
 
+  const shelf = shelfFor(player, difficulty, editionId)
+
   return (
     <section className={styles.player} style={colorVars} aria-label={`${player.name}'s status`}>
       <header className={styles.playerHeader}>
@@ -153,77 +267,59 @@ function PlayerStatus({
         )}
       </header>
 
-      <p className={styles.career}>
-        {player.career ? (
-          <>
-            <GameIcon name={player.career.icon} size={16} />
-            {player.career.title}
-            {' — '}
-            {player.career.payPerPip === undefined
-              ? formatSalary(player.career.salary, currency)
-              : `${formatSalary(player.career.salary, currency)} on average`}
-          </>
-        ) : (
-          'Unemployed — casual shifts'
-        )}
-      </p>
+      {/* One number, big. Everything else on this card is what it is made
+          of. The old card led with a two-column ledger at 0.78rem and put
+          the total at the bottom, which is the shape of a spreadsheet: it
+          answers "what are the line items" before "am I winning". */}
+      <div className={styles.total}>
+        <span className={styles.totalLabel}>Net worth</span>
+        <span className={styles.totalValue}>{money(netWorth)}</span>
+        <span className={styles.totalNote}>If the game ended now</span>
+      </div>
 
-      {/* Marriage and children used to surface here only as a dollar estimate
-          and a word tacked onto the insurance line. They are facts about a
-          life, not just entries in a ledger, so they get their own plain
-          statement — the estimate below stays, but as the price of the fact
-          rather than the fact itself. */}
-      <p className={styles.facts}>
-        <span className={styles.fact}>
-          {player.isMarried && (
-            <span className={styles.factIcon} aria-hidden="true">
-              <GameIcon name="space:wedding-day" size={14} />
-            </span>
-          )}
-          {player.isMarried ? 'Married' : 'Single'}
-        </span>
-        {player.children > 0 && (
-          <span className={styles.fact}>
-            <span className={styles.factIcon} aria-hidden="true">
-              <GameIcon name="space:new-baby" size={14} />
-            </span>
-            {player.children} child{player.children === 1 ? '' : 'ren'}
-          </span>
-        )}
-        {player.hasDegree && (
-          <span className={styles.fact}>
-            <span className={styles.factIcon} aria-hidden="true">
-              <GameIcon name="space:cap-and-gown" size={14} />
-            </span>
-            Graduate
-          </span>
-        )}
-      </p>
-
-      <ul className={styles.ledger}>
-        {lines.map((line, index) => (
+      {/* The shelf: the same objects the board itself draws, at the size the
+          board draws them, in the order a player collects them. A house is a
+          house here, not a row reading "House — Tiny Cabin ... $60,000". */}
+      <ul className={styles.shelf}>
+        {shelf.map((item) => (
           <li
-            key={`${line.label}-${index}`}
-            className={line.item ? `${styles.ledgerLine} ${styles.item}` : styles.ledgerLine}
+            key={item.key}
+            className={item.debt ? `${styles.shelfTile} ${styles.debtTile}` : styles.shelfTile}
           >
-            <span className={styles.ledgerLabel}>
-              {line.icon && (
-                <span className={styles.ledgerIcon} aria-hidden="true">
-                  <GameIcon name={line.icon} size={15} />
-                </span>
-              )}
-              {line.label}
+            <span className={styles.shelfIcon} aria-hidden="true">
+              <GameIcon name={item.icon} size={26} />
             </span>
-            <span className={styles.ledgerValue}>{line.value}</span>
+            <span className={styles.shelfLabel}>{item.label}</span>
+            {item.value && <span className={styles.shelfValue}>{item.value}</span>}
           </li>
         ))}
       </ul>
 
-      <div className={styles.total}>
-        <span>Net worth</span>
-        <span className={styles.totalValue}>{money(netWorth)}</span>
-      </div>
-      <p className={styles.totalNote}>What this player scores if the game ended this instant.</p>
+      {/* The spreadsheet is not deleted — a player who wants to argue with
+          the total still needs every line that made it, and there is no
+          other place in the game that shows them. It is folded, so it is
+          something asked for rather than something read past. */}
+      <details className={styles.breakdown}>
+        <summary className={styles.breakdownSummary}>Full breakdown</summary>
+        <ul className={styles.ledger}>
+          {lines.map((line, index) => (
+            <li
+              key={`${line.label}-${index}`}
+              className={line.item ? `${styles.ledgerLine} ${styles.item}` : styles.ledgerLine}
+            >
+              <span className={styles.ledgerLabel}>
+                {line.icon && (
+                  <span className={styles.ledgerIcon} aria-hidden="true">
+                    <GameIcon name={line.icon} size={15} />
+                  </span>
+                )}
+                {line.label}
+              </span>
+              <span className={styles.ledgerValue}>{line.value}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
 
       {player.insurance.length > 0 && (
         <p className={styles.insurance}>

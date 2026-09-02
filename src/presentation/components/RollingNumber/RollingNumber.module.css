@@ -1,7 +1,13 @@
 .number {
   position: relative;
   display: inline-block;
+  /* Tabular figures and a box that never wraps: with a proportional font a
+     "1" is narrower than a "4", so a counting figure jitters horizontally
+     even at a fixed digit count, and a wrapped one leaves its frame
+     entirely. The reserved width is set inline — see `reserved`. */
   font-variant-numeric: var(--tabular, tabular-nums);
+  white-space: nowrap;
+  text-align: right;
   font-weight: 800;
   letter-spacing: -0.02em;
   border-radius: var(--radius-sm);

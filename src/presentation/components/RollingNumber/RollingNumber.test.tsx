@@ -82,4 +82,44 @@ describe('RollingNumber', () => {
       expect(el).not.toBeNull()
     })
   })
+
+  /*
+   * B3. Mid-count values — "$49,456", "$85,194" — were reported rendering
+   * outside the pill that contains them, because the box resized every time
+   * the count gained or lost a digit and the kick was a flat 9px whatever
+   * the type size was.
+   */
+  describe('holding its own frame while the digits turn', () => {
+    it('reserves the width of the wider of the two ends, not just the target', () => {
+      mockReducedMotion(false)
+      const { container, rerender } = render(
+        <RollingNumber value={100_000} format={formatMoney} duration={0.05} />,
+      )
+      rerender(<RollingNumber value={5} format={formatMoney} duration={0.05} />)
+
+      // '$100,000' is eight characters; '$5' is two. A box sized for the
+      // target alone would collapse through every value in between.
+      const el = container.firstElementChild as HTMLElement
+      expect(el.style.minWidth).toBe('8ch')
+    })
+
+    it('reserves the target when the count is growing', () => {
+      mockReducedMotion(false)
+      const { container, rerender } = render(
+        <RollingNumber value={1_000} format={formatMoney} duration={0.05} />,
+      )
+      rerender(<RollingNumber value={85_194} format={formatMoney} duration={0.05} />)
+
+      const el = container.firstElementChild as HTMLElement
+      expect(el.style.minWidth).toBe('7ch')
+    })
+
+    it('starts out sized for the figure it was given', () => {
+      mockReducedMotion(true)
+      const { container } = render(<RollingNumber value={10_000} format={formatMoney} />)
+
+      const el = container.firstElementChild as HTMLElement
+      expect(el.style.minWidth).toBe('7ch')
+    })
+  })
 })

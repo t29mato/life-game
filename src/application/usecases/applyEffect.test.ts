@@ -1343,7 +1343,11 @@ describe('applyEffect', () => {
 
       expect(next.players[0]!.loans).toBeGreaterThan(0)
       expect(next.players[0]!.money).toBeGreaterThanOrEqual(0)
-      expect(event.notes.some((note) => note.includes('loan'))).toBe(true)
+      // Reported as figures rather than as a sentence, so the card can print
+      // the bill and the borrow as two separately signed rows instead of one
+      // net number with a footnote arguing against it. See `withBorrowing`.
+      expect(event.borrowing?.loans).toBe(next.players[0]!.loans)
+      expect(event.borrowing?.charge).toBe(40_000)
     })
   })
 

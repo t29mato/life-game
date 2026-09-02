@@ -111,6 +111,7 @@ const WORK_LANE: readonly SpaceContent[] = [
     id: 'jp-work-first-envelope', kind: 'normal', title: 'First Pay Envelope',
     description: 'Your very first pay lands and feels enormous. Following custom, you take your parents to dinner with it, and they let you pay with visible pride.',
     effect: { type: 'gainMoney', amount: 200_000, reason: 'First pay envelope' },
+    footnote: 'Part of a month, not a whole one — you were placed part-way through it. The first full envelope is the next Payday square.',
     tone: 'orange', icon: 'space:first-paycheck',
   },
   payday('jp-work-payday-1', 'A full month on the books, and the deposit lands while your classmates are still queueing for lecture seats.', missedPayday(

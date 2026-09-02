@@ -813,13 +813,15 @@ describe('choose', () => {
         expect(event.narration).toBe(band.note)
         expect(event.notes.join(' ')).not.toContain(band.note)
 
-        // The bill: one note, because the delta plate cannot be trusted for
-        // it — a player who cannot cover it is topped up by the bank.
-        expect(event.notes.filter((note) => note.includes(bill))).toHaveLength(1)
+        // The bill: the plate, and only the plate. A player who can cover it
+        // sees it as the delta, so a note repeating it is the same sentence
+        // twice; a player who cannot is told it as `borrowing.charge`, below.
+        expect(event.moneyDelta).toBe(-band.cost)
+        expect(event.notes.join(' ')).not.toContain(bill)
         expect(event.narration).not.toContain(bill)
       })
 
-      it('names the loans a bill too big to cover forced on the player', () => {
+      it('reports the loans a bill too big to cover forced, as figures rather than a sentence', () => {
         const player = fixturePlayer({ spaceId: 'a', money: 0 })
         const state = decisionState({
           board: { ...board, spaces: { ...board.spaces, a: billSpace } },
@@ -828,8 +830,18 @@ describe('choose', () => {
         })
 
         const next = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [1] }) })
-        expect(next.players[0]!.loans).toBeGreaterThan(0)
-        expect(next.lastEvent!.notes.join(' ')).toContain('due at retirement')
+        const loans = next.players[0]!.loans
+        expect(loans).toBeGreaterThan(0)
+
+        // The whole point of B1: the wallet went *up* on the biggest charge
+        // on the board, and the card has to be able to say why without
+        // adding a payment and a debt together into one green number.
+        const borrowing = next.lastEvent!.borrowing!
+        expect(next.lastEvent!.moneyDelta).toBeGreaterThan(0)
+        expect(borrowing.loans).toBe(loans)
+        expect(borrowing.borrowed).toBe(loans * USA_ECONOMY.loanPrincipal)
+        expect(borrowing.charge).toBe(USA_ECONOMY.tuition.outcomes[0]!.cost)
+        expect(borrowing.dueAtRetirement).toBeGreaterThan(borrowing.borrowed)
       })
 
       /*
