@@ -210,20 +210,48 @@ export function focusShot(
  * crop happens on the *board's own decorative canvas*, not on the route:
  * a wide desktop window and a tall phone both reveal exactly as much of the
  * fixed viewBox as their own shape calls for, whether or not the route
- * actually reaches that far. A serpentine route only fills a *wide* frame
- * by accident, when several of its rows happen to line up under it — most
- * of the extra a very wide window asks for is bare board, not more route.
- * Zooming in by how far the container's own shape strays from the fixed
- * viewBox's — in *either* direction, a narrow phone included — keeps the
- * frame close to what the fixed viewBox itself was already shaped for,
- * rather than stretching it to fit whatever shape a window happens to be.
+ * actually reaches that far. Zooming in by how far the container's own
+ * shape strays from the fixed viewBox's keeps the frame close to what the
+ * fixed viewBox itself was already shaped for, rather than stretching it to
+ * fit whatever shape a window happens to be.
+ *
+ * The two directions are not treated alike. A *narrow* phone gets the full
+ * correction: its extra reveal really is decorative margin past the route's
+ * sides, and the correction is also what keeps the tiles readable on a
+ * small screen at all. A *wide* desktop window gets only a tempered share
+ * of it (`WIDE_STRETCH_TEMPER`): these boards are taller than they are
+ * wide, so a wide window's extra reveal is whole extra *rows* — real route,
+ * exactly what a player on a large screen expects to see more of — and the
+ * full correction compounded with the slice crop until a desktop rest shot
+ * showed barely a row and read as "the camera is pressed against the map"
+ * (the owner's own report).
  */
 function aspectStretch(projection: BoardProjection, containerAspect: number): number {
   const viewAspect = projection.viewWidth / projection.viewHeight
-  return Math.max(containerAspect / viewAspect, viewAspect / containerAspect)
+  const ratio = containerAspect / viewAspect
+  return ratio >= 1 ? Math.pow(ratio, WIDE_STRETCH_TEMPER) : 1 / ratio
 }
 
-/** The board the shot shows, clamped inside the viewBox. */
+/**
+ * How much of the wide-container correction above is actually applied, as an
+ * exponent on the aspect ratio's excess: 1 is the full correction, 0 none.
+ */
+const WIDE_STRETCH_TEMPER = 0.35
+
+/**
+ * The board the shot shows, clamped so that what the *viewer* sees stays
+ * inside the viewBox.
+ *
+ * The rect maps onto the whole fixed viewBox (see `cameraTransform`), but
+ * the `xMidYMid slice` drawing shows only the middle band of that viewBox
+ * on whichever axis the container is shorter than it — so only the middle
+ * band of this rect is ever on screen. The clamp bounds *that band*, not
+ * the rect: a rect overhanging the board's edge is fine as long as the
+ * overhang is entirely inside the invisible crop, and — the half that
+ * actually bites — the board's own top and bottom rows could never reach a
+ * wide container's visible band at all if the rect itself were pinned flush
+ * to the edge.
+ */
 export function shotRect(
   projection: BoardProjection,
   shot: CameraShot,
@@ -232,12 +260,12 @@ export function shotRect(
   const zoom = Math.max(WIDE_ZOOM, shot.zoom) * aspectStretch(projection, containerAspect)
   const width = projection.viewWidth / zoom
   const height = projection.viewHeight / zoom
-  return {
-    x: clamp(shot.cx - width / 2, 0, projection.viewWidth - width),
-    y: clamp(shot.cy - height / 2, 0, projection.viewHeight - height),
-    width,
-    height,
-  }
+  const viewAspect = projection.viewWidth / projection.viewHeight
+  const seenWidth = containerAspect >= viewAspect ? width : (width * containerAspect) / viewAspect
+  const seenHeight = containerAspect >= viewAspect ? (height * viewAspect) / containerAspect : height
+  const cx = clamp(shot.cx, seenWidth / 2, projection.viewWidth - seenWidth / 2)
+  const cy = clamp(shot.cy, seenHeight / 2, projection.viewHeight - seenHeight / 2)
+  return { x: cx - width / 2, y: cy - height / 2, width, height }
 }
 
 export function cameraTransform(

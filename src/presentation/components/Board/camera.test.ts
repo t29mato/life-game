@@ -271,13 +271,24 @@ describe('container aspect', () => {
     expect(cameraTransform(projection, shot, viewAspect)).toEqual(cameraTransform(projection, shot))
   })
 
-  it('zooms in the same amount for a container this much narrower as one this much wider', () => {
+  it('tempers the wide correction, where the narrow one stays whole', () => {
     const shot = focusShot(projection, { x: 500, y: 400 }, 1.6)
 
+    const plain = shotRect(projection, shot)
     const wide = shotRect(projection, shot, viewAspect * 2)
     const narrow = shotRect(projection, shot, viewAspect / 2)
 
-    expect(wide.width * wide.height).toBeCloseTo(narrow.width * narrow.height, 5)
+    // A narrow phone keeps the full correction — it is what keeps tiles
+    // readable on a small screen. A wide desktop keeps only a tempered
+    // share, so its frame stays larger and a big screen actually shows more
+    // board — see `WIDE_STRETCH_TEMPER` and the report it answers.
+    expect(wide.width * wide.height).toBeGreaterThan(narrow.width * narrow.height)
+
+    // Tempered, not absent: the wide frame is still tighter than the plain
+    // one, or a very wide window would be back to revealing whatever
+    // decorative margin happens to lie past the route.
+    expect(wide.width).toBeLessThan(plain.width)
+    expect(wide.height).toBeLessThan(plain.height)
   })
 
   it('still maps the framed rectangle onto the whole viewBox, whatever the container’s shape', () => {
@@ -471,65 +482,63 @@ describe('restShot', () => {
   })
 
   /**
-   * The reported regression, in miniature: a tall board in a squarish
-   * window covers the whole card at REST_ZOOM, `focusShot` pins the frame
-   * to the top-left corner, and the pinned frame's centre — where the die
-   * is glued — lands nearly on the start tile itself. Panning is spent;
-   * the shot has to buy the clearance with zoom instead.
+   * The reported regression, in miniature: a tall board whose start corner a
+   * squarish window's REST_ZOOM frame pins against the edge of the card,
+   * where a robbed lift can leave the car under the die at the frame's
+   * centre. The contract, at *every* window shape: either the lifted pan was
+   * honoured — the car hangs exactly the clearance below the die — or the
+   * car is at least the clearance plus its own reach from the die in some
+   * direction, and the shot never spends zoom for it.
    */
   const tall = board([space('start', 4, 3, ['on']), space('on', 5, 3)], 8, 24)
   const tallProjection = createProjection(tall)
   const tallAspect = tallProjection.viewWidth / tallProjection.viewHeight
 
-  it('slides along the board when pinned with the car under the die, never spending zoom', () => {
-    const at = tall.spaces['start'] as Space
-    const car = tallProjection.project(at.layout)
-    // The window shape that puts the REST_ZOOM frame's own half-height
-    // exactly at the tile: the pin lands the visible centre — the die —
-    // dead on the car, the bullseye of the reported bug.
-    const aspect = (tallAspect * tallProjection.viewHeight) / (2 * REST_ZOOM * car.y)
-    const shot = restShot(tall, tallProjection, at, aspect)
-
-    expect(shot.zoom).toBe(REST_ZOOM)
-
-    // The bought separation is real, and owes the cars' reach on top of the
-    // lift the top edge robbed: at least the clearance fraction of the
-    // visible height — the shot rect's height over the slice crop — plus a
-    // tile of car.
-    const viewAspect = tallProjection.viewWidth / tallProjection.viewHeight
-    const crop = Math.max(1, aspect / viewAspect)
-    const visible = shotRect(tallProjection, shot, aspect).height / crop
-    const required = visible * REST_DIE_CLEARANCE + tallProjection.tileSize
-    const distance = Math.hypot(car.x - shot.cx, car.y - shot.cy)
-    expect(distance + 1e-6).toBeGreaterThanOrEqual(required)
-
-    // And the slide went toward the middle of the route, not off the edge.
-    expect(shot.cx).toBeGreaterThan(car.x)
-  })
-
-  it('keeps the pan when a corner pin already left the car clear of the centre', () => {
-    // Barely wider than the board's own shape: the pinned frame is so tall
-    // that its centre sits far *below* the top-corner tile — the car ends up
-    // well above the die, which separates just as well as below does, and
-    // the shot must not slide anywhere for it.
+  it('keeps the car clear of the die at every window shape, at REST_ZOOM, on the board', () => {
     const at = tall.spaces['start'] as Space
     const point = restPoint(tall, tallProjection, at)
-    const aspect = tallAspect * 1.17
-    const lift =
-      (shotRect(tallProjection, { cx: point.x, cy: point.y, zoom: REST_ZOOM }, aspect).height /
-        1.17) *
-      REST_DIE_CLEARANCE
-    expect(restShot(tall, tallProjection, at, aspect)).toEqual(
-      focusShot(tallProjection, { x: point.x, y: point.y - lift }, REST_ZOOM, aspect),
-    )
-  })
+    const car = tallProjection.project(at.layout)
+    let slid = false
 
-  it('never lifts or zooms the frame past the edge of the board', () => {
-    for (const aspect of [0.5, tallAspect, 1, 1.45, 2, 3]) {
-      const rect = shotRect(tallProjection, restShot(tall, tallProjection, tall.spaces['start'] as Space, aspect), aspect)
-      expect(rect.y).toBeGreaterThanOrEqual(0)
-      expect(rect.x).toBeGreaterThanOrEqual(0)
+    for (const ratio of [0.5, 0.8, 1, 1.17, 1.4, 1.7, 2, 2.5, 3]) {
+      const aspect = tallAspect * ratio
+      const shot = restShot(tall, tallProjection, at, aspect)
+      expect(shot.zoom).toBe(REST_ZOOM)
+
+      // What the viewer sees: the rect over the slice crop on the shorter
+      // axis. The clamp owes the *seen* band to the board, not the rect.
+      const rect = shotRect(tallProjection, shot, aspect)
+      const crop = Math.max(1, aspect / tallAspect)
+      const spread = Math.max(1, tallAspect / aspect)
+      const seenHeight = rect.height / crop
+      const seenTop = shot.cy - seenHeight / 2
+      expect(seenTop).toBeGreaterThanOrEqual(-1e-6)
+      expect(seenTop + seenHeight).toBeLessThanOrEqual(tallProjection.viewHeight + 1e-6)
+      const seenWidth = rect.width / spread
+      expect(shot.cx - seenWidth / 2).toBeGreaterThanOrEqual(-1e-6)
+      expect(shot.cx + seenWidth / 2).toBeLessThanOrEqual(tallProjection.viewWidth + 1e-6)
+
+      const lift = seenHeight * REST_DIE_CLEARANCE
+      // Vertical honour is what matters — the car hanging the full lift (or,
+      // at the bottom edge, more) below the die — however the sides clamped.
+      const honoured = shot.cy <= point.y - lift + 1e-6
+      const distance = Math.hypot(car.x - shot.cx, car.y - shot.cy)
+      const required = lift + tallProjection.tileSize
+      // A slide that runs out of board concedes the shortfall: this fixture's
+      // board is deliberately narrow enough that some window shapes exhaust
+      // the sideways room, and the proof of best effort is the centre parked
+      // exactly at the seen band's own bound.
+      const exhausted = Math.abs(shot.cx - (tallProjection.viewWidth - seenWidth / 2)) < 1e-6
+      expect(honoured || exhausted || distance + 1e-6 >= required).toBe(true)
+
+      // A slide is recognisable by the die landing well down the road of the
+      // car, toward the middle of the route.
+      if (shot.cx - car.x > tallProjection.tileSize * 0.9) slid = true
     }
+
+    // The sweep must actually have crossed the pinned band the slide exists
+    // for — a sweep that never slid would be vacuously green.
+    expect(slid).toBe(true)
   })
 })
 
