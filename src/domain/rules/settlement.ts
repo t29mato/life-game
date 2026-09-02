@@ -1,4 +1,5 @@
 import type { Money, SpinValue } from '../model/types'
+import { SPIN_VALUES } from './diePayout'
 
 /**
  * The closing settlement: reading a house's resale or a share's payout off the
@@ -28,7 +29,7 @@ import type { Money, SpinValue } from '../model/types'
  * has always priced a holding at mid-game. Only the grain changed: six rungs
  * instead of a smooth spread across the same span.
  */
-export const SETTLEMENT_FACES: readonly SpinValue[] = [1, 2, 3, 4, 5, 6]
+export const SETTLEMENT_FACES: readonly SpinValue[] = SPIN_VALUES
 
 /**
  * What `face` is worth on the ladder spanning `range`, rounded to `unit`.

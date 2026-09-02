@@ -18,6 +18,24 @@ function isOffer(row: RollTableRow): row is RollOfferRow {
 }
 
 /**
+ * Above this many money rows, the table is set tighter.
+ *
+ * Four is where the two shapes part company. A tuition bill deals four bands
+ * and a career fair two, and both are a glance at the base sizing. A die that
+ * pays per pip deals one row per face — six of them — and six rows at that
+ * sizing is 250-odd pixels of table wedged between the card's stakes line and
+ * the die the player came here to press, which on a phone pushes the die off
+ * the bottom of the screen.
+ *
+ * The obvious way to buy that height back is to lay the six faces out side by
+ * side, and it does not survive contact with the editions: the widest sum a
+ * die can deal is ₹6,00,00,000 in India and ¥60,000,000 in Japan — twelve and
+ * eleven characters — and six of those in a row want a screen no phone has.
+ * So the rows stay stacked and lose their leading instead.
+ */
+const DENSE_ABOVE_ROWS = 4
+
+/**
  * The die's own outcome table — what each face is actually worth, as rows a
  * player scans once. One component for both homes it has (`EventSpinModal`'s
  * whole-card panel, `DecisionModal`'s in-option insert, which used to carry
@@ -46,12 +64,28 @@ export function RollTable({ rows, compact = false }: RollTableProps): ReactEleme
   // sliding silently under the wrong heading if one ever does.
   const spannedColumns = showRung ? 3 : 2
 
-  const className = [styles.table, compact ? styles.compact : '', dealsJobs ? styles.columns : '']
+  // A die with a row per face, rather than two or four bands — see
+  // `DENSE_ABOVE_ROWS`. Decided here, off the rows themselves, because how
+  // tall a table is allowed to be is a question about the screen and nothing
+  // the layer that priced the payouts could answer.
+  const dense = !dealsJobs && rows.length > DENSE_ABOVE_ROWS
+
+  const className = [
+    styles.table,
+    compact ? styles.compact : '',
+    dealsJobs ? styles.columns : '',
+    dense ? styles.dense : '',
+  ]
     .filter(Boolean)
     .join(' ')
 
   return (
     <table className={className}>
+      {/* Read out before the columns are, so a screen reader reaches the
+          first "1 … ¥750,000" already knowing it is listening to a die and
+          not to a price list. Silent on screen: the card above has just said
+          all of this in words. */}
+      <caption className="visually-hidden">What each roll of the die is worth</caption>
       <thead>
         {dealsJobs ? (
           <tr>

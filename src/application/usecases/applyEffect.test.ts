@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import type { Board, LifeTile, RollAmountRow, RollOfferRow, RollTableRow } from '@domain/model/types'
+import type { Board, LifeTile, RollAmountRow, RollOfferRow, RollTableRow, SpinValue } from '@domain/model/types'
 import { CASUAL_WAGE_PER_PIP, EARLY_LOAN_REPAYMENT, INSURANCE_PREMIUM, SPIN_FACES } from '@domain/model/constants'
-import { BASIC_CAREERS, DOCTORATE_CAREERS, GRADUATE_CAREERS, USA_ECONOMY } from '@domain/edition/usa'
+import { BASIC_CAREERS, DOCTORATE_CAREERS, GRADUATE_CAREERS, USA_CURRENCY, USA_ECONOMY } from '@domain/edition/usa'
+import { householdSwing, perPipPayout } from '@domain/rules/diePayout'
 import { expectedMarriageValue } from '@domain/rules/marriage'
+import { paydayPayFor } from '@domain/rules/player'
+import { TRADE_YEAR_STORIES, tradeYearSwing } from '@domain/rules/tradeYear'
 import { HOUSES } from '@domain/edition/usa'
 import { STOCKS } from '@domain/edition/usa'
 import { fixtureBoard, fixturePlayer, fixtureSpace, fixtureState } from '../testing/fixtures'
@@ -155,18 +158,54 @@ describe('applyEffect', () => {
       expect(next.pendingDecision?.options).toHaveLength(1)
     })
 
-    it('says the shifts are up for grabs, and quotes the rate before anyone commits to a spin', () => {
+    /*
+     * The card used to quote the rate — "$1,400 a pip you roll, 1 to 6" —
+     * and leave the six multiplications to whoever was holding the phone.
+     * It now prints them. The sentence keeps the one thing a table cannot
+     * say: whose week this is.
+     */
+    it('says the shifts are up for grabs, and prints what every face of the die pays', () => {
       const player = fixturePlayer({ money: 0, career: null })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'payday' } })
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
-      const description = next.pendingDecision?.options[0]?.description ?? ''
-      expect(description).toContain('pick up shifts')
-      expect(description).toContain(`$${CASUAL_WAGE_PER_PIP.toLocaleString('en-US')}`)
+      const option = next.pendingDecision?.options[0]
+      expect(option?.description).toContain('pick up shifts')
+      // The rate is no longer a sentence to run in your head.
+      expect(option?.description).not.toContain(`$${CASUAL_WAGE_PER_PIP.toLocaleString('en-US')}`)
+      expect(amountRows(option?.table)).toEqual(
+        [1, 2, 3, 4, 5, 6].map((face) => ({
+          range: String(face),
+          amount: formatMoney(CASUAL_WAGE_PER_PIP * face),
+        })),
+      )
       expect(next.log[0]!.message).toContain('payday roll')
     })
 
-    it('holds an unsteady career payday for a spin too, quoting its own per-pip rate rather than casual pay', () => {
+    /*
+     * Not a hardcoded list of six sums but the game's own `paydayPayFor`,
+     * which is what `choose.ts` actually credits the packet by. The rate a
+     * payday runs on is a decision — this trade's `payPerPip`, or the
+     * edition's casual wage — and a card that picked it a second time would
+     * be a second place for the two to disagree about who is being paid.
+     */
+    it('reads its bands off the same payout the packet is credited by', () => {
+      const career = BASIC_CAREERS.find((c) => c.payPerPip !== undefined)!
+      const player = fixturePlayer({ money: 0, career })
+      const state = fixtureState({ players: [player] })
+      const space = fixtureSpace({ effect: { type: 'payday' } })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      expect(amountRows(next.pendingDecision?.options[0]?.table)).toEqual(
+        [1, 2, 3, 4, 5, 6].map((face) => ({
+          range: String(face),
+          amount: formatMoney(paydayPayFor(player, face as SpinValue)),
+        })),
+      )
+      // …and it is this trade's own rate, not the casual one.
+      expect(paydayPayFor(player, 6)).not.toBe(CASUAL_WAGE_PER_PIP * 6)
+    })
+
+    it('holds an unsteady career payday for a spin too, naming the trade whose week it is', () => {
       const career = BASIC_CAREERS.find((c) => c.payPerPip !== undefined)!
       const player = fixturePlayer({ money: 0, career })
       const state = fixtureState({ players: [player] })
@@ -503,7 +542,13 @@ describe('applyEffect', () => {
   describe('household', () => {
     const JOINT = { effect: { type: 'household', reason: 'The joint account, settled up' } } as const
 
-    it('holds for a married player to spin themselves, quoting the break-even line', () => {
+    /*
+     * The only die on the board that can take money off a player for landing
+     * low, so its table is the one that has to carry signs — and the face
+     * that lands exactly nowhere says so in words, because `$0` reads as a
+     * bug rather than as the month that came out level.
+     */
+    it('holds for a married player to spin themselves, printing every month the die can deal', () => {
       const player = fixturePlayer({ isMarried: true, money: 100_000 })
       const state = fixtureState({ players: [player] })
       const random = createFakeRandom({ spins: [1] })
@@ -512,8 +557,20 @@ describe('applyEffect', () => {
       expect(random.calls.spins).toBe(0)
       expect(next.players[0]!.money).toBe(100_000)
       expect(next.pendingDecision?.kind).toBe('valueSpin')
-      const description = next.pendingDecision?.options[0]?.description ?? ''
-      expect(description).toContain(`${USA_ECONOMY.household.breakEvenSpin}`)
+      const rows = amountRows(next.pendingDecision?.options[0]?.table)
+      expect(rows).toEqual(
+        [1, 2, 3, 4, 5, 6].map((face) => {
+          const swing = householdSwing(player, USA_ECONOMY, face as SpinValue)
+          const amount =
+            swing === 0 ? 'Breaks even' : swing > 0 ? `+${formatMoney(swing)}` : formatMoney(swing)
+          return { range: String(face), amount }
+        }),
+      )
+      // Below the break-even face the account is down, above it up, and the
+      // rows say which is which without the player doing the arithmetic.
+      expect(rows[0]!.amount.startsWith('-')).toBe(true)
+      expect(rows[USA_ECONOMY.household.breakEvenSpin - 1]!.amount).toBe('Breaks even')
+      expect(rows[5]!.amount.startsWith('+')).toBe(true)
     })
 
     it('passes a single player by entirely, without touching the wheel', () => {
@@ -537,7 +594,14 @@ describe('applyEffect', () => {
     } as const
     const COOK = BASIC_CAREERS.find((career) => career.id === 'career-line-cook')!
 
-    it('holds for the player to roll, and names what a career year is worth to them', () => {
+    /*
+     * The prose used to name the best year and add that the worst one cost
+     * the same — two faces of six, with the middle four left to guess at.
+     * All six are printed now. The *stories* still are not: which of the
+     * family's six years happened is the reveal the die is turned for, and a
+     * table of vignettes would leave it nothing to turn up.
+     */
+    it('holds for the player to roll, printing all six years without spoiling any of them', () => {
       const player = fixturePlayer({ career: COOK, money: 100_000 })
       const state = fixtureState({ players: [player] })
       const random = createFakeRandom({ spins: [6] })
@@ -548,12 +612,30 @@ describe('applyEffect', () => {
       expect(next.pendingDecision?.kind).toBe('valueSpin')
       expect(next.pendingDecision?.options).toHaveLength(1)
 
-      // Half a Line Cook's $54,950, rounded to the USA board's hundreds.
-      const description = next.pendingDecision?.options[0]?.description ?? ''
-      expect(description).toContain(formatMoney(27_500))
+      const option = next.pendingDecision?.options[0]
+      const rows = amountRows(option?.table)
+      expect(rows).toEqual(
+        [1, 2, 3, 4, 5, 6].map((face) => {
+          const swing = tradeYearSwing(COOK.salary, 0.5, face as SpinValue, USA_CURRENCY.tileRounding)
+          return {
+            range: String(face),
+            amount: swing > 0 ? `+${formatMoney(swing)}` : formatMoney(swing),
+          }
+        }),
+      )
+      // Half a Line Cook's $54,950, rounded to the USA board's hundreds —
+      // the best year, and the worst one costing exactly as much.
+      expect(rows[5]!.amount).toBe(`+${formatMoney(27_500)}`)
+      expect(rows[0]!.amount).toBe(formatMoney(-27_500))
+
+      const description = option?.description ?? ''
       expect(description).toContain('Line Cook')
       // The one promise that separates this from every other career tile.
       expect(description).toContain('Nobody is offering you a different job')
+      // Not one of the family's six vignettes is on the card before the roll.
+      for (const story of TRADE_YEAR_STORIES.kitchen) {
+        expect(description).not.toContain(story)
+      }
     })
 
     it('wears the trade\'s own portrait on the button, not the tile\'s glyph', () => {
@@ -656,8 +738,16 @@ describe('applyEffect', () => {
       expect(random.calls.spins).toBe(0)
       expect(next.pendingDecision?.kind).toBe('valueSpin')
       expect(next.pendingDecision?.options).toHaveLength(1)
-      const description = next.pendingDecision?.options[0]?.description ?? ''
-      expect(description).toContain('$500')
+      const option = next.pendingDecision?.options[0]
+      expect(option?.description).toBe('Roll for the gift envelopes.')
+      expect(amountRows(option?.table)).toEqual([
+        { range: '1', amount: '$500' },
+        { range: '2', amount: '$1,000' },
+        { range: '3', amount: '$1,500' },
+        { range: '4', amount: '$2,000' },
+        { range: '5', amount: '$2,500' },
+        { range: '6', amount: '$3,000' },
+      ])
     })
   })
 
@@ -744,7 +834,7 @@ describe('applyEffect', () => {
   })
 
   describe('spinForMoney', () => {
-    it('holds for the player to spin themselves, quoting the per-pip rate rather than rolling for them', () => {
+    it('holds for the player to spin themselves, printing the whole die rather than rolling for them', () => {
       const player = fixturePlayer({ money: 0 })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'spinForMoney', perPip: 100, reason: 'Lucky roll' } })
@@ -753,9 +843,17 @@ describe('applyEffect', () => {
       expect(next.players[0]!.money).toBe(0)
       expect(random.calls.spins).toBe(0)
       expect(next.pendingDecision?.kind).toBe('valueSpin')
-      const description = next.pendingDecision?.options[0]?.description ?? ''
-      expect(description).toContain('Lucky roll')
-      expect(description).toContain('$100')
+      const option = next.pendingDecision?.options[0]
+      // The tile's own phrase stays; the arithmetic moves into the rows.
+      expect(option?.description).toContain('Lucky roll')
+      expect(amountRows(option?.table)).toEqual([
+        { range: '1', amount: '$100' },
+        { range: '2', amount: '$200' },
+        { range: '3', amount: '$300' },
+        { range: '4', amount: '$400' },
+        { range: '5', amount: '$500' },
+        { range: '6', amount: '$600' },
+      ])
     })
   })
 
@@ -776,6 +874,48 @@ describe('applyEffect', () => {
       const space = fixtureSpace({ effect: { type: 'retire' } })
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
       expect(next.players[0]!.retirementRank).toBe(2)
+    })
+  })
+
+  describe('retireEarly', () => {
+    /*
+     * The one die on this board a player *chooses* to throw, which makes it
+     * the one where knowing what is on it is the decision rather than a
+     * courtesy. The card used to quote the floor and the ceiling — two faces
+     * of six, and the two a player could already work out. All six are on
+     * the option now, priced by the same `perPipPayout` that pays the fund
+     * out in `choose.ts`.
+     */
+    it('publishes the whole fund ladder beside the stake', () => {
+      const { fireNumber, firePayoutPerPip } = USA_ECONOMY
+      const player = fixturePlayer({ money: fireNumber })
+      const state = fixtureState({ players: [player] })
+      const space = fixtureSpace({ effect: { type: 'retireEarly' } })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+
+      const take = next.pendingDecision?.options[0]
+      expect(next.pendingDecision?.kind).toBe('retire')
+      expect(take?.turnsTheDie).toBe(true)
+      expect(amountRows(take?.table)).toEqual(
+        [1, 2, 3, 4, 5, 6].map((face) => ({
+          range: String(face),
+          amount: formatMoney(perPipPayout(firePayoutPerPip, face as SpinValue)),
+        })),
+      )
+      // The stake is still the loudest number on the option, and it is still
+      // the one the table's low faces have to be read against.
+      expect(take?.detail).toBe(`-${formatMoney(fireNumber)}`)
+    })
+
+    /* Walking on decides nothing and rolls nothing, so it has nothing to
+       tabulate — and a decline that grew a die's table would be claiming it
+       does. */
+    it('leaves the decline with no table at all', () => {
+      const player = fixturePlayer({ money: USA_ECONOMY.fireNumber })
+      const state = fixtureState({ players: [player] })
+      const space = fixtureSpace({ effect: { type: 'retireEarly' } })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      expect(next.pendingDecision?.options[1]?.table).toBeUndefined()
     })
   })
 

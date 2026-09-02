@@ -17,6 +17,7 @@ import type {
   RollTableRow,
   Space,
   SpaceId,
+  SpinValue,
   Stock,
 } from '@domain/model/types'
 import type { IconName } from '@domain/model/icons'
@@ -35,9 +36,10 @@ import {
 } from '@domain/edition/lookup'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
 import { hazardBillsAhead } from '@domain/board/movement'
+import { SPIN_VALUES, householdSwing, perPipPayout } from '@domain/rules/diePayout'
 import { SETTLEMENT_FACES, settlementValue } from '@domain/rules/settlement'
 import { tuitionSpecFor } from '@domain/rules/tuition'
-import { bestTradeYear } from '@domain/rules/tradeYear'
+import { tradeYearSwing } from '@domain/rules/tradeYear'
 import {
   addChildren,
   addLifeTiles,
@@ -52,6 +54,7 @@ import {
   isCoveredAgainst,
   loseCareer as loseCareerFor,
   paydayKindOf,
+  paydayPayFor,
   removeLifeTile,
   retirePlayer,
   setMoney,
@@ -262,6 +265,87 @@ function baseEvent(
   }
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * What each face is worth, published before the press.
+ *
+ * The owner's report, in his own words: 自分で計算するのみんな大変なので、この
+ * ダイスの数値なら、この金額もらえる。って表にした方がわかりやすい — doing the
+ * multiplication yourself is a pain for everyone, so make it a table saying
+ * "this die value, this much money". He was looking at a payday card reading
+ * "¥750,000 a pip you roll, 1 to 6", which is six multiplications asked of
+ * four people around one screen before anybody is allowed to press anything.
+ * Nobody does them. They press, and then find out.
+ *
+ * So every die on this board that decides money now ships its rows, and the
+ * rule for all of the builders below is the same one `tuitionBands` and
+ * `lifeMaturityBands` already followed: the row is computed by the very
+ * function `choose.ts` credits the player by — `perPipPayout`, `paydayPayFor`,
+ * `householdSwing`, `tradeYearSwing`. Not one of them re-derives the formula
+ * here. A published table that works the money out a second way is not a
+ * table, it is a second opinion, and the day the two disagree the card has
+ * lied about what the player was rolling for.
+ * ---------------------------------------------------------------------------
+ */
+
+/**
+ * A die that simply pays out, face by face — `perPip × the face`, six times,
+ * so the player does not have to.
+ *
+ * Covers a spin-for-money windfall, the gift envelopes at a birth, and the
+ * fund a player retires early on. A payday has its own builder because the
+ * rate depends on who is holding the card; these three do not.
+ */
+function perPipBands(perPip: Money, currency: CurrencySpec): readonly RollAmountRow[] {
+  return SPIN_VALUES.map((face) => ({
+    range: String(face),
+    amount: formatMoney(perPipPayout(perPip, face), currency),
+  }))
+}
+
+/**
+ * What each face pays *this* player's week.
+ *
+ * Read off `paydayPayFor` rather than off a rate multiplied here, because the
+ * rate itself is a decision — an unsteady trade's own `payPerPip`, or the
+ * edition's casual wage for somebody between jobs — and that decision already
+ * has exactly one home. A card that picked the rate a second time would be a
+ * second place for the two to disagree about which player is being paid.
+ */
+function paydayBands(
+  player: Player,
+  economy: EconomyConstants,
+  currency: CurrencySpec,
+): readonly RollAmountRow[] {
+  return SPIN_VALUES.map((face) => ({
+    range: String(face),
+    amount: formatMoney(paydayPayFor(player, face, economy), currency),
+  }))
+}
+
+/**
+ * A die that can go either way, face by face — the joint account, the year in
+ * the trade.
+ *
+ * The sign goes in front of the figure. A column of bare sums would leave the
+ * player to work out which half of the die is the half they want, which is
+ * precisely the arithmetic these tables exist to take off them; `+¥210,000`
+ * and `-¥210,000` say it without a sentence. A face that lands exactly nowhere
+ * says so in words instead, because `¥0` reads as a bug rather than as the
+ * month where the spending and the two incomes came out level.
+ */
+function swingBands(
+  currency: CurrencySpec,
+  swingOf: (face: SpinValue) => Money,
+): readonly RollAmountRow[] {
+  return SPIN_VALUES.map((face) => {
+    const swing = swingOf(face)
+    if (swing === 0) return { range: String(face), amount: 'Breaks even' }
+    const figure = formatMoney(swing, currency)
+    return { range: String(face), amount: swing > 0 ? `+${figure}` : figure }
+  })
+}
+
 /**
  * Every band of the tuition die, as rows — "1-2 → $90,000", "6 → full ride"
  * — built fresh from whatever bands the edition actually defines, so a
@@ -412,7 +496,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
    */
   const edition = editionOf(state)
   const { economy, currency } = edition
-  const { marriage, household } = economy
+  const { marriage } = economy
   const money = (amount: Money): string => formatMoney(amount, currency)
   const emphasisOf = (delta: Money): LandingEmphasis => emphasisForMoney(delta, economy)
   const borrowed = (loansTaken: number): string =>
@@ -534,22 +618,32 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        * Unsteady work and a player between jobs are paid by the wheel — and a
        * wheel a player never touches is not a wheel, it is a number the game
        * quietly decided for them. So the roll waits for `resolveValueSpin` in
-       * `choose.ts`, and this card names the rate before anyone commits to it:
-       * the formula is always `rate × the spin`, so higher is always better,
-       * whichever rate applies.
+       * `choose.ts`.
+       *
+       * What this card used to name was the *rate* — "¥750,000 a pip you roll,
+       * 1 to 6 — higher is always better" — and that sentence is the whole
+       * reason the tables below exist: it is a formula, handed to a player who
+       * then has to run it six times to know what they are hoping for. The
+       * table runs it for them, so the line keeps the half that a table can
+       * never say (whose week this is, and that no two of them are alike) and
+       * drops the half the six rows underneath now state outright.
        */
-      const rate = kind === 'variable' && player.career?.payPerPip !== undefined
-        ? player.career.payPerPip
-        : economy.casualWagePerPip
       const description =
         kind === 'casual'
-          ? `Between jobs, so you pick up shifts. ${money(rate)} a pip you roll, 1 to ${SPIN_FACES} — higher is always better.`
-          : `${player.career?.title ?? 'Your trade'} — no two weeks pay the same. ${money(rate)} a pip you roll, 1 to ${SPIN_FACES} — higher is always better.`
+          ? 'Between jobs, so you pick up shifts.'
+          : `${player.career?.title ?? 'Your trade'} — no two weeks pay the same.`
       const decision: Decision = {
         kind: 'valueSpin',
         prompt: space.title,
         options: [
-          { id: VALUE_SPIN_OPTION_ID, turnsTheDie: true, label: 'Roll', description, icon: 'space:payday' },
+          {
+            id: VALUE_SPIN_OPTION_ID,
+            turnsTheDie: true,
+            label: 'Roll',
+            description,
+            icon: 'space:payday',
+            table: paydayBands(player, economy, currency),
+          },
         ],
       }
       const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up to roll for the week's pay.`)
@@ -871,9 +965,15 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
 
       /*
        * Deferred to `resolveValueSpin` in `choose.ts` — same reasoning as
-       * every other wheel-decided tile. Below `household.breakEvenSpin` the
-       * account is down; at or above it, up — so the card says exactly that
-       * rather than a number that means nothing without the formula behind it.
+       * every other wheel-decided tile.
+       *
+       * The sentence keeps the mechanism, which is the one thing no row can
+       * carry: this is spending against two incomes, not a payout. Which face
+       * is which month is the table's job, and it is a table with signs in it
+       * because this is the only die on the board that can take money off you
+       * for landing low. The break-even face used to be quoted in the prose;
+       * it now sits in the rows, named, where a player can see what is either
+       * side of it.
        */
       const decision: Decision = {
         kind: 'valueSpin',
@@ -883,8 +983,9 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
             label: 'Roll',
-            description: `${effect.reason} Below a ${household.breakEvenSpin} and the spending outran the account; at or above it, two incomes carried the month.`,
+            description: `${effect.reason} — the spending against the two incomes, and the die settles it.`,
             icon: 'finance:bank-visit',
+            table: swingBands(currency, (face) => householdSwing(player, economy, face)),
           },
         ],
       }
@@ -917,14 +1018,17 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
 
       /*
        * Deferred to `resolveValueSpin` in `choose.ts`, like every other
-       * wheel-decided tile — and the framing names the stake rather than the
-       * outcome. What the player is told before pressing is how much is
-       * riding on it, in their own money; *which* of their trade's six years
-       * happened is the reveal, so there is deliberately no roll table here.
-       * A table would print all six vignettes above the die and leave nothing
-       * for it to turn up.
+       * wheel-decided tile.
+       *
+       * This tile used to publish no table at all, on the argument that a
+       * table would print all six vignettes above the die and leave nothing
+       * for it to turn up. That argument holds — and it is an argument about
+       * the *stories*, not about the money. The stories stay behind the die;
+       * the six sums come out in front of it, exactly like every other die on
+       * the board that moves money. The prose used to name the best year and
+       * say the worst one cost the same, which handed the player two faces of
+       * six and left them to guess the middle four. Now they can read them.
        */
-      const stake = bestTradeYear(career.salary, effect.share, currency.tileRounding)
       const decision: Decision = {
         kind: 'valueSpin',
         prompt: space.title,
@@ -933,8 +1037,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
             label: 'Roll',
-            description: `${effect.reason} Nobody is offering you a different job — only this one, for another year. A career year is worth ${money(stake)} to a ${career.title}, and the worst year on the die costs the same.`,
+            description: `${effect.reason} Nobody is offering you a different job — only this one, for another year as a ${career.title}.`,
             icon: career.icon,
+            table: swingBands(currency, (face) =>
+              tradeYearSwing(career.salary, effect.share, face, currency.tileRounding),
+            ),
           },
         ],
       }
@@ -962,8 +1069,12 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
             label: 'Roll',
-            description: `Roll for the gift envelopes — ${money(effect.celebrationPerPip)} a pip you roll, 1 to ${SPIN_FACES}.`,
+            // The rate the envelopes come at is in the table below, six
+            // times over. What is left for the sentence is what the roll is
+            // actually for.
+            description: 'Roll for the gift envelopes.',
             icon: 'space:new-baby',
+            table: perPipBands(effect.celebrationPerPip, currency),
           },
         ],
       }
@@ -1070,9 +1181,8 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
 
     case 'spinForMoney': {
       // Deferred to `resolveValueSpin` in `choose.ts` — see the 'payday' case
-      // above for why. The rate is right there in the description because the
-      // formula is always `perPip × the spin`, so a player deciding whether to
-      // press the button already knows higher is better before they do.
+      // above for why, and for why the rate that used to be quoted here is
+      // now six rows instead of a formula.
       const decision: Decision = {
         kind: 'valueSpin',
         prompt: space.title,
@@ -1081,8 +1191,9 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
             label: 'Roll',
-            description: `${effect.reason} ${money(effect.perPip)} a pip you roll, 1 to ${SPIN_FACES} — higher is always better.`,
+            description: `${effect.reason} — the die says how much.`,
             icon: 'space:payday',
+            table: perPipBands(effect.perPip, currency),
           },
         ],
       }
@@ -1114,9 +1225,15 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           id: FIRE_RETIRE_OPTION_ID,
           turnsTheDie: true,
           label: 'Call it a life',
-          description: `Put ${money(fireNumber)} into the fund and stop working today. One roll decides what it comes back as — anything from ${money(firePayoutPerPip)} to ${money(firePayoutPerPip * SPIN_FACES)} — and you take the next retirement place, forfeiting every payday still on the road.`,
+          // The floor and the ceiling used to be quoted here, which is the
+          // two faces of six a player can already guess. The table under the
+          // option prints all six — and this is the one die on the board a
+          // player chooses to throw, so it is the one where knowing what is
+          // on it is the decision rather than a courtesy.
+          description: `Put ${money(fireNumber)} into the fund and stop working today. One roll decides what it comes back as, and you take the next retirement place — forfeiting every payday still on the road.`,
           icon: 'space:retirement-fund',
           detail: `-${money(fireNumber)}`,
+          table: perPipBands(firePayoutPerPip, currency),
         })
       }
       options.push({

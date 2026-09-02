@@ -14,6 +14,7 @@ import { nextMovementLeg, planMovementVia } from '@domain/board/movement'
 import { editionOf } from '@domain/edition/registry'
 import { findCareer, findHouse, findStock, nextRungOf } from '@domain/edition/lookup'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
+import { householdSwing, perPipPayout } from '@domain/rules/diePayout'
 import { marriageBandFor } from '@domain/rules/marriage'
 import { tuitionBandFor, tuitionSpecFor } from '@domain/rules/tuition'
 import { tradeYearFor } from '@domain/rules/tradeYear'
@@ -25,7 +26,6 @@ import {
   buyShares,
   creditPlayer,
   debitPlayer,
-  expectedPayday,
   marryPlayer,
   movePlayerTo,
   paydayKindOf,
@@ -736,10 +736,8 @@ function resolveHouseholdSpin(
   money: (amount: Money) => string,
 ): GameState {
   const { economy } = edition
-  const { household } = economy
-  const amount = Math.round(
-    (spinValue - household.breakEvenSpin) * expectedPayday(player, economy) * household.shareOfPayday,
-  )
+  // The same function the card printed all six months from before the press.
+  const amount = householdSwing(player, economy, spinValue)
   const updated = amount >= 0 ? creditPlayer(player, amount) : debitPlayer(player, -amount, economy)
   const delta = updated.money - player.money
 
@@ -916,7 +914,7 @@ function spinOutcome(
   }
 
   if (space?.effect.type === 'spinForMoney') {
-    const gain = space.effect.perPip * spinValue
+    const gain = perPipPayout(space.effect.perPip, spinValue)
     const updated = creditPlayer(player, gain)
     const delta = updated.money - player.money
     const event = outcomeEvent(
@@ -958,7 +956,7 @@ function spinOutcome(
   }
 
   if (space?.effect.type === 'haveChildren') {
-    const gain = space.effect.celebrationPerPip * spinValue
+    const gain = perPipPayout(space.effect.celebrationPerPip, spinValue)
     const updated = creditPlayer(player, gain)
     const delta = updated.money - player.money
     const event = outcomeEvent(
@@ -1045,7 +1043,7 @@ function resolveRetireEarly(state: GameState, optionId: string, deps: UseCaseDep
   }
 
   const spin = deps.random.spin()
-  const payout = economy.firePayoutPerPip * spin
+  const payout = perPipPayout(economy.firePayoutPerPip, spin)
   const staked = debitPlayer(player, economy.fireNumber, economy)
   const rank = state.players.filter((candidate) => candidate.isRetired).length + 1
   const updated = retirePlayer(

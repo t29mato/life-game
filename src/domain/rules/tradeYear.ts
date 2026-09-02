@@ -1,6 +1,7 @@
 import type { Career, Money, SpinValue } from '../model/types'
 import { SPIN_FACES } from '../model/constants'
 import { CAREER_FAMILY, isCareerIcon, type CareerFamily } from './careerFamily'
+import { SPIN_VALUES } from './diePayout'
 
 /**
  * A year in the work you already do.
@@ -190,10 +191,7 @@ export function tradeYearFor(
 }
 
 /** Every face of the die, so an average is an average and not an estimate. */
-const EVERY_SPIN: readonly SpinValue[] = Array.from(
-  { length: SPIN_FACES },
-  (_, index) => (index + 1) as SpinValue,
-)
+const EVERY_SPIN = SPIN_VALUES
 
 /**
  * What a trade year is worth before anybody rolls: zero, for every trade in

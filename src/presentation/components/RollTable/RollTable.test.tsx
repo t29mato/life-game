@@ -27,6 +27,16 @@ const MONEY_ROWS: readonly RollTableRow[] = [
   { range: '6', amount: 'Full ride' },
 ]
 
+/** A die that pays per pip: one row per face, six of them. */
+const PER_PIP_ROWS: readonly RollTableRow[] = [
+  { range: '1', amount: '¥750,000' },
+  { range: '2', amount: '¥1,500,000' },
+  { range: '3', amount: '¥3,000,000' },
+  { range: '4', amount: '¥3,750,000' },
+  { range: '5', amount: '¥4,500,000' },
+  { range: '6', amount: '¥5,250,000' },
+]
+
 describe('RollTable', () => {
   it('renders a real table with the ranges and outcomes', () => {
     render(<RollTable rows={MONEY_ROWS} />)
@@ -138,5 +148,50 @@ describe('RollTable', () => {
     for (const row of container.querySelectorAll('tbody tr')) {
       expect(row.querySelectorAll('td')).toHaveLength(2)
     }
+  })
+
+  /*
+   * Read out before the columns are, so somebody hearing "1 … ¥750,000"
+   * knows they are listening to a die and not to a price list. Silent on
+   * screen: the card above has just said it in words.
+   */
+  it('names itself to a screen reader without printing the name', () => {
+    const { container } = render(<RollTable rows={MONEY_ROWS} />)
+    const caption = container.querySelector('caption')
+    expect(caption?.textContent).toBe('What each roll of the die is worth')
+    expect(caption?.className).toBe('visually-hidden')
+  })
+
+  /*
+   * A die that pays per pip publishes a row per face, and six rows at the
+   * base sizing pushes the die itself off the bottom of a phone. Four bands
+   * (a tuition bill) or two (a career fair) stay as they were.
+   */
+  it('sets a table longer than four money rows tighter', () => {
+    const { container } = render(<RollTable rows={PER_PIP_ROWS} />)
+    expect(container.querySelector('table')!.className).toContain('dense')
+  })
+
+  it('leaves a four-band table at its full sizing', () => {
+    const { container } = render(<RollTable rows={PER_PIP_ROWS.slice(0, 4)} />)
+    expect(container.querySelector('table')!.className).not.toContain('dense')
+  })
+
+  /* Tighter, not restructured — six faces are still six rows of two cells,
+     because the widest sum a die deals runs to twelve characters and six of
+     those side by side want a screen no phone has. */
+  it('keeps all six faces as their own rows when it tightens', () => {
+    const { container } = render(<RollTable rows={PER_PIP_ROWS} />)
+    const cells = [...container.querySelectorAll('tbody tr')].map((row) =>
+      [...row.querySelectorAll('td')].map((cell) => cell.textContent),
+    )
+    expect(cells).toEqual([
+      ['1', '¥750,000'],
+      ['2', '¥1,500,000'],
+      ['3', '¥3,000,000'],
+      ['4', '¥3,750,000'],
+      ['5', '¥4,500,000'],
+      ['6', '¥5,250,000'],
+    ])
   })
 })
