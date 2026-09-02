@@ -45,6 +45,19 @@ export interface EventCardProps {
    * nothing was passed on, which is most of them.
    */
   readonly passedThrough?: readonly LandingEvent[]
+
+  /**
+   * Which of the game's four cards this is.
+   *
+   * A playtester could only tell them apart by a small, faint English label —
+   * "PASSING THROUGH", "LIFE MILESTONE", "THE DIE" — because the cards were
+   * otherwise the same object. They are not any more: a tile only driven past
+   * gets a smaller, lighter card that slides up from below, a landing gets the
+   * standard one, a milestone keeps its gold and its confetti, and a question
+   * put to the player is the purple `DecisionModal`. The label stays, but by
+   * the time it is read the shape has already answered.
+   */
+  readonly variant?: 'landing' | 'passing'
 }
 
 // Cards from before `emphasis` existed still tint gold for a milestone —
@@ -74,6 +87,7 @@ export function EventCard({
   editionId,
   onMoneyLanded,
   passedThrough,
+  variant = 'landing',
 }: EventCardProps): ReactElement {
   const containerRef = useModalFocusTrap<HTMLDivElement>(onDismiss)
   const primaryRef = usePrimaryAction<HTMLButtonElement>(true)
@@ -108,7 +122,11 @@ export function EventCard({
     [passedThrough, currency],
   )
 
+  // Every card opens with its footnotes folded — see the `footnotes` block below.
+  const [notesOpen, setNotesOpen] = useState(false)
+
   const emphasis = event.emphasis ?? 'normal'
+  const isPassing = variant === 'passing'
   const isMilestone = emphasis === 'milestone' || (event.emphasis === undefined && MILESTONE_TONES.has(event.tone))
   // A cut-in: the card slams in harder and the icon punches forward. Milestone
   // is a cut-in *plus* confetti, so it always counts as "big" too.
@@ -116,6 +134,7 @@ export function EventCard({
 
   useEffect(() => {
     setRevealed(false)
+    setNotesOpen(false)
     const revealTimer = setTimeout(() => {
       setRevealed(true)
       // Coins (or a transfer) fire the moment the number starts rolling —
@@ -193,7 +212,15 @@ export function EventCard({
   // rotation, and a stiffer, less damped spring so it visibly overshoots.
   const entrance = reduceMotion
     ? { initial: { opacity: 1, scale: 1, y: 0, rotate: 0 }, animate: { opacity: 1, scale: 1, y: 0, rotate: 0 }, transition: { duration: 0 } }
-    : isCutIn
+    : isPassing
+      ? // Slid up from below, square on, no throw: a tile you drove over is
+        // not a card somebody dealt you, and it should not land like one.
+        {
+          initial: { opacity: 0, scale: 0.97, y: 96, rotate: 0 },
+          animate: { opacity: 1, scale: 1, y: 0, rotate: 0 },
+          transition: { type: 'spring' as const, stiffness: 460, damping: 34, mass: 0.7 },
+        }
+      : isCutIn
       ? {
           initial: { opacity: 0, scale: 0.62, y: 72, rotate: -8 },
           animate: { opacity: 1, scale: 1, y: 0, rotate: 0 },
@@ -212,9 +239,15 @@ export function EventCard({
       <Confetti burstKey={burstTick} origin="center" pieceCount={110} />
       <motion.div
         ref={containerRef}
-        className={[styles.card, isMilestone ? styles.milestone : '', isCutIn ? styles.cutIn : '']
+        className={[
+          styles.card,
+          isMilestone ? styles.milestone : '',
+          isCutIn ? styles.cutIn : '',
+          isPassing ? styles.passing : '',
+        ]
           .filter(Boolean)
           .join(' ')}
+        data-variant={isMilestone ? 'milestone' : variant}
         role="dialog"
         aria-modal="true"
         aria-labelledby="event-card-title"
@@ -225,6 +258,9 @@ export function EventCard({
         {flashing ? <span className={styles.flash} aria-hidden="true" /> : null}
         <div className={styles.band} aria-hidden="true">
           {isMilestone ? <span className={styles.milestoneRibbon}>Life Milestone</span> : null}
+          {isPassing && !isMilestone ? (
+            <span className={styles.passingRibbon}>Passing through</span>
+          ) : null}
           <span className={styles.emblem}>
             <span className={styles.rays} />
             <span className={`${styles.medallion} ${isCutIn ? styles.medallionPunch : ''}`}>
@@ -390,14 +426,40 @@ export function EventCard({
               own number is the size it is. */}
           {event.footnote ? <p className={styles.footnote}>{event.footnote}</p> : null}
 
+          {/* The third layer, and it is one line.
+              A card is a headline (the title and the sentence under it), one
+              big figure (the plate, or the die), and a footnote. A playtest
+              card broke all three at once: three bullets, two of which read as
+              contradicting each other, under a badge and a quote. Handlers are
+              trimmed at the source where they were saying the same thing
+              twice, and this is the structural half of it — however many lines
+              a card arrives with, the first one is what a player reads, and
+              the rest wait behind a press. */}
           {event.notes.length > 0 ? (
-            <ul className={styles.notes}>
-              {event.notes.map((note, index) => (
-                <li key={index} className={styles.note}>
-                  {note}
-                </li>
-              ))}
-            </ul>
+            <div className={styles.footnotes}>
+              <p className={styles.footnote}>{event.notes[0]}</p>
+              {event.notes.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    className={styles.moreButton}
+                    aria-expanded={notesOpen}
+                    onClick={() => setNotesOpen((open) => !open)}
+                  >
+                    {notesOpen ? 'Less' : `${event.notes.length - 1} more`}
+                  </button>
+                  {notesOpen ? (
+                    <ul className={styles.notes}>
+                      {event.notes.slice(1).map((note, index) => (
+                        <li key={index} className={styles.note}>
+                          {note}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </>
+              ) : null}
+            </div>
           ) : null}
 
           {/* The road behind this tile. Everything here already popped on the

@@ -159,6 +159,18 @@
   border-radius: var(--radius-sm);
 }
 
+/* A heading inside a section — the key to the marks under "Reading the
+   board". Quieter than a section's own heading, and it never takes a contents
+   jump, so it needs neither the scroll margin nor the focus ring. */
+.subHeading {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-display, var(--font-rounded));
+  font-size: 1.02rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
 .sectionLede {
   margin-top: -0.4rem;
   font-size: 0.9rem;

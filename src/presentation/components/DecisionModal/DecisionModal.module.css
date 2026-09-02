@@ -26,7 +26,14 @@
   }
 }
 
-/* ---- Card: matte paper stock -------------------------------------------- */
+/* ---- Card: matte paper stock, bound in purple ---------------------------
+   The choice card is the one card in the game that will not go away until
+   the player does something, and it is now the only purple thing on screen:
+   a grape rail across the top, a grape edge all the way round, and the
+   header's own label in the same ink. A playtester could tell the four kinds
+   of card apart only by a small faint label; this is what answers before the
+   label is read. The board says the same word — a tile that asks something
+   has a purple cut edge (see `Board.module.css`).                          */
 .card {
   position: relative;
   width: min(36rem, 100%);
@@ -38,7 +45,10 @@
   padding: 1.5rem 1.5rem 1.3rem;
   background: var(--surface-grad);
   border-radius: var(--radius-xl);
-  box-shadow: var(--elev-3);
+  box-shadow:
+    var(--elev-3),
+    inset 0 0 0 2px color-mix(in srgb, var(--candy-grape) 34%, transparent),
+    inset 0 6px 0 var(--candy-grape);
 }
 
 /* ---- Header -------------------------------------------------------------- */
@@ -55,7 +65,7 @@
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--candy-grape-dark);
 }
 
 .prompt {

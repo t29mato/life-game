@@ -8,7 +8,7 @@ import { Shaded, Shield } from '../parts'
  * At tile size (~24–32px on screen) a bespoke illustration is a few dozen
  * pixels of mush; a playtest verdict said exactly that. So the board never
  * shows bespoke art. Every subject the domain can name collapses onto one of
- * these sixteen marks (see `../categories.ts`), each designed to a rule:
+ * these seventeen marks (see `../categories.ts`), each designed to a rule:
  *
  *   • **Silhouette first.** Two glyphs must differ in outline, not interior
  *     detail — a coin, an arrow, a triangle, a heart, a pram. Colour is the
@@ -38,6 +38,7 @@ export type GlyphCategory =
   | 'child'
   | 'home'
   | 'invest'
+  | 'bank'
   | 'insurance'
   | 'life'
   | 'travel'
@@ -101,7 +102,7 @@ function Chunk({
   )
 }
 
-/* ── the sixteen glyphs ──────────────────────────────────────────────────── */
+/* ── the seventeen glyphs ────────────────────────────────────────────────── */
 
 /** Payday: the gold coin, `$` and all. Marks the salary tiles and nothing else. */
 function Payday(): ReactElement {
@@ -287,7 +288,33 @@ function Home(): ReactElement {
   )
 }
 
-/** Markets, dividends and the bank: bars going the right way. */
+/**
+ * The bank: pediment, columns, steps.
+ *
+ * It used to share the rising chart with the stock market, and a playtester
+ * landed on a chart tile that opened "The Bank: borrow a loan?" — one picture
+ * meaning two things, which is the one thing a board symbol may never do. The
+ * chart is the market's now and nothing else's; this is the bank's. The
+ * silhouette is deliberately nothing like `Home`'s: a wide stepped block under
+ * a shallow pediment, where a house is a narrow box under a steep roof.
+ */
+function Bank(): ReactElement {
+  return (
+    <g>
+      <Chunk d="M6 27 32 11 58 27Z" fill={STEEL} shade={STEEL_D} sw={4} dx={1.6} dy={2} />
+      <Chunk d="M4 47H60V56H4Z" fill={STEEL} shade={STEEL_D} sw={3.5} dx={1.6} dy={2} />
+      <g fill={PAPER}>
+        <rect x="12" y="29" width="7.5" height="17" rx="1.6" />
+        <rect x="24.2" y="29" width="7.5" height="17" rx="1.6" />
+        <rect x="36.4" y="29" width="7.5" height="17" rx="1.6" />
+        <rect x="48.6" y="29" width="3.4" height="17" rx="1.6" />
+      </g>
+      <circle cx="32" cy="21" r="3.6" fill={SUN} />
+    </g>
+  )
+}
+
+/** Markets and dividends: bars going the right way. */
 function Invest(): ReactElement {
   return (
     <g>
@@ -374,6 +401,7 @@ export const glyphArt: Record<GlyphCategory, ComponentType> = {
   child: Child,
   home: Home,
   invest: Invest,
+  bank: Bank,
   insurance: Insurance,
   life: Life,
   travel: Travel,

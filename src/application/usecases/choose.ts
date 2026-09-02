@@ -566,8 +566,18 @@ function resolvePromotionSpin(
       player,
       'Review',
       0,
+      /*
+       * One line, and it is the good news.
+       *
+       * This card used to carry two: "the job goes to somebody else" and "a
+       * raise anyway", side by side as equal bullets. A playtester read them
+       * as a contradiction — no promotion, and a promotion's money — because
+       * nothing on the card said which of the two was the outcome. The bar it
+       * missed is already on the card as the die itself, and the narration
+       * above already says "not this time", so the footnote is left with the
+       * one fact neither of them carries: the new wage.
+       */
       [
-        `${needed} was the bar — the ${next.title} job goes to somebody else.`,
         edition.currency.salaryDisplay
           ? raiseNote(career.salary, newSalary, edition.currency)
           : `A raise anyway: ${money(newSalary)}`,
@@ -588,13 +598,11 @@ function resolvePromotionSpin(
   const twoAtOnce = spinValue >= DOUBLE_PROMOTION_SPIN ? nextRungOf(next, edition) : undefined
   if (twoAtOnce) promoted = promoteCareer(promoted, twoAtOnce)
   const arrived = promoted.career ?? next
-  // The narration names the rung arrived at, and the card prints the die
-  // that cleared the bar — so the notes carry the bar itself and the wage,
-  // which are the two things neither of those says.
-  const notes = [
-    `Cleared the bar of ${needed}.`,
-    `${money(salaryRate(arrived.salary, edition.currency))} every ${salaryPeriod(edition.currency)}.`,
-  ]
+  // The narration names the rung arrived at and the card prints the die, so
+  // the footnote carries the one thing neither says: the wage. The bar it
+  // cleared used to sit here too — a second line saying, in words, what the
+  // die on the card above it already said in a number.
+  const notes = [`${money(salaryRate(arrived.salary, edition.currency))} every ${salaryPeriod(edition.currency)}.`]
   const event = outcomeEvent(
     space,
     player,

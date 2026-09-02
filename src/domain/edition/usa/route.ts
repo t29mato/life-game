@@ -173,7 +173,10 @@ const WORK_LANE: readonly SpaceContent[] = [
     id: 'work-first-night', kind: 'normal', title: 'First Night In',
     description: 'You unpack by lamplight because the overhead bulb still needs replacing.',
     effect: { type: 'none' },
-    tone: 'orange', icon: 'space:rent-due',
+    // Nothing happens here, so it cannot wear the rent arrow the tiles either
+    // side of it wear: a red arrow on a tile that charges nothing is a promise
+    // the board does not keep.
+    tone: 'orange', icon: 'space:move-in-day',
   },
   /*
    * A stop rather than an ordinary tile, and only on the harder settings.
@@ -367,7 +370,8 @@ const KEEP_WORKING_LANE: readonly SpaceContent[] = [
     id: 'stay-3', kind: 'normal', title: 'Night Class',
     description: 'One evening a week, no doctorate at the end of it, and a certificate that turns out to be worth having anyway.',
     effect: { type: 'payMoney', amount: 6_000, reason: 'Evening course fees' },
-    tone: 'orange', icon: 'space:campus-job',
+    // Fees, not wages. The campus-job coin belongs to the tiles that pay.
+    tone: 'orange', icon: 'space:tuition-bill',
   },
 ]
 
@@ -584,7 +588,10 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
   setback('veryHard', 'main-tax-audit', 'Tax Audit',
     'A polite letter, a long afternoon with a shoebox of receipts, and a number at the bottom of it.',
     { type: 'payMoney', amount: 15_000, reason: 'Tax audit settlement' },
-    'slate', 'space:refund-check'),
+    // A brown envelope with a number at the bottom is a bill, and the
+    // refund cheque next door on the safe road is money coming the other
+    // way. One picture cannot be both.
+    'slate', 'space:tuition-bill'),
 ]
 
 
@@ -750,7 +757,9 @@ const FAST_TRACK: readonly SpaceContent[] = [
   setback('hard', 'fast-burnout', 'Burnout Leave',
     'Six weeks signed off, and the paycheck is a great deal lighter by the time you walk back in.',
     { type: 'payMoney', amount: 12_000, reason: 'Unpaid leave' },
-    'orange', 'space:steady-hustle'),
+    // Six weeks away from the desk and a lighter paycheck for it — a setback,
+    // not the steady grind Steady Year uses the same picture for.
+    'orange', 'space:layoff-notice'),
   /*
    * Very Hard only. It was put here to close a specific gap — a player
    * headhunted at the top of this lane could be reorganised into yet another
@@ -920,7 +929,9 @@ const RISKY_ROAD: readonly SpaceContent[] = [
     id: 'risky-2', kind: 'normal', title: 'Bad Stock Tip',
     description: "Your 'sure thing' loses most of its value in a week, and you buy the table dinner to make up for it.",
     effect: { type: 'payEach', amount: 2_000, reason: 'Bad stock tip' },
-    tone: 'pink', icon: 'space:stock-tip',
+    // The rising chart belongs to the tile that offers shares. This one is
+    // the market going the other way.
+    tone: 'pink', icon: 'space:market-crash',
   },
   {
     id: 'risky-3', kind: 'normal', title: 'Poker Night',
@@ -1068,7 +1079,10 @@ const SUNSET_STRIP: readonly SpaceContent[] = [
   setback('veryHard', 'sunset-tax', 'Final Tax Bill',
     'One last brown envelope arrives before the office door closes behind you for good.',
     { type: 'payMoney', amount: 22_000, reason: 'Final tax bill' },
-    'slate', 'space:refund-check'),
+    // A brown envelope with a number at the bottom is a bill, and the
+    // refund cheque next door on the safe road is money coming the other
+    // way. One picture cannot be both.
+    'slate', 'space:tuition-bill'),
   {
     /*
      * The last year in the trade, and the board's one guaranteed word about

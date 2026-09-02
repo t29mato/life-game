@@ -131,7 +131,9 @@ const WORK_LANE: readonly SpaceContent[] = [
     id: 'jp-work-first-night', kind: 'normal', title: 'First Night In',
     description: 'You unpack by the light of one bare bulb, because the ceiling light still needs buying.',
     effect: { type: 'none' },
-    tone: 'orange', icon: 'space:rent-due',
+    // Nothing happens here, so it does not wear the rent arrow. See the USA
+    // board's own First Night In.
+    tone: 'orange', icon: 'space:move-in-day',
   },
   {
     id: 'jp-work-uniform', kind: 'event', title: 'Uniform Deposit',
@@ -270,7 +272,10 @@ const SALARYMAN_STREET_LATE: readonly SpaceContent[] = [
   setback('veryHard', 'jp-main-tax-audit', 'Tax Audit',
     'A very polite letter, a long afternoon with a shoebox of receipts, and a figure at the bottom that has clearly already been decided.',
     { type: 'payMoney', amount: 1_500_000, reason: 'Tax audit settlement' },
-    'slate', 'space:refund-check'),
+    // A brown envelope with a number at the bottom is a bill, and the
+    // refund cheque next door on the safe road is money coming the other
+    // way. One picture cannot be both.
+    'slate', 'space:tuition-bill'),
   {
     id: 'jp-main-contract-ends', kind: 'normal', title: 'Contract Ends',
     description: 'The contract everyone swore blind would renew in April is, very quietly, not renewed. The farewell bouquet is lovely.',
@@ -354,7 +359,7 @@ const CAREER_TRACK: readonly SpaceContent[] = [
   setback('hard', 'jp-fast-burnout', 'Burnout Leave',
     'Six weeks signed off with a doctor\'s note, and the pay packet is a great deal lighter by the time you bow your way back in.',
     { type: 'payMoney', amount: 1_200_000, reason: 'Unpaid leave' },
-    'orange', 'space:steady-hustle'),
+    'orange', 'space:layoff-notice'),
   {
     id: 'jp-fast-payday-severance', kind: 'payday', title: 'Year-End Payroll',
     description: 'The fiscal year closes out, and whatever this job pays lands in your account one more time before the org chart is redrawn.',
@@ -456,7 +461,7 @@ const SPECULATION_STREET: readonly SpaceContent[] = [
     id: 'jp-risky-bad-tip', kind: 'normal', title: 'Bad Stock Tip',
     description: 'Your "sure thing" tanks in a week, and you buy the table dinner to make up for having recommended it at volume.',
     effect: { type: 'payEach', amount: 200_000, reason: 'Bad stock tip' },
-    tone: 'pink', icon: 'space:stock-tip',
+    tone: 'pink', icon: 'space:market-crash',
   },
   {
     id: 'jp-risky-golf', kind: 'normal', title: 'Client Golf',
@@ -588,7 +593,10 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   setback('veryHard', 'jp-sunset-final-tax', 'Final Tax Bill',
     'One last envelope from the tax office arrives before the office door closes behind you for good.',
     { type: 'payMoney', amount: 2_200_000, reason: 'Final tax bill' },
-    'slate', 'space:refund-check'),
+    // A brown envelope with a number at the bottom is a bill, and the
+    // refund cheque next door on the safe road is money coming the other
+    // way. One picture cannot be both.
+    'slate', 'space:tuition-bill'),
   flavour('jp-sunset-ahead', 'Sunset Ahead', 'From the train window, the mountain turns pink at dusk, the way it has every evening you were too busy to look.', 'slate', 'space:sunset-ahead'),
 ]
 

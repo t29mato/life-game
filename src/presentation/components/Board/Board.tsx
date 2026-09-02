@@ -13,6 +13,7 @@ import { animate, useMotionValue, type AnimationPlaybackControls } from 'framer-
 import type { Board as BoardModel, Difficulty, GamePhase, Player, Space, SpaceId } from '@domain/model/types'
 import { editionFor } from '@domain/edition/registry'
 import { estimateNetWorth } from '@domain/rules/scoring'
+import { effectSign } from '@domain/rules/effectSign'
 import { GameIconGlyph } from '../../icons/GameIcon'
 import { Pawn, type PawnHandle, type PawnPoint } from '../Pawn/Pawn'
 import { describeCar } from '../Pawn/passengers'
@@ -1274,6 +1275,11 @@ export function Board({
                     transform={`translate(${tile.face.x}, ${tile.face.y})`}
                     data-tone={tile.space.tone}
                     data-accent={tile.accent}
+                    // The cut edge is painted by what the tile *does*, not by
+                    // which act of the board it belongs to: green underneath
+                    // means money in, red means money out, purple means you
+                    // will be asked something. See `effectSign`.
+                    data-sign={effectSign(tile.space.effect)}
                   >
                     {tile.accent === 'milestone' ? (
                       <>
@@ -1514,6 +1520,7 @@ export function Board({
         <TilePopover
           space={selectedTile.space}
           anchor={selectedTile.anchor}
+          edition={edition}
           onClose={() => setSelectedTile(null)}
         />
       )}

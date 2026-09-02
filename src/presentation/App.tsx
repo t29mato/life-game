@@ -33,6 +33,8 @@ import styles from './App.module.css'
 import { StatusModal } from './components/StatusModal/StatusModal'
 import { SettingsSheet } from './components/SettingsSheet/SettingsSheet'
 import { Board } from './components/Board/Board'
+import { BoardLegend } from './components/BoardLegend/BoardLegend'
+import { hasSeenBoardLegend, markBoardLegendSeen } from './components/BoardLegend/seen'
 import { ChunkyButton } from './components/ChunkyButton/ChunkyButton'
 import { DecisionModal } from './components/DecisionModal/DecisionModal'
 import { EventCard } from './components/EventCard/EventCard'
@@ -950,6 +952,21 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
     previousPhase.current = state.phase
   }, [state.phase])
 
+  /*
+   * The key to the board, dealt once in a player's life and never again.
+   *
+   * It goes up the moment the board first appears — before the first roll,
+   * where it is a promise about what is coming, rather than after it, where
+   * it would be an explanation of something already missed. Read from storage
+   * once, on mount: a player who has seen it must not be shown it again just
+   * because they started a second game this session.
+   */
+  const [legendOpen, setLegendOpen] = useState(() => !hasSeenBoardLegend())
+  const dismissLegend = useCallback(() => {
+    markBoardLegendSeen()
+    setLegendOpen(false)
+  }, [])
+
   if (state.phase === 'setup') {
     return (
       <AudioProvider audio={audio}>
@@ -1384,12 +1401,13 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
             <EventCard
               event={state.activePassedEvent}
               editionId={state.editionId}
+              variant="passing"
               onMoneyLanded={handleMoneyLanded}
               onDismiss={() => store.dispatch({ type: 'settle' })}
             />
           )}
 
-        {handoffVisible && activePlayer && (
+        {handoffVisible && !legendOpen && activePlayer && (
           <TurnHandoff
             player={activePlayer}
             turn={state.turn}
@@ -1399,6 +1417,11 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
             onAlwaysAskChange={(alwaysAsk) => setHandoffMode(alwaysAsk ? 'always' : 'auto')}
           />
         )}
+
+        {/* Dealt last so it sits over everything else on a player's very
+            first board — the key has to be read before the first roll, not
+            underneath whatever else the opening turn happens to raise. */}
+        {legendOpen && <BoardLegend onDismiss={dismissLegend} />}
       </div>
       <UpdateBanner />
     </AudioProvider>

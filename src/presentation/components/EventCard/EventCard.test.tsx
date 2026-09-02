@@ -113,6 +113,103 @@ describe('EventCard', () => {
     expect(screen.getByText('Salary raised to $65,000')).toBeInTheDocument()
   })
 
+  /*
+   * D3: a playtest card carried a quote, a badge and three bullet lines, two
+   * of which ("no promotion", "raised to $76,000") read as contradicting each
+   * other at a glance. A card is a headline, one figure, and one footnote —
+   * whatever a handler hands it, only the first line is on screen.
+   */
+  describe('one card, one message', () => {
+    it('shows only the first note, and says how many are folded away', () => {
+      mockReducedMotion(true)
+      const event = makeEvent({ notes: ['A raise anyway: $76,000', 'Cleared the bar of 4.', 'Third thing'] })
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard event={event} onDismiss={() => {}} />
+        </AudioProvider>,
+      )
+
+      expect(screen.getByText('A raise anyway: $76,000')).toBeInTheDocument()
+      expect(screen.queryByText('Cleared the bar of 4.')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '2 more' })).toBeInTheDocument()
+    })
+
+    it('unfolds the rest on a press, and folds them back', async () => {
+      mockReducedMotion(true)
+      const user = userEvent.setup()
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard event={makeEvent({ notes: ['First', 'Second'] })} onDismiss={() => {}} />
+        </AudioProvider>,
+      )
+
+      await user.click(screen.getByRole('button', { name: '1 more' }))
+      expect(screen.getByText('Second')).toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'Less' }))
+      expect(screen.queryByText('Second')).not.toBeInTheDocument()
+    })
+
+    it('offers nothing to unfold when there is only one line', () => {
+      mockReducedMotion(true)
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard event={makeEvent({ notes: ['Salary raised to $65,000'] })} onDismiss={() => {}} />
+        </AudioProvider>,
+      )
+
+      expect(screen.queryByRole('button', { name: /more/i })).not.toBeInTheDocument()
+    })
+  })
+
+  /*
+   * D2: the four kinds of card were told apart only by a small faint label.
+   * A tile driven over now gets a card of its own shape.
+   */
+  describe('telling the four cards apart', () => {
+    it('marks a landing card as a landing', () => {
+      mockReducedMotion(true)
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard event={makeEvent()} onDismiss={() => {}} />
+        </AudioProvider>,
+      )
+
+      expect(screen.getByRole('dialog')).toHaveAttribute('data-variant', 'landing')
+    })
+
+    it('gives a tile driven past the lighter card, named for what it is', () => {
+      mockReducedMotion(true)
+      const { container } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard event={makeEvent()} onDismiss={() => {}} variant="passing" />
+        </AudioProvider>,
+      )
+
+      const card = screen.getByRole('dialog')
+      expect(card).toHaveAttribute('data-variant', 'passing')
+      expect(card.className).toContain(styles.passing)
+      expect(container.querySelector(`.${styles.passingRibbon}`)).toBeInTheDocument()
+    })
+
+    it('lets a milestone keep its gold even when driven past', () => {
+      mockReducedMotion(true)
+      const { container } = render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventCard
+            event={makeEvent({ emphasis: 'milestone' })}
+            onDismiss={() => {}}
+            variant="passing"
+          />
+        </AudioProvider>,
+      )
+
+      expect(screen.getByRole('dialog')).toHaveAttribute('data-variant', 'milestone')
+      expect(container.querySelector(`.${styles.milestoneRibbon}`)).toBeInTheDocument()
+      expect(container.querySelector(`.${styles.passingRibbon}`)).toBeNull()
+    })
+  })
+
   it('calls onDismiss when Continue is clicked', async () => {
     mockReducedMotion(true)
     const user = userEvent.setup()

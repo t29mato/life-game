@@ -496,7 +496,13 @@ describe('choose', () => {
         expect(random.calls.spins).toBe(1)
         expect(next.players[0]!.career?.id).toBe(career.id)
         expect(next.players[0]!.career?.salary).toBeGreaterThan(career.salary)
-        expect(next.lastEvent!.notes.join(' ')).toContain('goes to somebody else')
+        // One footnote, and it is the outcome. The card used to carry two —
+        // "the job goes to somebody else" beside "a raise anyway" — and a
+        // playtester read the pair as a contradiction. The missed rung is
+        // still said, in the narration, where a sentence belongs.
+        expect(next.lastEvent!.notes).toHaveLength(1)
+        expect(next.lastEvent!.notes[0]).toMatch(/raise|up/i)
+        expect(next.lastEvent!.narration).toContain('Not this time')
       })
 
       it('promotes on a spin at or above the bar', () => {

@@ -1,5 +1,9 @@
 import { useEffect, useRef, type ReactElement } from 'react'
 import type { Space, SpaceKind } from '@domain/model/types'
+import type { Edition } from '@domain/edition/types'
+import { editionFor } from '@domain/edition/registry'
+import { effectSign } from '@domain/rules/effectSign'
+import { describeEffect } from '../../effectSummary'
 import { GameIcon } from '../../icons/GameIcon'
 import type { Point } from './boardLayout'
 import styles from './TilePopover.module.css'
@@ -9,6 +13,8 @@ export interface TilePopoverProps {
   /** Where the tap landed, in viewport pixels — the card opens from there. */
   readonly anchor: Point
   readonly onClose: () => void
+  /** Whose money the effect line is priced in. Defaults to the original board. */
+  readonly edition?: Edition
 }
 
 const KIND_LABEL: Readonly<Record<SpaceKind, string>> = {
@@ -54,7 +60,7 @@ function clampedCentreX(anchorX: number): number {
  * pure CSS, since which side of the tap the card has room to open on
  * depends on where on the screen that tap was.
  */
-export function TilePopover({ space, anchor, onClose }: TilePopoverProps): ReactElement {
+export function TilePopover({ space, anchor, onClose, edition }: TilePopoverProps): ReactElement {
   const cardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -114,6 +120,14 @@ export function TilePopover({ space, anchor, onClose }: TilePopoverProps): React
             <span aria-hidden="true">×</span>
           </button>
         </header>
+        {/* What happens, then why it is funny — in that order. The first line
+            is derived from the effect itself (`describeEffect`), so it cannot
+            drift from what the tile actually does; the second is the tile's
+            own flavour, which is what this card used to open with and all it
+            used to say. */}
+        <p className={styles.effect} data-sign={effectSign(space.effect)}>
+          {describeEffect(space.effect, edition ?? editionFor(undefined))}
+        </p>
         <p className={styles.description}>{space.description}</p>
       </div>
     </div>

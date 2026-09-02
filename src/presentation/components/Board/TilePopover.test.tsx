@@ -41,6 +41,79 @@ describe('TilePopover', () => {
     expect(screen.getByRole('dialog')).toHaveTextContent(label)
   })
 
+  /*
+   * D5: the card used to open with flavour and stop there — "Lucky Find: You
+   * stumble into a little story worth remembering." — so a player who tapped
+   * a tile to find out whether they wanted to land on it learned nothing.
+   * Line one is what happens now, and it is derived from the effect itself,
+   * so no tile can be added without one.
+   */
+  describe('what actually happens here', () => {
+    it('prints the money a tile charges, above its flavour', () => {
+      render(
+        <TilePopover
+          space={makeSpace({
+            kind: 'event',
+            title: 'Moving Out',
+            description: 'A deposit, a first month up front, and a bed you put together yourself.',
+            effect: { type: 'payMoney', amount: 1_800, reason: 'Deposit and first month' },
+          })}
+          anchor={{ x: 200, y: 200 }}
+          onClose={() => {}}
+        />,
+      )
+
+      expect(screen.getByRole('dialog')).toHaveTextContent('-$1,800')
+    })
+
+    it('prints the LIFE tiles a tile hands over', () => {
+      render(
+        <TilePopover
+          space={makeSpace({
+            kind: 'normal',
+            title: 'Lucky Find',
+            description: 'You stumble into a little story worth remembering.',
+            effect: { type: 'gainLifeTiles', count: 1 },
+          })}
+          anchor={{ x: 200, y: 200 }}
+          onClose={() => {}}
+        />,
+      )
+
+      const card = screen.getByRole('dialog')
+      expect(card).toHaveTextContent('LIFE tile +1')
+      // …and the flavour is still there, underneath rather than instead of.
+      expect(card).toHaveTextContent('worth remembering')
+    })
+
+    it('prints a die-decided sum as the band it can land in', () => {
+      render(
+        <TilePopover
+          space={makeSpace({
+            kind: 'normal',
+            effect: { type: 'spinForMoney', perPip: 500, reason: 'A lucky week' },
+          })}
+          anchor={{ x: 200, y: 200 }}
+          onClose={() => {}}
+        />,
+      )
+
+      expect(screen.getByRole('dialog')).toHaveTextContent('+$500 to +$3,000, on the die')
+    })
+
+    it('says so plainly when nothing happens at all', () => {
+      render(
+        <TilePopover
+          space={makeSpace({ kind: 'normal', effect: { type: 'none' } })}
+          anchor={{ x: 200, y: 200 }}
+          onClose={() => {}}
+        />,
+      )
+
+      expect(screen.getByRole('dialog')).toHaveTextContent('Nothing happens here.')
+    })
+  })
+
   it('closes on Escape', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()

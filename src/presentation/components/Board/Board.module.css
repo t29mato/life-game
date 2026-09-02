@@ -731,8 +731,29 @@
   stroke-linejoin: round;
 }
 
+/* …and painted by what the tile does to your money, which is the one fact a
+   player should be able to read from across the table without knowing a
+   single tile by name. Green underneath is money in, red is money out, purple
+   is a question you will be asked. A tile that only tells a story keeps the
+   plain shaded edge above. `effectSign` decides; nothing here is per-tile. */
+[data-sign='gain'] .tileWall {
+  fill: var(--candy-mint-dark);
+  stroke: color-mix(in srgb, var(--candy-mint-dark) 68%, #001a10);
+}
+
+[data-sign='cost'] .tileWall {
+  fill: var(--candy-coral-dark);
+  stroke: color-mix(in srgb, var(--candy-coral-dark) 68%, #2a0007);
+}
+
+[data-sign='choice'] .tileWall {
+  fill: var(--candy-grape-dark);
+  stroke: color-mix(in srgb, var(--candy-grape-dark) 68%, #12002e);
+}
+
 /* Payday is cut from gilt board, so its edge reads as a stack of coins even
-   from across the table. */
+   from across the table. It wins over the green above: a payday is money in,
+   but it is the *salary*, and the board has always said so in gold. */
 [data-accent='payday'] .tileWall {
   fill: var(--candy-sun-dark);
   stroke: color-mix(in srgb, var(--candy-sun-dark) 70%, #150d00);

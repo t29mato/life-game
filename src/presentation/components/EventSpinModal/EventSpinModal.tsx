@@ -97,6 +97,11 @@ export function EventSpinModal({
       <motion.div
         ref={containerRef}
         className={styles.card}
+        // The card that holds a die, named so a test can ask whether the die
+        // is on screen without matching on prose. Its "Passing through" label
+        // is the same phrase the card that follows it wears, deliberately —
+        // one name for one thing — so the words alone cannot tell them apart.
+        data-testid="event-spin"
         role="dialog"
         aria-modal="true"
         aria-labelledby="event-spin-prompt"

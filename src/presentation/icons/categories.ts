@@ -3,12 +3,12 @@ import type { IconName } from '@domain/model/icons'
 import type { GlyphCategory } from './art/glyphs'
 
 /**
- * Collapses every subject the domain can name onto the sixteen category
+ * Collapses every subject the domain can name onto the seventeen category
  * glyphs. This is what the board (and any other small rendering) shows: the
  * glyph says what *kind* of thing a space is — money in, money out, a hazard,
  * a milestone — and the tile's printed label says which one.
  *
- * Two rules kept the mapping honest:
+ * Three rules keep the mapping honest:
  *
  *   • Ordinary spaces map by their **mechanical effect**, not their flavour —
  *     "Tuition Bill" is an expense arrow, "Poker Night" is a clover — so a
@@ -16,6 +16,16 @@ import type { GlyphCategory } from './art/glyphs'
  *   • The milestone glyphs (mortarboard, heart, pram, house, sunset) are
  *     **reserved for their beats**. Nursery Setup is an expense, not a pram,
  *     so New Baby stays unmistakable.
+ *   • **One picture, one meaning.** An icon that two tiles use for opposite
+ *     effects has to give one of them up. A playtester landed on a rising
+ *     chart and got "The Bank: borrow a loan?", and drove past a coin and was
+ *     charged $1,800 — both of those were this rule being broken. The bank
+ *     has its own glyph now, and the coin belongs to payday alone.
+ *
+ * `effectVocabulary.ts` is what stops the rule from rotting: it states, per
+ * effect, which glyphs may stand for it, and a test walks every tile of every
+ * edition against it. If a mapping below looks arbitrary, that file explains
+ * why it has to be what it is.
  *
  * The `Record<IconName, …>` annotation makes a missing mapping a compile
  * error, exactly like the art registry.
@@ -42,7 +52,9 @@ export const categoryOf: Record<IconName, GlyphCategory> = {
   'space:apartment-hunt': 'home',
   'space:bidding-war': 'expense',
   'space:big-promotion': 'career',
-  'space:bonus-season': 'gain',
+  // The board only ever prints a bonus on a `payday` tile, and a payday is
+  // the coin — never the plain up-arrow a windfall gets.
+  'space:bonus-season': 'payday',
   'space:budget-win': 'gain',
   'space:campus-job': 'gain',
   'space:cap-and-gown': 'grad',
@@ -52,7 +64,8 @@ export const categoryOf: Record<IconName, GlyphCategory> = {
   'space:conference-talk': 'career',
   'space:corner-office': 'career',
   'space:coupon-clipping': 'gain',
-  'space:family-portrait': 'life',
+  // Only ever Care Costs / Caring for Your Parents: money out, every time.
+  'space:family-portrait': 'expense',
   'space:family-vacation': 'travel',
   'space:finals-week': 'study',
   'space:first-job-fair': 'career',
@@ -72,11 +85,14 @@ export const categoryOf: Record<IconName, GlyphCategory> = {
   'space:market-crash': 'hazard',
   'space:move-in-day': 'home',
   'space:neighborhood-bbq': 'expense',
-  'space:networking-night': 'gain',
+  // Only ever Five Years In, a crossroads tile where nothing happens at all.
+  'space:networking-night': 'career',
   'space:new-baby': 'child',
   'space:new-skills': 'study',
   'space:nursery-setup': 'expense',
-  'space:overtime-shift': 'gain',
+  // Only ever The Year You Had — a `tradeYear`, which is symmetric about the
+  // die's middle and worth nothing on average. A coin would promise a profit.
+  'space:overtime-shift': 'career',
   'space:pay-raise-talk': 'career',
   'space:payday': 'payday',
   'space:piano-lessons': 'expense',
@@ -85,7 +101,8 @@ export const categoryOf: Record<IconName, GlyphCategory> = {
   'space:refund-check': 'gain',
   'space:rent-due': 'expense',
   'space:retirement': 'retire',
-  'space:retirement-fund': 'gain',
+  // Only ever The Number: the choice to stop working, not a payout.
+  'space:retirement-fund': 'retire',
   'space:ring-shopping': 'love',
   'space:scholarship-win': 'gain',
   'space:school-play': 'life',
@@ -94,11 +111,15 @@ export const categoryOf: Record<IconName, GlyphCategory> = {
   'space:soccer-season': 'life',
   'space:start-of-life': 'life',
   'space:startup-bet': 'luck',
-  'space:steady-hustle': 'gain',
+  // Only ever Steady Year, where nothing happens. The grind, not a windfall.
+  'space:steady-hustle': 'career',
   'space:stock-tip': 'invest',
   'space:streaming-bill': 'expense',
   'space:sunset-ahead': 'retire',
-  'space:surprise-bonus': 'gain',
+  // The envelope of cash on this board is always the one *you* hand over —
+  // Holiday Gifts, Seasonal Gifts, the Diwali Hampers, Godparent of
+  // Everything. Every tile that uses it is a `payEach`.
+  'space:surprise-bonus': 'expense',
   'space:tuition-bill': 'expense',
   'space:wedding-day': 'love',
   'space:weekend-trip': 'travel',
@@ -127,7 +148,8 @@ export const categoryOf: Record<IconName, GlyphCategory> = {
   'tile:vegetable-garden': 'life',
   'tile:vintage-motorcycle': 'life',
   'tile:youth-coach': 'life',
-  'finance:bank-visit': 'invest',
+  // The bank, not the market. See the third rule above.
+  'finance:bank-visit': 'bank',
   'finance:insurance-office': 'insurance',
   'finance:policy-auto': 'insurance',
   'finance:policy-home': 'insurance',

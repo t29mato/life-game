@@ -77,7 +77,7 @@ Prefer many small behavioural tests over a few sprawling ones.
 A seat with `isCpu` plays itself. `decideCpuCommand(state)` returns the command
 that seat would issue for the current phase — it is pure, deterministic, and
 scores the options it is offered rather than picking at random. The UI paces it
-with `CPU_THINK_MS` and routes its spin through the wheel, so a computer turn
+with `CPU_THINK_MS` and routes its roll through the die, so a computer turn
 looks exactly like a person's. It must never return an option id outside
 `pendingDecision.options`: an invalid id would freeze the game.
 

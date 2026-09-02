@@ -131,7 +131,9 @@ const WORK_LANE: readonly SpaceContent[] = [
     id: 'in-work-first-night', kind: 'normal', title: 'First Night In',
     description: 'You unpack by the light of one bare bulb, because the tube light has not made it off the list yet.',
     effect: { type: 'none' },
-    tone: 'orange', icon: 'space:rent-due',
+    // Nothing happens here, so it does not wear the rent arrow. See the USA
+    // board's own First Night In.
+    tone: 'orange', icon: 'space:move-in-day',
   },
   {
     id: 'in-work-uniform', kind: 'event', title: 'Uniform Deposit',
@@ -269,7 +271,10 @@ const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
   setback('veryHard', 'in-main-tax-notice', 'The Income Tax Notice',
     'A very polite notice, a long afternoon with a shoebox of receipts and your CA, and a figure at the bottom that has clearly already been decided.',
     { type: 'payMoney', amount: 1_500_000, reason: 'Tax notice settlement' },
-    'slate', 'space:refund-check'),
+    // A brown envelope with a number at the bottom is a bill, and the
+    // refund cheque next door on the safe road is money coming the other
+    // way. One picture cannot be both.
+    'slate', 'space:tuition-bill'),
   {
     id: 'in-main-rolled-off', kind: 'normal', title: 'Rolled Off',
     description: 'The client project everyone swore would renew in April is, very quietly, not renewed. You are put "on the bench" — unassigned, still paid, waiting for a new project — until the company stops waiting too.',
@@ -353,7 +358,7 @@ const CAREER_TRACK: readonly SpaceContent[] = [
   setback('hard', 'in-fast-burnout', 'Burnout Leave',
     'Six weeks signed off with a doctor\'s certificate, and the pay slip is a great deal lighter by the time you badge back in.',
     { type: 'payMoney', amount: 1_200_000, reason: 'Unpaid leave' },
-    'orange', 'space:steady-hustle'),
+    'orange', 'space:layoff-notice'),
   {
     id: 'in-fast-payday-severance', kind: 'payday', title: 'Year-End Payroll',
     description: 'The financial year closes out, and whatever this job pays lands in your account one more time before the org chart is redrawn.',
@@ -455,7 +460,7 @@ const DALAL_STREET: readonly SpaceContent[] = [
     id: 'in-risky-bad-tip', kind: 'normal', title: 'The Bad Tip',
     description: 'The "sure thing" you forwarded to three groups tanks in a week, and you buy everyone at the table dinner to make up for recommending it to so many people.',
     effect: { type: 'payEach', amount: 200_000, reason: 'The bad stock tip' },
-    tone: 'pink', icon: 'space:stock-tip',
+    tone: 'pink', icon: 'space:market-crash',
   },
   {
     id: 'in-risky-golf', kind: 'normal', title: 'Client Golf',
@@ -587,7 +592,10 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   setback('veryHard', 'in-sunset-final-notice', 'The Final Notice',
     'One last envelope from the tax department arrives before the office door closes behind you for good.',
     { type: 'payMoney', amount: 2_200_000, reason: 'Final tax bill' },
-    'slate', 'space:refund-check'),
+    // A brown envelope with a number at the bottom is a bill, and the
+    // refund cheque next door on the safe road is money coming the other
+    // way. One picture cannot be both.
+    'slate', 'space:tuition-bill'),
   flavour('in-sunset-ahead', 'Sunset Ahead', 'From the terrace, the whole neighbourhood\'s kites climb into the dusk, the way they have every winter evening you were too busy to look up.', 'slate', 'space:sunset-ahead'),
 ]
 
