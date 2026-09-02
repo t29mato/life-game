@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   Board as BoardModel,
@@ -11,7 +12,15 @@ import { AudioProvider } from '../../hooks/useAudio'
 import { createFakeAudioPort } from '../../dev/fakeAudio'
 import { Board, type BoardProps } from './Board'
 import { createProjection, slabMetrics, spaceAccent } from './boardLayout'
-import { cameraTransform, focusShot, restShot, wideShot, RESOLVE_ZOOM } from './camera'
+import {
+  cameraTransform,
+  focusShot,
+  restShot,
+  wideShot,
+  RESOLVE_ZOOM,
+  USER_ZOOM_MAX,
+  USER_ZOOM_STEP,
+} from './camera'
 
 function mockReducedMotion(matches: boolean): void {
   window.matchMedia = vi.fn().mockReturnValue({
@@ -990,6 +999,253 @@ describe('Board', () => {
       fireEvent.pointerMove(svg, { pointerId: 1, clientX: 120, clientY: 160 })
       fireEvent.pointerUp(svg, { pointerId: 1, clientX: 120, clientY: 160 })
 
+      await waitFor(() => expect(onMovementComplete).toHaveBeenCalledTimes(1))
+    })
+  })
+
+  /**
+   * Zoom is the one part of the camera the player holds, and it is opt-in:
+   * everything above still describes the board exactly as it was, because at
+   * fit nothing about the framing has changed at all.
+   *
+   * These read the camera group's own `transform`, the same way the camera
+   * tests above do. What they cannot check is pixels — jsdom runs no layout
+   * — so the promise that a zoomed board still stays inside its grid cell is
+   * checked twice: here in board space (the drawing never shows past the
+   * viewBox, however far in the player goes) and in a real browser by
+   * `e2e/layout.spec.ts`, which is where the overflow regression this
+   * guards against actually shipped.
+   */
+  describe('zoom', () => {
+    const model = makeBoard()
+    const projection = createProjection(model)
+    const start = model.spaces['start'] as Space
+    const written = (t: { x: number; y: number; scale: number }): string =>
+      `translate(${t.x} ${t.y}) scale(${t.scale})`
+    /** Where the camera parks for a player waiting to spin, at fit. */
+    const atFit = written(cameraTransform(projection, restShot(model, projection, start)))
+
+    function readCamera(el: Element): { x: number; y: number; scale: number } {
+      const match = /translate\((-?[\d.]+) (-?[\d.]+)\) scale\(([\d.]+)\)/.exec(
+        el.getAttribute('transform') ?? '',
+      )
+      if (!match) throw new Error(`unreadable camera transform: ${el.getAttribute('transform')}`)
+      return { x: Number(match[1]), y: Number(match[2]), scale: Number(match[3]) }
+    }
+
+    /** The board the drawing actually shows, in viewBox units, from the live transform. */
+    function shown(el: Element): { left: number; top: number; right: number; bottom: number } {
+      const { x, y, scale } = readCamera(el)
+      return {
+        left: -x / scale,
+        top: -y / scale,
+        right: (projection.viewWidth - x) / scale,
+        bottom: (projection.viewHeight - y) / scale,
+      }
+    }
+
+    it('opens at the framing the camera chose, with nothing zoomed', () => {
+      mockReducedMotion(true)
+      const { getByTestId } = renderBoard({ board: model, phase: 'awaitingSpin' })
+
+      expect(getByTestId('board-camera')).toHaveAttribute('transform', atFit)
+      expect(screen.getByRole('status')).toHaveTextContent('100%')
+    })
+
+    it('closes in on the map when the player asks for a closer look', async () => {
+      mockReducedMotion(true)
+      const user = userEvent.setup()
+      const { getByTestId } = renderBoard({ board: model, phase: 'awaitingSpin' })
+      const before = readCamera(getByTestId('board-camera'))
+
+      await user.click(screen.getByRole('button', { name: 'Zoom in' }))
+
+      const after = readCamera(getByTestId('board-camera'))
+      expect(after.scale).toBeCloseTo(before.scale * USER_ZOOM_STEP, 6)
+      expect(screen.getByRole('status')).toHaveTextContent(
+        `${Math.round(USER_ZOOM_STEP * 100)}%`,
+      )
+    })
+
+    it('pulls back out again, and stops at fit rather than a hair inside it', async () => {
+      mockReducedMotion(true)
+      const user = userEvent.setup()
+      const { getByTestId } = renderBoard({ board: model, phase: 'awaitingSpin' })
+
+      await user.click(screen.getByRole('button', { name: 'Zoom in' }))
+      await user.click(screen.getByRole('button', { name: 'Zoom out' }))
+
+      expect(screen.getByRole('status')).toHaveTextContent('100%')
+      expect(readCamera(getByTestId('board-camera')).scale).toBeCloseTo(
+        cameraTransform(projection, restShot(model, projection, start)).scale,
+        10,
+      )
+      // Nothing left to give: a stepped-out zoom that stopped a hair inside
+      // fit would leave this key lit and useless.
+      expect(screen.getByRole('button', { name: 'Zoom out' })).toBeDisabled()
+    })
+
+    /**
+     * The whole promise of the reset key, and of the feature: today's
+     * framing is still exactly today's framing, down to the transform
+     * string, once the player hands the camera back.
+     */
+    it('returns to the camera’s own framing exactly, whatever the player did to it', async () => {
+      mockReducedMotion(true)
+      const user = userEvent.setup()
+      const { getByTestId } = renderBoard({ board: model, phase: 'awaitingSpin' })
+      expect(getByTestId('board-camera')).toHaveAttribute('transform', atFit)
+
+      await user.click(screen.getByRole('button', { name: 'Zoom in' }))
+      await user.click(screen.getByRole('button', { name: 'Zoom in' }))
+      expect(getByTestId('board-camera')).not.toHaveAttribute('transform', atFit)
+
+      await user.click(screen.getByRole('button', { name: 'Reset zoom to fit' }))
+
+      expect(getByTestId('board-camera')).toHaveAttribute('transform', atFit)
+    })
+
+    it('lets go of a free-look pan too, which is why reset stays offered at fit', () => {
+      mockReducedMotion(true)
+      const { getByTestId } = renderBoard({ board: model, phase: 'awaitingSpin' })
+      const svg = screen.getByRole('img', { name: 'Game board' })
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        width: 800,
+        height: 600,
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: 800,
+        bottom: 600,
+        toJSON: () => ({}),
+      } as DOMRect)
+
+      fireEvent.pointerDown(svg, { pointerId: 1, clientX: 200, clientY: 200 })
+      fireEvent.pointerMove(svg, { pointerId: 1, clientX: 120, clientY: 160 })
+      fireEvent.pointerUp(svg, { pointerId: 1, clientX: 120, clientY: 160 })
+      expect(getByTestId('board-camera')).not.toHaveAttribute('transform', atFit)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Reset zoom to fit' }))
+
+      expect(getByTestId('board-camera')).toHaveAttribute('transform', atFit)
+    })
+
+    /**
+     * The containment contract in board space: the drawing may show less of
+     * the board the further in a player goes, but never anything that is not
+     * board — no blank past an edge, and nothing that could spill out of the
+     * frame the `<svg>` clips to.
+     */
+    it('never shows past the edge of the board, however far in the player zooms', async () => {
+      mockReducedMotion(true)
+      const user = userEvent.setup()
+      const { getByTestId } = renderBoard({ board: model, phase: 'awaitingSpin' })
+      const camera = getByTestId('board-camera')
+
+      for (let press = 0; press < 8; press += 1) {
+        await user.click(screen.getByRole('button', { name: 'Zoom in' }))
+        const view = shown(camera)
+        expect(view.left).toBeGreaterThanOrEqual(-1e-6)
+        expect(view.top).toBeGreaterThanOrEqual(-1e-6)
+        expect(view.right).toBeLessThanOrEqual(projection.viewWidth + 1e-6)
+        expect(view.bottom).toBeLessThanOrEqual(projection.viewHeight + 1e-6)
+      }
+
+      // The sweep really did reach the far end of the range, or it proved
+      // nothing about the limit.
+      expect(screen.getByRole('button', { name: 'Zoom in' })).toBeDisabled()
+      expect(screen.getByRole('status')).toHaveTextContent(`${USER_ZOOM_MAX * 100}%`)
+    })
+
+    it('zooms on a trackpad pinch — a ctrl-held wheel, the browser’s own zoom gesture', () => {
+      mockReducedMotion(true)
+      const { getByTestId } = renderBoard({ board: model, phase: 'awaitingSpin' })
+      const svg = screen.getByRole('img', { name: 'Game board' })
+      const before = readCamera(getByTestId('board-camera')).scale
+
+      fireEvent.wheel(svg, { deltaY: -300, ctrlKey: true })
+
+      expect(readCamera(getByTestId('board-camera')).scale).toBeGreaterThan(before)
+    })
+
+    /**
+     * The rule that keeps the wheel off an ordinary scroll: where the page
+     * behind the board has somewhere to go, a plain wheel belongs to the
+     * page. (Neither of the game's own two locked layouts scrolls at all,
+     * which is why a plain wheel is taken there — the case below the guard.)
+     */
+    it('leaves a plain wheel to the page when the page has somewhere to scroll', () => {
+      mockReducedMotion(true)
+      Object.defineProperty(document.documentElement, 'scrollHeight', {
+        configurable: true,
+        value: 4000,
+      })
+      const { getByTestId } = renderBoard({ board: model, phase: 'awaitingSpin' })
+      const svg = screen.getByRole('img', { name: 'Game board' })
+      const before = getByTestId('board-camera').getAttribute('transform')
+
+      fireEvent.wheel(svg, { deltaY: -300 })
+
+      expect(getByTestId('board-camera').getAttribute('transform')).toEqual(before)
+      expect(screen.getByRole('status')).toHaveTextContent('100%')
+
+      delete (document.documentElement as unknown as { scrollHeight?: unknown }).scrollHeight
+    })
+
+    it('zooms on two fingers spreading apart, and pans neither of them', () => {
+      mockReducedMotion(true)
+      const { getByTestId } = renderBoard({ board: model, phase: 'awaitingSpin' })
+      const svg = screen.getByRole('img', { name: 'Game board' })
+      const before = readCamera(getByTestId('board-camera')).scale
+
+      fireEvent.pointerDown(svg, { pointerId: 1, clientX: 180, clientY: 200 })
+      fireEvent.pointerDown(svg, { pointerId: 2, clientX: 220, clientY: 200 })
+      fireEvent.pointerMove(svg, { pointerId: 2, clientX: 300, clientY: 200 })
+
+      // Three times the spread the fingers went down at, so three times in.
+      expect(readCamera(getByTestId('board-camera')).scale).toBeCloseTo(before * 3, 5)
+    })
+
+    it('does not open a tile’s card when a pinch ends over one', () => {
+      mockReducedMotion(true)
+      const { container } = renderBoard({ board: model, phase: 'awaitingSpin' })
+      const tile = container.querySelector('[data-space="c"]') as Element
+      document.elementFromPoint = vi.fn().mockReturnValue(tile)
+      const svg = screen.getByRole('img', { name: 'Game board' })
+
+      fireEvent.pointerDown(svg, { pointerId: 1, clientX: 180, clientY: 200 })
+      fireEvent.pointerDown(svg, { pointerId: 2, clientX: 220, clientY: 200 })
+      fireEvent.pointerUp(svg, { pointerId: 2, clientX: 220, clientY: 200 })
+      fireEvent.pointerUp(svg, { pointerId: 1, clientX: 180, clientY: 200 })
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      delete (document as { elementFromPoint?: unknown }).elementFromPoint
+    })
+
+    /**
+     * The same suspension the free-look drag observes, for the same reason:
+     * a car is mid-hop and the movement effect owns the camera. The press is
+     * not thrown away, though — it is recorded, and the next hop's own shot
+     * arrives already zoomed.
+     */
+    it('records a zoom pressed mid-move without yanking the camera out of the hop', async () => {
+      mockReducedMotion(true)
+      const user = userEvent.setup()
+      const onMovementComplete = vi.fn()
+      renderBoard({
+        board: model,
+        players: [makePlayer({ id: 'p1', spaceId: 'start' })],
+        phase: 'moving',
+        movementPath: ['b', 'c'],
+        onMovementComplete,
+      })
+
+      await user.click(screen.getByRole('button', { name: 'Zoom in' }))
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        `${Math.round(USER_ZOOM_STEP * 100)}%`,
+      )
       await waitFor(() => expect(onMovementComplete).toHaveBeenCalledTimes(1))
     })
   })
