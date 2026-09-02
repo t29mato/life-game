@@ -5,6 +5,12 @@ import styles from './GameLog.module.css'
 
 export interface GameLogProps {
   readonly entries: readonly GameLogEntry[]
+  /**
+   * Dismisses the panel. Given by whatever is showing the log as a drawer;
+   * absent when the feed is simply part of a page, in which case no close
+   * control is drawn at all.
+   */
+  readonly onClose?: (() => void) | undefined
 }
 
 /** Printed mark stamped in the rail beside each entry, one per tone. */
@@ -27,7 +33,7 @@ const TONE_CLASS: Record<LogTone, string | undefined> = {
 }
 
 /** Scrolling, colour-coded feed of `state.log`, newest entry on top. */
-export function GameLog({ entries }: GameLogProps): ReactElement {
+export function GameLog({ entries, onClose }: GameLogProps): ReactElement {
   const listRef = useRef<HTMLUListElement>(null)
   const newestFirst = [...entries].reverse()
 
@@ -43,10 +49,19 @@ export function GameLog({ entries }: GameLogProps): ReactElement {
 
   return (
     <section className={styles.panel} aria-label="Game log">
+      {/* Close sits in the panel's own heading row, on the same rule as the
+          title and the count. It used to float above the panel entirely,
+          where it read as one more header control beside Quit rather than as
+          this panel's own way out. */}
       <h2 className={styles.heading}>
         <span className={styles.headingLabel}>Log</span>
         <span className={styles.headingRule} aria-hidden="true" />
         <span className={styles.headingCount}>{entries.length}</span>
+        {onClose ? (
+          <button type="button" className={styles.close} onClick={onClose} aria-label="Close the log">
+            <span aria-hidden="true">×</span>
+          </button>
+        ) : null}
       </h2>
       {newestFirst.length === 0 ? (
         <p className={styles.empty}>Nothing has happened yet.</p>

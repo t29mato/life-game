@@ -10,6 +10,7 @@ import {
 import type { SpinValue } from '@domain/model/types'
 import { useAudio } from '../../hooks/useAudio'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { usePrimaryAction } from '../../hooks/usePrimaryAction'
 import { FACE_PLACEMENTS, SETTLE_ROTATIONS, pipsFor } from './diceFaces'
 import { createDiceThrow } from './dicePhysics'
 import styles from './Dice.module.css'
@@ -48,6 +49,13 @@ export interface DiceProps {
    * bearing on the board's tiles gets the full-size die at any width.
    */
   readonly compact?: boolean
+  /**
+   * True while this die is the one thing the screen is waiting for. It then
+   * takes focus and answers Space and Enter from anywhere on the page — see
+   * `usePrimaryAction`. False for a die that is merely on screen: the board's
+   * docked die while a modal is up, or a computer seat's own throw.
+   */
+  readonly primary?: boolean
 }
 
 /** viewBox units. Each face is drawn in its own square and scaled by CSS. */
@@ -245,6 +253,7 @@ export function Dice({
   rollDuration = 1.4,
   settleDuration = 0.42,
   compact = false,
+  primary = false,
 }: DiceProps): ReactElement {
   const audio = useAudio()
   const reduceMotion = usePrefersReducedMotion()
@@ -458,6 +467,15 @@ export function Dice({
   // A computer seat pulls the same lever a person does, one render after the
   // parent decides it is time. `handleRoll` guards the disabled/rolling cases
   // itself, so a stray bump can never start a second roll.
+  /*
+   * The A button, when this die is what the screen is waiting for: focus
+   * lands here the moment the die becomes pressable, and Space *or* Enter
+   * throws it from anywhere on the page. Held back while the die is mid-roll
+   * or disabled — `handleRoll` would refuse anyway, but a focus ring on a
+   * dead control is a lie about what the next press will do.
+   */
+  const primaryRef = usePrimaryAction<HTMLButtonElement>(primary && !disabled && !rolling)
+
   const lastAutoRollRef = useRef(autoRollToken)
   useEffect(() => {
     if (autoRollToken === lastAutoRollRef.current) return
@@ -472,6 +490,7 @@ export function Dice({
   return (
     <div className={[styles.wrap, compact ? styles.compact : ''].filter(Boolean).join(' ')}>
       <button
+        ref={primaryRef}
         type="button"
         className={[styles.die, rolling ? styles.rolling : '', ready ? styles.ready : '']
           .filter(Boolean)

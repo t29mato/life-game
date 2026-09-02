@@ -465,6 +465,28 @@ describe('TitleScreen', () => {
     expect(screen.getByText(__APP_BUILD__)).toBeInTheDocument()
   })
 
+  /*
+   * Issue #37: the stamp read "1.15.0-26-ga7b0d96" on a real screen, with
+   * the leading "v" of `git describe` clipped off. It was not truncation —
+   * the build bar was absolutely positioned, but `.screen > *` resets every
+   * child to `position: relative`, so `right: 26px` shunted the whole
+   * full-width row leftwards out under the screen's own `overflow-x: clip`.
+   * It is an ordinary footer at the end of the column now, laid out by the
+   * same flow as everything else, with nothing left to clip it.
+   */
+  it('prints the whole build string, first character included', () => {
+    renderTitleScreen()
+    expect(screen.getByText(__APP_BUILD__)).toHaveTextContent(__APP_BUILD__)
+  })
+
+  it('puts the build in the footer, not in a corner of its own', () => {
+    const { container } = renderTitleScreen()
+    const footer = container.querySelector('footer')
+
+    expect(footer).not.toBeNull()
+    expect(footer).toHaveTextContent(__APP_BUILD__)
+  })
+
   it('names a build that identifies its commit, not just a release number', () => {
     expect(__APP_BUILD__).toMatch(/^v?\d/)
     expect(__APP_BUILD__.length).toBeGreaterThan(0)

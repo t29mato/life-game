@@ -126,8 +126,8 @@
   display: grid;
   place-items: center;
   flex: none;
-  width: 1.9rem;
-  height: 1.9rem;
+  width: 2.15rem;
+  height: 2.15rem;
   border-radius: var(--radius-full);
   color: #ffffff;
   font-family: var(--font-display);
@@ -163,9 +163,12 @@
   white-space: nowrap;
 }
 
+/* Bigger, now that the two audio switches have folded into the gear beside
+   Quit and stopped competing for this row: whose turn it is is the one thing
+   in the header a table reads every single turn. */
 .turnPlayer {
   font-family: var(--font-display);
-  font-size: clamp(0.95rem, 0.85rem + 0.4vw, 1.15rem);
+  font-size: clamp(1.05rem, 0.9rem + 0.55vw, 1.35rem);
   font-weight: 900;
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -183,10 +186,11 @@
   gap: 7px;
 }
 
-/* On a wide screen the five controls fit on one line, and must: at an even
-   1fr they overflowed their column at 1440px and Quit dropped to a second
-   row. The controls column sizes to its contents and the wordmark yields.
-   Narrow screens keep wrapping — forcing one line there overflows the page. */
+/* On a wide screen the controls fit on one line, and must: at an even 1fr
+   they overflowed their column at 1440px and Quit dropped to a second row.
+   The controls column sizes to its contents and the wordmark yields. Narrow
+   screens keep wrapping — forcing one line there overflows the page. (The row
+   is shorter than it was: the two audio switches are behind the gear now.) */
 @media (min-width: 1000px) {
   .topBar {
     grid-template-columns: minmax(0, 1fr) auto minmax(max-content, 1fr);
@@ -436,41 +440,42 @@
 }
 
 /* ---- Log drawer -----------------------------------------------------------
-   The feed is reference material, not a permanent fixture: it slides in over
-   the table's right edge when summoned and gives its space back when not. */
+   The feed is reference material, not a permanent fixture. It used to slide
+   in down the table's right edge, full height — which covered the right half
+   of the board, the half a player was quite possibly reading. It is pulled up
+   out of the bottom HUD now instead: a short drawer over the strip, wide
+   enough to read a line of the feed without wrapping, and leaving the board's
+   own middle — where the die, the car and the hop counter all live — in
+   view. */
 .logDrawer {
   position: fixed;
-  top: clamp(56px, 8vh, 88px);
-  right: clamp(10px, 1.4vw, 22px);
+  left: 50%;
+  translate: -50%;
   bottom: clamp(10px, 1.6vh, 22px);
   z-index: var(--z-drawer, 45);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  width: min(400px, calc(100vw - 28px));
+  width: min(720px, calc(100vw - 24px));
+  height: min(44vh, 420px);
   filter: drop-shadow(0 20px 40px rgba(92, 70, 34, 0.3));
   animation: drawerIn var(--duration-base) var(--spring-bouncy);
 }
 
-.logDrawerBar {
-  display: flex;
-  flex: none;
-  justify-content: flex-end;
-}
-
-.logDrawer > :last-child {
+.logDrawer > * {
   flex: 1 1 auto;
   min-height: 0;
 }
 
+/* `translate` and `transform` are separate properties, so the centring above
+   survives this slide untouched. */
 @keyframes drawerIn {
   from {
     opacity: 0;
-    transform: translateX(26px);
+    transform: translateY(26px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
   }
 }
 
@@ -602,24 +607,11 @@
     border: 0;
   }
 
+  /* The drawer comes up from the bottom at every width now, so a phone only
+     needs the extra height a narrow screen can afford it. */
   .logDrawer {
-    top: auto;
-    right: 10px;
-    left: 10px;
     bottom: 10px;
-    width: auto;
-    height: min(62vh, 480px);
-  }
-
-  @keyframes drawerIn {
-    from {
-      opacity: 0;
-      transform: translateY(26px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    height: min(58vh, 480px);
   }
 }
 

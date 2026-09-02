@@ -326,13 +326,23 @@ h4 {
   font-weight: 800;
 }
 
-/* ---- Focus ring -------------------------------------------------------- */
+/* ---- Focus ring ---------------------------------------------------------
+   The cursor. Every screen in this game now names one primary action and
+   puts focus on it (see `usePrimaryAction`), which only helps if a player
+   can *see* where the press is going to land — so the ring is thick enough
+   to read from across a table, and stands off the control by a clear gap so
+   it never looks like part of the button.
+
+   Sea blue rather than the console-white the playtest asked for: the table
+   here is warm linen and the cards are near-white paper, and a white ring on
+   white paper is no ring at all. This is the one accent in the system that
+   belongs to nothing on the board, which is exactly what a cursor wants. */
 :focus {
   outline: none;
 }
 
 :focus-visible {
-  outline: 3px solid var(--candy-sky);
+  outline: 4px solid var(--candy-sky);
   outline-offset: 3px;
   border-radius: var(--radius-sm);
 }

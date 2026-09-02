@@ -8,6 +8,7 @@ import { RollTable } from '../RollTable/RollTable'
 import { useAudio } from '../../hooks/useAudio'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { usePrimaryAction } from '../../hooks/usePrimaryAction'
 import { LANE_CHARACTER_LABEL, previewLane, summarizeLane } from './branchPreview'
 import styles from './DecisionModal.module.css'
 
@@ -57,6 +58,15 @@ export function DecisionModal({
   const containerRef = useModalFocusTrap<HTMLDivElement>()
   const reduceMotion = usePrefersReducedMotion()
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([])
+  /*
+   * The card's A button is whichever option is standing under the cursor —
+   * the first one, until the player browses with the arrow keys. Naming the
+   * *first* option is enough for that: once focus has moved to a sibling
+   * option, `usePrimaryAction` stands down for it and the press activates
+   * the option actually selected, which is exactly the behaviour the key
+   * hint below promises.
+   */
+  const primaryRef = usePrimaryAction<HTMLButtonElement>(!isCpu)
   const cpuName = cpuPlayerName?.trim() || 'The computer'
 
   const focusOption = (index: number): void => {
@@ -217,6 +227,7 @@ export function DecisionModal({
                 key={option.id}
                 ref={(el) => {
                   buttonRefs.current[index] = el
+                  if (index === 0) primaryRef.current = el
                 }}
                 type="button"
                 role="option"
@@ -236,10 +247,15 @@ export function DecisionModal({
         </div>
 
         {isCpu ? null : (
+          // Space earns its place beside Enter here because it now *is* the
+          // same button everywhere else in the game — the die, Continue, and
+          // this card all answer either key. The hint has to say so, or the
+          // consistency is real but invisible.
           <p className={styles.hint}>
             <kbd className={styles.key}>↑</kbd>
             <kbd className={styles.key}>↓</kbd>
-            to browse &middot; <kbd className={styles.key}>Enter</kbd> to choose
+            to browse &middot; <kbd className={styles.key}>Enter</kbd> or{' '}
+            <kbd className={styles.key}>Space</kbd> to choose
           </p>
         )}
       </motion.div>

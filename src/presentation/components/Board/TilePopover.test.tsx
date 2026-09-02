@@ -51,16 +51,12 @@ describe('TilePopover', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('closes when the backdrop is clicked', async () => {
+  it('closes when something outside it is pressed', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
     render(<TilePopover space={makeSpace()} anchor={{ x: 200, y: 200 }} onClose={onClose} />)
 
-    // The card's own click handler stops propagation, so only its parent —
-    // the full-viewport backdrop catching everything else — is a genuine
-    // "outside" click.
-    const backdrop = screen.getByRole('dialog').parentElement as Element
-    await user.click(backdrop)
+    await user.click(document.body)
 
     expect(onClose).toHaveBeenCalledTimes(1)
   })
@@ -73,6 +69,32 @@ describe('TilePopover', () => {
     await user.click(screen.getByRole('dialog'))
 
     expect(onClose).not.toHaveBeenCalled()
+  })
+
+  /*
+   * Issue #34, and the whole reason the backdrop stopped catching anything.
+   * A player with a tile's card open who reached for the die hit the backdrop
+   * instead: the card closed, the die did nothing, and rolling took two
+   * clicks. The press that dismisses this card has to reach whatever it was
+   * actually aimed at.
+   */
+  it('lets the press that closes it through to the control underneath', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    const onRoll = vi.fn()
+    render(
+      <>
+        <button type="button" onClick={onRoll}>
+          Roll
+        </button>
+        <TilePopover space={makeSpace()} anchor={{ x: 200, y: 200 }} onClose={onClose} />
+      </>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Roll' }))
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onRoll).toHaveBeenCalledTimes(1)
   })
 
   it('closes via its own close button', async () => {

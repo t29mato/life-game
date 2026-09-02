@@ -37,6 +37,18 @@ const MAX_PLAYERS = 4
  * over the wordmark. Drawn from the game's own icon set (the same art a
  * player will actually land on) rather than emoji, so the title screen and
  * the board read as one object.
+ *
+ * Laid out as a *ring*: three down each side and one at each end, balanced
+ * left against right. They used to sit at `left: 0–3%` on one side and
+ * `88–95%` on the other, which is not the symmetry it looks like on paper —
+ * an icon's `left` is its own left edge, so the right-hand ones ran past the
+ * screen's `overflow-x: clip` and were quietly trimmed, leaving a composition
+ * visibly heavy on the left (the playtest's own words). Nothing here now
+ * reaches past ~90% plus its own width, so the ring is whole on both sides.
+ *
+ * Durations are long and deliberately unrelated to each other: a ring of
+ * pieces all breathing at 5s in near-lockstep reads as one mechanism rather
+ * than as several loose objects on a table.
  */
 const FLOATER_LAYOUT: readonly {
   readonly icon: IconName | 'ui:dice'
@@ -46,13 +58,13 @@ const FLOATER_LAYOUT: readonly {
   readonly delay: string
   readonly duration: string
 }[] = [
-  { icon: 'ui:dice', top: '6%', left: '3%', size: '2.6rem', delay: '0s', duration: '5.2s' },
-  { icon: 'space:start-of-life', top: '2%', left: '88%', size: '2.2rem', delay: '0.9s', duration: '6.4s' },
-  { icon: 'space:cap-and-gown', top: '58%', left: '92%', size: '1.7rem', delay: '2.1s', duration: '5.8s' },
-  { icon: 'space:wedding-day', top: '70%', left: '86%', size: '1.5rem', delay: '1.4s', duration: '4.6s' },
-  { icon: 'house:cozy-bungalow', top: '64%', left: '1%', size: '2rem', delay: '1.8s', duration: '6s' },
-  { icon: 'space:corner-office', top: '34%', left: '95%', size: '1.4rem', delay: '3s', duration: '5s' },
-  { icon: 'space:car-trouble', top: '40%', left: '0%', size: '1.5rem', delay: '2.6s', duration: '5.5s' },
+  { icon: 'ui:dice', top: '2%', left: '8%', size: '2.5rem', delay: '0s', duration: '13s' },
+  { icon: 'space:start-of-life', top: '4%', left: '83%', size: '2.2rem', delay: '1.1s', duration: '17s' },
+  { icon: 'space:cap-and-gown', top: '34%', left: '2%', size: '1.8rem', delay: '2.3s', duration: '15s' },
+  { icon: 'space:corner-office', top: '30%', left: '89%', size: '1.7rem', delay: '3.4s', duration: '19s' },
+  { icon: 'house:cozy-bungalow', top: '62%', left: '4%', size: '2rem', delay: '1.7s', duration: '16s' },
+  { icon: 'space:wedding-day', top: '66%', left: '85%', size: '1.7rem', delay: '4.2s', duration: '14s' },
+  { icon: 'space:car-trouble', top: '88%', left: '12%', size: '1.6rem', delay: '2.9s', duration: '18s' },
 ]
 
 /** Slow-drifting confetti shapes behind everything, giving the canvas life. */
@@ -268,16 +280,6 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
 
   return (
     <div className={styles.screen} onClickCapture={unlockAudioOnce}>
-      {/* The build and its notes used to sit at the very bottom of a screen
-          1,600px tall — present, but below the fold on every laptop, which is
-          the same as absent. They live up here now. */}
-      <div className={styles.buildBar}>
-        <span className={styles.versionTag} title="The exact commit this build came from">{__APP_BUILD__}</span>
-        <button type="button" className={styles.notesLink} onClick={() => setShowNotes(true)}>
-          What&rsquo;s New
-        </button>
-      </div>
-
       <div className={styles.scenery} aria-hidden="true">
         {DRIFTERS.map((d) => (
           <span
@@ -621,11 +623,32 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
             Hall of Records
           </ChunkyButton>
         ) : null}
+        {/* Promoted out of the old top-right build bar and in among the other
+            doors off this screen. It was a 0.68rem underline in a corner
+            before; it is a way into the game's own history, and reads as one
+            here. */}
+        <ChunkyButton variant="ghost" size="md" onClick={() => setShowNotes(true)}>
+          What&rsquo;s New
+        </ChunkyButton>
       </div>
 
       <div className={styles.audioRow}>
         <AudioToggle />
       </div>
+
+      {/* The build stamp, in the footer where a build stamp belongs.
+          It used to be absolutely positioned in the top-right corner — except
+          that `.screen > *` (which it is one of) resets `position: relative`
+          on every child, so `right: 26px` was read as a *relative* offset and
+          shunted the whole full-width row 26px to the left, off the padded
+          edge and under `overflow-x: clip`. That is what ate the leading "v"
+          the playtest reported: not a truncation, a nudge. Nothing here is
+          positioned any more, so there is nothing left to clip. */}
+      <footer className={styles.footer}>
+        <span className={styles.versionTag} title="The exact commit this build came from">
+          {__APP_BUILD__}
+        </span>
+      </footer>
     </div>
   )
 }

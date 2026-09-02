@@ -412,8 +412,17 @@ describe('a fork the next spin will settle', () => {
  * cursor actually is on a wide desktop screen — the owner asked for a way to
  * press it without reaching all the way over there every time.
  */
+/*
+ * "The A button is always the primary action, whatever screen you are on" —
+ * issue #33. The old arrangement was two half answers: a window-level Space
+ * listener that stood down the moment anything had focus, and each modal's
+ * focus trap putting focus wherever its DOM happened to start. Between them,
+ * the board die answered Space only in the narrow window where nothing at all
+ * was focused, and Enter never rolled anything. Both keys now go to the same
+ * one control on every screen — see `usePrimaryAction`.
+ */
 describe('spinning from the keyboard', () => {
-  it('presses the wheel on Space when nothing else has focus', () => {
+  function atAwaitingSpin(): GameState {
     const store = startedGame()
     // Whichever phase the fresh game opens on, drive it to `awaitingSpin`.
     while (store.getState().phase !== 'awaitingSpin') {
@@ -422,33 +431,49 @@ describe('spinning from the keyboard', () => {
         store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
       } else break
     }
-    const stub = createStubStore(store.getState())
-    render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
-    expect(document.body).toHaveFocus()
+    return store.getState()
+  }
 
-    fireEvent.keyDown(window, { key: ' ' })
+  it('puts focus on the die the moment the turn is waiting for it', () => {
+    const stub = createStubStore(atAwaitingSpin())
+    render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    expect(screen.getByRole('button', { name: /^roll$/i })).toHaveFocus()
+  })
+
+  it.each([' ', 'Enter'])('rolls the board die on %s, wherever focus has ended up', (key) => {
+    const stub = createStubStore(atAwaitingSpin())
+    render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+    // Focus dropped back to the page — where it lands whenever a modal that
+    // held it unmounts, and precisely the state the die used to be
+    // unreachable from.
+    screen.getByRole('button', { name: /^roll$/i }).blur()
+
+    fireEvent.keyDown(window, { key })
 
     expect(stub.commands).toContainEqual({ type: 'spin' })
   })
 
-  it('does nothing when some other control already has focus, so it never double-fires', () => {
-    const store = startedGame()
-    while (store.getState().phase !== 'awaitingSpin') {
-      const state = store.getState()
-      if (state.phase === 'awaitingDecision') {
-        store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
-      } else break
-    }
-    const stub = createStubStore(store.getState())
+  it('rolls exactly once, never twice, when the die itself holds focus', () => {
+    const stub = createStubStore(atAwaitingSpin())
     render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
-    screen.getByRole('button', { name: /^roll$/i }).focus()
+    fireEvent.keyDown(window, { key: ' ' })
+
+    expect(stub.commands.filter((command) => command.type === 'spin')).toHaveLength(1)
+  })
+
+  it('leaves the press to a control the player deliberately focused', () => {
+    const stub = createStubStore(atAwaitingSpin())
+    render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    screen.getByRole('button', { name: /quit/i }).focus()
     fireEvent.keyDown(window, { key: ' ' })
 
     expect(stub.commands).not.toContainEqual({ type: 'spin' })
   })
 
-  it('presses a single-option value spin on Space too', async () => {
+  it.each([' ', 'Enter'])('presses a single-option value spin on %s too', (key) => {
     const state = withPendingValueSpin({
       kind: 'valueSpin',
       prompt: 'Tuition Bill',
@@ -457,14 +482,27 @@ describe('spinning from the keyboard', () => {
     const stub = createStubStore(state)
     render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
-    // EventSpinModal's focus trap lands focus on the wheel's own button the
-    // instant it mounts, so Space here plays out through that button's
-    // native activation, not the global window handler — the same
-    // deferral "does nothing when some other control already has focus"
-    // above already covers for the rail's identical button.
+    // The die inside the modal is the screen's primary action: it takes focus
+    // as the card opens, and answers the key from the window whether or not
+    // it still holds it. This was the reported half that did not work at all
+    // — the modal's die wanted a click.
     expect(screen.getByRole('button', { name: /^roll$/i })).toHaveFocus()
-    const user = userEvent.setup()
-    await user.keyboard(' ')
+    fireEvent.keyDown(window, { key })
+
+    expect(stub.commands).toContainEqual({ type: 'choose', optionId: VALUE_SPIN_OPTION_ID })
+  })
+
+  it("answers the key even when focus never reached the modal's die", () => {
+    const state = withPendingValueSpin({
+      kind: 'valueSpin',
+      prompt: 'Tuition Bill',
+      options: [{ id: VALUE_SPIN_OPTION_ID, label: 'Roll', description: 'Roll for the bill.', icon: 'space:payday' }],
+    })
+    const stub = createStubStore(state)
+    render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    screen.getByRole('button', { name: /^roll$/i }).blur()
+    fireEvent.keyDown(window, { key: ' ' })
 
     expect(stub.commands).toContainEqual({ type: 'choose', optionId: VALUE_SPIN_OPTION_ID })
   })
@@ -1229,12 +1267,87 @@ describe('game log drawer', () => {
     expect(screen.queryByRole('region', { name: /game log/i })).not.toBeInTheDocument()
   })
 
+  /*
+   * Issue #35: Close used to be a button of its own floating above the
+   * drawer's top-right corner, where it read as one more header control
+   * beside Quit rather than as this panel's own way out.
+   */
+  it('carries its own Close inside the panel, on the log’s heading row', () => {
+    render(<App store={startedGame()} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /^log$/i }))
+    const panel = screen.getByRole('region', { name: /game log/i })
+    const close = screen.getByRole('button', { name: /close the log/i })
+    expect(panel).toContainElement(close)
+
+    fireEvent.click(close)
+    expect(screen.queryByRole('region', { name: /game log/i })).not.toBeInTheDocument()
+  })
+
   it('still announces the latest happening politely while the drawer is closed', () => {
     const { container } = render(<App store={startedGame()} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
     // The scrolling feed is off screen, but what it would have said must
     // still reach assistive tech the moment it happens.
     expect(container.querySelector('.visually-hidden[aria-live="polite"]')).not.toBeNull()
+  })
+})
+
+/*
+ * Issue #38: Music and SFX were two switches standing in the header for the
+ * whole game, sharing a row with the turn display, Log, Save and Quit. They
+ * fold into one gear, and the row gives the turn display its room back.
+ */
+describe('the settings sheet', () => {
+  const renderGame = (): void => {
+    render(<App store={startedGame()} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+  }
+
+  it('keeps the audio switches out of the header', () => {
+    renderGame()
+
+    expect(screen.queryByRole('button', { name: /music/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /sfx/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /settings/i })).toBeInTheDocument()
+  })
+
+  it('opens both audio switches behind the gear', () => {
+    renderGame()
+
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+
+    const sheet = screen.getByRole('dialog', { name: /settings/i })
+    expect(within(sheet).getByRole('button', { name: /music/i })).toBeInTheDocument()
+    expect(within(sheet).getByRole('button', { name: /sfx/i })).toBeInTheDocument()
+  })
+
+  it('closes on Escape, and on its own Close', () => {
+    renderGame()
+
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+    fireEvent.keyDown(screen.getByRole('dialog', { name: /settings/i }), { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: /settings/i })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: /settings/i })).getByRole('button', { name: /close/i }))
+    expect(screen.queryByRole('dialog', { name: /settings/i })).not.toBeInTheDocument()
+  })
+
+  it('takes the die out of the A button while it is open', () => {
+    const store = startedGame()
+    while (store.getState().phase !== 'awaitingSpin') {
+      const state = store.getState()
+      if (state.phase === 'awaitingDecision') {
+        store.dispatch({ type: 'choose', optionId: state.pendingDecision!.options[0]!.id })
+      } else break
+    }
+    const stub = createStubStore(store.getState())
+    render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+    fireEvent.keyDown(window, { key: ' ' })
+
+    expect(stub.commands).not.toContainEqual({ type: 'spin' })
   })
 })
 

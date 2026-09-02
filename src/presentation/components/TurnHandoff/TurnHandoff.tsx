@@ -4,6 +4,7 @@ import type { Player } from '@domain/model/types'
 import { formatOrdinal } from '../../format'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { usePrimaryAction } from '../../hooks/usePrimaryAction'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import styles from './TurnHandoff.module.css'
 
@@ -23,6 +24,9 @@ export interface TurnHandoffProps {
 export function TurnHandoff({ player, turn, rank, onReady }: TurnHandoffProps): ReactElement {
   // No `onEscape`: there is no valid way to cancel a handoff.
   const containerRef = useModalFocusTrap<HTMLDivElement>()
+  // The one thing this screen is for — so the same key that rolls the die
+  // and dismisses a card hands the device on, too.
+  const primaryRef = usePrimaryAction<HTMLButtonElement>(true)
   const reduceMotion = usePrefersReducedMotion()
 
   const colorVars = {
@@ -73,7 +77,7 @@ export function TurnHandoff({ player, turn, rank, onReady }: TurnHandoffProps): 
         <p className={styles.rank}>{formatOrdinal(rank)} place</p>
 
         <div className={styles.action}>
-          <ChunkyButton variant="primary" size="lg" fullWidth onClick={onReady}>
+          <ChunkyButton ref={primaryRef} variant="primary" size="lg" fullWidth onClick={onReady}>
             I&rsquo;m ready
           </ChunkyButton>
         </div>

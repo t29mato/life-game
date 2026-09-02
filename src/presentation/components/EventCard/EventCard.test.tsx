@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LandingEvent } from '@domain/model/types'
@@ -91,6 +91,38 @@ describe('EventCard', () => {
       </AudioProvider>,
     )
     await user.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(onDismiss).toHaveBeenCalledTimes(1)
+  })
+
+  /*
+   * Continue is this card's A button — issue #33. The card already put focus
+   * here through its focus trap; what is new is that the *key* reaches it
+   * whether or not focus stayed, and that Space works as well as Enter, so a
+   * player who has just rolled with Space carries on with Space.
+   */
+  it('puts focus on Continue as the card lands', () => {
+    mockReducedMotion(true)
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <EventCard event={makeEvent()} onDismiss={() => {}} />
+      </AudioProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: 'Continue' })).toHaveFocus()
+  })
+
+  it.each([' ', 'Enter'])('dismisses on %s even when focus has drifted off the button', (key) => {
+    mockReducedMotion(true)
+    const onDismiss = vi.fn()
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <EventCard event={makeEvent()} onDismiss={onDismiss} />
+      </AudioProvider>,
+    )
+    screen.getByRole('button', { name: 'Continue' }).blur()
+
+    fireEvent.keyDown(window, { key })
+
     expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 
