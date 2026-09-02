@@ -134,8 +134,22 @@ describe('DecisionModal', () => {
           description: 'Roll to see who hires you.',
           icon: 'space:first-job-fair',
           table: [
-            { range: '1-3', amount: 'Second Shooter ($26,250/payday, rung 1 of 2)', icon: 'career:radio-runner' },
-            { range: '4-6', amount: 'Salon Apprentice ($29,750/payday, rung 1 of 3)', icon: 'career:salon-apprentice' },
+            {
+              range: '1-3',
+              career: 'Second Shooter',
+              pay: '$26,250',
+              period: 'payday',
+              rung: '1 of 2',
+              icon: 'career:radio-runner',
+            },
+            {
+              range: '4-6',
+              career: 'Salon Apprentice',
+              pay: '$29,750',
+              period: 'payday',
+              rung: '1 of 3',
+              icon: 'career:salon-apprentice',
+            },
           ],
         },
       ],
@@ -153,6 +167,48 @@ describe('DecisionModal', () => {
     // rendered, not just another line of text.
     expect(table.querySelector('[data-family="studio"]')).not.toBeNull()
     expect(table.querySelector('[data-family="care"]')).not.toBeNull()
+  })
+
+  /*
+   * The unit is its own field now. It used to be glued to the figure and torn
+   * back off by looking for a slash, which meant `"$120 a share"` never split
+   * and got set in the price's own big tabular numerals.
+   */
+  it("prints an option's unit under its figure, however the unit is worded", () => {
+    const decision: Decision = {
+      kind: 'stock',
+      prompt: 'Buy in now?',
+      options: [
+        {
+          id: 'stay',
+          label: 'Stay as a Stylist',
+          description: 'Keep the job.',
+          icon: 'career:salon-apprentice',
+          detail: '$29,750',
+          detailUnit: 'payday',
+        },
+        {
+          id: 'buy',
+          label: 'Orbital Freight',
+          description: 'A shipping upstart.',
+          icon: 'stock:orbital-freight',
+          detail: '$120',
+          detailUnit: 'share',
+        },
+        { id: 'decline', label: 'Keep your cash', description: 'Nothing spent.', icon: 'finance:trading-floor' },
+      ],
+    }
+    render(
+      <AudioProvider audio={createFakeAudioPort()}>
+        <DecisionModal decision={decision} board={makeBoard()} onChoose={() => {}} />
+      </AudioProvider>,
+    )
+    expect(screen.getByText('$29,750')).toBeInTheDocument()
+    expect(screen.getByText('per payday')).toBeInTheDocument()
+    expect(screen.getByText('$120')).toBeInTheDocument()
+    expect(screen.getByText('per share')).toBeInTheDocument()
+    // A flat sum still stands alone — nothing invented to sit under it.
+    expect(screen.queryByText(/^per $/)).not.toBeInTheDocument()
   })
 
   it('renders no table when an option has nothing to break down', () => {

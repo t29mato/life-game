@@ -1,9 +1,11 @@
 /* ==========================================================================
    RollTable — the die's outcome table, a sunken panel cut into whichever
    card holds it, the way a printed insert sits recessed into a board game's
-   own box. Two columns only, so it stays a glance rather than a spreadsheet.
-   The base sizing is EventSpinModal's whole-card panel; `.compact` steps it
-   down to sit inside one DecisionModal option row.
+   own box. Two columns for a die that deals money, so it stays a glance
+   rather than a spreadsheet; a career fair earns two more, since its whole
+   question is which pay at which height. The base sizing is EventSpinModal's
+   whole-card panel; `.compact` steps it down to sit inside one DecisionModal
+   option row.
    ========================================================================== */
 .table {
   width: 100%;
@@ -63,30 +65,58 @@
   border-radius: var(--radius-sm);
 }
 
-/* ---- An illustrated row: plaque beside name-over-terms ------------------- */
+/* ---- An offer row: plaque beside the trade, then its own money columns ---
+   The name is the row's subject and stays as loud as one; `td:last-child`
+   above would otherwise mute whichever column happens to come last, so the
+   pay and the rung state their own weight here instead of inheriting it by
+   position. Both are set narrow and tabular so two offers' figures line up
+   digit over digit — the comparison the fair is actually asking for.
+   ------------------------------------------------------------------------- */
 .subject {
   display: flex;
   align-items: center;
   gap: 0.65rem;
 }
 
-.subjectBody {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
 .subjectName {
+  min-width: 0;
   font-weight: 800;
   color: var(--ink);
   letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
-.subjectTerms {
-  font-size: 0.86em;
+/* Four columns want tighter gutters than two, or the trade's own name is the
+   only thing left with room to give and starts wrapping mid-offer. */
+.columns th,
+.columns td {
+  padding-inline: 0.55rem;
+}
+
+.columns.compact th,
+.columns.compact td {
+  padding-inline: 0.4rem;
+}
+
+.table .pay,
+.table .rung {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: var(--tabular, tabular-nums);
+}
+
+.table tbody td.pay {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.table tbody td.rung {
   font-weight: 600;
   color: var(--ink-soft, var(--ink-faint));
-  line-height: 1.3;
+}
+
+.table thead th.pay,
+.table thead th.rung {
+  text-align: right;
 }

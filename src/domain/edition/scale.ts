@@ -107,7 +107,7 @@ const scaleEconomy = (economy: EconomyConstants, factor: number): EconomyConstan
     auto: economy.insurancePremium.auto * factor,
     life: economy.insurancePremium.life * factor,
   },
-  lifeInsurancePayout: economy.lifeInsurancePayout * factor,
+  lifeInsuranceMaturity: scaleRange(economy.lifeInsuranceMaturity, factor) as readonly [Money, Money],
   fireNumber: economy.fireNumber * factor,
   firePayoutPerPip: economy.firePayoutPerPip * factor,
   bigMoney: economy.bigMoney * factor,

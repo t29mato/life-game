@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Difficulty, House, LifeTile, Player, Stock } from '../model/types'
 import {
-  LIFE_INSURANCE_PAYOUT,
   LOAN_REPAYMENT,
   STARTING_MONEY,
 } from '../model/constants'
@@ -9,7 +8,11 @@ import { STOCKS } from '../edition/usa'
 import { DIFFICULTIES, loanRepaymentFor } from './difficulty'
 import { createPlayer } from './player'
 import { expectedChildValue } from './children'
-import { computeResults, estimateNetWorth } from './scoring'
+import { computeResults, estimateNetWorth, maturityMidpoint } from './scoring'
+import { EDITION_USA } from '../edition/usa'
+
+/** What a caller with no die is owed: the middle of the maturity ladder. */
+const MID_MATURITY = maturityMidpoint(EDITION_USA)
 
 const HOUSE: House = {
   id: 'house-test',
@@ -210,11 +213,28 @@ describe('computeResults cashing out shares', () => {
 })
 
 describe('computeResults maturing the life policy', () => {
-  it('pays LIFE_INSURANCE_PAYOUT to a player holding the life policy', () => {
+  it('matures at the middle of the ladder for a caller with no die', () => {
     const p = player({ money: 0, insurance: ['life'], retirementRank: null })
     const results = computeResults([p], fixedResale(0), noStocks)
-    expect(results.standings[0]?.insurancePayout).toBe(LIFE_INSURANCE_PAYOUT)
-    expect(results.standings[0]?.total).toBe(LIFE_INSURANCE_PAYOUT)
+    expect(results.standings[0]?.insurancePayout).toBe(MID_MATURITY)
+    expect(results.standings[0]?.total).toBe(MID_MATURITY)
+  })
+
+  it('matures at whatever the caller\'s own die says, high or low', () => {
+    const p = player({ money: 0, insurance: ['life'], retirementRank: null })
+    const scored = (payout: number): number =>
+      computeResults([p], fixedResale(0), noStocks, undefined, undefined, undefined, () => payout)
+        .standings[0]!.insurancePayout
+    expect(scored(6_000)).toBe(6_000)
+    expect(scored(46_000)).toBe(46_000)
+  })
+
+  it('pays a player who never bought one nothing, whatever the die would have said', () => {
+    const p = player({ money: 0, insurance: ['home'], retirementRank: null })
+    expect(
+      computeResults([p], fixedResale(0), noStocks, undefined, undefined, undefined, () => 46_000)
+        .standings[0]?.insurancePayout,
+    ).toBe(0)
   })
 
   it('pays nothing for home or auto cover, which only ever waived a bill', () => {
@@ -225,7 +245,7 @@ describe('computeResults maturing the life policy', () => {
   it('pays out once for a player holding every policy there is', () => {
     const p = player({ money: 0, insurance: ['home', 'auto', 'life'], retirementRank: null })
     expect(computeResults([p], fixedResale(0), noStocks).standings[0]?.insurancePayout).toBe(
-      LIFE_INSURANCE_PAYOUT,
+      MID_MATURITY,
     )
   })
 
@@ -242,7 +262,12 @@ describe('computeResults maturing the life policy', () => {
       stocks: [{ stockId: STOCKS[0]!.id, shares: 2 }],
       retirementRank: null,
     })
-    const saver = player({ id: 'saver', money: 120_000, retirementRank: null })
+    // $60,000, not the $120,000 this held while the policy paid a flat
+    // $100,000 for turning up. The endowment matures on a die now and the
+    // midpoint is $26,000, so two shares and a policy come to $66,000 — still
+    // enough to pass a saver who bought neither, and no longer enough to pass
+    // one holding twice that in cash, which was never the claim.
+    const saver = player({ id: 'saver', money: 60_000, retirementRank: null })
     const results = computeResults([saver, investor], fixedResale(0), () => 20_000)
     expect(results.winnerId).toBe('investor')
   })

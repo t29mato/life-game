@@ -6,12 +6,18 @@ import { RollTable } from './RollTable'
 const CAREER_ROWS: readonly RollTableRow[] = [
   {
     range: '1-3',
-    amount: 'Second Shooter ($26,250/payday, rung 1 of 2)',
+    career: 'Second Shooter',
+    pay: '$26,250',
+    period: 'payday',
+    rung: '1 of 2',
     icon: 'career:radio-runner',
   },
   {
     range: '4-6',
-    amount: 'Salon Apprentice ($29,750/payday, rung 1 of 3)',
+    career: 'Salon Apprentice',
+    pay: '$29,750',
+    period: 'payday',
+    rung: '1 of 3',
     icon: 'career:salon-apprentice',
   },
 ]
@@ -56,14 +62,81 @@ describe('RollTable', () => {
     expect(container.querySelector('[data-family="care"]')).not.toBeNull()
   })
 
-  it('sets an illustrated row as name over terms, both still readable as text', () => {
-    render(<RollTable rows={CAREER_ROWS} />)
-    expect(screen.getByText('Salon Apprentice')).toBeInTheDocument()
-    expect(screen.getByText('$29,750/payday, rung 1 of 3')).toBeInTheDocument()
+  /*
+   * The point of the split. The product owner asked for the pay and the rung
+   * to be columns, not clauses inside a sentence — so each offer's three
+   * facts land in three cells of their own row.
+   */
+  it("gives an offer's trade, pay and rung a cell each", () => {
+    const { container } = render(<RollTable rows={CAREER_ROWS} />)
+    const cells = [...container.querySelectorAll('tbody tr')].map((row) =>
+      [...row.querySelectorAll('td')].map((cell) => cell.textContent),
+    )
+    expect(cells).toEqual([
+      ['1-3', 'Second Shooter', '$26,250', '1 of 2'],
+      ['4-6', 'Salon Apprentice', '$29,750', '1 of 3'],
+    ])
   })
 
-  it('prints an illustrated row with no bracketed terms as its name alone', () => {
-    render(<RollTable rows={[{ range: '1-6', amount: 'Line Cook', icon: 'career:line-cook' }]} />)
+  it("heads the money column with the edition's own salary period", () => {
+    render(<RollTable rows={CAREER_ROWS} />)
+    expect(screen.getByRole('columnheader', { name: 'Per payday' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Career' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Rung' })).toBeInTheDocument()
+  })
+
+  it('reads a monthly edition by its own period instead', () => {
+    render(<RollTable rows={CAREER_ROWS.map((row) => ({ ...row, period: 'month' }))} />)
+    expect(screen.getByRole('columnheader', { name: 'Per month' })).toBeInTheDocument()
+  })
+
+  /*
+   * A calling has nothing above it and a one-rung trade is its own ceiling.
+   * Neither has a rung to print, and a column standing there full of dashes
+   * would be a heading that never says anything.
+   */
+  it('builds no rung column when neither offer stands on a ladder', () => {
+    render(
+      <RollTable
+        rows={[
+          { range: '1-3', career: 'Line Cook', pay: '$28,000', period: 'payday', icon: 'career:line-cook' },
+          { range: '4-6', career: 'Second Shooter', pay: '$26,250', period: 'payday', icon: 'career:radio-runner' },
+        ]}
+      />,
+    )
+    expect(screen.queryByRole('columnheader', { name: 'Rung' })).not.toBeInTheDocument()
     expect(screen.getByText('Line Cook')).toBeInTheDocument()
+    expect(screen.getByText('$28,000')).toBeInTheDocument()
+  })
+
+  it('keeps the rung column when only one of the two offers has one', () => {
+    render(
+      <RollTable
+        rows={[
+          { range: '1-3', career: 'Line Cook', pay: '$28,000', period: 'payday', icon: 'career:line-cook' },
+          {
+            range: '4-6',
+            career: 'Salon Apprentice',
+            pay: '$29,750',
+            period: 'payday',
+            rung: '1 of 3',
+            icon: 'career:salon-apprentice',
+          },
+        ]}
+      />,
+    )
+    expect(screen.getByRole('columnheader', { name: 'Rung' })).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  /* A money band keeps the two plain columns it always had — no empty
+     career or rung cells bolted onto a die that never deals a job. */
+  it('leaves a money table at two columns', () => {
+    const { container } = render(<RollTable rows={MONEY_ROWS} />)
+    expect(container.querySelectorAll('thead th')).toHaveLength(2)
+    expect(screen.getByRole('columnheader', { name: 'Outcome' })).toBeInTheDocument()
+    for (const row of container.querySelectorAll('tbody tr')) {
+      expect(row.querySelectorAll('td')).toHaveLength(2)
+    }
   })
 })

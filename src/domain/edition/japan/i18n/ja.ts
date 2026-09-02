@@ -141,8 +141,8 @@ export const JAPAN_JA: EditionTranslation = {
       description: '同僚が机の下で取引アプリを開き、この銘柄は堅いと言い切る。大引けは三時。',
     },
     'jp-main-fender-bender': {
-      title: '軽い接触事故',
-      description: 'スーパーの駐車場で軽くこすられる。相手はきっちり四十五度で頭を下げ、見積書はその日の午後にメールで届く。',
+      title: '交通事故',
+      description: '雨の交差点で、止まらない車にぶつかられる。相手はきっちり四十五度で頭を下げるが、修理工場の見積書はそこまで丁寧ではない。',
       reason: '板金修理代',
     },
     'jp-main-pileup': {

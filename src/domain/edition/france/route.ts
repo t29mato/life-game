@@ -187,14 +187,14 @@ const BOULEVARD_EARLY: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:stock-tip',
   },
   {
-    id: 'fr-main-fender-bender', kind: 'normal', title: 'Minor Car Crash',
-    description: 'You and the other driver fill out the accident report on the hood of the car, and agree it was your fault.',
-    effect: { type: 'payMoney', amount: 2_400, reason: 'Bodyshop bill', hazard: 'accident' },
+    id: 'fr-main-fender-bender', kind: 'normal', title: 'Car Crash',
+    description: 'You and the other driver fill out the accident report on the hood of a car that is no longer the shape it was, and agree it was your fault.',
+    effect: { type: 'payMoney', amount: 9_000, reason: 'Bodyshop bill', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender',
   },
   setback('veryHard', 'fr-main-pileup', 'Ring Road Pileup',
     'Thick fog on the ring road, sudden brake lights, and four cars crushed together on the exit ramp. Nobody is hurt. The repair bills are large.',
-    { type: 'payMoney', amount: 14_000, reason: 'Pileup repairs', hazard: 'accident' },
+    { type: 'payMoney', amount: 16_000, reason: 'Pileup repairs', hazard: 'accident' },
     'slate', 'space:fender-bender'),
   setback('hard', 'fr-main-dentist', 'The Dental Quote',
     'One crown, one lecture about flossing, and a bill whose biggest line item is not covered by insurance.',
@@ -406,7 +406,10 @@ const MIDTOWN: readonly SpaceContent[] = [
   {
     id: 'fr-midtown-insurance', kind: 'normal', title: 'Insurance Office',
     description: 'Before the notary will hand you the keys, they want proof of insurance — and the agent shows you a detailed flood-risk map of your future street.',
-    effect: { type: 'buyInsurance', kinds: ['home', 'auto', 'life'] },
+    // No auto cover at this window: both crash tiles are behind a pawn
+    // standing here, so a policy sold at this desk could never pay out.
+    // The broker sells what this stretch of road can actually bill for.
+    effect: { type: 'buyInsurance', kinds: ['home', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office',
   },
   // The only payday in this stretch too — see fr-main-payday-1. Harshening it
@@ -552,7 +555,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   {
     id: 'fr-sunset-fire', kind: 'normal', title: 'House Fire',
     description: 'A pan left on the stove, a distracting phone call, and a kitchen that now needs rebuilding from the floor up.',
-    effect: { type: 'payMoney', amount: 12_000, reason: 'Fire damage', hazard: 'fire' },
+    effect: { type: 'payMoney', amount: 24_000, reason: 'Fire damage', hazard: 'fire' },
     tone: 'slate', icon: 'space:house-fire',
   },
   setback('hard', 'fr-sunset-care', 'Care Costs',

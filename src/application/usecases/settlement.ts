@@ -3,7 +3,7 @@ import type {
   GameState,
   Money,
   Player,
-  RollTableRow,
+  RollAmountRow,
   ScoreRoll,
   ScoreRollKind,
   SpinValue,
@@ -56,6 +56,20 @@ function marketValueAt(player: Player, face: SpinValue, state: GameState, editio
   }, 0)
 }
 
+/**
+ * What `player`'s life policy matured into on `face`.
+ *
+ * Difficulty takes no cut here, unlike a house or a share. The maturity is
+ * priced against the premium the player already paid, and that premium is the
+ * same sum on every board — see an edition's `insurancePremium` for why it is
+ * flat — so scaling one side of a fixed-price bet and not the other would
+ * turn a fair product into a trap on Very Hard and a gift on Normal.
+ */
+function policyValueAt(player: Player, face: SpinValue, edition: Edition): Money {
+  if (!player.insurance.includes('life')) return 0
+  return settlementValue(edition.economy.lifeInsuranceMaturity, face, edition.currency.payoutRounding)
+}
+
 /** What one of this player's closing dice pays on `face`. */
 export function scoreRollValue(
   state: GameState,
@@ -64,9 +78,14 @@ export function scoreRollValue(
   face: SpinValue,
   edition: Edition = editionOf(state),
 ): Money {
-  return kind === 'house'
-    ? houseValueAt(player, face, state, edition)
-    : marketValueAt(player, face, state, edition)
+  switch (kind) {
+    case 'house':
+      return houseValueAt(player, face, state, edition)
+    case 'market':
+      return marketValueAt(player, face, state, edition)
+    case 'policy':
+      return policyValueAt(player, face, edition)
+  }
 }
 
 /** True when this player holds shares in something the catalogue still lists. */
@@ -75,10 +94,11 @@ function holdsShares(player: Player, edition: Edition): boolean {
 }
 
 /**
- * Every die the closing settlement owes, in seat order, house before shares.
+ * Every die the closing settlement owes, in seat order: house, then shares,
+ * then a maturing life policy.
  *
- * A player with neither a home nor a holding contributes nothing and is
- * simply not in the queue — there is no die to throw for them, and an empty
+ * A player with neither a home, a holding nor a policy contributes nothing and
+ * is simply not in the queue — there is no die to throw for them, and an empty
  * step with "nothing to settle" written on it would be a press for its own
  * sake. Same bargain the rest of the engine strikes wherever there is nothing
  * to do (`driverGearFamily`, `roadIsOpenTo`): fail closed, don't invent a
@@ -91,6 +111,7 @@ export function buildScoreRolls(state: GameState, edition: Edition = editionOf(s
   for (const player of state.players) {
     if (player.house) rolls.push({ playerId: player.id, kind: 'house', face: null })
     if (holdsShares(player, edition)) rolls.push({ playerId: player.id, kind: 'market', face: null })
+    if (player.insurance.includes('life')) rolls.push({ playerId: player.id, kind: 'policy', face: null })
   }
   return rolls
 }
@@ -108,7 +129,7 @@ export interface ScoreRollPrompt {
   readonly prompt: string
   readonly stakes: string
   /** The ladder this die is read off — all six bands, published before the throw. */
-  readonly table: readonly RollTableRow[]
+  readonly table: readonly RollAmountRow[]
 }
 
 /**
@@ -128,7 +149,7 @@ export function describeScoreRoll(state: GameState, roll: ScoreRoll): ScoreRollP
   const edition = editionOf(state)
   const currency = edition.currency
 
-  const table: readonly RollTableRow[] = SETTLEMENT_FACES.map((face) => ({
+  const table: readonly RollAmountRow[] = SETTLEMENT_FACES.map((face) => ({
     range: String(face),
     amount: formatMoney(scoreRollValue(state, player, roll.kind, face, edition), currency),
   }))
@@ -139,6 +160,18 @@ export function describeScoreRoll(state: GameState, roll: ScoreRoll): ScoreRollP
       isCpu: player.isCpu,
       prompt: `${player.name}'s house`,
       stakes: `${player.house?.name ?? 'The house'} goes on the market. Whatever the die says is what the buyer pays.`,
+      table,
+    }
+  }
+
+  if (roll.kind === 'policy') {
+    return {
+      playerId: player.id,
+      isCpu: player.isCpu,
+      prompt: `${player.name}'s life policy`,
+      stakes:
+        `The policy matures. What it paid for over a lifetime is what the fund made, ` +
+        `and the die is the fund.`,
       table,
     }
   }
@@ -162,9 +195,14 @@ export function scoreRollLogLine(state: GameState, roll: ScoreRoll, face: SpinVa
   const edition = editionOf(state)
   const name = player?.name ?? 'A player'
   const amount = player ? formatMoney(scoreRollValue(state, player, roll.kind, face, edition), edition.currency) : '?'
-  return roll.kind === 'house'
-    ? `Rolled a ${face} — ${name}'s house sold for ${amount}.`
-    : `Rolled a ${face} — ${name}'s shares cashed out at ${amount}.`
+  switch (roll.kind) {
+    case 'house':
+      return `Rolled a ${face} — ${name}'s house sold for ${amount}.`
+    case 'market':
+      return `Rolled a ${face} — ${name}'s shares cashed out at ${amount}.`
+    case 'policy':
+      return `Rolled a ${face} — ${name}'s life policy matured at ${amount}.`
+  }
 }
 
 /**
@@ -216,5 +254,10 @@ export function resultsFromScoreRolls(state: GameState, deps: UseCaseDeps): Game
     state.difficulty,
     edition,
     () => deps.random.spin(),
+    (player) => {
+      const face = faceFor(player, 'policy')
+      if (face !== null) return policyValueAt(player, face, edition)
+      return midpoint(policyValueAt(player, 3, edition), policyValueAt(player, 4, edition))
+    },
   )
 }

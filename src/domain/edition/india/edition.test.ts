@@ -34,7 +34,9 @@ describe('the india economy is the tuned USA economy at ×100', () => {
     expect(india.divorceSettlement).toBe(usa.divorceSettlement * FACTOR)
     expect(india.firstRetirementBonus).toBe(usa.firstRetirementBonus * FACTOR)
     expect(india.casualWagePerPip).toBe(usa.casualWagePerPip * FACTOR)
-    expect(india.lifeInsurancePayout).toBe(usa.lifeInsurancePayout * FACTOR)
+    expect(india.lifeInsuranceMaturity).toEqual(
+      usa.lifeInsuranceMaturity.map((rung) => rung * FACTOR),
+    )
     expect(india.fireNumber).toBe(usa.fireNumber * FACTOR)
     expect(india.firePayoutPerPip).toBe(usa.firePayoutPerPip * FACTOR)
     expect(india.bigMoney).toBe(usa.bigMoney * FACTOR)

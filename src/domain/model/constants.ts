@@ -45,8 +45,8 @@ export const CASUAL_WAGE_PER_PIP: Money = USA_ECONOMY.casualWagePerPip
 /** Premium charged once when a policy is taken out. */
 export const INSURANCE_PREMIUM: Record<InsuranceKind, Money> = { ...USA_ECONOMY.insurancePremium }
 
-/** Paid out at the final scoring to anyone holding a life policy. */
-export const LIFE_INSURANCE_PAYOUT: Money = USA_ECONOMY.lifeInsurancePayout
+/** What a life policy matures into at the final scoring, low face to high. */
+export const LIFE_INSURANCE_MATURITY: readonly [Money, Money] = USA_ECONOMY.lifeInsuranceMaturity
 
 /** Cost to repay a single loan early at the bank — cheaper than `LOAN_REPAYMENT`. */
 export const EARLY_LOAN_REPAYMENT: Money = USA_ECONOMY.earlyLoanRepayment.normal

@@ -137,8 +137,8 @@ export const FRANCE_JA: EditionTranslation = {
       description: '昼食の席で同僚が、この銘柄は確実だと言い張る。取引所は十七時半まで開いている。',
     },
     'fr-main-fender-bender': {
-      title: '軽い接触事故',
-      description: '相手とボンネットの上で事故報告書を書き、こちらの過失ということで合意する。',
+      title: '交通事故',
+      description: '形の変わってしまったボンネットの上で事故報告書を書き、こちらの過失ということで合意する。',
       reason: '板金修理代',
     },
     'fr-main-pileup': {

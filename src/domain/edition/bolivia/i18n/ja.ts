@@ -142,7 +142,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'bo-main-intersection': {
       title: '交差点',
-      description: '信号のない角で、ミニバスとこちらのバンパーが短い交渉を行う。修理工場の見積書は、警察よりずっと早く届く。',
+      description: '信号のない角で、ミニバスとこちらの右側面が短く騒々しい交渉を行う。修理工場の見積書は、警察よりずっと早く届く。',
       reason: '板金修理代',
     },
     'bo-main-motorway-pileup': {

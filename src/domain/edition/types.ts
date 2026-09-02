@@ -167,8 +167,16 @@ export interface EconomyConstants {
   readonly casualWagePerPip: Money
   /** Premium charged once when a policy is taken out. */
   readonly insurancePremium: Readonly<Record<InsuranceKind, Money>>
-  /** Paid out at the final scoring to anyone holding a life policy. */
-  readonly lifeInsurancePayout: Money
+  /**
+   * What the life policy matures into at the closing settlement, low to high.
+   *
+   * A range rather than a figure, and read off a die on the same six-rung
+   * ladder as a house resale or a share payout, because a policy that pays a
+   * fixed sum for simply having reached the end of the board is not insurance
+   * against anything — everybody reaches the end. See an edition's own
+   * `lifeInsuranceMaturity` for how its rungs are priced against its premium.
+   */
+  readonly lifeInsuranceMaturity: readonly [Money, Money]
   /**
    * "The number": what a player must be holding to retire early, and what
    * stopping costs them, because the two are the same sum.

@@ -182,8 +182,8 @@ export const USA_FR: EditionTranslation = {
       description: 'Un ami ne jure que par une valeur lue quelque part. La banque ferme à dix-huit heures.',
     },
     'main-fender-bender': {
-      title: 'Petit accrochage',
-      description: 'Quelqu’un touche votre pare-chocs sur le parking, et le devis arrive par mail dans l’après-midi.',
+      title: 'Accident de voiture',
+      description: 'Un carrefour mouillé, une voiture qui ne s’arrête pas, et une aile, une portière et un phare à remettre.',
       reason: 'Facture de carrosserie',
     },
     'main-pileup': {

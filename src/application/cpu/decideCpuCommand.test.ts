@@ -268,14 +268,21 @@ describe('decideCpuCommand — stocks', () => {
 })
 
 describe('decideCpuCommand — insurance', () => {
-  /** A board whose only bill ahead of `a` is a house fire. */
-  function fireAheadBoard(): Board {
+  /**
+   * A board whose only bill ahead of `a` is a house fire of `amount`.
+   *
+   * Parameterised because cover is cheap now — $4,000 against the USA board's
+   * $24,000 fire — and how big the fire is decides which way a *broke* seat
+   * should call it. A large enough fire is worth borrowing the premium for;
+   * a modest one is not, and the CPU has to be able to tell those apart.
+   */
+  function fireAheadBoard(amount: number): Board {
     return fixtureBoard(
       [
         fixtureSpace({ id: 'a', next: ['fire'] }),
         fixtureSpace({
           id: 'fire',
-          effect: { type: 'payMoney', amount: 200_000, reason: 'House fire', hazard: 'fire' },
+          effect: { type: 'payMoney', amount, reason: 'House fire', hazard: 'fire' },
           next: ['retirement'],
         }),
         fixtureSpace({ id: 'retirement', kind: 'retirement', effect: { type: 'retire' }, next: [] }),
@@ -284,7 +291,11 @@ describe('decideCpuCommand — insurance', () => {
     )
   }
 
-  it('always takes the life policy, which is a straight win at scoring', () => {
+  it('takes the life policy on money it can spare, priced as the gamble it is', () => {
+    // No longer the free doubling it used to be: the endowment matures on a
+    // die, so this is the midpoint against the premium, less the same risk
+    // aversion `scoreStock` applies to a floor below the asking price. It
+    // still comes out ahead for a seat with cash to spare — but only just.
     const state = deciding(
       decision('insurance', insuranceOptionId('life'), DECLINE_INSURANCE_OPTION_ID),
       cpu({ money: 500_000 }),
@@ -292,11 +303,19 @@ describe('decideCpuCommand — insurance', () => {
     expect(chosen(state)).toBe(insuranceOptionId('life'))
   })
 
+  it('leaves the life policy alone when the premium would have to be borrowed', () => {
+    const state = deciding(
+      decision('insurance', insuranceOptionId('life'), DECLINE_INSURANCE_OPTION_ID),
+      cpu({ money: 0 }),
+    )
+    expect(chosen(state)).toBe(DECLINE_INSURANCE_OPTION_ID)
+  })
+
   it('covers itself against a hazard that is still ahead on the board', () => {
     const state = deciding(
       decision('insurance', insuranceOptionId('home'), DECLINE_INSURANCE_OPTION_ID),
       cpu({ money: 500_000, spaceId: 'a' }),
-      fireAheadBoard(),
+      fireAheadBoard(200_000),
     )
     expect(chosen(state)).toBe(insuranceOptionId('home'))
   })
@@ -305,18 +324,27 @@ describe('decideCpuCommand — insurance', () => {
     const state = deciding(
       decision('insurance', insuranceOptionId('auto'), DECLINE_INSURANCE_OPTION_ID),
       cpu({ money: 500_000, spaceId: 'a' }),
-      fireAheadBoard(),
+      fireAheadBoard(200_000),
     )
     expect(chosen(state)).toBe(DECLINE_INSURANCE_OPTION_ID)
   })
 
-  it('takes the risk when the premium would have to be borrowed', () => {
+  it('takes the risk when a borrowed premium costs more than the fire is worth', () => {
     const state = deciding(
       decision('insurance', insuranceOptionId('home'), DECLINE_INSURANCE_OPTION_ID),
       cpu({ money: 0, spaceId: 'a' }),
-      fireAheadBoard(),
+      fireAheadBoard(60_000),
     )
     expect(chosen(state)).toBe(DECLINE_INSURANCE_OPTION_ID)
+  })
+
+  it('borrows the premium anyway when the fire ahead is ruinous enough', () => {
+    const state = deciding(
+      decision('insurance', insuranceOptionId('home'), DECLINE_INSURANCE_OPTION_ID),
+      cpu({ money: 0, spaceId: 'a' }),
+      fireAheadBoard(400_000),
+    )
+    expect(chosen(state)).toBe(insuranceOptionId('home'))
   })
 
   it('declines rather than choose an option id that names no policy', () => {

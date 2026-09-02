@@ -37,7 +37,9 @@ describe('the bolivia economy is the tuned USA economy at ×1', () => {
     expect(bolivia.divorceSettlement).toBe(usa.divorceSettlement * FACTOR)
     expect(bolivia.firstRetirementBonus).toBe(usa.firstRetirementBonus * FACTOR)
     expect(bolivia.casualWagePerPip).toBe(usa.casualWagePerPip * FACTOR)
-    expect(bolivia.lifeInsurancePayout).toBe(usa.lifeInsurancePayout * FACTOR)
+    expect(bolivia.lifeInsuranceMaturity).toEqual(
+      usa.lifeInsuranceMaturity.map((rung) => rung * FACTOR),
+    )
     expect(bolivia.fireNumber).toBe(usa.fireNumber * FACTOR)
     expect(bolivia.firePayoutPerPip).toBe(usa.firePayoutPerPip * FACTOR)
     expect(bolivia.bigMoney).toBe(usa.bigMoney * FACTOR)

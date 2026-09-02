@@ -181,8 +181,8 @@ same as winning.
 If a payment would put you underwater you automatically take a $20,000 loan, and
 each one costs you $25,000 at the end — though the bank will let you clear one
 early for less. Reach retirement and your final score is cash, plus life tiles,
-plus your house's resale, plus your shares, plus life insurance, plus $10,000 a
-child, plus a retirement-order bonus, minus your loans.
+plus your house's resale, plus your shares, plus whatever your life policy
+matured into, plus $10,000 a child, plus a retirement-order bonus, minus your loans.
 
 ### Playing with the computer
 

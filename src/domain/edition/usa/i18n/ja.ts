@@ -184,8 +184,8 @@ export const USA_JA: EditionTranslation = {
       description: '友人がどこかで読んだ銘柄を熱心に勧めてくる。証券会社は六時まで開いている。',
     },
     'main-fender-bender': {
-      title: '軽い接触事故',
-      description: '駐車場でバンパーを軽く当てられ、その日の午後には見積書がメールで届く。',
+      title: '交通事故',
+      description: '雨の交差点、止まらない車、そしてフェンダーとドアとヘッドライトの交換。',
       reason: '板金修理代',
     },
     'main-pileup': {

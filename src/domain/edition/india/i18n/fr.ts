@@ -140,8 +140,8 @@ export const INDIA_FR: EditionTranslation = {
       description: 'Le groupe de la famille transfère une valeur dans une image jaune ornée de onze fusées. La Bourse ferme à quinze heures trente.',
     },
     'in-main-roundabout': {
-      title: 'Accrochage au rond-point',
-      description: 'Une insertion tranquille au rond-point, un bus qui refuse de céder, et vous vous appuyez tous les deux sur le klaxon. Le devis du carrossier arrive sur papier à en-tête.',
+      title: 'Le rond-point',
+      description: 'Une insertion au rond-point, un bus qui refuse de céder, et l’un de vous cède bien plus brutalement que prévu. Le devis du carrossier arrive sur papier à en-tête.',
       reason: 'Facture de carrosserie',
     },
     'in-main-pileup': {

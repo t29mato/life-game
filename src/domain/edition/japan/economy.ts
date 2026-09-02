@@ -155,11 +155,11 @@ export const JAPAN_ECONOMY: EconomyConstants = {
   firstRetirementBonus: 8_000_000,
   casualWagePerPip: 140_000,
   insurancePremium: {
-    home: 2_500_000,
-    auto: 2_000_000,
-    life: 5_000_000,
+    home: 400_000,
+    auto: 300_000,
+    life: 2_000_000,
   },
-  lifeInsurancePayout: 10_000_000,
+  lifeInsuranceMaturity: [600_000, 4_600_000],
   /**
    * "The number", à la japonaise. A government report once calculated that a
    * comfortable retirement needs twenty million yen, then apologised for

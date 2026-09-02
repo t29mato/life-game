@@ -169,11 +169,11 @@ export const BOLIVIA_ECONOMY: EconomyConstants = {
    */
   casualWagePerPip: 1_400,
   insurancePremium: {
-    home: 25_000,
-    auto: 20_000,
-    life: 50_000,
+    home: 4_000,
+    auto: 3_000,
+    life: 20_000,
   },
-  lifeInsurancePayout: 100_000,
+  lifeInsuranceMaturity: [6_000, 46_000],
   /**
    * "The number": the pension statement, what the stall or the practice would
    * sell for, and the back of one envelope. Priced against what a career that

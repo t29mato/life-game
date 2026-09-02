@@ -185,13 +185,13 @@ const MARKET_STREET_EARLY: readonly SpaceContent[] = [
   },
   {
     id: 'bo-main-intersection', kind: 'normal', title: 'The Intersection',
-    description: 'A minibus and your bumper hold a brief negotiation at an uncontrolled corner, and the bodyshop\'s quote arrives faster than the police ever would.',
-    effect: { type: 'payMoney', amount: 2_400, reason: 'Bodyshop bill', hazard: 'accident' },
+    description: 'A minibus and your near side hold a short, loud negotiation at an uncontrolled corner, and the bodyshop\'s quote arrives faster than the police ever would.',
+    effect: { type: 'payMoney', amount: 9_000, reason: 'Bodyshop bill', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender',
   },
   setback('veryHard', 'bo-main-motorway-pileup', 'Fog on the Motorway',
     'Fog rolls over the rim of the high city, brake lights bloom, and four vehicles crush together on the toll road. Everyone walks away; the invoices do not.',
-    { type: 'payMoney', amount: 14_000, reason: 'Pileup repairs', hazard: 'accident' },
+    { type: 'payMoney', amount: 16_000, reason: 'Pileup repairs', hazard: 'accident' },
     'slate', 'space:fender-bender'),
   setback('hard', 'bo-main-dentist', 'Dentist Bill',
     'One filling, one gold crown your aunt insists is an investment, and one invoice that stings rather more than the drill did.',
@@ -404,7 +404,10 @@ const MIDTOWN: readonly SpaceContent[] = [
   {
     id: 'bo-midtown-insurance', kind: 'normal', title: 'Insurance Office',
     description: 'Before anyone hands you a set of house keys, someone would like a word about cover — and unrolls a hazard map of your hillside that is thorough, recent, and quietly terrifying.',
-    effect: { type: 'buyInsurance', kinds: ['home', 'auto', 'life'] },
+    // No auto cover at this window: both crash tiles are behind a pawn
+    // standing here, so a policy sold at this desk could never pay out.
+    // The broker sells what this stretch of road can actually bill for.
+    effect: { type: 'buyInsurance', kinds: ['home', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office',
   },
   // The only payday in this stretch too — see bo-main-payday-1. Harshening it
@@ -550,7 +553,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   {
     id: 'bo-sunset-storeroom-fire', kind: 'normal', title: 'The Storeroom',
     description: 'A decade of stock, one old fuse, and a storeroom that needs rebuilding from the shelves up.',
-    effect: { type: 'payMoney', amount: 12_000, reason: 'Storeroom fire damage', hazard: 'fire' },
+    effect: { type: 'payMoney', amount: 24_000, reason: 'Storeroom fire damage', hazard: 'fire' },
     tone: 'slate', icon: 'space:house-fire',
   },
   setback('hard', 'bo-sunset-parents', 'Caring for Your Parents',

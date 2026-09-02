@@ -5,7 +5,7 @@ import {
   EARLY_LOAN_REPAYMENT,
   FIRST_RETIREMENT_BONUS,
   INSURANCE_PREMIUM,
-  LIFE_INSURANCE_PAYOUT,
+  LIFE_INSURANCE_MATURITY,
   LOAN_PRINCIPAL,
   LOAN_REPAYMENT,
   STARTING_MONEY,
@@ -68,7 +68,7 @@ describe('the USA edition is the game that was already here', () => {
     expect(FIRST_RETIREMENT_BONUS).toBe(economy.firstRetirementBonus)
     expect(CASUAL_WAGE_PER_PIP).toBe(economy.casualWagePerPip)
     expect(INSURANCE_PREMIUM).toEqual(economy.insurancePremium)
-    expect(LIFE_INSURANCE_PAYOUT).toBe(economy.lifeInsurancePayout)
+    expect(LIFE_INSURANCE_MATURITY).toEqual(economy.lifeInsuranceMaturity)
   })
 
   it('still holds the figures the board was tuned against', () => {
@@ -83,8 +83,8 @@ describe('the USA edition is the game that was already here', () => {
       weddingGift: 10_000,
       firstRetirementBonus: 80_000,
       casualWagePerPip: 1_400,
-      insurancePremium: { home: 25_000, auto: 20_000, life: 50_000 },
-      lifeInsurancePayout: 100_000,
+      insurancePremium: { home: 4_000, auto: 3_000, life: 20_000 },
+      lifeInsuranceMaturity: [6_000, 46_000],
       bigMoney: 50_000,
     })
   })

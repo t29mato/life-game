@@ -146,11 +146,11 @@ export const FRANCE_ECONOMY: EconomyConstants = {
   firstRetirementBonus: 80_000,
   casualWagePerPip: 1_400,
   insurancePremium: {
-    home: 25_000,
-    auto: 20_000,
-    life: 50_000,
+    home: 4_000,
+    auto: 3_000,
+    life: 20_000,
   },
-  lifeInsurancePayout: 100_000,
+  lifeInsuranceMaturity: [6_000, 46_000],
   /**
    * "The number", à la française. Retirement is the one subject the whole
    * country will stop traffic over, and stopping *early* — before anyone can

@@ -1,4 +1,4 @@
-import type { Board, PassedQueueItem, Space, SpaceId } from '../model/types'
+import type { Board, Hazard, Money, PassedQueueItem, Space, SpaceId } from '../model/types'
 import type { MovementPlan, MovementStopReason } from './movementTypes'
 
 function getSpace(board: Board, id: SpaceId): Space {
@@ -166,4 +166,52 @@ export function nextMovementLeg(
   // it degrades to exactly the behaviour that shipped before legs existed.
   if (stopAt === -1) return { leg: path, rest: [] }
   return { leg: path.slice(0, stopAt + 1), rest: path.slice(stopAt + 1) }
+}
+
+/** Every space still reachable from `from`, following the board forwards. */
+export function reachableFrom(board: Board, from: SpaceId): Set<SpaceId> {
+  const seen = new Set<SpaceId>()
+  let frontier: SpaceId[] = [from]
+  while (frontier.length > 0) {
+    const nextFrontier: SpaceId[] = []
+    for (const id of frontier) {
+      if (seen.has(id)) continue
+      seen.add(id)
+      const space = board.spaces[id]
+      if (space) nextFrontier.push(...space.next)
+    }
+    frontier = nextFrontier
+  }
+  return seen
+}
+
+/**
+ * Every bill of one hazard still on the road ahead, and what they add up to.
+ *
+ * The one number the insurance office actually needs, and it has to be read
+ * off the board rather than written down anywhere: the bills are scaled by
+ * difficulty, differ by edition, and — because the office comes round twice —
+ * a policy sold at the second window may have nothing left ahead of it to
+ * claim on at all. A card that says so is the difference between an honest
+ * price and a shop selling cover for a road already travelled.
+ *
+ * `worst` is the largest single bill, which is what a player is really being
+ * asked about: one claim, not a lifetime of them.
+ */
+export function hazardBillsAhead(
+  board: Board,
+  from: SpaceId,
+  hazard: Hazard,
+): { readonly count: number; readonly total: Money; readonly worst: Money } {
+  let count = 0
+  let total = 0
+  let worst = 0
+  for (const id of reachableFrom(board, from)) {
+    const effect = board.spaces[id]?.effect
+    if (effect?.type !== 'payMoney' || effect.hazard !== hazard) continue
+    count += 1
+    total += effect.amount
+    worst = Math.max(worst, effect.amount)
+  }
+  return { count, total, worst }
 }

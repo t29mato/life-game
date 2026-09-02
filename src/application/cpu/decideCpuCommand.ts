@@ -28,6 +28,8 @@ import {
 import { AVERAGE_SPIN, expectedPayday, isCoveredAgainst, totalShares } from '@domain/rules/player'
 import { expectedChildValue } from '@domain/rules/children'
 import { expectedMarriageValue } from '@domain/rules/marriage'
+import { maturityMidpoint } from '@domain/rules/scoring'
+import { hazardBillsAhead } from '@domain/board/movement'
 import { expectedTuitionCost, tuitionSpecFor } from '@domain/rules/tuition'
 import type { GameCommand } from '../GameStore'
 import { nextScoreRoll } from '../usecases/settlement'
@@ -111,8 +113,19 @@ const RESERVE_WEIGHT = 0.4
 /** A share whose floor sits below its price is a gamble; this is how much that scares the CPU. */
 const RISK_AVERSION = 0.35
 
-/** Rough chance of actually landing on any one space still ahead of you. */
-const HAZARD_LANDING_CHANCE = 0.25
+/**
+ * Rough chance of actually landing on any one space still ahead of you.
+ *
+ * Measured rather than guessed since the insurance repricing: across 800
+ * seeded player-lives on the standard board, the crash tile is landed on by
+ * 29.8% of them and the fire tile — which sits late enough that plenty of
+ * players have retired before they reach it — by 9.8%. One flat number
+ * cannot tell those two apart, and this is the average of them. It was 0.25,
+ * which is within a whisker of the same thing and was never the reason the
+ * premiums were wrong; it is written down here so the next person to touch it
+ * is arguing with a measurement rather than with a round number.
+ */
+const HAZARD_LANDING_CHANCE = 0.2
 
 /** Below this, a CPU is short of cash and starts flinching at expensive lanes. */
 const RISK_CASH_FLOOR_UNITS = 25
@@ -629,13 +642,7 @@ function scoreStock(option: DecisionOption, context: Context): number {
 
 /** Total of every hazard bill of this kind still reachable from where the CPU stands. */
 function hazardExposureAhead(context: Context, hazard: Hazard): Money {
-  const { state, player } = context
-  let exposure = 0
-  for (const id of reachableWithin(state.board, player.spaceId, Number.MAX_SAFE_INTEGER)) {
-    const effect = state.board.spaces[id]?.effect
-    if (effect?.type === 'payMoney' && effect.hazard === hazard) exposure += effect.amount
-  }
-  return exposure
+  return hazardBillsAhead(context.state.board, context.player.spaceId, hazard).total
 }
 
 function scoreInsurance(option: DecisionOption, context: Context): number {
@@ -644,13 +651,27 @@ function scoreInsurance(option: DecisionOption, context: Context): number {
   if (!kind) return UNKNOWN_OPTION_SCORE
 
   const premium = context.edition.economy.insurancePremium[kind]
-  // Life insurance is a straight bet on reaching the end, which everyone does.
-  const benefit =
-    kind === 'life'
-      ? context.edition.economy.lifeInsurancePayout
-      : hazardExposureAhead(context, kind === 'home' ? 'fire' : 'accident') * HAZARD_LANDING_CHANCE
+  if (kind !== 'life') {
+    const hazard: Hazard = kind === 'home' ? 'fire' : 'accident'
+    return hazardExposureAhead(context, hazard) * HAZARD_LANDING_CHANCE - premium - affordabilityPenalty(context, premium)
+  }
 
-  return benefit - premium - affordabilityPenalty(context, premium)
+  /*
+   * The life policy is not cover, it is an endowment: a sum locked up now
+   * against whatever a die says the fund made by the end. Priced the same way
+   * `scoreStock` prices a share, and for the same reason — the average return
+   * is only half the question when the bottom rung of the ladder pays less
+   * than the premium did, which is exactly the case this option is meant to
+   * be a real decision about.
+   */
+  const [floor] = context.edition.economy.lifeInsuranceMaturity
+  const downside = Math.max(0, premium - floor)
+  return (
+    maturityMidpoint(context.edition) -
+    premium -
+    downside * RISK_AVERSION -
+    affordabilityPenalty(context, premium)
+  )
 }
 
 function scoreBank(option: DecisionOption, context: Context): number {

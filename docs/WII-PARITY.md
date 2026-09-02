@@ -70,7 +70,7 @@ errors whose root cause is in someone else's files.
   `swapMoneyWithLeader`, `stealLifeTile`, `upgradeHouse`
 
 `src/domain/model/constants.ts` gained `INSURANCE_PREMIUM`,
-`LIFE_INSURANCE_PAYOUT`, `EARLY_LOAN_REPAYMENT`, `SHARES_PER_PURCHASE`,
+`LIFE_INSURANCE_PAYOUT` (now `LIFE_INSURANCE_MATURITY`), `EARLY_LOAN_REPAYMENT`, `SHARES_PER_PURCHASE`,
 `BOARD_LENGTH_SCALE` (since removed — see "Board lengths" below).
 
 `src/domain/model/icons.ts` gained the `finance:*` and `stock:*` families and
@@ -178,8 +178,11 @@ Board({ board, players, currentPlayerIndex, phase, movementPath, onMovementCompl
 
 - **Insurance.** Bought once per kind at a `buyInsurance` space, costs
   `INSURANCE_PREMIUM[kind]`. Holding `home` waives every `payMoney` tagged
-  `hazard: 'fire'`; `auto` waives `'accident'`. `life` pays
-  `LIFE_INSURANCE_PAYOUT` at the final scoring. Already-held kinds are never
+  `hazard: 'fire'`; `auto` waives `'accident'`. A space stocks only the kinds
+  its stretch of road can still bill for, so the second office sells no auto
+  cover. `life` is not cover at all but an endowment: it matures at the final
+  scoring on its own closing die, read off `LIFE_INSURANCE_MATURITY` by the
+  same six-rung ladder a house resale uses. Already-held kinds are never
   re-offered.
 - **Stocks.** A `buyStock` space offers three random stocks plus a decline
   option; buying debits `price × SHARES_PER_PURCHASE`. `stockDividend` pays

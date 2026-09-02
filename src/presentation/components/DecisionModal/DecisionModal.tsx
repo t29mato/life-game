@@ -41,17 +41,6 @@ const KIND_LABEL: Record<Decision['kind'], string> = {
 }
 
 /**
- * Splits `"$40,000/payday"` into the figure and its unit so the number can be
- * set large and tabular while the unit stays quiet. A plain `"$250,000"`
- * yields no unit.
- */
-function splitDetail(detail: string): { readonly figure: string; readonly unit: string | null } {
-  const slash = detail.indexOf('/')
-  if (slash === -1) return { figure: detail.trim(), unit: null }
-  return { figure: detail.slice(0, slash).trim(), unit: detail.slice(slash + 1).trim() }
-}
-
-/**
  * The modal shown while `phase === 'awaitingDecision'`. Options are big,
  * pickable cards — arrow-key navigable, Enter/Space (native button
  * behaviour) confirms.
@@ -138,7 +127,6 @@ export function DecisionModal({
           aria-label={isCpu ? undefined : decision.prompt}
         >
           {decision.options.map((option, index) => {
-            const detail = option.detail ? splitDetail(option.detail) : null
             // Only a `branch` decision's option ids are real space ids — walk
             // the lane so choosing one is never a blind guess.
             const lane = decision.kind === 'branch' ? previewLane(board, option.id) : null
@@ -191,10 +179,15 @@ export function DecisionModal({
                     </span>
                   ) : null}
                 </span>
-                {detail ? (
+                {/* The figure large and tabular, its unit quiet beneath it —
+                    two fields on the option, so the card never has to pick a
+                    number back out of a string to know which is which. */}
+                {option.detail ? (
                   <span className={styles.optionDetail}>
-                    <span className={styles.optionFigure}>{detail.figure}</span>
-                    {detail.unit ? <span className={styles.optionUnit}>per {detail.unit}</span> : null}
+                    <span className={styles.optionFigure}>{option.detail}</span>
+                    {option.detailUnit ? (
+                      <span className={styles.optionUnit}>per {option.detailUnit}</span>
+                    ) : null}
                   </span>
                 ) : !isCpu ? (
                   <span className={styles.optionChevron} aria-hidden="true">

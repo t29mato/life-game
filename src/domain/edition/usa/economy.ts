@@ -285,12 +285,85 @@ export const USA_ECONOMY: EconomyConstants = {
   },
   firstRetirementBonus: 80_000,
   casualWagePerPip: 1_400,
+  /**
+   * What cover costs, priced against the odds it is cover for.
+   *
+   * These were $25,000 and $20,000, against a fire that bills $12,000 and a
+   * crash that bills $2,400 — a premium of two to eight times the largest
+   * claim it could ever pay. That is not an expensive policy, it is a policy
+   * that cannot win: even the lucky player, the one whose house burns down,
+   * came out behind on the deal. Measured across 800 seeded player-lives on
+   * the standard board, buying the home policy cost a mean of $28,101 and left
+   * the buyer worse off in 94.9% of games; the auto policy, $22,507 and 94.9%.
+   * An option that loses nineteen times in twenty and has no twentieth case
+   * worth taking is not a decision, and the computer seats — which price it
+   * honestly — had been correctly declining it since the day they were written.
+   *
+   * They are priced off the board now. A fire lands on 9.8% of player-lives
+   * and a crash on 29.8% (`gameBalance.test.ts` pins both), which against the
+   * $24,000 and $9,000 those tiles bill makes the two covers worth about
+   * $2,340 and $2,680 in expectation. The prices are $4,000 and $3,000: the
+   * odds, plus the margin every insurer lives on. Measured the same way the
+   * old prices were, buying now costs a mean of $1,933 (home) and $1,671
+   * (auto) and leaves the buyer worse off in 84.4% and 73.0% of games, better
+   * off in 9.4% and 20.4% — a premium wasted four or five times in five, and a
+   * claim worth six times the premium in the fifth. That is the shape this was
+   * always supposed to have.
+   *
+   * The auto policy is the cheaper of the two despite covering the *likelier*
+   * hazard, and the difference is what a buyer actually collects rather than
+   * what the board bills: a home policy pays out for 9.4% of the players who
+   * buy one against a $24,000 fire, an auto policy for 20.4% against a $9,000
+   * crash. Sold at the same price the auto policy carried the heavier load of
+   * the two; $3,000 is what puts the two windows on the same footing.
+   *
+   * Flat across difficulties, deliberately, and this is the one place the two
+   * covers stop being merely fair. The bills scale with difficulty and the
+   * premium does not, so the home policy runs at a mean of +$13,473 on Hard
+   * and +$25,521 on Very Hard — while still costing the buyer their premium
+   * for nothing in roughly three games in four. That is not a mispricing to
+   * fix: it is the only lever a Very Hard player has against a board that
+   * bills five times harder, and a hedge ought to be worth more where the
+   * danger is greater. Premiums that scaled alongside the bills were measured
+   * and are strictly worse — Very Hard's bank wants $50,000 back for every
+   * $20,000 it lends, so a scaled premium is paid in loans and the policy
+   * turns into a trap. See `lifeInsuranceMaturity` for the other half of the
+   * office's window, and why it is priced by a different argument entirely.
+   */
   insurancePremium: {
-    home: 25_000,
-    auto: 20_000,
-    life: 50_000,
+    home: 4_000,
+    auto: 3_000,
+    life: 20_000,
   },
-  lifeInsurancePayout: 100_000,
+  /**
+   * The endowment, and what a die decides it grew into.
+   *
+   * This was a flat $100,000 paid at retirement for a $50,000 premium, with no
+   * condition on it of any kind: everybody reaches retirement, so it was a
+   * guaranteed doubling wearing an insurance label. Measured, it left the
+   * buyer better off in 96.7% of games on the standard board, mean $44,961 —
+   * free money with a decision card around it, and the reason a player asked
+   * what insurance was even for.
+   *
+   * A with-profits policy pays what the fund made, which is the honest version
+   * of the same product and happens to be the fix: the range below is read off
+   * the closing die on the same six-rung ladder a house resale and a share
+   * payout are (`domain/rules/settlement.ts`), so the maturity is a number the
+   * player watches land rather than one handed to them. Its rungs are $6,000,
+   * $14,000, $22,000, $30,000, $38,000 and $46,000 against a $20,000 premium:
+   * two faces lose money, one roughly breaks even, three pay.
+   *
+   * Measured at these figures it comes out at a mean of +$1,934 on the
+   * standard board, better off in 56.1% of games and worse off in 43.9% — as
+   * close to a coin flip as anything in this game, with a tenth percentile of
+   * -$76,050 and a ninetieth of +$57,000. The tails are wider than the $20,000
+   * at stake because the premium is paid mid-board, out of cash a player often
+   * does not have: buying it can force the loan that costs $25,000 to settle,
+   * and on Very Hard $50,000. That is the same reason it drifts to a mean of
+   * -$4,326 on Hard and -$23,436 on Very Hard, and it is the right shape for
+   * it to have. An endowment is a thing you buy with money you can spare.
+   */
+  lifeInsuranceMaturity: [6_000, 46_000],
   /**
    * A quarter of a million into the fund, and the last act of the board given
    * up. Measured rather than guessed: it is about what a player who has kept a

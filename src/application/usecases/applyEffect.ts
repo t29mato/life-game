@@ -11,8 +11,12 @@ import type {
   Money,
   MoneyTransfer,
   Player,
+  Board,
+  RollAmountRow,
+  RollOfferRow,
   RollTableRow,
   Space,
+  SpaceId,
   Stock,
 } from '@domain/model/types'
 import type { IconName } from '@domain/model/icons'
@@ -30,6 +34,8 @@ import {
   seniorityOf,
 } from '@domain/edition/lookup'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
+import { hazardBillsAhead } from '@domain/board/movement'
+import { SETTLEMENT_FACES, settlementValue } from '@domain/rules/settlement'
 import { tuitionSpecFor } from '@domain/rules/tuition'
 import { bestTradeYear } from '@domain/rules/tradeYear'
 import {
@@ -161,15 +167,63 @@ const INSURANCE_LABELS: Record<InsuranceKind, string> = {
   life: 'Life Policy',
 }
 
+/**
+ * What each policy is worth, said as a bet rather than as a freebie.
+ *
+ * These used to read "a house fire costs you nothing at all" and "matures at
+ * retirement and pays $100,000" — two sentences that are true and that,
+ * between them, made insurance look like a shop where everything is free. The
+ * premium was on the card; the odds never were, and the odds are the whole
+ * decision. A player who cannot see that a fire lands on about one life in ten
+ * has no way to tell a $4,000 premium from a $25,000 one.
+ *
+ * So a cover policy now names the bill it waives and how many of them are
+ * actually still ahead of the pawn, read off this board at this difficulty —
+ * which also means the office's second window admits it when there is nothing
+ * left to insure against, instead of selling cover for a road already
+ * travelled. The life policy names its floor and its ceiling, because a die
+ * decides it and its own ladder is printed underneath (`lifeMaturityBands`).
+ */
 function insuranceDescriptions(
+  board: Board,
+  from: SpaceId,
   economy: EconomyConstants,
   currency: CurrencySpec,
 ): Record<InsuranceKind, string> {
-  return {
-    home: 'While it is in force, a house fire costs you nothing at all.',
-    auto: 'While it is in force, a road accident costs you nothing at all.',
-    life: `Matures at retirement and pays ${formatMoney(economy.lifeInsurancePayout, currency)} into your final total.`,
+  const cover = (hazard: Hazard, trouble: string, howOften: string): string => {
+    const { count, worst } = hazardBillsAhead(board, from, hazard)
+    if (count === 0) {
+      return `Nothing ahead of you can bill you for ${trouble}. This would cover a road you have already driven.`
+    }
+    const bills = count === 1 ? 'One stretch of road ahead bills' : `${count} stretches of road ahead bill`
+    return `${bills} up to ${formatMoney(worst, currency)} for ${trouble}. ${howOften}, and you pay the premium either way.`
   }
+  const [floor, ceiling] = economy.lifeInsuranceMaturity
+  return {
+    // Told apart rather than given the same sentence twice: a fire lands on
+    // 9.8% of player-lives and a crash on 29.8%, so the two covers are not the
+    // same bet and should not read as one. Qualitative because the numbers
+    // move with difficulty — the crash reaches 50% on Very Hard — while "few"
+    // and "plenty" stay true across all three, and the bill above them is read
+    // off this board at this difficulty anyway.
+    home: cover('fire', 'a house fire', 'Few lives ever have one'),
+    auto: cover('accident', 'a crash', 'Plenty of lives have one'),
+    life: `Not cover — a fund. It matures on a die at the end, anywhere from ${formatMoney(floor, currency)} to ${formatMoney(ceiling, currency)}.`,
+  }
+}
+
+/** The life policy's six rungs, published before anybody pays a premium. */
+function lifeMaturityBands(
+  economy: EconomyConstants,
+  currency: CurrencySpec,
+): readonly RollAmountRow[] {
+  return SETTLEMENT_FACES.map((face) => ({
+    range: String(face),
+    amount: formatMoney(
+      settlementValue(economy.lifeInsuranceMaturity, face, currency.payoutRounding),
+      currency,
+    ),
+  }))
 }
 
 const INSURANCE_ICONS: Record<InsuranceKind, IconName> = {
@@ -215,7 +269,7 @@ function baseEvent(
  * Data, not a sentence: the presentation layer renders this as a table
  * rather than a player having to parse a comma-joined string themselves.
  */
-function tuitionBands(tuition: TuitionSpec, currency: CurrencySpec): readonly RollTableRow[] {
+function tuitionBands(tuition: TuitionSpec, currency: CurrencySpec): readonly RollAmountRow[] {
   const money = (amount: Money): string => formatMoney(amount, currency)
   let previousUpTo = 0
   return tuition.outcomes.map((band) => {
@@ -238,27 +292,34 @@ function currentIncomeNote(player: Player, economy: EconomyConstants, currency: 
 }
 
 /**
- * One offer, named in full for a spin's pre-roll description: title, salary,
- * and the ladder it sits on. "Rung 2 of 4" is the whole reason a career
- * spin is interesting rather than a coin flip in the dark — two jobs on the
- * same money are not the same job when one of them has a salon above it and
- * the other is the top of a two-rung trade, and a player who cannot see the
- * height is being asked to gamble blind rather than to gamble informed.
+ * One offer, as the facts it is made of rather than a sentence about them:
+ * the trade, its portrait, one period's pay, and the ladder it sits on.
+ *
+ * "Rung 2 of 4" is the whole reason a career spin is interesting rather than
+ * a coin flip in the dark — two jobs on the same money are not the same job
+ * when one of them has a salon above it and the other is the top of a
+ * two-rung trade, and a player who cannot see the height is being asked to
+ * gamble blind rather than to gamble informed. A calling has nothing above it
+ * by design and a one-rung trade is its own ceiling, so neither claims a rung.
  */
-function careerOfferSummary(career: Career, currency: CurrencySpec, edition: Edition): string {
+function careerOffer(range: string, career: Career, currency: CurrencySpec, edition: Edition): RollOfferRow {
   const ladder = ladderPositionOf(career.id, edition)
-  const rung =
-    career.isCalling || !ladder || ladder.height === 1 ? '' : `, rung ${ladder.rung} of ${ladder.height}`
-  return `${career.title} (${formatMoney(salaryRate(career.salary, currency), currency)}/${salaryPeriod(currency)}${rung})`
+  const ranked = !career.isCalling && ladder !== undefined && ladder.height > 1
+  return {
+    range,
+    career: career.title,
+    icon: career.icon,
+    pay: formatMoney(salaryRate(career.salary, currency), currency),
+    period: salaryPeriod(currency),
+    ...(ranked ? { rung: `${ladder.rung} of ${ladder.height}` } : {}),
+  }
 }
 
 /**
  * The two offers, as table rows instead of a sentence — `LOW_HALF`/
  * `HIGH_HALF` name which side of the die each one is on, exactly the way
  * `resolveForkBranch` splits a fork, so a player scans two rows rather than
- * parsing "1-3: X. 4-6: Y." out of prose. Each row carries the trade's own
- * portrait: two jobs on the same money are told apart by what the work looks
- * like, and a fair whose rows are prose alone is a fair with no booths.
+ * parsing "1-3: X. 4-6: Y." out of prose.
  */
 function careerOfferTable(
   first: Career,
@@ -266,10 +327,7 @@ function careerOfferTable(
   currency: CurrencySpec,
   edition: Edition,
 ): readonly RollTableRow[] {
-  return [
-    { range: LOW_HALF, amount: careerOfferSummary(first, currency, edition), icon: first.icon },
-    { range: HIGH_HALF, amount: careerOfferSummary(second, currency, edition), icon: second.icon },
-  ]
+  return [careerOffer(LOW_HALF, first, currency, edition), careerOffer(HIGH_HALF, second, currency, edition)]
 }
 
 function houseDecisionOptions(
@@ -1168,7 +1226,8 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             ? 'This is the work you were made for. Let the recruiters talk to somebody else.'
             : 'Keep the job, the ladder, and every rung still above you.',
           icon: player.career.icon,
-          detail: `${money(salaryRate(player.career.salary, currency))}/${salaryPeriod(currency)}`,
+          detail: money(salaryRate(player.career.salary, currency)),
+          detailUnit: salaryPeriod(currency),
         })
       }
 
@@ -1273,7 +1332,8 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             // player would think to look.
             description: `${stock.description} Pays out ${money(low)}–${money(high)} a share at retirement.`,
             icon: stock.icon,
-            detail: `${money(stock.price)} a share`,
+            detail: money(stock.price),
+            detailUnit: 'share',
           }
         }),
         {
@@ -1340,7 +1400,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const log = appendLog(state, player.id, `${player.name} is already covered here.`, 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
-      const descriptions = insuranceDescriptions(economy, currency)
+      const descriptions = insuranceDescriptions(state.board, player.spaceId, economy, currency)
       const options: DecisionOption[] = [
         ...available.map((kind) => ({
           id: insuranceOptionId(kind),
@@ -1348,11 +1408,16 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           description: descriptions[kind],
           icon: INSURANCE_ICONS[kind],
           detail: money(economy.insurancePremium[kind]),
+          // Only the endowment has a die behind it, so only the endowment
+          // publishes a ladder. A cover policy's odds live in its sentence:
+          // there is no roll to table, just a bill that either arrives or
+          // does not.
+          ...(kind === 'life' ? { table: lifeMaturityBands(economy, currency) } : {}),
         })),
         {
           id: DECLINE_INSURANCE_OPTION_ID,
           label: 'Take the risk',
-          description: 'Keep the premium, and pay the whole bill yourself if the worst turns up.',
+          description: 'Keep the premium. Most lives are fine without it, and the ones that are not pay in full.',
           icon: 'finance:insurance-office',
         },
       ]

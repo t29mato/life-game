@@ -184,14 +184,14 @@ const SALARYMAN_STREET_EARLY: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:stock-tip',
   },
   {
-    id: 'jp-main-fender-bender', kind: 'normal', title: 'Minor Car Crash',
-    description: 'A gentle tap in the supermarket car park. The other driver bows at precisely forty-five degrees; the quote arrives by email that afternoon.',
-    effect: { type: 'payMoney', amount: 240_000, reason: 'Bodyshop bill', hazard: 'accident' },
+    id: 'jp-main-fender-bender', kind: 'normal', title: 'Car Crash',
+    description: 'A wet crossing and a car that does not stop. The other driver bows at precisely forty-five degrees; the bodyshop is less apologetic about its quote.',
+    effect: { type: 'payMoney', amount: 900_000, reason: 'Bodyshop bill', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender',
   },
   setback('veryHard', 'jp-main-pileup', 'Expressway Pileup',
     'Fog on the expressway, brake lights, and four cars crushed together on the ramp. Everyone walks away; the invoices do not.',
-    { type: 'payMoney', amount: 1_400_000, reason: 'Pileup repairs', hazard: 'accident' },
+    { type: 'payMoney', amount: 1_600_000, reason: 'Pileup repairs', hazard: 'accident' },
     'slate', 'space:fender-bender'),
   setback('hard', 'jp-main-dentist', 'Dentist Bill',
     'One filling, one silver crown, one lecture about flossing, and an invoice that stings rather more than the drill did.',
@@ -402,7 +402,10 @@ const MIDTOWN: readonly SpaceContent[] = [
   {
     id: 'jp-midtown-insurance', kind: 'normal', title: 'Insurance Office',
     description: 'Before anyone hands you a set of house keys, someone would like a word about cover — and unrolls a hazard map of your neighbourhood that is thorough, recent, and quietly terrifying.',
-    effect: { type: 'buyInsurance', kinds: ['home', 'auto', 'life'] },
+    // No auto cover at this window: both crash tiles are behind a pawn
+    // standing here, so a policy sold at this desk could never pay out.
+    // The broker sells what this stretch of road can actually bill for.
+    effect: { type: 'buyInsurance', kinds: ['home', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office',
   },
   // The only payday in this stretch too — see jp-main-payday-1. Harshening it
@@ -548,7 +551,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   {
     id: 'jp-sunset-earthquake', kind: 'normal', title: 'The Earthquake',
     description: 'The big one finally introduces itself at four in the morning, drops every plate you own, and cracks the kitchen they landed in.',
-    effect: { type: 'payMoney', amount: 1_200_000, reason: 'Earthquake damage', hazard: 'fire' },
+    effect: { type: 'payMoney', amount: 2_400_000, reason: 'Earthquake damage', hazard: 'fire' },
     tone: 'slate', icon: 'space:house-fire',
   },
   setback('hard', 'jp-sunset-parents', 'Caring for Your Parents',

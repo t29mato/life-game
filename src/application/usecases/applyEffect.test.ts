@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import type { LifeTile } from '@domain/model/types'
-import { CASUAL_WAGE_PER_PIP, EARLY_LOAN_REPAYMENT, INSURANCE_PREMIUM } from '@domain/model/constants'
+import type { Board, LifeTile, RollAmountRow, RollOfferRow, RollTableRow } from '@domain/model/types'
+import { CASUAL_WAGE_PER_PIP, EARLY_LOAN_REPAYMENT, INSURANCE_PREMIUM, SPIN_FACES } from '@domain/model/constants'
 import { BASIC_CAREERS, DOCTORATE_CAREERS, GRADUATE_CAREERS, USA_ECONOMY } from '@domain/edition/usa'
 import { expectedMarriageValue } from '@domain/rules/marriage'
 import { HOUSES } from '@domain/edition/usa'
 import { STOCKS } from '@domain/edition/usa'
-import { fixturePlayer, fixtureSpace, fixtureState } from '../testing/fixtures'
+import { fixtureBoard, fixturePlayer, fixtureSpace, fixtureState } from '../testing/fixtures'
 import { createFakeRandom } from '../testing/fakes'
 import { formatMoney } from './format'
 import {
@@ -19,6 +19,12 @@ import {
   DECLINE_STOCK_OPTION_ID,
   insuranceOptionId,
 } from './applyEffect'
+
+/** The rows of a die that deals jobs, and of one that deals sums — see `RollTableRow`. */
+const offerRows = (rows: readonly RollTableRow[] = []): readonly RollOfferRow[] =>
+  rows.filter((row): row is RollOfferRow => 'career' in row)
+const amountRows = (rows: readonly RollTableRow[] = []): readonly RollAmountRow[] =>
+  rows.filter((row): row is RollAmountRow => 'amount' in row)
 
 const TILE_A: LifeTile = { id: 'tile-a', title: 'Ran a Marathon', value: 15_000, icon: 'tile:marathon' }
 const TILE_B: LifeTile = { id: 'tile-b', title: 'Wrote a Novel', value: 90_000, icon: 'tile:novel' }
@@ -251,8 +257,51 @@ describe('applyEffect', () => {
       const [firstId, secondId] = next.pendingDecision!.offeredCareerIds!
       const firstCareer = BASIC_CAREERS.find((c) => c.id === firstId)!
       const secondCareer = BASIC_CAREERS.find((c) => c.id === secondId)!
-      expect(option.table![0]!.amount).toContain(firstCareer.title)
-      expect(option.table![1]!.amount).toContain(secondCareer.title)
+      expect(offerRows(option.table).map((row) => row.career)).toEqual([firstCareer.title, secondCareer.title])
+    })
+
+    /*
+     * The pay and the rung as their own values, not clauses inside a sentence
+     * a component has to pattern-match apart again. The product owner asked
+     * for them as columns; a column can only be built out of a field.
+     */
+    it("hands the pay, its period and the rung over as an offer's own fields", () => {
+      const player = fixturePlayer({ hasDegree: false })
+      const state = fixtureState({ players: [player] })
+      const space = fixtureSpace({ effect: { type: 'chooseCareer', pool: 'basic' } })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      const offers = offerRows(next.pendingDecision!.options[0]!.table)
+      const [firstId, secondId] = next.pendingDecision!.offeredCareerIds!
+      for (const [offer, id] of [
+        [offers[0]!, firstId],
+        [offers[1]!, secondId],
+      ] as const) {
+        const career = BASIC_CAREERS.find((c) => c.id === id)!
+        expect(offer.pay).toBe(formatMoney(career.salary))
+        expect(offer.period).toBe('payday')
+        // No fact is smuggled back into another: the name is the name alone.
+        expect(offer.career).not.toMatch(/[($]/)
+        // A fair deals bottom rungs, so every offer that stands on a real
+        // ladder says so, and nothing else does.
+        if (offer.rung !== undefined) expect(offer.rung).toMatch(/^1 of [2-9]$/)
+      }
+    })
+
+    it('leaves a calling and a one-rung trade with no rung to quote', () => {
+      const player = fixturePlayer({ hasDegree: false })
+      const state = fixtureState({ players: [player] })
+      const space = fixtureSpace({ effect: { type: 'chooseCareer', pool: 'basic' } })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      const [firstId, secondId] = next.pendingDecision!.offeredCareerIds!
+      const offers = offerRows(next.pendingDecision!.options[0]!.table)
+      for (const [offer, id] of [
+        [offers[0]!, firstId],
+        [offers[1]!, secondId],
+      ] as const) {
+        const career = BASIC_CAREERS.find((c) => c.id === id)!
+        const standsOnALadder = !career.isCalling && career.promotesTo !== undefined
+        expect(offer.rung !== undefined).toBe(standsOnALadder)
+      }
     })
 
     it("puts each offer's own portrait on its row, so a fair shows the jobs and not just their names", () => {
@@ -264,8 +313,7 @@ describe('applyEffect', () => {
       const [firstId, secondId] = next.pendingDecision!.offeredCareerIds!
       const firstCareer = BASIC_CAREERS.find((c) => c.id === firstId)!
       const secondCareer = BASIC_CAREERS.find((c) => c.id === secondId)!
-      expect(option.table![0]!.icon).toBe(firstCareer.icon)
-      expect(option.table![1]!.icon).toBe(secondCareer.icon)
+      expect(offerRows(option.table).map((row) => row.icon)).toEqual([firstCareer.icon, secondCareer.icon])
     })
 
     it('offers from the graduate pool when the player has a degree', () => {
@@ -385,7 +433,7 @@ describe('applyEffect', () => {
         effect: { type: 'tuition', reason: 'Fees', ...(bill ? { bill } : {}) },
       })
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
-      return next.pendingDecision!.options[0]!.table!.map((row) => row.amount)
+      return amountRows(next.pendingDecision!.options[0]!.table).map((row) => row.amount)
     }
 
     it('prints the undergraduate bands when the tile does not say otherwise', () => {
@@ -591,7 +639,7 @@ describe('applyEffect', () => {
       expect(table).toHaveLength(USA_ECONOMY.tuition.outcomes.length)
       for (const band of USA_ECONOMY.tuition.outcomes) {
         const amount = band.cost === 0 ? 'Full ride' : formatMoney(band.cost)
-        expect(table.some((row) => row.amount === amount)).toBe(true)
+        expect(amountRows(table).some((row) => row.amount === amount)).toBe(true)
       }
     })
   })
@@ -977,6 +1025,63 @@ describe('applyEffect', () => {
         INSURANCE_PREMIUM.life.toLocaleString('en-US'),
       )
     })
+
+    /*
+     * The premium was always on the card and the odds never were, which is
+     * what made cover read as a shop where everything is free. A cover policy
+     * has to name the bill it is against, read off *this* board — the bills
+     * are difficulty-scaled, the editions differ, and the office comes round
+     * twice, so nothing about it can be written down in advance.
+     */
+    describe('what the card says you are buying', () => {
+      /** An office at `a`, with one fire bill of `amount` still ahead of it. */
+      const officeWithFireAhead = (amount: number) =>
+        fixtureBoard([
+          fixtureSpace({ id: 'a', effect: { type: 'buyInsurance', kinds: ['home'] }, next: ['fire'] }),
+          fixtureSpace({
+            id: 'fire',
+            effect: { type: 'payMoney', amount, reason: 'Fire damage', hazard: 'fire' },
+            next: ['end'],
+          }),
+          fixtureSpace({ id: 'end', kind: 'retirement', effect: { type: 'retire' }, next: [] }),
+        ])
+
+      const cardFor = (board: Board, spaceId: string): string => {
+        const player = fixturePlayer({ insurance: [], spaceId })
+        const state = fixtureState({ board, players: [player] })
+        const { state: next } = applyEffect(state, board.spaces[spaceId]!, { random: createFakeRandom() })
+        return next.pendingDecision!.options[0]!.description
+      }
+
+      it('names the bill still ahead, at the figure this board actually charges', () => {
+        expect(cardFor(officeWithFireAhead(24_000), 'a')).toContain('$24,000')
+      })
+
+      it('admits when the road ahead has nothing left to claim on', () => {
+        // The second office is exactly this case for auto cover, which is why
+        // it no longer stocks any — but a card that cannot say so is a card
+        // that will lie the next time a tile moves.
+        const board = fixtureBoard([
+          fixtureSpace({ id: 'a', effect: { type: 'buyInsurance', kinds: ['home'] }, next: ['end'] }),
+          fixtureSpace({ id: 'end', kind: 'retirement', effect: { type: 'retire' }, next: [] }),
+        ])
+        expect(cardFor(board, 'a')).toContain('already driven')
+      })
+
+      it('publishes the life policy’s six rungs, and no ladder for a cover policy', () => {
+        const player = fixturePlayer({ insurance: [] })
+        const state = fixtureState({ players: [player] })
+        const space = fixtureSpace({ effect: { type: 'buyInsurance', kinds: ['home', 'life'] } })
+        const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+
+        const [home, life] = next.pendingDecision!.options
+        expect(home!.table).toBeUndefined()
+        expect(life!.table).toHaveLength(SPIN_FACES)
+        // Bottom rung first, top rung last — the ladder a die is read off.
+        expect(life!.table![0]).toMatchObject({ range: '1' })
+        expect(life!.table![SPIN_FACES - 1]).toMatchObject({ range: String(SPIN_FACES) })
+      })
+    })
   })
 
   // -------------------------------------------------------------------------
@@ -1114,6 +1219,18 @@ describe('applyEffect', () => {
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
       expect(next.players[0]!.stocks).toEqual([])
       expect(next.players[0]!.money).toBe(10_000)
+    })
+
+    /* "$120 a share" is a price and a unit; only the price is the figure. */
+    it('prices a share as a figure and a unit rather than one string', () => {
+      const state = fixtureState({ players: [fixturePlayer()] })
+      const space = fixtureSpace({ effect: { type: 'buyStock' } })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      for (const option of next.pendingDecision!.options.slice(0, 3)) {
+        const stock = STOCKS.find((entry) => entry.id === option.id)!
+        expect(option.detail).toBe(formatMoney(stock.price))
+        expect(option.detailUnit).toBe('share')
+      }
     })
   })
 
@@ -1439,6 +1556,24 @@ describe('a career decision shows what the player earns today', () => {
 
     expect(next.pendingDecision!.prompt).toContain(career.title)
     expect(next.pendingDecision!.prompt).toContain('/payday')
+  })
+
+  /*
+   * The figure and what it is quoted per, as two fields. The card sets the
+   * number large and tabular and the unit quiet beneath it, and it can only
+   * do that if it is told which is which rather than hunting for a slash.
+   */
+  it("quotes the staying option's wage as a figure and a period, not one string", () => {
+    const career = BASIC_CAREERS[0]!
+    const player = fixturePlayer({ career })
+    const state = fixtureState({ players: [player] })
+    const space = fixtureSpace({ effect: { type: 'careerChange', reason: 'Headhunted!' } })
+
+    const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+
+    const stay = next.pendingDecision!.options.find((option) => option.id === CAREER_STAY_OPTION_ID)!
+    expect(stay.detail).toBe(formatMoney(career.salary))
+    expect(stay.detailUnit).toBe('payday')
   })
 
   it('quotes the casual shifts a player between jobs would be giving up', () => {

@@ -525,27 +525,83 @@ export interface Player {
 export type DecisionKind = 'branch' | 'house' | 'stock' | 'insurance' | 'bank' | 'retire' | 'valueSpin'
 
 /**
- * One band of a die's outcome table — "1-3" and what that face deals.
- *
- * `icon` names the subject a face is dealing, when it deals a *thing* rather
- * than a sum: a career fair's rows each carry the trade's own portrait, so a
- * player weighing "1-3: Second Shooter" against "4-6: Salon Apprentice" sees
- * the two jobs and not just their names in prose. Absent on a row that only
- * moves money — a tuition band has an amount, not a face.
+ * One band of a die that simply pays out — "1-2 → $90,000", "6 → Full ride".
+ * A tuition bill and the closing settlement's ladder are both nothing but
+ * these: a range, and the one sum it is worth.
  */
-export interface RollTableRow {
+export interface RollAmountRow {
   readonly range: string
   readonly amount: string
-  readonly icon?: IconName
 }
+
+/**
+ * One band of a die that deals a *job* rather than a sum — a career fair's
+ * half, or a career-change tile's.
+ *
+ * Three separate facts, kept separate. They used to travel as one sentence,
+ * `"Radio Runner ($37,000/payday, rung 1 of 3)"`, which the table then had to
+ * pattern-match back apart to set the name bold and the terms quiet — a
+ * component recovering by regex what this layer already knew. Worse, a player
+ * comparing two offers had to read two sentences word by word to find the two
+ * numbers they were actually comparing. Told as fields, the same table can
+ * put the money under one heading and the height under another, and the
+ * comparison is a glance down a column.
+ */
+export interface RollOfferRow {
+  readonly range: string
+  /** The trade's name, and nothing else — no money folded into it. */
+  readonly career: string
+  /**
+   * The trade's own portrait. Not optional the way it was when this shared a
+   * type with money bands: a face that deals a job always has one, and a fair
+   * whose rows are prose alone is a fair with no booths.
+   */
+  readonly icon: IconName
+  /** One period's pay, formatted for the edition — the figure alone, no unit. */
+  readonly pay: string
+  /** The period `pay` is quoted by: `'payday'`, or an edition's own unit. */
+  readonly period: string
+  /**
+   * Where the offer sits on its ladder, as `"2 of 4"` — the whole reason a
+   * career spin is interesting rather than a coin flip in the dark, since two
+   * jobs on the same money are not the same job when one of them has a salon
+   * above it. Absent for a calling, which has nothing above it by design, and
+   * for a one-rung trade, which is its own ceiling.
+   */
+  readonly rung?: string
+}
+
+/**
+ * One band of a die's outcome table — "1-3" and what that face deals, either
+ * as a sum or as a job. A table's rows are all of one kind; the two never mix
+ * within one die, and a money band is deliberately left as the plain two
+ * columns it has always been rather than given empty career columns to fill.
+ */
+export type RollTableRow = RollAmountRow | RollOfferRow
 
 export interface DecisionOption {
   readonly id: string
   readonly label: string
   readonly description: string
   readonly icon: IconName
-  /** Optional right-aligned detail, e.g. a price or salary. */
+  /**
+   * The right-aligned figure, e.g. a price or a salary — the number alone,
+   * with nothing appended to it. `detailUnit` carries what it is quoted per.
+   */
   readonly detail?: string
+  /**
+   * What `detail` is one of: `'payday'`, `'share'`. Printed under the figure
+   * as "per payday", so the number keeps the large tabular setting and the
+   * unit stays quiet beneath it.
+   *
+   * Its own field because it is its own fact. It used to be glued onto the
+   * figure — `"$40,000/payday"` — and torn back off in the card by looking
+   * for the slash, which meant a unit written any other way (`"$120 a
+   * share"`) slipped through the split and was set in the figure's own
+   * 26-pixel tabular numerals, as if "a share" were part of the price.
+   * Absent for a flat sum: a house price, a premium, a loan.
+   */
+  readonly detailUnit?: string
   /**
    * The die's own outcome table, when a roll decides more than one thing —
    * "1-3: Warehouse Picker, $32,000" and "4-6: Line Cook, $28,000" as rows a
@@ -933,8 +989,15 @@ export interface GameState {
  * player's whole portfolio is truer than four unrelated ones. The two are
  * kept apart from each other so a house and a portfolio still rise and fall
  * independently, exactly as they always did.
+ *
+ * `policy` is the life policy maturing. It is here for the same reason the
+ * other two are: it used to pay a flat sum for having reached the end of the
+ * board, which made it a guaranteed doubling rather than cover against
+ * anything, and the fix was to let a die decide what the fund actually grew
+ * into. A player who bought one therefore watches it land like everything else
+ * they are owed.
  */
-export type ScoreRollKind = 'house' | 'market'
+export type ScoreRollKind = 'house' | 'market' | 'policy'
 
 /**
  * One die of the closing settlement — see `GamePhase['scoring']`.

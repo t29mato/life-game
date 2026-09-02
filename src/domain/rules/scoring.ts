@@ -32,6 +32,22 @@ export type ResaleRoll = (house: House, player: Player) => Money
 export type StockRoll = (stock: Stock, player: Player) => Money
 
 /**
+ * What a player's life policy matured into, on the caller's own die.
+ *
+ * Optional everywhere, and for the same reason `rollChildSpin` is: the domain
+ * owns no randomness, and a caller with no dice to hand — a panel, a test —
+ * is answered with the midpoint of the edition's maturity range rather than
+ * with a number nobody threw. See `maturityMidpoint`.
+ */
+export type PolicyRoll = (player: Player) => Money
+
+/** The maturity a caller with no die gets: the middle of the edition's range. */
+export function maturityMidpoint(edition: Edition): Money {
+  const [low, high] = edition.economy.lifeInsuranceMaturity
+  return (low + high) / 2
+}
+
+/**
  * Cashes out every share at whatever the caller's roll says it is worth today.
  *
  * A holding whose stock has vanished from the catalogue is worth nothing rather
@@ -89,12 +105,15 @@ function scorePlayer(
   difficulty: Difficulty | undefined,
   edition: Edition,
   rollChildSpin?: () => SpinValue,
+  rollPolicy?: PolicyRoll,
 ): Omit<PlayerResult, 'rank'> {
   const cash = player.money
   const lifeTileValue = player.lifeTiles.reduce((sum, tile) => sum + tile.value, 0)
   const houseValue = player.house ? rollResale(player.house, player) : 0
   const stockValue = cashOutStocks(player, rollStock, edition)
-  const insurancePayout = player.insurance.includes('life') ? edition.economy.lifeInsurancePayout : 0
+  const insurancePayout = player.insurance.includes('life')
+    ? (rollPolicy ?? (() => maturityMidpoint(edition)))(player)
+    : 0
   const { childrenBonus, childStars } = scoreChildren(player, rollChildSpin, edition)
   const retirementBonus = retirementBonusFor(player.retirementRank, edition)
   const loanPenalty = -(player.loans * loanRepaymentFor(difficulty, edition))
@@ -135,6 +154,10 @@ function scorePlayer(
  * it is last and optional for the same reason the others are injected at all:
  * the domain owns no randomness. A caller with no dice scores every child at
  * what one is worth to that player on an average life.
+ *
+ * `rollPolicy` is the same bargain for the life policy's maturity, and it is
+ * last for the same reason: it arrived after everything above it, and a caller
+ * with no die is answered at the middle of the range rather than at the top.
  */
 export function computeResults(
   players: readonly Player[],
@@ -143,13 +166,14 @@ export function computeResults(
   difficulty?: Difficulty,
   edition: Edition = EDITION_USA,
   rollChildSpin?: () => SpinValue,
+  rollPolicy?: PolicyRoll,
 ): GameResults {
   if (players.length === 0) {
     throw new Error('computeResults requires at least one player')
   }
 
   const scored = players.map((player) =>
-    scorePlayer(player, rollResale, rollStock, difficulty, edition, rollChildSpin),
+    scorePlayer(player, rollResale, rollStock, difficulty, edition, rollChildSpin, rollPolicy),
   )
   const sorted = [...scored].sort((a, b) => b.total - a.total)
 

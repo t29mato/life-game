@@ -138,8 +138,8 @@ export const JAPAN_FR: EditionTranslation = {
       description: 'Un collègue ouvre l’appli de trading sous le bureau et ne jure que par une valeur. La Bourse ferme à quinze heures.',
     },
     'jp-main-fender-bender': {
-      title: 'Petit accrochage',
-      description: 'Un léger contact sur le parking du supermarché. L’autre conducteur s’incline à quarante-cinq degrés précisément ; le devis arrive par mail dans l’après-midi.',
+      title: 'Accident de voiture',
+      description: 'Un passage mouillé et une voiture qui ne s’arrête pas. L’autre conducteur s’incline à quarante-cinq degrés précisément ; le carrossier s’excuse beaucoup moins pour son devis.',
       reason: 'Facture de carrosserie',
     },
     'jp-main-pileup': {

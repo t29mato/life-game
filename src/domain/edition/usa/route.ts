@@ -426,14 +426,14 @@ const MAIN_STREET_EARLY: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:stock-tip',
   },
   {
-    id: 'main-fender-bender', kind: 'normal', title: 'Minor Car Crash',
-    description: 'Someone taps your bumper in the parking lot and the quote arrives by email that afternoon.',
-    effect: { type: 'payMoney', amount: 2_400, reason: 'Bodyshop bill', hazard: 'accident' },
+    id: 'main-fender-bender', kind: 'normal', title: 'Car Crash',
+    description: 'A wet junction, a car that does not stop, and a wing, a door and a headlight to put back.',
+    effect: { type: 'payMoney', amount: 9_000, reason: 'Bodyshop bill', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender',
   },
   setback('veryHard', 'main-pileup', 'Highway Pileup',
     'Fog, brake lights, and four cars crushed together on the highway on-ramp. Everyone walks away; the bills do not.',
-    { type: 'payMoney', amount: 14_000, reason: 'Pileup repairs', hazard: 'accident' },
+    { type: 'payMoney', amount: 16_000, reason: 'Pileup repairs', hazard: 'accident' },
     'slate', 'space:fender-bender'),
   setback('hard', 'main-dentist', 'Dentist Bill',
     'One filling, one lecture about flossing, and one invoice that stings rather more than the drill did.',
@@ -844,7 +844,10 @@ const MIDTOWN: readonly SpaceContent[] = [
   {
     id: 'midtown-insurance', kind: 'normal', title: 'Insurance Office',
     description: 'Before anyone hands you a set of house keys, someone would like a word about cover.',
-    effect: { type: 'buyInsurance', kinds: ['home', 'auto', 'life'] },
+    // No auto cover at this window: both crash tiles are behind a pawn
+    // standing here, so a policy sold at this desk could never pay out.
+    // The broker sells what this stretch of road can actually bill for.
+    effect: { type: 'buyInsurance', kinds: ['home', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office',
   },
   // The only payday in this stretch too — see main-6. Harshening it zeroed
@@ -1028,7 +1031,7 @@ const SUNSET_STRIP: readonly SpaceContent[] = [
   {
     id: 'sunset-fire', kind: 'normal', title: 'House Fire',
     description: 'A pan, a tea towel, and a kitchen that needs rebuilding from the tiles up.',
-    effect: { type: 'payMoney', amount: 12_000, reason: 'Fire damage', hazard: 'fire' },
+    effect: { type: 'payMoney', amount: 24_000, reason: 'Fire damage', hazard: 'fire' },
     tone: 'slate', icon: 'space:house-fire',
   },
   setback('hard', 'sunset-care', 'Care Costs',

@@ -143,7 +143,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'bo-main-intersection': {
       title: 'Le carrefour',
-      description: 'Un minibus et votre pare-chocs tiennent une brève négociation à un carrefour sans feux, et le devis du carrossier arrive plus vite que la police ne le ferait jamais.',
+      description: 'Un minibus et votre flanc droit tiennent une négociation courte et bruyante à un carrefour sans feux, et le devis du carrossier arrive plus vite que la police ne le ferait jamais.',
       reason: 'Facture de carrosserie',
     },
     'bo-main-motorway-pileup': {

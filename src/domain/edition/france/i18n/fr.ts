@@ -140,8 +140,8 @@ export const FRANCE_FR: EditionTranslation = {
       description: 'Un collègue jure au déjeuner qu’une valeur est une affaire sûre. La Bourse ferme à dix-sept heures trente.',
     },
     'fr-main-fender-bender': {
-      title: 'Petit accrochage',
-      description: 'Vous remplissez le constat amiable sur le capot avec l’autre conducteur, et convenez que c’était de votre faute.',
+      title: 'Accident de voiture',
+      description: 'Vous remplissez le constat amiable avec l’autre conducteur sur le capot d’une voiture qui n’a plus tout à fait sa forme, et convenez que c’était de votre faute.',
       reason: 'Facture de carrosserie',
     },
     'fr-main-pileup': {

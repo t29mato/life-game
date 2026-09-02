@@ -10,7 +10,17 @@ import {
   createSeededRandom,
 } from '../application/testing/fakes'
 import { SPIN_FACES } from '../domain/model/constants'
-import type { Board, Difficulty, GameState, PlayerColor, SpaceId, SpinValue } from '../domain/model/types'
+import type {
+  Board,
+  Difficulty,
+  GameState,
+  Hazard,
+  InsuranceKind,
+  PlayerColor,
+  SpaceId,
+  SpinValue,
+} from '../domain/model/types'
+import { EDITION_USA } from '../domain/edition/usa'
 import { estimateNetWorth } from '../domain/rules/scoring'
 import { DIFFICULTIES } from '../domain/rules/difficulty'
 import { expectedTradeYearValue } from '../domain/rules/tradeYear'
@@ -108,8 +118,14 @@ interface PlayOptions {
    * held still, or the two choices are stirred together.
    */
   readonly lanesBySeat?: readonly (readonly string[])[]
-  /** Buys the first policy offered, so hazard cover can be measured in play. */
-  readonly insureAlways?: boolean
+  /**
+   * What every seat does at the insurance office: buy one named policy, or
+   * decline outright. Both halves matter — the same seed played once buying
+   * and once declining is the *same life* with one variable changed, because
+   * an insurance decision consumes no randomness, and the difference in final
+   * totals is therefore what the policy is worth rather than what the seed is.
+   */
+  readonly insurance?: InsuranceKind | 'decline'
   /** Every space landed on, in order, across every seat. Written, not read. */
   readonly landings?: SpaceId[]
 }
@@ -195,8 +211,10 @@ const playGame = (
         const offered = state.pendingDecision?.options ?? []
         expect(offered.length).toBeGreaterThan(0)
         const policy =
-          options.insureAlways && state.pendingDecision?.kind === 'insurance'
-            ? offered.find((option) => option.id.startsWith('insurance-'))
+          options.insurance && state.pendingDecision?.kind === 'insurance'
+            ? offered.find((option) =>
+                option.id === (options.insurance === 'decline' ? 'decline-insurance' : `insurance-${options.insurance}`),
+              )
             : undefined
         store.dispatch({
           type: 'choose',
@@ -660,13 +678,23 @@ describe('every difficulty still terminates and never strands anyone', () => {
     // If its lane and purchase scoring stopped working under scaled losses,
     // this is where it would show: two CPU seats against two that always take
     // whatever is offered first.
+    //
+    // All 60 seeds, not the first 24 this ran on for most of its life. Two
+    // seats in four win half the games by chance, so the quantity being
+    // measured is a rate near 0.55 (hard) and 0.67 (Very Hard) — and 24 games
+    // carries a standard error of about 0.1 against it, wide enough that the
+    // sample decides the result as often as the CPU does. It failed exactly
+    // that way when insurance was repriced: the true Very Hard rate moved from
+    // 0.700 to 0.667, a third of a standard error, and the 24-seed draw
+    // reported 15 wins before and 12 after. 60 seeds is what makes the
+    // threshold below mean what it says.
     let cpuWins = 0
-    for (const seed of SEEDS.slice(0, 24)) {
+    for (const seed of SEEDS) {
       const { finalState } = playGame(seed, 4, 0, { cpuSeats: 2, difficulty })
       const winner = finalState.players.find((p) => p.id === finalState.results!.winnerId)
       if (winner?.isCpu) cpuWins += 1
     }
-    expect(cpuWins).toBeGreaterThan(24 * 0.5)
+    expect(cpuWins).toBeGreaterThan(SEEDS.length * 0.5)
   })
 })
 
@@ -939,15 +967,28 @@ describe('the mid-career fork is a decision, not decoration', () => {
 })
 
 /**
- * Insurance, and whether anybody ever sees it work.
+ * Insurance, and whether buying it is ever actually a decision.
  *
- * A home policy costs $25,000 and waives every `fire`-tagged bill for the rest
- * of the game. This is the measurement that says what that is worth, counted
- * by landing rather than by log line, because it is a fact about the board and
- * not about whether these particular seeds happened to buy cover.
+ * It was not. A home policy cost $25,000 and waived a fire that billed
+ * $12,000; an auto policy cost $20,000 and waived a crash that billed $2,400.
+ * Both were unwinnable — even the player who claimed came out behind — and the
+ * life policy was the mirror image, a flat $100,000 paid at retirement for a
+ * $50,000 premium with no condition on it at all, which everybody reached.
+ * Measured, the covers left the buyer worse off in 94.9% of games and the life
+ * policy left them better off in 96.7%. Three options, none of them a choice.
+ *
+ * What this file measures now is the property that fixes that, and it is a
+ * paired one: the same seed played twice, once buying a named policy and once
+ * declining, differing in nothing else at all. An insurance decision consumes
+ * no randomness, so the two runs are the same life to the tile, and the gap
+ * between their final totals is what the policy was worth — the premium, the
+ * claims it did or did not waive, and the borrowing paying for it forced, all
+ * folded in together the way a player at the table experiences them.
  */
-describe('insurance pays off, rarely but really', () => {
-  const hazardLandings = (difficulty?: Difficulty): number => {
+describe('every policy on sale is a bet, not a verdict', () => {
+  const MANY_SEEDS = Array.from({ length: 120 }, (_, i) => i + 1)
+
+  const hazardLandings = (hazard: Hazard | null, difficulty?: Difficulty): number => {
     const landings: SpaceId[] = []
     const seeds = MANY_SEEDS
     for (const seed of seeds) {
@@ -956,36 +997,87 @@ describe('insurance pays off, rarely but really', () => {
     const board = playGame(1, 2, 0, { ...(difficulty ? { difficulty } : {}) }).finalState.board
     const covered = landings.filter((id) => {
       const effect = board.spaces[id]?.effect
-      return effect?.type === 'payMoney' && effect.hazard !== undefined
+      if (effect?.type !== 'payMoney' || effect.hazard === undefined) return false
+      return hazard === null || effect.hazard === hazard
     })
     // Two seats per game, so this is per player per game.
     return covered.length / (seeds.length * 2)
   }
 
-  const MANY_SEEDS = Array.from({ length: 120 }, (_, i) => i + 1)
-
-  it('bounces a bill off a policy often enough to be worth the premium', () => {
-    const rate = hazardLandings()
-    // Measured at 0.49, up from the 0.30 this test held on the ten-wedge
-    // wheel: a bill on a `payMoney` tile only ever comes off a *landing*, and
-    // a die that averages 3.5 stops a pawn roughly half as often per tile
-    // crossed as a wheel averaging 5.5 did. The board still keeps only the
-    // two hazard bills the milestones carry — the change is purely how often
-    // a pawn comes to rest on one. Pinned rather than dropped so the next
-    // person to weigh a $25,000 premium against it is arguing with a
-    // measurement.
-    expect(rate).toBeGreaterThan(0.3)
-    expect(rate).toBeLessThan(0.7)
+  it('lands a pawn on a hazard tile about as often as the premiums assume', () => {
+    // The two figures the USA premiums are priced against, and the reason
+    // they differ: the crash sits on the trunk everybody drives, while the
+    // fire is late enough that plenty of players have retired before they
+    // reach it. Pinned rather than dropped so the next person to weigh
+    // $4,000 against $24,000 is arguing with a measurement.
+    expect(hazardLandings('accident')).toBeGreaterThan(0.2)
+    expect(hazardLandings('accident')).toBeLessThan(0.4)
+    expect(hazardLandings('fire')).toBeGreaterThan(0.05)
+    expect(hazardLandings('fire')).toBeLessThan(0.2)
   })
 
   it('pays off at least as often on the harder board', () => {
-    expect(hazardLandings('hard')).toBeGreaterThan(0.3)
+    expect(hazardLandings(null, 'hard')).toBeGreaterThan(0.3)
+  })
+
+  /**
+   * The paired run: what one policy is worth, seat by seat, against the same
+   * seat's own life without it. Only seats that were actually offered the
+   * office count — roughly half the table ever lands on one.
+   */
+  const policyDeltas = (kind: InsuranceKind): readonly number[] => {
+    const deltas: number[] = []
+    for (const seed of MANY_SEEDS) {
+      const bought = playGame(seed, 2, 0, { insurance: kind }).finalState
+      const declined = playGame(seed, 2, 0, { insurance: 'decline' }).finalState
+      for (const player of bought.players) {
+        if (!player.insurance.includes(kind)) continue
+        const a = bought.results?.standings.find((s) => s.playerId === player.id)?.total ?? 0
+        const b = declined.results?.standings.find((s) => s.playerId === player.id)?.total ?? 0
+        deltas.push(a - b)
+      }
+    }
+    // Enough buyers for a mean to mean anything. The bar is 50 rather than
+    // 100 because the auto policy is stocked at one window only — the second
+    // office has both crash tiles behind it — so it collects roughly half the
+    // buyers the other two do off the same seeds.
+    expect(deltas.length).toBeGreaterThan(50)
+    return deltas
+  }
+
+  const INSURANCE_KINDS: readonly InsuranceKind[] = ['home', 'auto', 'life']
+
+  it.each(INSURANCE_KINDS)('leaves the %s policy a real gamble, both ways', (kind) => {
+    const deltas = policyDeltas(kind)
+    const better = deltas.filter((d) => d > 0).length / deltas.length
+    const worse = deltas.filter((d) => d < 0).length / deltas.length
+
+    // Neither outcome may be a lock. Measured on the standard board: the home
+    // policy leaves a buyer better off 9.4% of the time and worse off 84.4%,
+    // the auto policy 20.4% and 73.0%, and the life policy 56.1% and 43.9%.
+    // The old numbers failed this in both directions at once — 2.8% better for
+    // home, 96.7% better for life.
+    expect(better).toBeGreaterThan(0.05)
+    expect(worse).toBeGreaterThan(0.2)
+  })
+
+  it.each(INSURANCE_KINDS)('prices the %s policy within a premium of fair', (kind) => {
+    const deltas = policyDeltas(kind)
+    const mean = deltas.reduce((sum, d) => sum + d, 0) / deltas.length
+    const premium = EDITION_USA.economy.insurancePremium[kind]
+
+    // Fair means the expected gap between buying and declining is small
+    // beside the premium itself: measured at -$1,933 (home, on $4,000),
+    // -$1,671 (auto, on $3,000) and +$1,934 (life, on $20,000). A premium's
+    // worth of slack either way is the band, which the old prices missed by a
+    // factor of seven on the covers and by more than that on the life policy.
+    expect(Math.abs(mean)).toBeLessThan(premium)
   })
 
   /*
    * The board has room for the milestones and very little else, so it keeps
    * the two hazards it always had — but it still has to carry one of each
-   * kind, or one of the two policies on sale is a product that cannot pay out.
+   * kind, or one of the two covers on sale is a product that cannot pay out.
    */
   it('sells nothing that cannot pay out', () => {
     const { finalState } = playGame(1, 2, 0, {})

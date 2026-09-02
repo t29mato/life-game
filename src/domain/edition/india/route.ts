@@ -184,14 +184,14 @@ const OFFICE_ROAD_EARLY: readonly SpaceContent[] = [
     tone: 'slate', icon: 'space:stock-tip',
   },
   {
-    id: 'in-main-roundabout', kind: 'normal', title: 'The Roundabout Scrape',
-    description: 'A gentle merge at the roundabout, a bus that refuses to give way, and both of you lean on the horn. The bodyshop\'s estimate arrives on letterhead.',
-    effect: { type: 'payMoney', amount: 240_000, reason: 'Bodyshop bill', hazard: 'accident' },
+    id: 'in-main-roundabout', kind: 'normal', title: 'The Roundabout',
+    description: 'A merge at the roundabout, a bus that refuses to give way, and one of you gives way rather harder than intended. The bodyshop\'s estimate arrives on letterhead.',
+    effect: { type: 'payMoney', amount: 900_000, reason: 'Bodyshop bill', hazard: 'accident' },
     tone: 'slate', icon: 'space:fender-bender',
   },
   setback('veryHard', 'in-main-pileup', 'Expressway Pileup',
     'Winter fog on the expressway, brake lights, and four cars crushed together at the toll plaza. Everyone walks away; the invoices do not.',
-    { type: 'payMoney', amount: 1_400_000, reason: 'Pileup repairs', hazard: 'accident' },
+    { type: 'payMoney', amount: 1_600_000, reason: 'Pileup repairs', hazard: 'accident' },
     'slate', 'space:fender-bender'),
   setback('hard', 'in-main-root-canal', 'Root Canal',
     'One filling, one crown, one lecture about sweets, and an invoice that stings rather more than the drill did.',
@@ -401,7 +401,10 @@ const MIDTOWN: readonly SpaceContent[] = [
   {
     id: 'in-midtown-insurance', kind: 'normal', title: 'Insurance Office',
     description: 'Before anyone hands you a set of house keys, someone would like a word about cover — and unrolls a flood map of your neighbourhood that is thorough, recent, and quietly terrifying.',
-    effect: { type: 'buyInsurance', kinds: ['home', 'auto', 'life'] },
+    // No auto cover at this window: both crash tiles are behind a pawn
+    // standing here, so a policy sold at this desk could never pay out.
+    // The broker sells what this stretch of road can actually bill for.
+    effect: { type: 'buyInsurance', kinds: ['home', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office',
   },
   // The only payday in this stretch too — see in-main-payday-1. Harshening it
@@ -547,7 +550,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   {
     id: 'in-sunset-flood', kind: 'normal', title: 'The Hundred-Year Rain',
     description: 'The hundred-year rain arrives for the third time this decade, spends one night in your ground floor, and leaves without helping to clean up.',
-    effect: { type: 'payMoney', amount: 1_200_000, reason: 'Flood damage', hazard: 'fire' },
+    effect: { type: 'payMoney', amount: 2_400_000, reason: 'Flood damage', hazard: 'fire' },
     tone: 'slate', icon: 'space:house-fire',
   },
   setback('hard', 'in-sunset-parents', 'Caring for Your Parents',

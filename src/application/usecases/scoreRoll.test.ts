@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GameState, SpinValue } from '@domain/model/types'
-import { HOUSES, STOCKS } from '@domain/edition/usa'
+import { HOUSES, STOCKS, USA_ECONOMY } from '@domain/edition/usa'
 import { allEditions } from '@domain/edition/registry'
 import { settlementValue } from '@domain/rules/settlement'
 import { fixturePlayer, fixtureState } from '../testing/fixtures'
@@ -132,6 +132,37 @@ describe('the settlement queue', () => {
     expect(buildScoreRolls(fixtureState({ players }))).toEqual([])
   })
 
+  /*
+   * The life policy owes a die like everything else. It used to pay a flat
+   * sum for having reached the end of the board, which is not insurance
+   * against anything — everybody reaches the end — so what it matured into
+   * became a die the player watches, on the same ladder a house sells on.
+   */
+  it('owes a die for a life policy, and none for cover that only waived bills', () => {
+    const covered = [fixturePlayer({ id: 'p1', house: null, stocks: [], insurance: ['home', 'auto'] })]
+    expect(buildScoreRolls(fixtureState({ players: covered }))).toEqual([])
+
+    const endowed = [fixturePlayer({ id: 'p1', house: null, stocks: [], insurance: ['life'] })]
+    expect(buildScoreRolls(fixtureState({ players: endowed }))).toEqual([
+      { playerId: 'p1', kind: 'policy', face: null },
+    ])
+  })
+
+  it('matures a policy on its own ladder, bottom face to top', () => {
+    const opened = retiredTable({ house: null, stocks: [], insurance: ['life'] })
+    const [low, high] = USA_ECONOMY.lifeInsuranceMaturity
+    const at = (face: SpinValue): number =>
+      scoreRoll(opened, { random: createFakeRandom({ spins: [face] }) }).results!.standings.find(
+        (s) => s.playerId === 'p1',
+      )!.insurancePayout
+    expect(at(1)).toBe(low)
+    expect(at(6)).toBe(high)
+    // Two faces below the premium and three above it is the whole reason this
+    // is a decision rather than free money — see `lifeInsuranceMaturity`.
+    expect(at(1)).toBeLessThan(USA_ECONOMY.insurancePremium.life)
+    expect(at(6)).toBeGreaterThan(USA_ECONOMY.insurancePremium.life)
+  })
+
   it('reports the next die owed, and nothing once they have all landed', () => {
     const opened = retiredTable({ house: HOUSE })
     expect(nextScoreRoll(opened.scoreRolls)).toEqual({ playerId: 'p1', kind: 'house', face: null })
@@ -185,6 +216,13 @@ describe('the card around a settlement die', () => {
     const card = describeScoreRoll(opened, opened.scoreRolls[0]!)!
     expect(card.stakes).toContain('3 shares')
     expect(card.stakes).toContain('2 companies')
+  })
+
+  it('says what a maturing policy is riding on, in the seat’s own name', () => {
+    const opened = retiredTable({ house: null, stocks: [], insurance: ['life'] })
+    const card = describeScoreRoll(opened, opened.scoreRolls[0]!)!
+    expect(card.prompt).toContain('life policy')
+    expect(card.table).toHaveLength(6)
   })
 
   it('says nothing for a roll whose player is gone', () => {
