@@ -428,49 +428,108 @@ describe('restPoint', () => {
 })
 
 describe('restShot', () => {
+  // A board with room on every side of the tile — below-middle on purpose,
+  // since the lifted aim reaches a frame's half-height *plus* the lift above
+  // the tile — so the pan is never clamped and the shot is the pure lifted
+  // framing.
+  const roomy = board([space('mid', 15, 20, ['on']), space('on', 16, 20)], 30, 30)
+  const roomyProjection = createProjection(roomy)
+
   it('frames the rest point at REST_ZOOM, lifted so the car clears the die pinned to screen centre', () => {
-    const at = model.spaces['s4'] as Space
-    const point = restPoint(model, projection, at)
+    const at = roomy.spaces['mid'] as Space
+    const point = restPoint(roomy, roomyProjection, at)
     // At the default aspect nothing is cropped, so the visible height is
     // exactly the height the shot's own rect covers.
     const lift =
-      shotRect(projection, { cx: point.x, cy: point.y, zoom: REST_ZOOM }).height * REST_DIE_CLEARANCE
-    expect(restShot(model, projection, at)).toEqual(
-      focusShot(projection, { x: point.x, y: point.y - lift }, REST_ZOOM),
+      shotRect(roomyProjection, { cx: point.x, cy: point.y, zoom: REST_ZOOM }).height *
+      REST_DIE_CLEARANCE
+    expect(restShot(roomy, roomyProjection, at)).toEqual(
+      focusShot(roomyProjection, { x: point.x, y: point.y - lift }, REST_ZOOM),
     )
   })
 
   it('seats the car below the frame centre, not underneath the die', () => {
-    // A middle-row space, far enough from the board's top edge that the
-    // clamp cannot silently take the whole clearance back.
-    const at = model.spaces['s4'] as Space
-    const shot = restShot(model, projection, at)
-    const unlifted = focusShot(projection, restPoint(model, projection, at), REST_ZOOM)
+    const at = roomy.spaces['mid'] as Space
+    const shot = restShot(roomy, roomyProjection, at)
+    const unlifted = focusShot(roomyProjection, restPoint(roomy, roomyProjection, at), REST_ZOOM)
     expect(shot.cy).toBeLessThan(unlifted.cy)
   })
 
   it('lifts by the same slice of *screen*, not of board, when a wide container crops vertically', () => {
-    const at = model.spaces['s4'] as Space
-    const point = restPoint(model, projection, at)
-    const viewAspect = projection.viewWidth / projection.viewHeight
+    const at = roomy.spaces['mid'] as Space
+    const point = restPoint(roomy, roomyProjection, at)
+    const viewAspect = roomyProjection.viewWidth / roomyProjection.viewHeight
     const wide = viewAspect * 2
     // `slice` fills a doubled aspect's width and crops half the shot's rect
     // off the top and bottom — the height actually on screen is the rect's
     // own height over that same factor, and the lift follows the screen.
-    const rect = shotRect(projection, { cx: point.x, cy: point.y, zoom: REST_ZOOM }, wide)
+    const rect = shotRect(roomyProjection, { cx: point.x, cy: point.y, zoom: REST_ZOOM }, wide)
     const lift = (rect.height / 2) * REST_DIE_CLEARANCE
-    expect(restShot(model, projection, at, wide)).toEqual(
-      focusShot(projection, { x: point.x, y: point.y - lift }, REST_ZOOM, wide),
+    expect(restShot(roomy, roomyProjection, at, wide)).toEqual(
+      focusShot(roomyProjection, { x: point.x, y: point.y - lift }, REST_ZOOM, wide),
     )
   })
 
-  it('never lifts the frame past the top edge of the board', () => {
-    // A space in the top row: the unlifted frame is already pressed against
-    // the edge, so the lift is absorbed by the clamp rather than showing
-    // past the card.
-    const at = model.spaces['s0'] as Space
-    const rect = shotRect(projection, restShot(model, projection, at))
-    expect(rect.y).toBeGreaterThanOrEqual(0)
+  /**
+   * The reported regression, in miniature: a tall board in a squarish
+   * window covers the whole card at REST_ZOOM, `focusShot` pins the frame
+   * to the top-left corner, and the pinned frame's centre — where the die
+   * is glued — lands nearly on the start tile itself. Panning is spent;
+   * the shot has to buy the clearance with zoom instead.
+   */
+  const tall = board([space('start', 4, 3, ['on']), space('on', 5, 3)], 8, 24)
+  const tallProjection = createProjection(tall)
+  const tallAspect = tallProjection.viewWidth / tallProjection.viewHeight
+
+  it('slides along the board when pinned with the car under the die, never spending zoom', () => {
+    const at = tall.spaces['start'] as Space
+    const car = tallProjection.project(at.layout)
+    // The window shape that puts the REST_ZOOM frame's own half-height
+    // exactly at the tile: the pin lands the visible centre — the die —
+    // dead on the car, the bullseye of the reported bug.
+    const aspect = (tallAspect * tallProjection.viewHeight) / (2 * REST_ZOOM * car.y)
+    const shot = restShot(tall, tallProjection, at, aspect)
+
+    expect(shot.zoom).toBe(REST_ZOOM)
+
+    // The bought separation is real, and owes the cars' reach on top of the
+    // lift the top edge robbed: at least the clearance fraction of the
+    // visible height — the shot rect's height over the slice crop — plus a
+    // tile of car.
+    const viewAspect = tallProjection.viewWidth / tallProjection.viewHeight
+    const crop = Math.max(1, aspect / viewAspect)
+    const visible = shotRect(tallProjection, shot, aspect).height / crop
+    const required = visible * REST_DIE_CLEARANCE + tallProjection.tileSize
+    const distance = Math.hypot(car.x - shot.cx, car.y - shot.cy)
+    expect(distance + 1e-6).toBeGreaterThanOrEqual(required)
+
+    // And the slide went toward the middle of the route, not off the edge.
+    expect(shot.cx).toBeGreaterThan(car.x)
+  })
+
+  it('keeps the pan when a corner pin already left the car clear of the centre', () => {
+    // Barely wider than the board's own shape: the pinned frame is so tall
+    // that its centre sits far *below* the top-corner tile — the car ends up
+    // well above the die, which separates just as well as below does, and
+    // the shot must not slide anywhere for it.
+    const at = tall.spaces['start'] as Space
+    const point = restPoint(tall, tallProjection, at)
+    const aspect = tallAspect * 1.17
+    const lift =
+      (shotRect(tallProjection, { cx: point.x, cy: point.y, zoom: REST_ZOOM }, aspect).height /
+        1.17) *
+      REST_DIE_CLEARANCE
+    expect(restShot(tall, tallProjection, at, aspect)).toEqual(
+      focusShot(tallProjection, { x: point.x, y: point.y - lift }, REST_ZOOM, aspect),
+    )
+  })
+
+  it('never lifts or zooms the frame past the edge of the board', () => {
+    for (const aspect of [0.5, tallAspect, 1, 1.45, 2, 3]) {
+      const rect = shotRect(tallProjection, restShot(tall, tallProjection, tall.spaces['start'] as Space, aspect), aspect)
+      expect(rect.y).toBeGreaterThanOrEqual(0)
+      expect(rect.x).toBeGreaterThanOrEqual(0)
+    }
   })
 })
 

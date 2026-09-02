@@ -383,6 +383,27 @@ export function restPoint(board: Board, projection: BoardProjection, space: Spac
 export const REST_DIE_CLEARANCE = 0.22
 
 /**
+ * How far a car's own body can reach from its tile's centre, in tile widths
+ * — the drawn car is wider than a tile, and two cars sharing a tile spill
+ * off it on purpose (`Pawn`'s crowd offsets). In board units, not a screen
+ * fraction, because the cars are drawn in board space and scale with the
+ * camera: a tile-width of reach is a tile-width of reach at every zoom.
+ *
+ * Only the edge-pinned rescue below pays this on top of the clearance. An
+ * ordinary lifted frame holds the car *below* the die, where the cars'
+ * downward spill points away from it; a frame pinned to the board's top
+ * edge holds the car *above* the die, where that same spill points straight
+ * at it and eats exactly this much of the separation.
+ */
+const REST_CAR_REACH_TILES = 1
+
+/**
+ * Forgiveness for float noise in the clearance geometry, in viewBox units —
+ * far below a pixel at any zoom, far above what the arithmetic can drift.
+ */
+const EPSILON = 1e-6
+
+/**
  * The height of board a shot at `zoom` actually puts on screen, in viewBox
  * units. Not `shotRect`'s own height whenever the container is wider than
  * the fixed viewBox: the drawing's `preserveAspectRatio="xMidYMid slice"`
@@ -399,11 +420,28 @@ function visibleHeight(projection: BoardProjection, zoom: number, containerAspec
 
 /**
  * The shot a player plans their next spin from: `space`, at `REST_ZOOM`,
- * leaning toward the road ahead — and held high enough that the car sits
- * below the die pinned to the centre of the screen, not underneath it (see
- * `REST_DIE_CLEARANCE`). Near the top edge of the board `focusShot`'s own
- * clamp takes back what it must of that clearance rather than showing past
- * the edge of the card.
+ * leaning toward the road ahead — and held so the car sits clear of the die
+ * pinned to the centre of the screen, not underneath it (see
+ * `REST_DIE_CLEARANCE`).
+ *
+ * Panning up is the first resort: aim a little above the car and it settles
+ * into the band below the die. But near the board's top edge `focusShot`'s
+ * clamp pins the frame to the card and quietly hands the centre of the
+ * screen right back to the car — worst on a window whose shape puts the
+ * start corner's tile almost exactly a half-frame from the edge, where the
+ * pinned frame's centre lands on the tile itself. The car is kept anyway if
+ * the pin happened to leave it far enough from the centre in *some*
+ * direction — a corner pin often leaves it well above or beside the die,
+ * which separates just as well as below does, minus the cars' own downward
+ * spill (`REST_CAR_REACH_TILES`). Only when it didn't does the shot slide
+ * *along* the board instead, toward the middle of the route, far enough
+ * that the car waits beside the die rather than under it. Sideways on
+ * purpose, and never zoom: the top edge only ever robs the vertical, the
+ * board always has route to look at toward its own middle — the same
+ * direction the road out of a corner runs — and a zoom bought for
+ * clearance would pass through framing the die dead on the car on its way
+ * to any tighter shot, trading this bug for a worse one whenever a cap cut
+ * the purchase short.
  */
 export function restShot(
   board: Board,
@@ -413,7 +451,30 @@ export function restShot(
 ): CameraShot {
   const at = restPoint(board, projection, space)
   const lift = visibleHeight(projection, REST_ZOOM, containerAspect) * REST_DIE_CLEARANCE
-  return focusShot(projection, { x: at.x, y: at.y - lift }, REST_ZOOM, containerAspect)
+  const panned = focusShot(projection, { x: at.x, y: at.y - lift }, REST_ZOOM, containerAspect)
+
+  // The clamp only ever *raises* the centre past the aim when the frame hit
+  // the top of the card — anywhere else the lift was honoured (or bettered,
+  // at the bottom edge) and the car hangs below the die as designed.
+  if (panned.cy <= at.y - lift + EPSILON) return panned
+
+  // Pinned. The die must clear the car itself — the tile the cars are drawn
+  // on, not the leaned aim — and, held above the die, the cars' own spill
+  // reaches toward it, so the reach is owed on top of the clearance.
+  const car = projection.project(space.layout)
+  const required = lift + projection.tileSize * REST_CAR_REACH_TILES
+  const dy = car.y - panned.cy
+  if (Math.hypot(car.x - panned.cx, dy) >= required - EPSILON) return panned
+
+  // Slide toward the route's middle until the diagonal comes out right.
+  const slide = Math.sqrt(Math.max(0, required * required - dy * dy))
+  const inward = car.x <= projection.viewWidth / 2 ? 1 : -1
+  return focusShot(
+    projection,
+    { x: car.x + inward * slide, y: at.y - lift },
+    REST_ZOOM,
+    containerAspect,
+  )
 }
 
 /**
