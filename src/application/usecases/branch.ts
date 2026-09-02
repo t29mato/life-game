@@ -30,6 +30,12 @@ export function isFork(board: Board, spaceId: SpaceId): boolean {
  * ever written is open to everybody, so this answers `true` for all of them
  * without the lane having to say anything.
  *
+ * `'doctorate'` reads narrower than `'degree'`: a lane gated on it stays
+ * closed to a player who holds any lesser degree, and opens only once
+ * `hasDoctorate` is set — which the engine only ever does at the one tile
+ * gated behind `'degree'` already, so this can never be the *only* gate a
+ * player clears on their way in.
+ *
  * A missing space answers `true` rather than `false`, deliberately: a road
  * that is not on the board is somebody else's bug to report, and failing
  * *open* here degrades to exactly the behaviour that shipped before gates
@@ -38,7 +44,7 @@ export function isFork(board: Board, spaceId: SpaceId): boolean {
 export function roadIsOpenTo(board: Board, roadId: SpaceId, player: Player): boolean {
   const requires = board.spaces[roadId]?.lane?.requires
   if (requires === undefined) return true
-  return requires === 'degree' && player.hasDegree
+  return requires === 'doctorate' ? player.hasDoctorate : player.hasDegree
 }
 
 /**

@@ -12,11 +12,11 @@ import type { CurrencySpec } from '@domain/edition/types'
 import { SHARES_PER_PURCHASE, SPIN_FACES } from '@domain/model/constants'
 import { nextMovementLeg, planMovementVia } from '@domain/board/movement'
 import { editionOf } from '@domain/edition/registry'
-import { findCareer, findHouse, findStock, nextRungOf } from '@domain/edition/lookup'
+import { findCareer, findHouse, findStock, nextRungOf, tradeYearStoriesFor } from '@domain/edition/lookup'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
 import { marriageBandFor } from '@domain/rules/marriage'
 import { tuitionBandFor, tuitionSpecFor } from '@domain/rules/tuition'
-import { tradeYearFor } from '@domain/rules/tradeYear'
+import { tradeFamilyOf, tradeYearFor } from '@domain/rules/tradeYear'
 import {
   addInsurance,
   addLifeTiles,
@@ -797,7 +797,9 @@ function resolveTradeYearSpin(
 ): GameState {
   const { economy, currency } = edition
   const career = player.career
-  const year = tradeYearFor(career, spinValue, share, currency.tileRounding)
+  const family = tradeFamilyOf(career)
+  const stories = family ? tradeYearStoriesFor(edition, family) : undefined
+  const year = tradeYearFor(career, spinValue, share, currency.tileRounding, stories)
   // `applyEffect` never raises this decision for a player without a career, so
   // there is no live path here — the guard only keeps the types honest for a
   // decision built by hand in a test.

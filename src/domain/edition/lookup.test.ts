@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Career, Player } from '../model/types'
+import { TRADE_YEAR_STORIES, type TradeYearStories } from '../rules/tradeYear'
 import type { Edition } from './types'
 import { EDITION_USA } from './usa'
 import {
@@ -15,6 +16,7 @@ import {
   nextRungOf,
   rungFor,
   seniorityOf,
+  tradeYearStoriesFor,
 } from './lookup'
 
 /**
@@ -340,5 +342,36 @@ describe('career tiers', () => {
       const doctoralTop = Math.max(...(EDITION_USA.careers.doctorate ?? []).map((c) => c.salary))
       expect(doctoralTop).toBeLessThan(basicTop)
     })
+  })
+})
+
+/**
+ * The trade-year table, and the one thing an edition may say about it: some
+ * families sound like this edition, and every family it does not mention
+ * still sounds like every other edition.
+ */
+describe('tradeYearStoriesFor', () => {
+  const OVERRIDE: TradeYearStories = [
+    'One.',
+    'Two.',
+    'Three.',
+    'Four.',
+    'Five.',
+    'Six.',
+  ]
+
+  it('reads the engine-global table for an edition with no override at all', () => {
+    expect(tradeYearStoriesFor(EDITION_USA, 'science')).toBe(TRADE_YEAR_STORIES.science)
+  })
+
+  it('reads an edition override for the family it names', () => {
+    const edition: Edition = { ...EDITION_USA, tradeYearStories: { science: OVERRIDE } }
+    expect(tradeYearStoriesFor(edition, 'science')).toBe(OVERRIDE)
+  })
+
+  it('falls back to the global table for every family the edition does not override', () => {
+    const edition: Edition = { ...EDITION_USA, tradeYearStories: { science: OVERRIDE } }
+    expect(tradeYearStoriesFor(edition, 'kitchen')).toBe(TRADE_YEAR_STORIES.kitchen)
+    expect(tradeYearStoriesFor(edition, 'field')).toBe(TRADE_YEAR_STORIES.field)
   })
 })

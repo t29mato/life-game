@@ -173,19 +173,28 @@ export interface TradeYear {
  * rather than the art: this tile is about the work you do, and somebody
  * between jobs is not doing any. They walk past it, exactly as a single player
  * walks past the joint account.
+ *
+ * `stories` defaults to this family's line in the engine-global
+ * `TRADE_YEAR_STORIES`, but a caller resolving a tile for a specific edition
+ * should pass that edition's own table instead — see
+ * `tradeYearStoriesFor` in `domain/edition/lookup.ts`, which is where the
+ * per-edition override is actually looked up. This function stays free of
+ * `Edition` itself so the vignette table and the fallback logic can live on
+ * opposite sides of that seam without a cycle between them.
  */
 export function tradeYearFor(
   career: Career | null | undefined,
   spin: SpinValue,
   share: number,
   rounding: number,
+  stories?: TradeYearStories,
 ): TradeYear | null {
   const family = tradeFamilyOf(career)
   if (!family || !career) return null
-  const stories = TRADE_YEAR_STORIES[family]
+  const table = stories ?? TRADE_YEAR_STORIES[family]
   // Clamped rather than trusted: a face outside the written table is a bug in
   // whoever rolled it, and a missing story would be an empty card.
-  const story = stories[Math.min(Math.max(spin, 1), stories.length) - 1] as string
+  const story = table[Math.min(Math.max(spin, 1), table.length) - 1] as string
   return { family, story, swing: tradeYearSwing(career.salary, share, spin, rounding) }
 }
 

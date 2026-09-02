@@ -22,6 +22,12 @@ const GATED: LaneIdentity = {
 
 const OPEN: LaneIdentity = { name: 'Keep Working', summary: 'Stay in the job you have.' }
 
+const DOCTORATE_GATED: LaneIdentity = {
+  name: 'The Tenure Track',
+  summary: 'The dossier, and the vote.',
+  requires: 'doctorate',
+}
+
 const space = (id: string, next: readonly string[], lane?: LaneIdentity): Space => ({
   id,
   kind: 'normal',
@@ -40,6 +46,20 @@ const forkBoard = (): Board => ({
   spaces: {
     junction: space('junction', ['gated', 'open']),
     gated: space('gated', ['merge'], GATED),
+    open: space('open', ['merge'], OPEN),
+    merge: space('merge', []),
+  },
+  startSpaceId: 'junction',
+  retirementSpaceId: 'merge',
+  width: 4,
+  height: 3,
+})
+
+/** A junction whose first road is gated on the doctorate specifically. */
+const doctorateForkBoard = (): Board => ({
+  spaces: {
+    junction: space('junction', ['gated', 'open']),
+    gated: space('gated', ['merge'], DOCTORATE_GATED),
     open: space('open', ['merge'], OPEN),
     merge: space('merge', []),
   },
@@ -77,6 +97,31 @@ describe('roadIsOpenTo', () => {
   })
 })
 
+/*
+ * `'doctorate'` reads narrower than `'degree'`: a lane gated on it stays
+ * closed to a player who holds a lesser degree, and needs `hasDoctorate`
+ * specifically before it opens.
+ */
+describe('roadIsOpenTo, gated on the doctorate', () => {
+  const board = doctorateForkBoard()
+
+  it('closes a doctorate-gated road to a player with no degree at all', () => {
+    expect(roadIsOpenTo(board, 'gated', fixturePlayer())).toBe(false)
+  })
+
+  it('closes it to a player who holds a lesser degree but not a doctorate', () => {
+    expect(roadIsOpenTo(board, 'gated', fixturePlayer({ hasDegree: true, hasDoctorate: false }))).toBe(
+      false,
+    )
+  })
+
+  it('opens it to a player who holds the doctorate', () => {
+    expect(roadIsOpenTo(board, 'gated', fixturePlayer({ hasDegree: true, hasDoctorate: true }))).toBe(
+      true,
+    )
+  })
+})
+
 describe('resolveForkBranch', () => {
   const board = forkBoard()
 
@@ -108,6 +153,23 @@ describe('resolveForkBranch', () => {
   it('answers nothing for a tile that is not a fork', () => {
     expect(resolveForkBranch(board, 'gated', 1, fixturePlayer({ hasDegree: true }))).toBe('merge')
     expect(resolveForkBranch(board, 'merge', 1, fixturePlayer())).toBeUndefined()
+  })
+})
+
+describe('resolveForkBranch, gated on the doctorate', () => {
+  const board = doctorateForkBoard()
+
+  it('never sends a graduate without a doctorate down the gated road, on any face', () => {
+    const graduate = fixturePlayer({ hasDegree: true, hasDoctorate: false })
+    for (const roll of EVERY_FACE) {
+      expect(resolveForkBranch(board, 'junction', roll, graduate), `roll ${roll}`).toBe('open')
+    }
+  })
+
+  it('offers a doctorate holder both roads, split the usual way', () => {
+    const doctor = fixturePlayer({ hasDegree: true, hasDoctorate: true })
+    const taken = EVERY_FACE.map((roll) => resolveForkBranch(board, 'junction', roll, doctor))
+    expect(taken).toEqual(['gated', 'gated', 'gated', 'open', 'open', 'open'])
   })
 })
 

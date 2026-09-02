@@ -10,6 +10,8 @@ import type {
   Stock,
   StockId,
 } from '../model/types'
+import type { CareerFamily } from '../rules/careerFamily'
+import { TRADE_YEAR_STORIES, type TradeYearStories } from '../rules/tradeYear'
 import type { Edition } from './types'
 import { EDITION_USA } from './usa'
 
@@ -196,6 +198,18 @@ export function hiringPoolFor(edition: Edition, tier: CareerTier): readonly Care
   // with no doctoral shelf hires its doctors off the graduate one.
   if (tier === 'doctorate') return hiring.doctorate.length > 0 ? hiring.doctorate : hiring.graduate
   return tier === 'graduate' ? hiring.graduate : hiring.basic
+}
+
+/**
+ * The vignette table a `tradeYear` tile should read for this family, in this
+ * edition.
+ *
+ * Same fallback shape as `careerPoolFor`: an edition only writes the
+ * families it wants to sound different, and every family it leaves out reads
+ * the engine-global `TRADE_YEAR_STORIES` untouched.
+ */
+export function tradeYearStoriesFor(edition: Edition, family: CareerFamily): TradeYearStories {
+  return edition.tradeYearStories?.[family] ?? TRADE_YEAR_STORIES[family]
 }
 
 /** Where `id` sits on its ladder, or undefined if the edition has never heard of it. */

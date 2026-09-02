@@ -450,8 +450,13 @@ export interface LaneIdentity {
    *
    * Absent means the road is open to everybody, which is every other road on
    * every board.
+   *
+   * `'degree'` reads `hasDegree` — any post-secondary degree, undergraduate or
+   * doctoral. `'doctorate'` reads `hasDoctorate` instead, and is stricter: it
+   * gates a road behind having *finished* the doctorate specifically, not
+   * merely having qualified to attempt one.
    */
-  readonly requires?: 'degree'
+  readonly requires?: 'degree' | 'doctorate'
 }
 
 export interface Board {

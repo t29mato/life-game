@@ -173,5 +173,29 @@ describe('the year a trade has', () => {
       expect(good!.story).toBe(TRADE_YEAR_STORIES.kitchen[5])
       expect(good!.swing).toBeGreaterThan(0)
     })
+
+    /*
+     * The edition-override seam. `tradeYearFor` itself stays free of `Edition`
+     * — the fallback from an edition's own table to this global one lives in
+     * `tradeYearStoriesFor` (`domain/edition/lookup.ts`) instead — but this is
+     * the contract that plumbing is built on: an explicit table always wins,
+     * and its own face count and clamping behave exactly like the global one.
+     */
+    it('reads an explicit table over the global one when given one', () => {
+      const custom: typeof TRADE_YEAR_STORIES.kitchen = [
+        'Override one.',
+        'Override two.',
+        'Override three.',
+        'Override four.',
+        'Override five.',
+        'Override six.',
+      ]
+      const year = tradeYearFor(cook(), 1, 0.5, 100, custom)
+      expect(year!.story).toBe('Override one.')
+      expect(year!.story).not.toBe(TRADE_YEAR_STORIES.kitchen[0])
+
+      const good = tradeYearFor(cook(), 6, 0.5, 100, custom)
+      expect(good!.story).toBe('Override six.')
+    })
   })
 })

@@ -10,6 +10,8 @@ import type {
   Stock,
 } from '../model/types'
 import type { RouteDefinition } from '../board/route'
+import type { CareerFamily } from '../rules/careerFamily'
+import type { TradeYearStories } from '../rules/tradeYear'
 
 /**
  * LIFE JOURNEY — the edition contract.
@@ -371,4 +373,17 @@ export interface Edition {
   readonly houses: readonly House[]
   readonly lifeTiles: readonly LifeTile[]
   readonly stocks: readonly Stock[]
+  /**
+   * Per-family replacements for `TRADE_YEAR_STORIES`, the engine-global set a
+   * `tradeYear` tile reads from by default.
+   *
+   * `tradeYear` is generic on purpose — any career family can land on it — but
+   * an edition's soul often lives in exactly these six lines per family (a
+   * lab's grant cycle reads nothing like a kitchen's bad night). Keyed the
+   * same way as the global table and partial: an edition only writes the
+   * families it actually wants to sound different, and every family it
+   * leaves out still reads the global set. Absent entirely means every
+   * family falls back, which is every edition today.
+   */
+  readonly tradeYearStories?: Partial<Record<CareerFamily, TradeYearStories>>
 }
