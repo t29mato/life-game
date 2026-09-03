@@ -155,6 +155,38 @@ test.describe('board layout never overlaps the rest of the table', () => {
     expect(resetBox!.height).toBeCloseTo(frameBox!.height, 0)
   })
 
+  /**
+   * The die moved out of the middle of the board and into its own tray in the
+   * corner (issue #23), which makes it a new box inside the board's cell —
+   * exactly the shape of thing this file exists to keep honest. It is
+   * absolutely positioned inside the board's stage, so it cannot spill by
+   * construction; this is where that claim gets checked against real layout
+   * rather than against the CSS it was written in.
+   */
+  test('the die tray stays inside the board’s own cell and clear of the zoom rail', async ({ page }) => {
+    await startGame(page)
+
+    const boardArea = page.getByRole('region', { name: 'Game board' })
+    const die = page.getByRole('button', { name: /^roll/i })
+    const zoomIn = page.getByRole('button', { name: 'Zoom in' })
+    await expect(die).toBeVisible()
+
+    const boardAreaBox = await boardArea.boundingBox()
+    const dieBox = await die.boundingBox()
+    const zoomBox = await zoomIn.boundingBox()
+    expect(boardAreaBox).not.toBeNull()
+    expect(dieBox).not.toBeNull()
+    expect(zoomBox).not.toBeNull()
+
+    const slack = 4
+    expect(dieBox!.y).toBeGreaterThanOrEqual(boardAreaBox!.y - slack)
+    expect(dieBox!.y + dieBox!.height).toBeLessThanOrEqual(boardAreaBox!.y + boardAreaBox!.height + slack)
+    expect(dieBox!.x).toBeGreaterThanOrEqual(boardAreaBox!.x - slack)
+    expect(dieBox!.x + dieBox!.width).toBeLessThanOrEqual(boardAreaBox!.x + boardAreaBox!.width + slack)
+    // Opposite corners, and that is the whole reason the tray is on the left.
+    expect(rectsOverlap(dieBox!, zoomBox!)).toBe(false)
+  })
+
   test('the whole page fits the viewport on a phone — no vertical scroll needed to see every section', async ({
     page,
   }, testInfo) => {

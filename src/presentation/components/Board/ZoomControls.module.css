@@ -18,8 +18,9 @@
   bottom: clamp(14px, 2vw, 22px);
   /* Above `.rollDock` (z-index 2 in `App.module.css`), which spans the whole
      stage — the dock itself is transparent to the pointer, but its z-index
-     would otherwise put the die's felt mat over these keys wherever the two
-     came close. */
+     would otherwise put whatever the board is saying mid-move over these
+     keys wherever the two came close. The die's own tray sits at this same
+     level, in the opposite corner, which is why it is the opposite corner. */
   z-index: 3;
   display: flex;
   flex-direction: column;

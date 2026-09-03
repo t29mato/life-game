@@ -123,11 +123,60 @@
   pointer-events: none;
 }
 
+/* Waiting to be thrown: the die hangs and breathes, and its shadow stays on
+   the table where a hovering object's shadow belongs. This is the whole of
+   "the object waiting for input is the one that is moving" — a die sitting
+   perfectly still reads as a picture of a die, which is how the playtest
+   read it (it also still had the last player's number on it). Slow, small,
+   and never while a throw is running; the pace comes from
+   `TEMPO.dieIdleBobSeconds` through `--bob-seconds`. */
+.bobbing {
+  animation: dieBob var(--bob-seconds, 1.7s) var(--ease-in-out) infinite;
+}
+
+@keyframes dieBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7%);
+  }
+}
+
 .cube {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
   will-change: transform;
+}
+
+/* How to throw it, under the die itself. Small and quiet — it is an
+   invitation, not a label — and it only exists while this die is actually
+   the screen's next input, so it can never advertise a press that would not
+   reach it. */
+.prompt {
+  margin-top: 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.promptTap {
+  display: none;
+}
+
+.promptKey {
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm, 6px);
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--ink) 16%, transparent);
 }
 
 /* One side of the cube. The solid rounded slab behind each printed face is
@@ -214,6 +263,18 @@
 
   .compact .scene {
     perspective: 420px;
+  }
+
+  /* Presumed touch-first: naming a key the device probably does not have is
+     worse than silence, so the prompt says the half that is true here. */
+  .promptKey,
+  .promptSlash,
+  .promptClick {
+    display: none;
+  }
+
+  .promptTap {
+    display: inline;
   }
 }
 

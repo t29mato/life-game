@@ -17,6 +17,7 @@ import {
   focusShot,
   restShot,
   wideShot,
+  FOLLOW_SLACK,
   RESOLVE_ZOOM,
   USER_ZOOM_MAX,
   USER_ZOOM_STEP,
@@ -224,9 +225,19 @@ describe('Board', () => {
   describe('the camera', () => {
     const model = makeBoard()
     const projection = createProjection(model)
+    // With `FOLLOW_SLACK`, exactly as the board frames it: `start` is a
+    // corner tile, and the whole point of the slack is that a car parked on
+    // one is still held near the middle of the screen rather than pinned
+    // against its edge by a clamp flush to the card (issue #25).
     const resting = cameraTransform(
       projection,
-      focusShot(projection, projection.project(model.spaces['start']?.layout ?? { x: 0, y: 0 }), RESOLVE_ZOOM),
+      focusShot(
+        projection,
+        projection.project(model.spaces['start']?.layout ?? { x: 0, y: 0 }),
+        RESOLVE_ZOOM,
+        undefined,
+        FOLLOW_SLACK,
+      ),
     )
     const written = (t: { x: number; y: number; scale: number }): string =>
       `translate(${t.x} ${t.y}) scale(${t.scale})`
@@ -973,6 +984,32 @@ describe('Board', () => {
     })
 
     /**
+     * The other half of free look, and the half that was missing (issue
+     * #25): a player who pans off to read a tile elsewhere had no way back
+     * to their own car, because the camera only re-frames when the phase
+     * changes — so until they rolled, the board stayed wherever they left
+     * it, their car possibly off screen entirely.
+     */
+    it('goes back to the active car when asked, from wherever a free look left the board', () => {
+      mockReducedMotion(true)
+      const { getByTestId } = renderBoard({ phase: 'awaitingSpin' })
+      const svg = screen.getByRole('img', { name: 'Game board' })
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue(fakeRect(800, 600))
+
+      const parked = getByTestId('board-camera').getAttribute('transform')
+      fireEvent.pointerDown(svg, { pointerId: 1, clientX: 200, clientY: 200 })
+      fireEvent.pointerMove(svg, { pointerId: 1, clientX: 120, clientY: 160 })
+      fireEvent.pointerUp(svg, { pointerId: 1, clientX: 120, clientY: 160 })
+      expect(getByTestId('board-camera').getAttribute('transform')).not.toEqual(parked)
+
+      // Named after the car, not after the camera — the player is looking
+      // for themselves, not for a control.
+      fireEvent.click(screen.getByRole('button', { name: "Back to Alice's car" }))
+
+      expect(getByTestId('board-camera').getAttribute('transform')).toEqual(parked)
+    })
+
+    /**
      * The risk a suspended-during-`moving` drag exists to head off: the
      * movement effect is `await`ing this exact camera's own animation to
      * finish, leg by leg. Stopping that animation out from under it — same
@@ -1247,6 +1284,109 @@ describe('Board', () => {
         `${Math.round(USER_ZOOM_STEP * 100)}%`,
       )
       await waitFor(() => expect(onMovementComplete).toHaveBeenCalledTimes(1))
+    })
+  })
+  /**
+   * The road ahead, lit — issue #26. The "3 TO GO" badge said how far; nothing
+   * said *where*, so a player could not tell a tile they would stop on from
+   * one they were about to drive over until its card appeared.
+   */
+  describe('the road ahead', () => {
+    it('lights every tile of the move, in order, once the roll has settled', () => {
+      mockReducedMotion(true)
+      renderBoard({
+        players: [makePlayer({ id: 'p1', spaceId: 'start' })],
+        phase: 'moving',
+        movementPath: ['b', 'c'],
+      })
+
+      const lit = screen.getAllByTestId('path-light')
+      expect(lit).toHaveLength(2)
+      // In order down the road: each tile waits a beat longer than the one
+      // before it, which is what makes the run read as a wave rather than as
+      // a row switching on at once.
+      const delays = lit.map((node) => node.style.animationDelay)
+      expect(delays[0]).toBe('0s')
+      expect(Number.parseFloat(delays[1] ?? '0')).toBeGreaterThan(0)
+    })
+
+    it('marks the tile the car actually stops on apart from the ones it crosses', () => {
+      mockReducedMotion(true)
+      renderBoard({
+        players: [makePlayer({ id: 'p1', spaceId: 'start' })],
+        phase: 'moving',
+        movementPath: ['b', 'c'],
+      })
+
+      const lit = screen.getAllByTestId('path-light')
+      expect(lit[0]).not.toHaveAttribute('data-arrival')
+      expect(lit[1]).toHaveAttribute('data-arrival', 'true')
+    })
+
+    /**
+     * A leg that ends at a swept-past tile has road still owed behind it, so
+     * nothing on it is the landing — marking the end of the *leg* would say
+     * the opposite of what the lights are for.
+     */
+    it('marks no landing while hops are still owed past this leg', () => {
+      mockReducedMotion(true)
+      renderBoard({
+        players: [makePlayer({ id: 'p1', spaceId: 'start' })],
+        phase: 'moving',
+        movementPath: ['b'],
+        pendingHops: 3,
+      })
+
+      expect(screen.getByTestId('path-light')).not.toHaveAttribute('data-arrival')
+    })
+
+    it('lights nothing while the table is waiting for a roll', () => {
+      mockReducedMotion(true)
+      renderBoard({ phase: 'awaitingSpin', movementPath: ['b', 'c'] })
+
+      expect(screen.queryAllByTestId('path-light')).toHaveLength(0)
+    })
+  })
+
+  /**
+   * The signs — issue #27. "START" read as "TART" because the red car parked
+   * on the first space was drawn over the sign labelling it, and "GRADUATE"
+   * bit into the milestone tile it belongs to because the offset was measured
+   * off the face rather than off the bezel standing proud of it.
+   */
+  describe('roadside signs', () => {
+    it('draws every sign after the cars, so a car can never cover one', () => {
+      mockReducedMotion(true)
+      const { container } = renderBoard({
+        players: [makePlayer({ id: 'p1', spaceId: 'start' })],
+      })
+
+      const sign = screen
+        .getAllByTestId('tile-caption')
+        .find((node) => node.getAttribute('data-caption') === 'START')
+      const car = container.querySelector('[data-testid="pawn"]')
+      expect(sign).toBeDefined()
+      expect(car).not.toBeNull()
+      // Document order is paint order in SVG, so this *is* the fix: the sign
+      // comes after the car, therefore over it. "START" can no longer be
+      // covered down to "TART" by the car parked on it.
+      const order = car!.compareDocumentPosition(sign as Node)
+      expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('steps a sign clear of a tile a car is parked on', () => {
+      mockReducedMotion(true)
+      const signOf = (nodes: HTMLElement[], caption: string): HTMLElement | undefined =>
+        nodes.find((node) => node.getAttribute('data-caption') === caption)
+
+      const empty = renderBoard({ players: [makePlayer({ id: 'p1', spaceId: 'c' })] })
+      const parked = signOf(empty.getAllByTestId('tile-caption'), 'START')?.getAttribute('transform')
+      empty.unmount()
+
+      const occupied = renderBoard({ players: [makePlayer({ id: 'p1', spaceId: 'start' })] })
+      const stepped = signOf(occupied.getAllByTestId('tile-caption'), 'START')?.getAttribute('transform')
+
+      expect(stepped).not.toBe(parked)
     })
   })
 })

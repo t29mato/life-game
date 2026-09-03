@@ -19,6 +19,7 @@ import { Pawn, type PawnHandle, type PawnPoint } from '../Pawn/Pawn'
 import { describeCar } from '../Pawn/passengers'
 import { wealthTier } from '../Pawn/wealthTier'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { TEMPO } from '../../tempo'
 import {
   boardLanes,
   captionSide,
@@ -49,9 +50,11 @@ import {
   focusShot,
   handoffPanSeconds,
   restSequence,
+  restShot,
   stepUserZoom,
   userZoomedShot,
   wideShot,
+  FOLLOW_SLACK,
   RESOLVE_ZOOM,
   USER_ZOOM_FIT,
   type CameraShot,
@@ -143,6 +146,28 @@ const PAWN_SCALE: readonly number[] = [1.15, 1.15, 1.08, 0.98, 0.9]
  */
 const SLOT_SPREAD_X: readonly number[] = [0, 0, 0.62, 0.7, 0.8]
 const SLOT_SPREAD_Y: readonly number[] = [0, 0, 0.5, 0.58, 0.72]
+
+/**
+ * How far a milestone's bezel stands proud of its own face, in viewBox units.
+ *
+ * Shared with the caption below rather than left as a literal in the drawing,
+ * because a sign printed at the face's edge is printed *inside* a milestone's
+ * frame — which is exactly how "GRADUATE" came to bite into the graduation
+ * tile it was labelling (issue #27).
+ */
+const MILESTONE_BEZEL = 6
+
+/**
+ * How far a sign steps away from a tile a car is parked on, in tile widths.
+ *
+ * Signs are drawn over the cars now (see the caption layer below), so nothing
+ * is *hidden* either way — "START" no longer reads as "TART" behind the red
+ * car. But a sign laid across a car's roof is still two objects fighting for
+ * the same inch of board, so when a tile is occupied its sign also steps
+ * clear. Sized against the fan a shared tile spreads its cars over
+ * (`SLOT_SPREAD_Y`) plus a little of a car's own body.
+ */
+const CAPTION_PAWN_CLEARANCE = 0.42
 
 /**
  * Seconds a camera move takes: a considered one between turns, a brisk one that
@@ -483,6 +508,39 @@ export function Board({
     }
   }, [litExitId, spaces, lanes, strands])
 
+  /**
+   * The road the roll just bought, lit tile by tile ahead of the car.
+   *
+   * The "3 TO GO" badge already says *how far*; what nothing said was
+   * *where* — a player could not tell a tile they were going to stop on from
+   * one they were about to drive over until the card for it appeared (issue
+   * #26). So the path itself lights, in order, the moment the roll settles
+   * and the board is handed a `movementPath`, with the tile the car actually
+   * lands on marked apart from the ones it merely crosses.
+   *
+   * Held through `passingEvent` as well as `moving`: a move that pauses on a
+   * swept-past tile has road still owed, and a light that went out during
+   * the pause would read as the move having ended there.
+   */
+  const pathLights = useMemo(() => {
+    if (phase !== 'moving' && phase !== 'passingEvent') return []
+    const byId = new Map(tiles.map((tile) => [tile.space.id, tile]))
+    return movementPath
+      .map((id, step) => ({
+        tile: byId.get(id),
+        step,
+        // The destination is the end of the *move*, not of this leg: a leg
+        // that stops at a swept-past tile has hops still owed behind it, and
+        // marking that tile as the landing would say the opposite of what
+        // the lights are for.
+        arrival: step === movementPath.length - 1 && pendingHops === 0,
+      }))
+      .filter((lit): lit is { tile: TileView; step: number; arrival: boolean } => lit.tile !== undefined)
+  }, [phase, movementPath, pendingHops, tiles])
+
+  /** The tiles with a car on them — all a sign needs to know to step aside. */
+  const occupiedSpaceIds = useMemo(() => new Set(players.map((player) => player.spaceId)), [players])
+
   const seats = Math.min(players.length, 4)
   const pawnSize = projection.tileSize * (PAWN_SCALE[seats] ?? 0.54)
   const spreadX = projection.tileSize * (SLOT_SPREAD_X[seats] ?? 0.46)
@@ -726,6 +784,35 @@ export function Board({
   }, [userZoom, phase, applyShot, reduceMotion])
 
   /**
+   * Back to the car whose turn it is — the one thing free look was missing.
+   *
+   * A player who pans across the map to read a tile three rows down has no
+   * way back: the camera only re-frames when the *phase* changes, so until
+   * they roll, the board stays wherever they left it and their own car may
+   * be off screen entirely. That was reported exactly that way ("I couldn't
+   * work out how to get back", issue #25). The zoom rail's reset key was the
+   * nearest thing, and it is the wrong thing: it goes back to the last shot
+   * the camera *took*, which after a handoff or a resolve is not necessarily
+   * where the player's car is, and it drops their zoom on the way.
+   *
+   * So this is its own key. It re-frames on the active car from scratch
+   * rather than replaying a recorded shot, and it keeps whatever zoom the
+   * player has chosen — they asked to be taken to their car, not to have
+   * their magnifying glass confiscated.
+   */
+  const recentre = useCallback((): void => {
+    const space = activeSpaceId ? board.spaces[activeSpaceId] : undefined
+    if (phase === 'moving') return
+    flyingRef.current = false
+    void applyShot(
+      space
+        ? restShot(board, projection, space, containerAspectRef.current)
+        : wideShot(projection, board, playerPoints, containerAspectRef.current),
+      reduceMotion ? 0 : CAMERA_SECONDS,
+    )
+  }, [activeSpaceId, board, projection, playerPoints, phase, applyShot, reduceMotion])
+
+  /**
    * Wheel and trackpad. Bound natively rather than through `onWheel` because
    * React attaches wheel listeners passively, where `preventDefault` is
    * ignored — and a zoom that does not consume the gesture leaves the
@@ -951,7 +1038,17 @@ export function Board({
     if (phase === 'awaitingDecision' || phase === 'resolved') {
       previousRestPlayerId.current = activePlayer?.id ?? null
       const framed = space
-        ? focusShot(projection, projection.project(space.layout), RESOLVE_ZOOM, containerAspectRef.current)
+        ? focusShot(
+            projection,
+            projection.project(space.layout),
+            RESOLVE_ZOOM,
+            containerAspectRef.current,
+            // The tile a turn resolved on is the tile the car is parked on,
+            // so it is owed the same in-frame promise a rest shot makes —
+            // including on the board's own outermost tiles, where the flush
+            // clamp used to pin it against the edge of the screen.
+            FOLLOW_SLACK,
+          )
         : wideShot(projection, board, playerPoints, containerAspectRef.current)
       void applyShot(framed, reduceMotion ? 0 : CAMERA_SECONDS)
       return
@@ -1030,9 +1127,21 @@ export function Board({
           fanOffset(movementPath[step], currentPlayerIndex),
         )
         /* Deliberately not awaited: the camera leads the car rather than
-           following it, and nothing about a move may wait on a camera move. */
+           following it, and nothing about a move may wait on a camera move.
+           `FOLLOW_SLACK` is what makes "leads the car" true all the way to
+           the edges of the map: without it the frame is clamped flush to the
+           card, and a car crossing the outermost row was left pinned against
+           the side of the screen with the camera visibly declining to
+           follow — the report in issue #25, and the reason the slack exists
+           at all. */
         void applyShot(
-          focusShot(projection, target, approachZoom(step, total, closest), containerAspectRef.current),
+          focusShot(
+            projection,
+            target,
+            approachZoom(step, total, closest),
+            containerAspectRef.current,
+            FOLLOW_SLACK,
+          ),
           reduceMotion ? 0 : FOLLOW_SECONDS,
         )
         /* The crouch belongs to the last tile of the *move*, not of this
@@ -1123,7 +1232,18 @@ export function Board({
               <stop offset="62%" stopColor="#120d2b" stopOpacity="0.26" />
               <stop offset="100%" stopColor="#120d2b" stopOpacity="0" />
             </radialGradient>
-            <linearGradient id={groundId} x1="0" y1="0" x2="0" y2="1">
+            {/* In user space, not on the ground rect's own box: the rect is
+                drawn out past the card's edge (see below) and a bounding-box
+                gradient would stretch the whole horizon to match, repainting
+                the map for the sake of a margin nobody normally sees. */}
+            <linearGradient
+              id={groundId}
+              x1="0"
+              y1="0"
+              x2="0"
+              y2={projection.viewHeight}
+              gradientUnits="userSpaceOnUse"
+            >
               <stop offset="0%" stopColor="var(--land-far)" />
               <stop offset="34%" stopColor="var(--land)" />
               <stop offset="100%" stopColor="var(--land-near)" />
@@ -1146,11 +1266,19 @@ export function Board({
 
           <g className={styles.camera} data-testid="board-camera" ref={cameraRef}>
             <g className={styles.landscape} aria-hidden="true">
+              {/* Ground past the edge of the card. A following shot is
+                  allowed to reach `FOLLOW_SLACK` of its own frame beyond the
+                  board so a car on the outermost row can still be held near
+                  the middle of the screen (see `camera.ts`) — and what that
+                  costs is a strip of what used to be nothing in shot. Painting
+                  the same ground out to meet it is what keeps the trade
+                  honest: the map still ends where it ends, and the camera
+                  leaning past it shows more country rather than a hole. */}
               <rect
-                x="0"
-                y="0"
-                width={projection.viewWidth}
-                height={projection.viewHeight}
+                x={-projection.viewWidth * FOLLOW_SLACK}
+                y={-projection.viewHeight * FOLLOW_SLACK}
+                width={projection.viewWidth * (1 + FOLLOW_SLACK * 2)}
+                height={projection.viewHeight * (1 + FOLLOW_SLACK * 2)}
                 fill={`url(#${groundId})`}
               />
 
@@ -1285,15 +1413,15 @@ export function Board({
                       <>
                         <path
                           className={styles.bezelWall}
-                          d={slabWallPath(half + 6, radius + 6, depth)}
+                          d={slabWallPath(half + MILESTONE_BEZEL, radius + MILESTONE_BEZEL, depth)}
                         />
                         <rect
                           className={styles.bezel}
-                          x={-half - 6}
-                          y={-half - 6}
-                          width={size + 12}
-                          height={size + 12}
-                          rx={radius + 6}
+                          x={-half - MILESTONE_BEZEL}
+                          y={-half - MILESTONE_BEZEL}
+                          width={size + MILESTONE_BEZEL * 2}
+                          height={size + MILESTONE_BEZEL * 2}
+                          rx={radius + MILESTONE_BEZEL}
                         />
                       </>
                     ) : null}
@@ -1383,35 +1511,6 @@ export function Board({
                       y={(space.kind === 'stop' || space.kind === 'event') ? -band * 0.42 : 0}
                     />
 
-                    {tile.caption && tile.captionAt ? (
-                      <g
-                        className={styles.caption}
-                        transform={`translate(0, ${
-                          tile.captionAt === 'below'
-                            ? half + tile.depth + captionSize * 1.05
-                            : -half - captionSize * 1.05
-                        })`}
-                      >
-                        <rect
-                          className={styles.captionPlate}
-                          x={-(tile.caption.length * captionSize * 0.62 + captionSize) / 2}
-                          y={-captionSize * 0.78}
-                          width={tile.caption.length * captionSize * 0.62 + captionSize}
-                          height={captionSize * 1.56}
-                          rx={captionSize * 0.62}
-                        />
-                        <text
-                          className={styles.captionText}
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          y={captionSize * 0.04}
-                          style={{ fontSize: `${captionSize}px` }}
-                        >
-                          {tile.caption}
-                        </text>
-                      </g>
-                    ) : null}
-
                     {/* The road not taken's own tiles dim with their road —
                         a shaded ribbon threading between bright tiles would
                         read as weather, not as an answer. A plain tinted
@@ -1455,6 +1554,29 @@ export function Board({
               })}
             </g>
 
+            {/* The road the roll bought, lighting one tile at a time ahead of
+                the car — over the tiles so it reads as the road catching the
+                light, under the cars so it never paints over one. See
+                `pathLights` above and `TEMPO.pathLightStepSeconds`. */}
+            {pathLights.length > 0 && (
+              <g className={styles.pathLights} aria-hidden="true">
+                {pathLights.map(({ tile, step, arrival }) => (
+                  <rect
+                    key={tile.space.id}
+                    data-testid="path-light"
+                    data-arrival={arrival || undefined}
+                    className={arrival ? styles.pathArrival : styles.pathStep}
+                    x={tile.face.x - tile.half}
+                    y={tile.face.y - tile.half}
+                    width={tile.size}
+                    height={tile.size}
+                    rx={tile.radius}
+                    style={{ animationDelay: `${step * TEMPO.pathLightStepSeconds}s` }}
+                  />
+                ))}
+              </g>
+            )}
+
             <g className={styles.pawnLayer}>
               {parked.map(({ player, index }) => {
                 // The mover's own space while its move is outstanding; every
@@ -1491,6 +1613,70 @@ export function Board({
                 )
               })}
             </g>
+
+            {/* ---- The signs -------------------------------------------------
+                Last of all, and that is the whole point: these used to be
+                printed inside each tile's own group, several layers below the
+                cars, so the red car parked on the first space covered the S
+                and the T of "START" and left it reading "TART" (issue #27).
+                A sign is a roadside object, not a decal on the tarmac — it
+                stands *above* the traffic, and a car passing behind it is the
+                right way round for both.
+
+                Stepping clear of an occupied tile as well is belt and braces:
+                nothing is hidden either way now, but a sign lying across a
+                car's roof still reads as two things in one place. And the
+                offset is measured off the slab's real outside edge — a
+                milestone's bezel included — which is what "GRADUATE" was
+                missing when it bit into the graduation tile. */}
+            <g className={styles.captionLayer} aria-hidden="true">
+              {tiles.map((tile) => {
+                if (!tile.caption || !tile.captionAt) return null
+                const bezel = tile.accent === 'milestone' ? MILESTONE_BEZEL : 0
+                const clear = occupiedSpaceIds.has(tile.space.id)
+                  ? projection.tileSize * CAPTION_PAWN_CLEARANCE
+                  : 0
+                const plateWidth = tile.caption.length * captionSize * 0.62 + captionSize
+                const dy =
+                  tile.captionAt === 'below'
+                    ? tile.half + bezel + tile.depth + captionSize * 1.05 + clear
+                    : -(tile.half + bezel + captionSize * 1.05 + clear)
+                return (
+                  <g
+                    key={tile.space.id}
+                    className={styles.caption}
+                    data-testid="tile-caption"
+                    data-caption={tile.caption}
+                    // Carried on the caption's own group now that it no longer
+                    // sits inside the tile's: the plate and its ink are painted
+                    // from the tile's tone and accent (see `.captionPlate`), and
+                    // a sign lifted out of that group would otherwise lose the
+                    // colour it is meant to be printed in.
+                    data-tone={tile.space.tone}
+                    data-accent={tile.accent}
+                    transform={`translate(${tile.face.x}, ${tile.face.y + dy})`}
+                  >
+                    <rect
+                      className={styles.captionPlate}
+                      x={-plateWidth / 2}
+                      y={-captionSize * 0.78}
+                      width={plateWidth}
+                      height={captionSize * 1.56}
+                      rx={captionSize * 0.62}
+                    />
+                    <text
+                      className={styles.captionText}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      y={captionSize * 0.04}
+                      style={{ fontSize: `${captionSize}px` }}
+                    >
+                      {tile.caption}
+                    </text>
+                  </g>
+                )
+              })}
+            </g>
           </g>
         </svg>
       </div>
@@ -1502,7 +1688,14 @@ export function Board({
           box is what `e2e/layout.spec.ts` measures against its grid cell,
           and a control added as a *sibling* of the card would be a second
           box in that cell for the layout to get wrong. */}
-      <ZoomControls zoom={userZoom} onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetZoom} />
+      <ZoomControls
+        zoom={userZoom}
+        onZoomIn={zoomIn}
+        onZoomOut={zoomOut}
+        onReset={resetZoom}
+        onRecentre={recentre}
+        recentreLabel={activePlayer ? `Back to ${activePlayer.name}'s car` : 'Back to the active car'}
+      />
 
       {/* The drawing is a single image to assistive technology, so who is on the
           board — and, above all, who is riding with them — is stated here in
