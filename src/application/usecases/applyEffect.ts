@@ -35,6 +35,7 @@ import {
   rungFor,
   seniorityOf,
 } from '@domain/edition/lookup'
+import { passingCut } from '@domain/rules/careerGate'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
 import { hazardBillsAhead } from '@domain/board/movement'
 import { SPIN_VALUES, householdSwing, perPipPayout } from '@domain/rules/diePayout'
@@ -364,7 +365,12 @@ function tuitionBands(tuition: TuitionSpec, currency: CurrencySpec): readonly Ro
   return tuition.outcomes.map((band) => {
     const range = band.upTo === previousUpTo + 1 ? `${band.upTo}` : `${previousUpTo + 1}-${band.upTo}`
     previousUpTo = band.upTo
-    return { range, amount: band.cost === 0 ? 'Full ride' : money(band.cost) }
+    if (band.cost === 0) return { range, amount: 'Full ride' }
+    // A band that pays — the doctorate done inside a company, on a salary.
+    // Signed the way the joint account and the year in the trade are signed,
+    // because a bare figure in a column of bills reads as one more bill.
+    if (band.cost < 0) return { range, amount: `+${money(-band.cost)}` }
+    return { range, amount: money(band.cost) }
   })
 }
 
@@ -417,6 +423,39 @@ function careerOfferTable(
   edition: Edition,
 ): readonly RollTableRow[] {
   return [careerOffer(LOW_HALF, first, currency, edition), careerOffer(HIGH_HALF, second, currency, edition)]
+}
+
+/**
+ * The same two offers, behind a bar — a gate's table rather than a fair's.
+ *
+ * The losing faces are a row of their own, and they are the first row,
+ * because they are the likely one: a competition that appoints on a five or a
+ * six is four faces of nothing, and a card that printed only the two posts
+ * would be advertising a job fair rather than a concours. This is the one die
+ * in the game whose table mixes a plain outcome with career offers, which
+ * `RollTable` has been able to lay out from the day it was written.
+ *
+ * The passing faces are then split between the two offers exactly the way the
+ * whole die is split when there is no bar — the lower of them takes the
+ * first, the upper the second — and `resolveCareerSpin` reads the same split
+ * back rather than working it out a second way.
+ */
+function gatedCareerOfferTable(
+  first: Career,
+  second: Career,
+  passSpin: SpinValue,
+  missNote: string,
+  currency: CurrencySpec,
+  edition: Edition,
+): readonly RollTableRow[] {
+  const miss: RollAmountRow = {
+    range: passSpin === 2 ? '1' : `1-${passSpin - 1}`,
+    amount: missNote,
+  }
+  const cut = passingCut(passSpin)
+  const low = cut - 1 === passSpin ? `${passSpin}` : `${passSpin}-${cut - 1}`
+  const high = cut === SPIN_FACES ? `${SPIN_FACES}` : `${cut}-${SPIN_FACES}`
+  return [miss, careerOffer(low, first, currency, edition), careerOffer(high, second, currency, edition)]
 }
 
 function houseDecisionOptions(
@@ -1349,14 +1388,27 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        * free look at two jobs, and Company Road would never be worth taking.
        */
       const mayStay = player.career !== null && effect.compulsory !== true
+      /*
+       * A gate is a different question from a fair, and the card has to ask
+       * it in different words. "Which one you take" assumes you are taking
+       * one; at a concours four faces in six take nothing at all, and the
+       * table underneath says so in its own first row.
+       */
+      const gate = effect.passSpin
       const options: DecisionOption[] = [
         {
           id: VALUE_SPIN_OPTION_ID,
           turnsTheDie: true,
           label: 'Roll',
-          description: 'Roll to see which one you take.',
+          description:
+            gate === undefined
+              ? 'Roll to see which one you take.'
+              : 'Roll for the result. Most people do not get one.',
           icon: space.icon,
-          table: careerOfferTable(first, second, currency, edition),
+          table:
+            gate === undefined
+              ? careerOfferTable(first, second, currency, edition)
+              : gatedCareerOfferTable(first, second, gate, 'Not this time', currency, edition),
         },
       ]
       if (mayStay && player.career) {
@@ -1383,9 +1435,12 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         : 'Two other trades would take you at the level you are on.'
       const decision: Decision = {
         kind: 'valueSpin',
-        prompt: mayStay
-          ? `${openingLine} ${currentIncomeNote(player, economy, currency)}`
-          : `Your job is changing — pick your next one. ${currentIncomeNote(player, economy, currency)}`,
+        prompt:
+          gate !== undefined
+            ? `Two posts are open across the whole country, and the panel appoints on a ${gate} or better. ${currentIncomeNote(player, economy, currency)}`
+            : mayStay
+              ? `${openingLine} ${currentIncomeNote(player, economy, currency)}`
+              : `Your job is changing — pick your next one. ${currentIncomeNote(player, economy, currency)}`,
         options,
         offeredCareerIds: [first.id, second.id],
       }
@@ -1394,23 +1449,29 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         0,
         [
           effect.reason,
-          ...(crossing
-            ? ['They are hiring at the bottom rung, and only at the bottom rung.']
-            : mayStay
-              ? ['Same rung, same money today — but a different ladder above it.']
-              : []),
+          ...(gate !== undefined
+            ? ['Miss it and nothing changes: the job, the rung and the money are all still yours.']
+            : crossing
+              ? ['They are hiring at the bottom rung, and only at the bottom rung.']
+              : mayStay
+                ? ['Same rung, same money today — but a different ladder above it.']
+                : []),
         ],
         'milestone',
-        mayStay
-          ? `Two offers on the table for ${player.name} — and nobody is making them take either.`
-          : `New offers on the table — ${player.name} is changing careers whether they like it or not!`,
+        gate !== undefined
+          ? `Two posts, one panel, and the whole country applying — ${player.name} sits it.`
+          : mayStay
+            ? `Two offers on the table for ${player.name} — and nobody is making them take either.`
+            : `New offers on the table — ${player.name} is changing careers whether they like it or not!`,
       )
       const log = appendLog(
         state,
         player.id,
-        mayStay
-          ? `${effect.reason} ${player.name} weighs up two offers.`
-          : `${effect.reason} ${player.name} must pick a new career.`,
+        gate !== undefined
+          ? `${effect.reason} ${player.name} sits the competition.`
+          : mayStay
+            ? `${effect.reason} ${player.name} weighs up two offers.`
+            : `${effect.reason} ${player.name} must pick a new career.`,
         'event',
       )
       return { state: { ...state, log, pendingDecision: decision }, event }

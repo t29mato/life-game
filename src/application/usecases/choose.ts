@@ -13,6 +13,7 @@ import { SHARES_PER_PURCHASE, SPIN_FACES } from '@domain/model/constants'
 import { nextMovementLeg, planMovementVia } from '@domain/board/movement'
 import { editionOf } from '@domain/edition/registry'
 import { findCareer, findHouse, findStock, nextRungOf, tradeYearStoriesFor } from '@domain/edition/lookup'
+import { gateOfferIndex, gatePassed } from '@domain/rules/careerGate'
 import { earlyLoanRepaymentFor } from '@domain/rules/difficulty'
 import { householdSwing, perPipPayout } from '@domain/rules/diePayout'
 import { marriageBandFor } from '@domain/rules/marriage'
@@ -223,7 +224,45 @@ function resolveCareerSpin(
 ): GameState {
   const offeredIds = state.pendingDecision?.offeredCareerIds
   if (!offeredIds) throw new Error('choose: career spin with no offers on the table')
-  const pickedId = spinValue <= SPIN_FACES / 2 ? offeredIds[0] : offeredIds[1]
+
+  /*
+   * A gate, and the face that did not clear it — the one career roll on the
+   * board that can end with nothing happening at all.
+   *
+   * Fail-soft in the fullest sense: the job, the rung, the raises and the
+   * money are exactly where they were, and the only thing spent is the year.
+   * How many years there are to spend is the number of gate tiles the lane
+   * carries; the board is what runs out, not a counter. See
+   * `SpaceEffect`'s `passSpin`.
+   */
+  const gate = space?.effect.type === 'careerChange' ? space.effect.passSpin : undefined
+  if (gate !== undefined && !gatePassed(spinValue, gate)) {
+    const event = outcomeEvent(
+      space,
+      player,
+      'The Result',
+      0,
+      player.career
+        ? [`Still a ${player.career.title}, on ${money(salaryRate(player.career.salary, edition.currency))} a ${salaryPeriod(edition.currency)}.`]
+        : ['Still between jobs, and still eligible to sit it again.'],
+      'normal',
+      `Not this time. The list is posted, ${player.name} is not on it, and nothing else about the year has changed.`,
+    )
+    return resolved(
+      state,
+      state.players,
+      event,
+      `${player.name} rolls a ${spinValue} and is not appointed.`,
+      'info',
+    )
+  }
+
+  const pickedId =
+    gate === undefined
+      ? spinValue <= SPIN_FACES / 2
+        ? offeredIds[0]
+        : offeredIds[1]
+      : offeredIds[gateOfferIndex(spinValue, gate)]
   const career = findCareer(pickedId, edition)
   if (!career) throw new Error(`choose: unknown career option "${pickedId}"`)
 
@@ -516,7 +555,21 @@ function resolveTuitionSpin(
   // `applyEffect` printed the same spec's bands before the press.
   const bill = space?.effect.type === 'tuition' ? space.effect.bill : undefined
   const band = tuitionBandFor(tuitionSpecFor(bill, economy).outcomes, spinValue)
-  const updated = band.cost > 0 ? debitPlayer(player, band.cost, economy) : player
+  /*
+   * Three ways this die can land, not two.
+   *
+   * A bill is debited (and the bank tops the player up if they cannot cover
+   * it). Zero is a full ride. And a *negative* band pays: the doctorate done
+   * inside a company, on an employment contract, which is a real thing in one
+   * country and the only face of this die anywhere in the game that puts
+   * money into a pocket. See `TuitionOutcome.cost`.
+   */
+  const updated =
+    band.cost > 0
+      ? debitPlayer(player, band.cost, economy)
+      : band.cost < 0
+        ? creditPlayer(player, -band.cost)
+        : player
   const delta = updated.money - player.money
 
   /*
@@ -530,15 +583,17 @@ function resolveTuitionSpin(
    * used to argue with it says nothing it does not already say — except on a
    * full ride, where there is no plate at all and the good news needs saying.
    */
-  const notes = band.cost > 0 ? [] : ['No tuition due — a full ride.']
+  const notes = band.cost > 0 ? [] : band.cost < 0 ? [] : ['No tuition due — a full ride.']
 
   const event = outcomeEvent(space, player, 'Tuition Bill', delta, notes, emphasisForMoney(delta, economy), band.note)
   return resolved(
     state,
     replacePlayer(state.players, updated),
     event,
-    `${player.name} rolls a ${spinValue} for tuition: ${band.cost > 0 ? money(band.cost) : 'a full ride'}.`,
-    band.cost > 0 ? 'money-out' : 'event',
+    `${player.name} rolls a ${spinValue} for tuition: ${
+      band.cost > 0 ? money(band.cost) : band.cost < 0 ? `${money(-band.cost)} paid to them` : 'a full ride'
+    }.`,
+    band.cost > 0 ? 'money-out' : band.cost < 0 ? 'money-in' : 'event',
   )
 }
 

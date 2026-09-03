@@ -8,6 +8,12 @@ import {
   INDUSTRY_CAREERS,
   PERMANENT_CAREERS,
 } from '@domain/edition/japan-researcher'
+import {
+  CONTRACT_CAREERS,
+  EDITION_RESEARCHER_FRANCE,
+  FONCTIONNAIRE_CAREERS,
+  RESEARCHER_FRANCE_ECONOMY,
+} from '@domain/edition/france-researcher'
 import { ladderPositionOf } from '@domain/edition/lookup'
 import { householdSwing, perPipPayout } from '@domain/rules/diePayout'
 import { expectedMarriageValue } from '@domain/rules/marriage'
@@ -731,6 +737,27 @@ describe('applyEffect', () => {
         expect(amountRows(table).some((row) => row.amount === amount)).toBe(true)
       }
     })
+
+    it('prints a band that pays as money coming in, signed', () => {
+      /*
+       * The Researcher: France board's thesis die, whose best face is a
+       * doctorate done inside a company on a salary. A bare figure in a
+       * column of bills reads as one more bill, so the paying face is signed
+       * the way the joint account and the year in the trade are signed. See
+       * `TuitionOutcome.cost`.
+       */
+      const state = fixtureState({
+        editionId: EDITION_RESEARCHER_FRANCE.id,
+        players: [fixturePlayer({ money: 100_000 })],
+      })
+      const { state: next } = applyEffect(state, fixtureSpace(BILL), { random: createFakeRandom() })
+      const table = amountRows(next.pendingDecision?.options[0]?.table)
+      const paying = RESEARCHER_FRANCE_ECONOMY.tuition.outcomes.find((band) => band.cost < 0)!
+      expect(table[table.length - 1]).toEqual({
+        range: '6',
+        amount: `+${formatMoney(-paying.cost, EDITION_RESEARCHER_FRANCE.currency)}`,
+      })
+    })
   })
 
   describe('haveChildren', () => {
@@ -1374,6 +1401,66 @@ describe('applyEffect', () => {
           random: createFakeRandom(),
         })
         for (const id of next.pendingDecision!.offeredCareerIds!) expect(rungOf(id)).toBe(2)
+      })
+    })
+
+    /**
+     * A gate rather than a hall of booths — the Researcher: France board's
+     * concours, and the only die in the game whose table can say "nothing".
+     * See `SpaceEffect`'s `passSpin`.
+     */
+    describe('when the tile carries a bar', () => {
+      const GATE = {
+        effect: {
+          type: 'careerChange',
+          reason: 'The competition, first sitting',
+          compulsory: true,
+          pool: 'doctorate',
+          passSpin: 5,
+        },
+      } as const
+
+      const onFranceBoard = () =>
+        fixtureState({
+          editionId: EDITION_RESEARCHER_FRANCE.id,
+          players: [
+            fixturePlayer({
+              hasDegree: true,
+              hasDoctorate: true,
+              career: CONTRACT_CAREERS.find((c) => c.id === 'career-frr-postdoc')!,
+            }),
+          ],
+        })
+
+      it('publishes the losing faces first, and they are most of the die', () => {
+        // A competition that appoints on a five or a six is four faces of
+        // nothing, and a card printing only the two posts would be
+        // advertising a job fair.
+        const { state: next } = applyEffect(onFranceBoard(), fixtureSpace(GATE), {
+          random: createFakeRandom(),
+        })
+        const table = next.pendingDecision!.options[0]!.table ?? []
+        expect(amountRows(table)).toEqual([{ range: '1-4', amount: 'Not this time' }])
+        expect(offerRows(table).map((row) => row.range)).toEqual(['5', '6'])
+      })
+
+      it('deals the shelf the gate exists to protect, and nothing else', () => {
+        const { state: next } = applyEffect(onFranceBoard(), fixtureSpace(GATE), {
+          random: createFakeRandom(),
+        })
+        const permanent = new Set(FONCTIONNAIRE_CAREERS.map((career) => career.id))
+        for (const id of next.pendingDecision!.offeredCareerIds!) expect(permanent.has(id)).toBe(true)
+      })
+
+      it('says the bar out loud, and says that missing it costs nothing', () => {
+        const { state: next, event } = applyEffect(onFranceBoard(), fixtureSpace(GATE), {
+          random: createFakeRandom(),
+        })
+        expect(next.pendingDecision!.prompt).toContain('5 or better')
+        expect(event.notes.join(' ')).toContain('nothing changes')
+        // Compulsory, so there is no "Stay" — but there is nothing to stay
+        // *from* either, which is the whole difference from a fair.
+        expect(next.pendingDecision!.options).toHaveLength(1)
       })
     })
   })

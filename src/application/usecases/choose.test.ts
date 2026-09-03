@@ -11,6 +11,12 @@ import {
 import { createBoard } from '@domain/board/createBoard'
 import { allEditions } from '@domain/edition/registry'
 import { BASIC_CAREERS, USA_ECONOMY } from '@domain/edition/usa'
+import {
+  CONTRACT_CAREERS,
+  EDITION_RESEARCHER_FRANCE,
+  FONCTIONNAIRE_CAREERS,
+  RESEARCHER_FRANCE_ECONOMY,
+} from '@domain/edition/france-researcher'
 import { HOUSES } from '@domain/edition/usa'
 import { STOCKS } from '@domain/edition/usa'
 import { applyEffect, insuranceOptionId, VALUE_SPIN_OPTION_ID } from './applyEffect'
@@ -899,6 +905,89 @@ describe('choose', () => {
         const next = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [bestBand.upTo] }) })
         expect(next.lastEvent!.moneyDelta).toBe(0)
         expect(next.lastEvent!.balanceAfter).toBeUndefined()
+      })
+
+      it('pays the player on a band that costs less than nothing', () => {
+        /*
+         * The Researcher: France board's thesis die, and the only face of a
+         * tuition tile anywhere in this game that credits rather than debits:
+         * a doctorate done inside a company, on an employment contract. See
+         * `TuitionOutcome.cost`.
+         */
+        const paying =
+          RESEARCHER_FRANCE_ECONOMY.tuition.outcomes[RESEARCHER_FRANCE_ECONOMY.tuition.outcomes.length - 1]!
+        expect(paying.cost).toBeLessThan(0)
+        const player = fixturePlayer({ spaceId: 'a', money: 100_000 })
+        const state = decisionState({
+          editionId: EDITION_RESEARCHER_FRANCE.id,
+          board: { ...board, spaces: { ...board.spaces, a: billSpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+
+        const next = choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [paying.upTo] }) })
+        expect(next.players[0]!.money).toBe(100_000 - paying.cost)
+        expect(next.lastEvent!.moneyDelta).toBe(-paying.cost)
+        // No "full ride" note: the plate carries the money coming in, and the
+        // band's own line is the colour.
+        expect(next.lastEvent!.notes).toEqual([])
+        expect(next.log[0]!.message).toContain('paid to them')
+      })
+    })
+
+    /**
+     * The concours: a `careerChange` with a bar on it. Two faces appoint, four
+     * do nothing at all, and doing nothing is the point — see `SpaceEffect`'s
+     * `passSpin` and `src/domain/rules/careerGate.ts`.
+     */
+    describe('a gated career roll', () => {
+      const board = fixtureMovementBoard()
+      const gateSpace = {
+        ...board.spaces.a!,
+        effect: {
+          type: 'careerChange' as const,
+          reason: 'The competition',
+          compulsory: true,
+          pool: 'doctorate' as const,
+          passSpin: 5 as const,
+        },
+      }
+      const postdoc = CONTRACT_CAREERS.find((c) => c.id === 'career-frr-postdoc')!
+      const offers = [
+        FONCTIONNAIRE_CAREERS[0]!.id,
+        FONCTIONNAIRE_CAREERS[2]!.id,
+      ] as [string, string]
+
+      const sitting = () =>
+        decisionState({
+          editionId: EDITION_RESEARCHER_FRANCE.id,
+          board: { ...board, spaces: { ...board.spaces, a: gateSpace } },
+          players: [
+            fixturePlayer({ spaceId: 'a', hasDegree: true, hasDoctorate: true, career: postdoc, money: 100_000 }),
+          ],
+          pendingDecision: {
+            ...decision('valueSpin', VALUE_SPIN_OPTION_ID),
+            offeredCareerIds: offers,
+          },
+        })
+
+      it('changes absolutely nothing on a face under the bar', () => {
+        const next = choose(sitting(), VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [4] }) })
+        expect(next.players[0]!.career).toEqual(postdoc)
+        expect(next.players[0]!.money).toBe(100_000)
+        expect(next.lastEvent!.moneyDelta).toBe(0)
+        expect(next.lastEvent!.rolled).toBe(4)
+        expect(next.lastEvent!.narration).toContain('Not this time')
+        expect(next.phase).toBe('resolved')
+      })
+
+      it('appoints on the bar itself, and splits the passing faces between the two posts', () => {
+        const cleared = choose(sitting(), VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [5] }) })
+        expect(cleared.players[0]!.career!.id).toBe(offers[0])
+        expect(cleared.players[0]!.career!.cannotBeLaidOff).toBe(true)
+
+        const theOther = choose(sitting(), VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [6] }) })
+        expect(theOther.players[0]!.career!.id).toBe(offers[1])
       })
     })
   })

@@ -236,7 +236,19 @@ export interface TuitionOutcome {
   readonly upTo: SpinValue
   /** One line for the event card, in the edition's own voice. */
   readonly note: string
-  /** What the bill comes to. Zero for a full ride. */
+  /**
+   * What the bill comes to. Zero for a full ride.
+   *
+   * Negative is a band that **pays the player**, and it is not a trick with a
+   * sign: a doctorate done inside a company on an employment contract is
+   * genuinely a salary rather than a fee, and the Researcher: France board is
+   * where that face of the die belongs (see its `economy.ts`). The whole
+   * tuition path handles the sign rather than clamping it — the die's
+   * published table prints the good face as money coming in,
+   * `expectedTuitionCost` counts it against the mean the way an accountant
+   * would, and the tile credits instead of debiting. Every other edition's
+   * bands are zero or positive and nothing about them changes.
+   */
   readonly cost: Money
 }
 
