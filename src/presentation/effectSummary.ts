@@ -1,6 +1,7 @@
 import { SPIN_FACES } from '@domain/model/constants'
 import type { SpaceEffect } from '@domain/model/types'
 import type { Edition } from '@domain/edition/types'
+import { certainArrivals } from '@domain/rules/children'
 
 import { formatMoney, formatMoneyDelta } from './format'
 
@@ -91,10 +92,22 @@ export function describeEffect(effect: SpaceEffect, edition: Edition): string {
       return 'A proposal, settled on the die — and a gift from everyone if it lands.'
     case 'household':
       return 'The joint account, settled on the die. Married players only.'
-    case 'haveChildren':
-      return `${effect.count === 1 ? '+1 child' : `+${effect.count} children`}, and ${band(
-        effect.celebrationPerPip,
-      )} in gifts`
+    case 'haveChildren': {
+      // A tile whose faces all agree names its outcome; one that actually
+      // rolls names the whole spread, empty end included. Saying "+1 child"
+      // about a die that lands on none two faces in six would be the summary
+      // promising what the tile cannot deliver.
+      const certain = certainArrivals(effect.arrivals)
+      if (certain !== null) {
+        const gift = money(certain * effect.celebrationPerChild)
+        return `${certain === 1 ? '+1 child' : `+${certain} children`}, and ${gift} in gifts`
+      }
+      const counts = effect.arrivals.map((arrival) => arrival.children)
+      const most = Math.max(...counts)
+      const least = Math.min(...counts)
+      const top = money(most * effect.celebrationPerChild)
+      return `${least} to ${most} children on the die, and up to ${top} in gifts`
+    }
     case 'divorce':
       return `A separation: ${delta(-economy.divorceSettlement)}, and the children go with them.`
 

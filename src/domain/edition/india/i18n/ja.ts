@@ -225,7 +225,7 @@ export const INDIA_JA: EditionTranslation = {
     },
     'in-family-new-baby': {
       title: '赤ちゃん誕生',
-      description: '小さな同居人がやってくる。そして親戚一同もやってくる。菓子と意見と、会場を借りないと収まらない命名式を携えて。',
+      description: '部屋を塗り、ベビーベッドを組み立てた。親戚一同は菓子と意見と会場の電話番号を手に、待機している。',
     },
     'in-family-admission': {
       title: '学校の入学審査',
@@ -301,6 +301,11 @@ export const INDIA_JA: EditionTranslation = {
       title: '共同口座',
       description: '給料はひとつにまとめられ、自分の分も共同口座に入る。そこから毎月決まった額だけ手元に戻ってくる。家計簿の欄には「小遣い」と書いてある。',
       reason: '家計の精算',
+    },
+    'in-midtown-head-office': {
+      title: '校長室にて',
+      description: '平日に来てくださいと言われる。実験は野心的だった。理科室は無事で、請求書に並ぶ備品は無事ではない。',
+      reason: '壊したものの弁償、子ども一人につき',
     },
     'in-midtown-festival-bonus': {
       title: '祭りの賞与',

@@ -180,7 +180,7 @@ describe('the researcher france route is the measured skeleton, bar the tiles it
       case 'stockDividend':
         return [effect.perShare]
       case 'haveChildren':
-        return [effect.celebrationPerPip]
+        return [effect.celebrationPerChild]
       default:
         return []
     }

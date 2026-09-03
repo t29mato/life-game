@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { EARLY_LOAN_REPAYMENT, LOAN_PRINCIPAL, LOAN_REPAYMENT } from '../model/constants'
 import type { Difficulty, SpaceEffect } from '../model/types'
+import { NEW_BABY_ARRIVALS } from './children'
 import {
   DIFFICULTIES,
   difficultyProfile,
@@ -152,7 +153,7 @@ describe('harshenEffect', () => {
       { type: 'buyHouse' },
       { type: 'bank' },
       { type: 'gainLifeTiles', count: 1 },
-      { type: 'haveChildren', count: 1, celebrationPerPip: 500 },
+      { type: 'haveChildren', arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 500 },
     ]
     for (const effect of untouched) {
       expect(harshenEffect(effect, 'veryHard')).toEqual(effect)

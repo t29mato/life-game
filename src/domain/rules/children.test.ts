@@ -2,7 +2,16 @@ import { describe, expect, it } from 'vitest'
 import type { Career, Player } from '../model/types'
 import { USA_ECONOMY } from '../edition/usa/economy'
 import { findCareer } from '../edition/lookup'
-import { childReturnFor, expectedChildValue } from './children'
+import type { SpinValue } from '../model/types'
+import {
+  NEW_BABY_ARRIVALS,
+  TWINS_ARRIVALS,
+  certainArrivals,
+  childReturnFor,
+  childrenArrivingOn,
+  expectedArrivals,
+  expectedChildValue,
+} from './children'
 
 /** A player whose only interesting property is what a payday is worth to them. */
 const earner = (salary: number): Player => ({ children: 0, career: { salary } as Career }) as Player
@@ -95,5 +104,50 @@ describe('expectedChildValue', () => {
       expectedChildValue(earner(70_000)) * 100,
       6,
     )
+  })
+})
+
+describe('the arrival die', () => {
+  /*
+   * The owner's own numbers, spelled out face by face rather than derived from
+   * `NEW_BABY_ARRIVALS`: 1〜2だと0人、3〜5で一人、6で双子. A test that reads
+   * the same table the engine reads cannot notice the day the table is edited,
+   * which is the only day this test is for.
+   */
+  it.each([
+    [1, 0],
+    [2, 0],
+    [3, 1],
+    [4, 1],
+    [5, 1],
+    [6, 2],
+  ])('brings %i → %i on a New Baby tile', (face, expected) => {
+    expect(childrenArrivingOn(NEW_BABY_ARRIVALS, face as SpinValue)).toBe(expected)
+  })
+
+  it('is two faces in six where no child arrives, and that is the point', () => {
+    const empty = ([1, 2, 3, 4, 5, 6] as const).filter(
+      (face) => childrenArrivingOn(NEW_BABY_ARRIVALS, face) === 0,
+    )
+    expect(empty).toEqual([1, 2])
+  })
+
+  it('averages five sixths of a child, which is what a computer seat prices it at', () => {
+    expect(expectedArrivals(NEW_BABY_ARRIVALS)).toBeCloseTo(5 / 6, 10)
+  })
+
+  it('reads a scan that has already happened as certain, on every face', () => {
+    expect(certainArrivals(TWINS_ARRIVALS)).toBe(2)
+    expect(expectedArrivals(TWINS_ARRIVALS)).toBe(2)
+  })
+
+  it('says a real distribution is not certain, which is what asks for the die', () => {
+    expect(certainArrivals(NEW_BABY_ARRIVALS)).toBeNull()
+  })
+
+  it('falls back to the last band rather than to nobody if a table stops short', () => {
+    // A malformed table handing out nothing is a far worse failure here than
+    // one repeating its best band — see `childrenArrivingOn`.
+    expect(childrenArrivingOn([{ upTo: 3, children: 1 }], 6)).toBe(1)
   })
 })

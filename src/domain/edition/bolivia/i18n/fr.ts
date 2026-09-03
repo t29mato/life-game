@@ -224,7 +224,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'bo-family-new-baby': {
       title: 'Naissance',
-      description: 'Un tout petit colocataire arrive, et quatre grands-mères déclarent immédiatement qu’il ressemble exactement à quatre personnes différentes.',
+      description: 'La chambre est peinte et le berceau monté. Quatre grands-mères ont déjà commencé à tricoter, ce qu’elles jugent un pari raisonnable.',
     },
     'bo-family-childcare': {
       title: 'Frais de garde',
@@ -300,6 +300,11 @@ export const BOLIVIA_FR: EditionTranslation = {
       title: 'La bourse commune',
       description: 'L’argent est mis en commun désormais : le salaire, la recette de l’étal, et l’enveloppe de dollars scotchée derrière l’armoire qui officiellement n’existe pas. Solder le mois est un sommet diplomatique.',
       reason: 'La bourse commune, soldée',
+    },
+    'bo-midtown-window': {
+      title: 'La vitre cassée',
+      description: 'Un ballon, la fenêtre du voisin, et un voisin qui reste extrêmement calme — ce qui, comme tout le quartier le sait, est bien pire.',
+      reason: 'Ce qu’ils ont cassé, par enfant',
     },
     'bo-midtown-aguinaldo': {
       title: 'Décembre paie double',

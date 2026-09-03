@@ -222,7 +222,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'fr-family-new-baby': {
       title: 'Naissance',
-      description: 'Un tout petit membre de la famille arrive, et l’État — qui n’attendait que ça — lui ouvre un dossier, une allocation et un calendrier vaccinal.',
+      description: 'La petite chambre est peinte et le berceau monté. L’État, qui n’attendait que ça, ouvrira le dossier le jour où il y aura un dossier.',
     },
     'fr-family-creche': {
       title: 'La liste d’attente',
@@ -298,6 +298,11 @@ export const FRANCE_FR: EditionTranslation = {
       title: 'Le compte joint',
       description: 'Vous fusionnez vos comptes lors d’un rendez-vous en bonne et due forme. Pour la première fois, les dépenses de quelqu’un d’autre sont aussi, inévitablement, votre problème.',
       reason: 'Le compte joint, soldé',
+    },
+    'fr-midtown-convocation': {
+      title: 'La convocation',
+      description: 'Un courrier vous convoque à l’école un mardi matin. Le CPE est poli, méthodique, et tient un devis détaillé pour une porte.',
+      reason: 'Ce qu’ils ont cassé, par enfant',
     },
     'fr-midtown-bonus': {
       title: 'Le treizième mois',

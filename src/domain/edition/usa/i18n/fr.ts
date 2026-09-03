@@ -264,7 +264,7 @@ export const USA_FR: EditionTranslation = {
     },
     'family-2': {
       title: 'Naissance',
-      description: 'Un tout petit colocataire arrive, et plus rien ne sera jamais calme.',
+      description: 'La chambre d’amis est peinte en jaune et le berceau est monté. Ce que l’année en fera ne dépend pas de vous.',
     },
     'family-childcare': {
       title: 'Frais de crèche',
@@ -340,6 +340,11 @@ export const USA_FR: EditionTranslation = {
       title: 'Compte joint',
       description: 'Vous fusionnez les comptes, et pour la première fois les dépenses de quelqu’un d’autre sont aussi, inévitablement, les vôtres.',
       reason: 'Le compte joint, soldé',
+    },
+    'midtown-phone-call': {
+      title: 'Le coup de fil',
+      description: 'L’école appelle en plein rendez-vous. Personne n’est blessé, tout le monde est en tort, et quelque chose au fond de la classe doit être remplacé.',
+      reason: 'Ce qu’ils ont cassé, par enfant',
     },
     'midtown-bonus': {
       title: 'Prime de fin d’année',

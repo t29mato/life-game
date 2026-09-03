@@ -223,7 +223,7 @@ export const JAPAN_JA: EditionTranslation = {
     },
     'jp-family-new-baby': {
       title: '赤ちゃん誕生',
-      description: '小さな同居人がやってくる。区役所からは保健師さんと冊子と、入院費をほぼまかなえる一時金が届く。',
+      description: '部屋を塗り、ベビーベッドを組み立てた。区役所は冊子と保健師さんと一時金を用意して待っている。これからも待っている。',
     },
     'jp-family-waitlist': {
       title: '待機児童',
@@ -299,6 +299,11 @@ export const JAPAN_JA: EditionTranslation = {
       title: 'お小遣い制',
       description: '口座がひとつにまとまる。給料は全額そちらへ入り、毎月決まった額だけ手元に戻ってくる。家計簿の欄には「小遣い」と書いてある。',
       reason: '家計の精算',
+    },
+    'jp-midtown-phone-call': {
+      title: '担任から電話',
+      description: '会議中に担任の先生から電話が来る。子どもは無事。教室の窓は無事ではない。学校としては、静かに片づけたいとのこと。',
+      reason: '壊したものの弁償、子ども一人につき',
     },
     'jp-midtown-bonus': {
       title: '冬のボーナス',

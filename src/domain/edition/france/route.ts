@@ -1,4 +1,5 @@
 import type { RouteBranch, RouteDefinition, SpaceContent } from '../../board/route'
+import { NEW_BABY_ARRIVALS, TWINS_ARRIVALS } from '../../rules/children'
 import {
   flavour,
   fork,
@@ -322,8 +323,8 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'fr-family-new-baby', kind: 'event', title: 'New Baby',
-    description: 'A tiny new family member arrives, and the state — which was ready and waiting — opens a file, a benefit, and a vaccination schedule for them.',
-    effect: { type: 'haveChildren', count: 1, celebrationPerPip: 600 },
+    description: 'The small room is painted and the cot is built. The state, which was ready and waiting, will open the file whenever there is a file to open.',
+    effect: { type: 'haveChildren', arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 2_500 },
     tone: 'purple', icon: 'space:new-baby',
   },
   setback('hard', 'fr-family-creche', 'The Crèche Waitlist',
@@ -345,7 +346,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'fr-family-twins', kind: 'normal', title: 'Twins',
     description: 'The technician goes quiet at the ultrasound, turns the screen around, and holds up two fingers.',
-    effect: { type: 'haveChildren', count: 2, celebrationPerPip: 1_100 },
+    effect: { type: 'haveChildren', arrivals: TWINS_ARRIVALS, celebrationPerChild: 2_500 },
     tone: 'purple', icon: 'space:second-baby',
   },
 ]
@@ -427,6 +428,17 @@ const MIDTOWN: readonly SpaceContent[] = [
     description: 'You merge your bank accounts at a formal appointment. For the first time, someone else\'s spending is now, unavoidably, your problem too.',
     effect: { type: 'household', reason: 'The joint account, settled up' },
     tone: 'purple', icon: 'finance:bank-visit',
+  },
+  /*
+   * The child-mischief tile — see the USA route's own comment on
+   * `midtown-phone-call` for why it is a trunk `payPerChild` rather than
+   * anything new. Zero for a player with no children, by construction.
+   */
+  {
+    id: 'fr-midtown-convocation', kind: 'event', title: 'The Convocation',
+    description: 'A letter summons you to the school on a Tuesday morning. The head of discipline is polite, thorough, and holding an itemised estimate for a door.',
+    effect: { type: 'payPerChild', amount: 4_000, reason: 'Whatever they broke, per child' },
+    tone: 'purple', icon: 'space:school-fees',
   },
   {
     id: 'fr-midtown-bonus', kind: 'payday', title: 'Year-End Bonus',

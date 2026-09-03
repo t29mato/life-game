@@ -7,6 +7,7 @@ import type { GameState, Player, PlayerColor, Space } from '@domain/model/types'
 import { EDITION_USA } from '@domain/edition/usa'
 import { registerEdition } from '@domain/edition/registry'
 import { scaleBoard, scaleEdition, scaleEffect } from '@domain/edition/scale'
+import { TWINS_ARRIVALS } from '@domain/rules/children'
 import { createSeededRandom } from '../testing/fakes'
 import { fixturePlayer, fixtureSpace, fixtureState } from '../testing/fixtures'
 import { startGame } from '../usecases/startGame'
@@ -248,7 +249,7 @@ describe('every effect the CPU prices scales with the edition', () => {
     { name: 'chooseCareer', space: fixtureSpace({ effect: { type: 'chooseCareer', pool: 'basic' } }) },
     { name: 'graduate', space: fixtureSpace({ effect: { type: 'graduate' } }) },
     { name: 'getMarried', space: fixtureSpace({ effect: { type: 'getMarried' } }) },
-    { name: 'haveChildren', space: fixtureSpace({ effect: { type: 'haveChildren', count: 2, celebrationPerPip: 500 } }) },
+    { name: 'haveChildren', space: fixtureSpace({ effect: { type: 'haveChildren', arrivals: TWINS_ARRIVALS, celebrationPerChild: 500 } }) },
     { name: 'buyHouse', space: fixtureSpace({ effect: { type: 'buyHouse' } }) },
     { name: 'upgradeHouse', space: fixtureSpace({ effect: { type: 'upgradeHouse' } }) },
     { name: 'collectFromEach', space: fixtureSpace({ effect: { type: 'collectFromEach', amount: 800, reason: 'Whip-round' } }) },

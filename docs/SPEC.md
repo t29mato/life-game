@@ -114,7 +114,7 @@ Implement every variant of `SpaceEffect`:
 | `chooseCareer` | Offer 2 random careers from the given pool → decision |
 | `graduate` | `hasDegree = true` |
 | `getMarried` | `isMarried = true`; every other player pays `WEDDING_GIFT` |
-| `haveChildren` | `children += count` |
+| `haveChildren` | Roll; `arrivals` says how many arrive on that face (New Baby: 1-2 none, 3-5 one, 6 twins), and `celebrationPerChild × arrivals` is paid in gifts. A tile whose every face agrees (Twins) settles on landing with no die |
 | `buyHouse` | Offer 3 affordable-ish houses + a "not yet" option → decision |
 | `collectFromEach` | Every other player pays `amount` to the mover |
 | `payEach` | The mover pays `amount` to every other player |

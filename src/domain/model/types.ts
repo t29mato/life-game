@@ -244,6 +244,22 @@ export type SpaceKind =
   /** Terminal space; reaching it retires the player. */
   | 'retirement'
 
+/**
+ * One band of the arrival die on a `haveChildren` tile.
+ *
+ * Written worst-first and read exactly the way `TuitionOutcome` is: the first
+ * band whose `upTo` the face does not exceed is the one that applies, and the
+ * last band must be `upTo: 6` so no face falls off the end. `children: 0` is a
+ * legitimate band — see `haveChildren` — and the last band of a *certain*
+ * tile simply covers all six faces on its own.
+ */
+export interface ChildArrivalBand {
+  /** Highest face that lands in this band. */
+  readonly upTo: SpinValue
+  /** How many arrive on it. Zero is an answer. */
+  readonly children: number
+}
+
 export type SpaceEffect =
   | { readonly type: 'none' }
   | { readonly type: 'gainMoney'; readonly amount: Money; readonly reason: string }
@@ -347,12 +363,30 @@ export type SpaceEffect =
    */
   | { readonly type: 'household'; readonly reason: string }
   /**
-   * `celebrationPerPip` prices the gift envelopes and congratulations checks
-   * that show up whenever a baby actually arrives — real money, on the same
-   * `rate × the spin` formula every other value-spin tile uses, priced per
-   * tile rather than assumed, exactly like `spinForMoney`'s `perPip`.
+   * A new arrival, or none — read off the die like everything else here.
+   *
+   * `arrivals` is the whole distribution, worst-first, in the same band shape
+   * `TuitionSpec` uses: `1-2` no child, `3-5` one, `6` two. The board used to
+   * hand a baby over the moment the pawn landed, which made Family Lane the
+   * one road whose central promise could not miss. Families who never have
+   * children exist, and a board that cannot say so is a board making a claim
+   * about them; a face that arrives empty is not a punishment and is not
+   * scored as one.
+   *
+   * A tile whose every face agrees — the Twins scan, which has already
+   * happened by the time you read the tile — is *certain*, and the engine
+   * resolves it on the spot rather than asking for a die nobody can lose.
+   *
+   * `celebrationPerChild` prices the gift envelopes and congratulations
+   * cheques per head, so the money follows the news: nothing arrives, nothing
+   * is given; twins arrive, twice as much is. Priced per tile rather than
+   * assumed, exactly like `spinForMoney`'s `perPip`.
    */
-  | { readonly type: 'haveChildren'; readonly count: number; readonly celebrationPerPip: Money }
+  | {
+      readonly type: 'haveChildren'
+      readonly arrivals: readonly ChildArrivalBand[]
+      readonly celebrationPerChild: Money
+    }
   | { readonly type: 'buyHouse' }
   | { readonly type: 'collectFromEach'; readonly amount: Money; readonly reason: string }
   | { readonly type: 'payEach'; readonly amount: Money; readonly reason: string }

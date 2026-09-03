@@ -1,4 +1,5 @@
 import type { RouteBranch, RouteDefinition, SpaceContent } from '../../board/route'
+import { NEW_BABY_ARRIVALS, TWINS_ARRIVALS } from '../../rules/children'
 import {
   flavour,
   fork,
@@ -698,8 +699,8 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'family-2', kind: 'event', title: 'New Baby',
-    description: 'A tiny new roommate arrives, and nothing is ever quiet again.',
-    effect: { type: 'haveChildren', count: 1, celebrationPerPip: 600 },
+    description: 'The spare room is painted yellow and the crib is built. What the year does with it is not up to you.',
+    effect: { type: 'haveChildren', arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 2_500 },
     tone: 'purple', icon: 'space:new-baby',
   },
   setback('hard', 'family-childcare', 'Childcare Bill',
@@ -728,7 +729,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
      */
     id: 'family-6', kind: 'normal', title: 'Twins',
     description: 'The scan technician goes quiet, turns the screen round, and points at two of them.',
-    effect: { type: 'haveChildren', count: 2, celebrationPerPip: 1_100 },
+    effect: { type: 'haveChildren', arrivals: TWINS_ARRIVALS, celebrationPerChild: 2_500 },
     tone: 'purple', icon: 'space:second-baby',
   },
 ]
@@ -884,6 +885,49 @@ const MIDTOWN: readonly SpaceContent[] = [
     description: 'You merge the accounts, and for the first time somebody else\'s spending is also, unavoidably, your spending.',
     effect: { type: 'household', reason: 'The joint account, settled up' },
     tone: 'purple', icon: 'finance:bank-visit',
+  },
+  /*
+   * The other half of having children, and the reason a family is no longer
+   * pure upside.
+   *
+   * The owner's call, from the same play session as the arrival die:
+   * 子供がいる=常にプラスとしたくない — a board on which a child is only ever a
+   * bonus tells one story about families and refuses to tell any other. Family
+   * Lane already bills for childcare and for school, and neither of those is
+   * the child *doing* anything; this is the phone call nobody budgets for.
+   *
+   * Three things it reuses rather than invents, all of them deliberate. It is
+   * a `payPerChild` tile, which is already exactly zero for a player with no
+   * children — a childless player is never charged for a child, and needs no
+   * special excusing to avoid it. It sits on the trunk rather than on Family
+   * Lane, for the same two reasons the Joint Account above does: a trunk tile
+   * costs the layout nothing, and everybody walks past it, so whoever took the
+   * lane arrives here with the whole brood and whoever did not simply walks
+   * by. And the sum is edition data in that edition's money, because what a
+   * broken window costs is as local as what a wedding does.
+   *
+   * An `event` rather than an ordinary tile, which is the one thing here that
+   * is not free. A `normal` trunk tile is met by roughly one pawn in five, and
+   * a consequence that arrives one game in five is not a consequence, it is a
+   * rumour — measured, the whole tile was worth about $700 a game that way.
+   * Firing on a pass is safe precisely because of the property above: the
+   * childless are charged nothing, so nobody is billed for a life they did not
+   * live. Moving Out and the Uniform Deposit on the Work Lane are the same
+   * shape — an obligation everybody who walks this road meets.
+   *
+   * One known cost, stated rather than hidden: the computer's fork valuation
+   * walks a lane's *own* tiles, so a trunk tile after the fork is not counted
+   * against Family Lane when a CPU seat weighs it. The Joint Account has the
+   * same blind spot on the marriage side. It errs towards the lane still
+   * looking attractive, which is the direction this board has historically had
+   * to push in — see `decideCpuCommand`'s own notes on why no seat used to
+   * take the lane at all.
+   */
+  {
+    id: 'midtown-phone-call', kind: 'event', title: 'The Phone Call',
+    description: 'The school calls in the middle of a meeting. Nobody is hurt, everybody is in trouble, and something at the back of the classroom needs replacing.',
+    effect: { type: 'payPerChild', amount: 4_000, reason: 'Whatever they broke, per child' },
+    tone: 'purple', icon: 'space:school-fees',
   },
 
   {

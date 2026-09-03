@@ -220,7 +220,7 @@ export const JAPAN_FR: EditionTranslation = {
     },
     'jp-family-new-baby': {
       title: 'Naissance',
-      description: 'Un tout petit colocataire arrive. La mairie envoie une infirmière, un carnet, et une allocation forfaitaire qui couvre presque l’hôpital.',
+      description: 'La chambre est peinte et le berceau monté. La mairie tient prêts un carnet, une infirmière et une allocation, et les gardera prêts.',
     },
     'jp-family-waitlist': {
       title: 'Liste d’attente',
@@ -296,6 +296,11 @@ export const JAPAN_FR: EditionTranslation = {
       title: 'L’argent de poche',
       description: 'Les comptes fusionnent. Tout votre salaire part désormais sur un compte commun, et une somme fixe vous revient chaque mois — inscrite « argent de poche » dans le livre de comptes du foyer.',
       reason: 'Le livre de comptes du foyer, soldé',
+    },
+    'jp-midtown-phone-call': {
+      title: 'L’appel du prof',
+      description: 'Le professeur principal téléphone pendant une réunion. Votre enfant va bien. La vitre de la classe, non, et l’école aimerait régler cela discrètement.',
+      reason: 'Ce qu’ils ont cassé, par enfant',
     },
     'jp-midtown-bonus': {
       title: 'Prime d’hiver',
