@@ -27,10 +27,12 @@ import type { Board, Difficulty, GameState, PlayerColor, SpaceId, SpinValue } fr
  *    behind a *gate*, and the fork's own spreads come out level.
  *  - **The gate is where the volatility went.** The shelf behind the concours
  *    finishes measurably tighter than the industry shelf at every difficulty,
- *    and on the harder settings it finishes *ahead* of both other shelves —
- *    which is what a job nothing can take from you is actually worth when the
- *    board turns hostile. That is the France design's central claim, and it
- *    is the mirror image of the Japan board's.
+ *    and when the board turns hostile it has the highest floor and the lowest
+ *    ceiling of the three — which is what a job nothing can take from you is
+ *    actually worth. That is the France design's central claim, and it is the
+ *    mirror image of the Japan board's. What it is *not* is the best-paid
+ *    shelf on hard; see that block's own comment for the measurement, and
+ *    §10.3 for the design saying so first.
  *  - **The gated road is a real argument.** Walking the concours road rather
  *    than the engineer's post opposite it costs a fraction of a per cent on
  *    normal — it is neither a trap nor a free win.
@@ -185,6 +187,19 @@ const playGame = (
 const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length
 const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!
 const spread = (xs: number[]): number => Math.sqrt(mean(xs.map((x) => (x - mean(xs)) ** 2)))
+/**
+ * The value `p` of the way up the sorted sample — a floor at `p = 0.25`, a
+ * ceiling at `p = 0.9`.
+ *
+ * A shelf's floor and ceiling are what §10.3 of the concept document actually
+ * claims for this board, so they are measured directly rather than inferred
+ * from a mean and a standard deviation, neither of which says where the bottom
+ * of a lopsided distribution is.
+ */
+const quantile = (xs: number[], p: number): number => {
+  const sorted = [...xs].sort((a, b) => a - b)
+  return sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))]!
+}
 
 const UNIVERSITY = 'The University'
 const GRANDE_ECOLE = 'The Grande École'
@@ -385,13 +400,29 @@ describe('after the gate, the inversion inverts', () => {
    * **The France board's own property, and the one no other edition's suite
    * can hold for us.** §10.3 of the concept document asks for a late game
    * that plays academia-safe and industry-volatile — the mirror image of
-   * Japan, where the permanent shelf is both the safest *and* the
-   * best-paid thing on the board.
+   * Japan, where the permanent shelf is both the safest *and* the best-paid
+   * thing on the board. Its words for the fonctionnaire shelf are "highest
+   * floor on any board, lowest ceiling on any board … and a salary that
+   * industry's rung 2 already beats", and that last clause is load-bearing:
+   * this is a claim about the *shape* of the shelf, not about its average.
    *
    * Measured here by grouping every finished player by the shelf they were
    * standing on at retirement.
+   *
+   * **1,200 seeds, not 240, and that is the fix rather than a detail.** Only a
+   * seat pinned to the concours road can reach the gated shelf at all, and
+   * only about one in eight of those finishes standing on it — so 240 seeds
+   * yielded a fonctionnaire sample of about thirty. A standard deviation from
+   * thirty values carries roughly 13% of its own error and a mean from them
+   * ±€55,000, which is larger than either quantity this block is asserting
+   * about. Everything below was therefore *read off noise* until this change:
+   * the same two claims measured at 240 seeds moved from 0.671 to 1.184 and
+   * from +€90,682 to −€54,809 across a merge that, measured at 2,400 seeds,
+   * moved them by a fraction of that. 1,200 seeds gives 141 fonctionnaire
+   * finishes on hard and 155 on normal, and every figure quoted below was
+   * confirmed against a 2,400-seed run before it was written down.
    */
-  const SEEDS = Array.from({ length: 240 }, (_, i) => i + 1)
+  const SEEDS = Array.from({ length: 1_200 }, (_, i) => i + 1)
 
   const shelvesAt = (difficulty?: Difficulty) => {
     const fonctionnaire: number[] = []
@@ -425,37 +456,110 @@ describe('after the gate, the inversion inverts', () => {
      * the players who *did* clear the concours then accept a contract job at
      * the industry fair, which is the one thing no real player would ever do
      * with a post nothing can take away.
+     *
+     * Measured: 155 finishes on normal and 141 on hard, out of 1,200 pinned
+     * seats each. The bound is what the block above needs to be worth reading
+     * rather than what the board happens to deal — a hundred samples put a
+     * standard deviation's own error near 7% and a quartile's near €28,000,
+     * which are both comfortably smaller than the gaps asserted below.
      */
-    expect(normal.fonctionnaire.length).toBeGreaterThan(10)
-    expect(hard.fonctionnaire.length).toBeGreaterThan(10)
+    expect(normal.fonctionnaire.length).toBeGreaterThan(100)
+    expect(hard.fonctionnaire.length).toBeGreaterThan(100)
   })
 
-  it('finishes the gated shelf tighter than the industry shelf, at both settings', () => {
-    // Measured: €195,380 against €252,151 on normal (a ratio of 0.77), and
-    // €204,059 against €304,083 on hard (0.67). Asserted one-sided, because
-    // this is the property the whole edition is for: the concours converts a
-    // research life's risk into a fixed, immovable, modest salary, and the
-    // cadre shelf keeps its exposure to the last tile.
+  it('finishes the gated shelf tighter than both other shelves, at both settings', () => {
+    /*
+     * Measured over 1,200 seeds: €180,971 against the cadre shelf's €263,878
+     * on normal (a ratio of 0.686) and €261,167 against €316,411 on hard
+     * (0.825); against the contract shelf, 0.665 and 0.762. A 2,400-seed run
+     * agrees — 0.733 and 0.810 against the cadre shelf, with about ±0.036 of
+     * error on the hard figure — so the bound sits three to four standard
+     * errors away rather than inside the noise.
+     *
+     * Asserted one-sided, because this is the property the whole edition is
+     * for: the concours converts a research life's risk into a fixed,
+     * immovable, modest salary, and the cadre shelf keeps its exposure to the
+     * last tile.
+     */
     expect(spread(normal.fonctionnaire)).toBeLessThan(spread(normal.cadre) * 0.95)
     expect(spread(hard.fonctionnaire)).toBeLessThan(spread(hard.cadre) * 0.95)
-    // …and tighter than the contract shelf it was won from, too.
+    // …and tighter than the contract shelf it was won from, at both settings.
     expect(spread(normal.fonctionnaire)).toBeLessThan(spread(normal.contract) * 0.95)
+    expect(spread(hard.fonctionnaire)).toBeLessThan(spread(hard.contract) * 0.95)
   })
 
-  it('pays for that safety on normal, and is paid back for it on hard', () => {
+  it('pays for that safety on normal, and is paid back for it on hard — in the floor and the ceiling', () => {
     /*
-     * The French bargain, measured in both directions.
+     * The French bargain, measured in both directions — and rewritten, because
+     * the version of this test that stood here asserted something the board
+     * has never done.
      *
-     * On a normal board the fonctionnaire finishes *behind* the cadre shelf
-     * — €624,559 against €815,061 — which is exactly the low ceiling doing
-     * what a low ceiling does. Turn the difficulty up and the ranking flips:
-     * €556,093 against €465,411, the best of the three shelves, because a
-     * board full of layoff notices and missed payrolls cannot touch a post
-     * the state appointed you to.
+     * **What it used to say.** `mean(hard.fonctionnaire) > mean(hard.cadre)`:
+     * turn the difficulty up and the permanent post out-earns the industry
+     * shelf outright. It was written from €556,093 against €465,411, off 29
+     * fonctionnaire finishes. Re-measured at that same commit over 2,400
+     * seeds, with 275 of them, the two shelves read €470,863 ± €15,883 against
+     * €473,952 ± €5,163 — dead level, and if anything a hair behind. The
+     * assertion was never true of the board; it was true of seeds 1–240 at a
+     * sample size where a mean carries ±€55,000. On this tree the same
+     * measurement gives €434,126 ± €15,634 against €443,075 ± €5,458: still
+     * level, still inside the error, and still not ahead.
+     *
+     * Nothing was re-shaped to chase it back, because §10.3 does not ask for
+     * it. Its words are "highest floor on any board, lowest ceiling on any
+     * board … and a salary that industry's rung 2 already beats" — a claim
+     * about the shape of the distribution, with the mean explicitly conceded
+     * to industry. A mean is the wrong instrument for it in any case: the
+     * cadre shelf's whole story is a long right tail (€838,200 at the ninetieth
+     * percentile on hard against the post's €702,100), and a tail like that
+     * lifts an average without moving the floor a player actually stands on.
+     *
+     * **What is true, measured over 1,200 seeds and confirmed at 2,400.**
+     *
+     * On normal the post costs its holder money, exactly as a low ceiling
+     * should: €705,549 against the cadre shelf's €807,945, and a ceiling of
+     * €921,600 against €1,161,950.
+     *
+     * On hard the ranking does invert — in the two statistics the design named:
+     *
+     *      hard                fonctionnaire     cadre        contract
+     *      floor  (p25)          €369,400      €272,700      €137,840
+     *      median                €480,000      €450,375      €359,125
+     *      ceiling (p90)         €702,100      €838,200      €771,400
+     *      finished in the red      7.1%          8.4%          16.4%
+     *      mean                  €438,316      €443,072      €341,697
+     *
+     * The highest floor and the lowest ceiling of the three, the fewest
+     * players ruined, and a mean that has caught the cadre shelf from 13%
+     * behind on normal to within 1% on hard. That is what a job nothing can
+     * take from you is worth when the board turns hostile, and it is the
+     * mirror of Japan without needing to claim the top of the table too.
      */
+    // Normal: the safety is paid for, in the mean and at the ceiling.
     expect(mean(normal.fonctionnaire)).toBeLessThan(mean(normal.cadre))
-    expect(mean(hard.fonctionnaire)).toBeGreaterThan(mean(hard.cadre))
+    expect(quantile(normal.fonctionnaire, 0.9)).toBeLessThan(quantile(normal.cadre, 0.9) * 0.9)
+
+    // Hard: the highest floor of the three shelves…
+    expect(quantile(hard.fonctionnaire, 0.25)).toBeGreaterThan(quantile(hard.cadre, 0.25))
+    expect(quantile(hard.fonctionnaire, 0.25)).toBeGreaterThan(quantile(hard.contract, 0.25))
+    // …and the lowest ceiling, which is the same sentence from the other end.
+    expect(quantile(hard.fonctionnaire, 0.9)).toBeLessThan(quantile(hard.cadre, 0.9))
+    expect(quantile(hard.fonctionnaire, 0.9)).toBeLessThan(quantile(hard.contract, 0.9))
+
+    // Clearly ahead of the contract shelf it was won from, on the average too.
     expect(mean(hard.fonctionnaire)).toBeGreaterThan(mean(hard.contract))
+
+    /*
+     * And the bargain closes as the board turns: the post trails the cadre
+     * shelf by 12.7% on normal and by 1.1% on hard. Asserted as a shrinking
+     * gap rather than as an overtake, which is the finding — and bounded on
+     * both sides, so a change that let either shelf run away from the other on
+     * hard fails here.
+     */
+    const gapOn = (sample: { fonctionnaire: number[]; cadre: number[] }): number =>
+      (mean(sample.cadre) - mean(sample.fonctionnaire)) / mean(sample.cadre)
+    expect(gapOn(hard)).toBeLessThan(gapOn(normal) * 0.5)
+    expect(Math.abs(gapOn(hard))).toBeLessThan(0.1)
   })
 })
 

@@ -503,7 +503,23 @@ describe('the economy stays in a playable band', () => {
  * them and `normal` stops being the game everybody already knows.
  */
 describe('difficulty means something measurable', () => {
-  const DIFFICULTY_SEEDS = SEEDS
+  /*
+   * Its own seed set, four times the width of `SEEDS`, for the same reason the
+   * CPU-versus-indifferent test further down has one.
+   *
+   * This block is the only place in the file that reads a *mean* off the
+   * sample and compares it against a fixed sum of money. A mean taken from 60
+   * three-seat games carries about $17,000 of its own error, and the ceiling
+   * in the first test below stood $12,000 above the figure it had been written
+   * from — a bound inside its own estimator's noise, which is not a bound. It
+   * duly went red on a merge that, measured properly, did not move this
+   * economy at all. 240 games put the error near $8,400.
+   *
+   * Every figure quoted below is from this 240-game set. Where the wider
+   * 600-game reading is the more honest one — it is, for the mean — it is
+   * quoted alongside and the bound is set from it.
+   */
+  const DIFFICULTY_SEEDS = Array.from({ length: 240 }, (_, i) => i + 1)
   const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length
   const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!
 
@@ -538,24 +554,66 @@ describe('difficulty means something measurable', () => {
   const bustShare = (sample: Sample) => sample.totals.filter((t) => t < 0).length / sample.totals.length
 
   it('keeps normal comfortably profitable — this is the regression guard', () => {
-    // The band the game ships in: comfortably profitable, nobody ever bust.
-    //
-    // Re-measured at $673.3k mean / $652.0k median, on a board whose layoff
-    // now costs a payday: the tile between the Layoff Notice and the career
-    // fair is Midtown's own payday moved rather than a new one, so the count
-    // is unchanged and what moved is *when* it is collected (see
-    // `main-notice-period`). The die itself put this figure at $611.9k, down
-    // from $700.8k on the ten-wedge wheel. Two effects pull against each
-    // other and the smaller one wins: a die that averages 3.5 where the wheel
-    // averaged 5.5 means a pawn *stops* roughly half as far along, so a game
-    // holds half again as many landings (50 here, against about 32) and a
-    // third again as many turns — but every `payPerPip` wage was repriced
-    // against 3.5 at the same time, so the paydays that make up most of a
-    // total are worth what they always were and only the landings changed.
+    /*
+     * The band the game ships in: comfortably profitable, and finishing in the
+     * red on normal stays vanishingly rare.
+     *
+     * **The ceiling moved, and it moved because the old one sat below the
+     * board's own mean.** It read `< 710_000`, set from a 60-game mean of
+     * $697,764. Measured over 600 games at that same commit, the mean is
+     * $711,829 ± $5,349: the ceiling was under the true figure the whole time,
+     * and only the width of a 60-game sample kept it green. It took a merge of
+     * two unrelated changes to show it, and the decomposition is the reason to
+     * trust the new number rather than merely the new number:
+     *
+     *  - **The layoff costing a payday is worth −$25,100** (600 games:
+     *    $711,829 → $686,729). Its own branch measured −$24,487 off 60 games
+     *    and got the direction and size right.
+     *  - **The New Baby tile becoming a die is worth +$10,490** ($711,829 →
+     *    $722,319) — *upward*, against the reduction its own branch predicted,
+     *    and this is the interesting half. `applyPassedEvent` resolves a swept
+     *    tile's spin from the *pre-effect* player, so any effect that both
+     *    changed the player in `applyEffect` and then deferred to a spin had
+     *    that change written straight back out again. `haveChildren` was the
+     *    last effect of that shape in the game, and New Baby is an `event`
+     *    tile — swept far more often than it is landed on. Measured on the
+     *    pre-merge commit: of the 422 seats whose own log announced an
+     *    arrival, 213 finished the game with no children. On this tree it is 0
+     *    of 327. Rolling for the arrival moved the grant into the spin's own
+     *    resolution, which is the shape `applyPassedEvent` handles correctly,
+     *    so the tile now delivers what it always said it did.
+     *
+     *  Together: **$713,557 ± $5,486**, which is $1,728 from where the board
+     *  started — well inside one standard error. The economy did not move; the
+     *  estimate got honest. The two 60-game readings that made this look like a
+     *  jump ($697,764 before, $716,344 after) were both a standard error and a
+     *  half from the truth, in opposite directions.
+     *
+     * The ceiling is $760,000: about six standard errors above this 240-game
+     * set's own mean of $707,010 ± $8,355, so a regression that lifted a
+     * player's total by a tenth still trips it, and ordinary sampling cannot.
+     *
+     * The die itself put this figure at $611.9k, down from $700.8k on the
+     * ten-wedge wheel. Two effects pull against each other and the smaller one
+     * wins: a die that averages 3.5 where the wheel averaged 5.5 means a pawn
+     * *stops* roughly half as far along, so a game holds half again as many
+     * landings (50 here, against about 32) and a third again as many turns —
+     * but every `payPerPip` wage was repriced against 3.5 at the same time, so
+     * the paydays that make up most of a total are worth what they always were
+     * and only the landings changed.
+     *
+     * The bust line used to read `toBe(0)`. Over 240 games one seat in 720
+     * finishes in the red, and it is the same finding the Researcher: France
+     * suite already carries: the board no longer hands every family a
+     * guaranteed child, and a seat whose whole margin was that child's bonus
+     * can now come up short. An exact zero over a sample was a fact about
+     * seeds 1–60 rather than a promise the board made; the promise is that it
+     * stays rare.
+     */
     expect(mean(normal.totals)).toBeGreaterThan(400_000)
-    expect(mean(normal.totals)).toBeLessThan(710_000)
+    expect(mean(normal.totals)).toBeLessThan(760_000)
     expect(median(normal.totals)).toBeGreaterThan(400_000)
-    expect(bustShare(normal)).toBe(0)
+    expect(bustShare(normal)).toBeLessThan(0.01)
     expect(mean(normal.turns)).toBeGreaterThan(6)
     expect(mean(normal.turns)).toBeLessThan(30)
   })
@@ -569,8 +627,9 @@ describe('difficulty means something measurable', () => {
 
   it('makes hard a clear step down that is still usually a winning game', () => {
     // Down by a third or so on normal, but a player still expects to profit.
-    // Re-measured at a $368.2k median and one player in eight retiring in the
-    // red (12.8%); it was $349.2k and one in twelve when the die landed.
+    // Re-measured over the 240-game set at a $375.6k median and one player in
+    // eight retiring in the red (13.1%); it read $368.2k and 12.8% off 60
+    // games, and $349.2k / one in twelve when the die landed.
     expect(median(hard.totals)).toBeLessThan(median(normal.totals) * 0.8)
     expect(median(hard.totals)).toBeGreaterThan(100_000)
     expect(bustShare(hard)).toBeGreaterThan(0)
@@ -582,11 +641,11 @@ describe('difficulty means something measurable', () => {
     // the very-hard-only reorganisation that used to follow it with no wage
     // in between (see fast-payday-severance) — a small, deliberate softening
     // for the players who draw that specific stretch, re-measured here.
-    // Re-measured at a bust share of 0.456 — the coin flip the title screen
-    // promises, arrived at without touching a single difficulty dial — and a
-    // median of $57.8k against a mean of -$77.1k, which is as near to nothing
-    // as the middle of this table gets. It was 0.472 and $39.9k before the
-    // layoff started costing a payday.
+    // Re-measured over the 240-game set at a bust share of 0.476 — the coin
+    // flip the title screen promises, arrived at without touching a single
+    // difficulty dial — and a median of $30.1k against a mean of -$63.6k,
+    // which is as near to nothing as the middle of this table gets. It read
+    // 0.456 and $57.8k off 60 games.
     expect(bustShare(veryHard)).toBeGreaterThan(0.25)
     expect(bustShare(veryHard)).toBeLessThan(0.7)
     // The median player finishes near nothing at all, either side of zero.
