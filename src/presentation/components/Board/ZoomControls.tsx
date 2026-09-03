@@ -23,6 +23,10 @@ export interface ZoomControlsProps {
   readonly onZoomOut: () => void
   /** Back to the framing the camera chose — which also lets go of any free-look pan. */
   readonly onReset: () => void
+  /** Back to the car whose turn it is, keeping whatever zoom the player chose. */
+  readonly onRecentre: () => void
+  /** Names the car it goes back to, so the key says whose it is rather than "recentre". */
+  readonly recentreLabel: string
 }
 
 /**
@@ -40,7 +44,14 @@ export interface ZoomControlsProps {
  * because it acts on the map and nothing else, and because the board is
  * where a player's hand already is when they want a closer look.
  */
-export function ZoomControls({ zoom, onZoomIn, onZoomOut, onReset }: ZoomControlsProps): ReactElement {
+export function ZoomControls({
+  zoom,
+  onZoomIn,
+  onZoomOut,
+  onReset,
+  onRecentre,
+  recentreLabel,
+}: ZoomControlsProps): ReactElement {
   const [level, setLevel] = useState(() => zoom.get())
   useEffect(() => zoom.on('change', setLevel), [zoom])
 
@@ -77,6 +88,20 @@ export function ZoomControls({ zoom, onZoomIn, onZoomOut, onReset }: ZoomControl
         onClick={onReset}
       >
         <UiIcon name="zoom-fit" size={16} />
+      </button>
+      {/* The way home. A player who pans off to read a tile elsewhere on the
+          map had no way back to their own car until they rolled — and their
+          car can be off screen entirely by then, which is exactly what the
+          playtest reported. Named after the car rather than after the camera
+          ("Back to Ada's car", not "Recentre"): the player is not thinking
+          about a camera, they are looking for themselves. */}
+      <button
+        type="button"
+        className={styles.key}
+        aria-label={recentreLabel}
+        onClick={onRecentre}
+      >
+        <UiIcon name="recentre" size={16} />
       </button>
       {/* Announced when it changes: a player who cannot see the map move
           otherwise has no way to tell a press did anything. The percentage

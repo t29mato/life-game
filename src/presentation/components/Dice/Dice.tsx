@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import {
   animate,
   cubicBezier,
@@ -59,6 +59,21 @@ export interface DiceProps {
    * docked die while a modal is up, or a computer seat's own throw.
    */
   readonly primary?: boolean
+  /**
+   * Change this to clear the last throw and park the die neutral again.
+   *
+   * The board's die is a single object that outlives every turn taken with
+   * it, and `result` is whatever the store last rolled — so a new player
+   * arrived at a die still showing the previous player's 6, and read it as
+   * theirs. Reported exactly that way (issue #23). The shell hands over its
+   * own turn key here, and the die goes back to the face it was dealt at:
+   * not a lie about what was rolled, and not a stale answer to a question
+   * nobody has asked yet.
+   *
+   * A key that changes while the die is actually in the air is ignored — the
+   * throw in flight owns the cube until it lands.
+   */
+  readonly resetKey?: string | null
 }
 
 /** viewBox units. Each face is drawn in its own square and scaled by CSS. */
@@ -264,6 +279,7 @@ export function Dice({
   settleDuration = TEMPO.dieSettleSeconds,
   compact = false,
   primary = false,
+  resetKey = null,
 }: DiceProps): ReactElement {
   const audio = useAudio()
   const reduceMotion = usePrefersReducedMotion()
@@ -486,6 +502,34 @@ export function Dice({
    */
   const primaryRef = usePrimaryAction<HTMLButtonElement>(primary && !disabled && !rolling)
 
+  /*
+   * A new turn wipes the last one's number off the die. The cube goes back
+   * to the canonical resting angle for its dealt face and the throw offsets
+   * are cleared, so what a player meets is a die at rest rather than
+   * somebody else's result — and `landed` going null takes the "last roll 5"
+   * out of the accessible name with it.
+   *
+   * Guarded on `rolling` rather than on the arming flag: a key that lands
+   * mid-flight (a turn that opened while the previous throw was still
+   * animating) must not yank the cube out of the air, and there is nothing
+   * stale to clear then anyway — the die is showing the throw in progress.
+   */
+  const lastResetKeyRef = useRef(resetKey)
+  useEffect(() => {
+    if (resetKey === lastResetKeyRef.current) return
+    lastResetKeyRef.current = resetKey
+    if (rolling || armedRef.current) return
+    const [restRX, restRY] = SETTLE_ROTATIONS[1]
+    rotX.set(restRX)
+    rotY.set(restRY)
+    throwX.set(0)
+    throwY.set(0)
+    lift.set(0)
+    squash.set(1)
+    setLanded(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey])
+
   const lastAutoRollRef = useRef(autoRollToken)
   useEffect(() => {
     if (autoRollToken === lastAutoRollRef.current) return
@@ -496,6 +540,15 @@ export function Dice({
 
   const ready = !disabled && !rolling
   const label = rolling ? 'Rolling…' : landed === null ? 'Roll' : `Roll — last roll ${landed}`
+  /*
+   * Waiting for a press, and saying so. Only while this die is genuinely the
+   * screen's next input: a die that is merely on screen (the board's, under
+   * a modal) must not bob or advertise a key that would not reach it.
+   * Reduced motion keeps the prompt and drops the movement — the words are
+   * the information, the bob is only the invitation.
+   */
+  const waiting = ready && primary
+  const bobbing = waiting && !reduceMotion
 
   return (
     <div className={[styles.wrap, compact ? styles.compact : ''].filter(Boolean).join(' ')}>
@@ -517,8 +570,20 @@ export function Dice({
 
         {/* The 3D stage. Pointer-transparent, deliberately: mid-flight the
             cube crosses board tiles the player must stay able to pan, and the
-            press target is the docked button itself, never the flying body. */}
-        <div className={styles.scene} aria-hidden="true">
+            press target is the docked button itself, never the flying body.
+
+            It is also what bobs while the die is waiting to be thrown. The
+            bob lives here rather than on the button because the cube's own
+            transform belongs to the throw (framer-motion writes it every
+            frame) and the button's belongs to hover and press — the stage
+            between them is free, and bobbing it leaves the cast shadow
+            behind on the table, which is exactly what a hovering object
+            should do. */}
+        <div
+          className={[styles.scene, bobbing ? styles.bobbing : ''].filter(Boolean).join(' ')}
+          style={{ '--bob-seconds': `${TEMPO.dieIdleBobSeconds}s` } as CSSProperties}
+          aria-hidden="true"
+        >
           <motion.div
             className={styles.cube}
             style={{ x: throwXPct, y: throwYPct, rotateX: rotX, rotateY: rotY, scale: squash }}
@@ -548,6 +613,21 @@ export function Dice({
             is airborne and off catching different light entirely. */}
         <span className={styles.sheen} aria-hidden="true" />
       </button>
+
+      {/* What to do with it. A bobbing die says "I am waiting" and nothing
+          about *how*, which on a first game is a guess — so the prompt says
+          both ways in, and the keyboard half of it is hidden on the widths
+          that are presumed touch-first rather than advertising a key the
+          device may not have. `aria-hidden` because the button's own name
+          already carries this for anyone not reading the screen. */}
+      {waiting && (
+        <p className={styles.prompt} aria-hidden="true">
+          <span className={styles.promptKey}>Space</span>
+          <span className={styles.promptSlash}> / </span>
+          <span className={styles.promptClick}>click to roll</span>
+          <span className={styles.promptTap}>Tap to roll</span>
+        </p>
+      )}
 
       {/* The drawing is one image to assistive technology, so the number it
           came to rest on is stated in words rather than left inside it. */}

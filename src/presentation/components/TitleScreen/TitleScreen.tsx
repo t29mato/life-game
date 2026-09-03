@@ -1,23 +1,25 @@
 import { useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import type { IconName } from '@domain/model/icons'
-import type { Difficulty, EditionId, NewGameConfig, PlayerColor } from '@domain/model/types'
-import { DIFFICULTIES } from '@domain/rules/difficulty'
-import type { Edition } from '@domain/edition/types'
-import { allEditions, DEFAULT_EDITION_ID, editionFor } from '@domain/edition/registry'
-import { AUTOSAVE_SLOT, type SaveSlotInfo } from '@application/ports/GameRepositoryPort'
+import type { Difficulty, EditionId, NewGameConfig } from '@domain/model/types'
+import { DEFAULT_EDITION_ID } from '@domain/edition/registry'
+import type { SaveSlotInfo } from '@application/ports/GameRepositoryPort'
 import type { GameRecord } from '@application/ports/StatsRepositoryPort'
 import type { PlayerProfile } from '@application/ports/PlayerProfileRepositoryPort'
-import { editionDisplayName, formatMoney, salaryPeriod, salaryRate } from '../../format'
 import { useAudio } from '../../hooks/useAudio'
+import { usePrimaryAction } from '../../hooks/usePrimaryAction'
+import { TEMPO } from '../../tempo'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
-import { AudioToggle } from '../AudioToggle/AudioToggle'
 import { GameIcon } from '../../icons/GameIcon'
 import { UiIcon } from '../../icons/ui'
-import { PLAYER_COLORS } from '../Pawn/designs'
 import { ManualScreen } from '../ManualScreen/ManualScreen'
 import { RecordsScreen } from '../RecordsScreen/RecordsScreen'
 import { ReleaseNotesScreen } from '../ReleaseNotes/ReleaseNotesScreen'
-import { estimatePlaytime } from './estimatePlaytime'
+import { SettingsSheet } from '../SettingsSheet/SettingsSheet'
+import { ContinueStep } from './ContinueStep'
+import { CountryStep } from './CountryStep'
+import { DifficultyStep } from './DifficultyStep'
+import { PlayersStep } from './PlayersStep'
+import { defaultPlayers, editionOptions, type DraftPlayer } from './setupDraft'
 import styles from './TitleScreen.module.css'
 
 export interface TitleScreenProps {
@@ -28,9 +30,6 @@ export interface TitleScreenProps {
   readonly onStart: (config: NewGameConfig) => void
   readonly onContinue: (slot: number) => void
 }
-
-const MIN_PLAYERS = 2
-const MAX_PLAYERS = 4
 
 /**
  * Life-moment illustrations drifting around the edges of the box art — never
@@ -77,107 +76,44 @@ const DRIFTERS = [
 ]
 
 /**
- * The difference between difficulties is dramatic — measured over seeded
- * games, median retirements go roughly $591k → $349k → $40k, and on Very Hard
- * close to half the table finishes in the red. The copy here says so plainly:
- * a player should choose that fate, never discover it thirty minutes in.
- * `aria` carries the same warning on the control itself for screen readers.
+ * Where the player is. `'title'` is the box lid — the attract screen with two
+ * buttons on it; `'continue'` is the shelf of saves; the rest are the rungs of
+ * the new-game flow.
  */
-const DIFFICULTY_COPY: Record<
-  Difficulty,
-  {
-    readonly label: string
-    readonly hint: string
-    readonly detail: string
-    readonly aria: string
-    readonly tone: 'mint' | 'tangerine' | 'coral'
-  }
-> = {
-  normal: {
-    label: 'Normal',
-    hint: 'a fair life',
-    detail: "The standard journey: setbacks happen, but they won't ruin you.",
-    aria: "Normal difficulty: setbacks happen, but they won't ruin you",
-    tone: 'mint',
-  },
-  hard: {
-    label: 'Hard',
-    hint: 'money runs tight',
-    detail: 'Twice the setbacks of Normal — about one player in ten retires in the red.',
-    aria: 'Hard difficulty: twice the setbacks, about one player in ten retires in the red',
-    tone: 'tangerine',
-  },
-  veryHard: {
-    label: 'Very Hard',
-    hint: 'survival is a win',
-    detail:
-      'Setbacks at nearly every turn, and finishing in the black at all is close to a coin flip. Retiring with anything is bragging rights.',
-    aria: 'Very hard difficulty: finishing in the black at all is close to a coin flip',
-    tone: 'coral',
-  },
-}
+type Step = 'title' | 'continue' | 'players' | 'country' | 'difficulty'
+type FlowStep = Extract<Step, 'players' | 'country' | 'difficulty'>
 
 /**
- * Editions as the picker offers them: the classic USA game first — it is the
- * default, and the id every save without one resolves to — then the rest
- * alphabetically by place name, so the shelf reads the same however the
- * registry happened to be assembled. Computed per render rather than at module
- * load because the registry can grow after this module is imported (tests
- * register variants, and future editions may arrive the same way).
+ * --- the title screen ------------------------------------------------------
+ *
+ * `phase === 'setup'`, and the first ten seconds anybody spends with this
+ * game. Issue #36's complaint, in the playtester's own words: token pick →
+ * edition → difficulty → Start → saves → handbook, all in one column, with
+ * "Start Game" buried offscreen. Five decisions and six sections is not a
+ * title screen; it is a settings page with a logo on it.
+ *
+ * So it is a small machine now instead of a scroll:
+ *
+ *   title ──▶ Continue ──▶ the save shelf
+ *         └─▶ New Game ──▶ players ──▶ country ──▶ difficulty ──▶ Start
+ *
+ * One decision per screen, each screen with one A button (Space and Enter,
+ * via `usePrimaryAction`) and one Back — and Back is a required prop of
+ * `StepFrame`, so a step that cannot be left is not a thing this file can
+ * express. Every door the old page carried is still here: the saves, the
+ * handbook, the hall, the release notes, the audio settings and the build
+ * stamp all hang off the title view, one press from the front.
+ *
+ * The draft — names, colours, seats, country, difficulty — lives up here
+ * rather than in the steps, so backing all the way out to the title and
+ * walking in again finds the table exactly as it was left. Abandoning a
+ * half-finished setup should cost a player nothing; it is a menu, not a form
+ * submission.
  */
-function editionOptions(): readonly Edition[] {
-  return [...allEditions()].sort((a, b) => {
-    if (a.id === DEFAULT_EDITION_ID) return b.id === DEFAULT_EDITION_ID ? 0 : -1
-    if (b.id === DEFAULT_EDITION_ID) return 1
-    return editionDisplayName(a).localeCompare(editionDisplayName(b))
-  })
-}
-
-/**
- * One true sentence about the selected edition, derived from its own data —
- * never authored copy, so the editions being written in parallel get an honest
- * line here with no further edit. The three facts a player can size a country
- * up by before ever playing it: the money it counts in, what they start
- * holding, and what its careers pay.
- */
-function editionBlurb(edition: Edition): string {
-  const { currency, economy, careers } = edition
-  const start = formatMoney(economy.startingMoney, currency)
-  const salaries = [...careers.basic, ...careers.graduate].map((career) => career.salary)
-  if (salaries.length === 0) return `Counts in ${currency.symbol} — start with ${start}.`
-  const low = formatMoney(salaryRate(Math.min(...salaries), currency), currency)
-  const high = formatMoney(salaryRate(Math.max(...salaries), currency), currency)
-  return `Counts in ${currency.symbol} — start with ${start}; salaries run ${low} to ${high} a ${salaryPeriod(currency)}.`
-}
-
-interface DraftPlayer {
-  readonly name: string
-  readonly color: PlayerColor
-  readonly isCpu: boolean
-}
-
-function nextAvailableColor(used: readonly PlayerColor[]): PlayerColor {
-  return PLAYER_COLORS.find((color) => !used.includes(color)) ?? (PLAYER_COLORS[0] as PlayerColor)
-}
-
-function defaultPlayers(): DraftPlayer[] {
-  return [
-    { name: 'Player 1', color: 'red', isCpu: false },
-    { name: 'Player 2', color: 'blue', isCpu: false },
-  ]
-}
-
-/** `1970-01-01T00:00:00.000Z` → `'Jan 1, 12:00 AM'`. Always English, regardless of the host locale. */
-function formatSlotTimestamp(savedAt: string): string {
-  const date = new Date(savedAt)
-  if (Number.isNaN(date.getTime())) return 'unknown time'
-  return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-}
-
-/** `phase === 'setup'`: the wordmark, player setup, save slots, and the start CTA. */
 export function TitleScreen({ slots, records, profiles, onStart, onContinue }: TitleScreenProps): ReactElement {
   const audio = useAudio()
   const unlockedRef = useRef(false)
+  const [step, setStep] = useState<Step>('title')
   const [players, setPlayers] = useState<DraftPlayer[]>(defaultPlayers)
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
   const [editionId, setEditionId] = useState<EditionId>(DEFAULT_EDITION_ID)
@@ -185,65 +121,44 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
   const [showRecords, setShowRecords] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
   const [showManual, setShowManual] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+
+  /*
+   * The rungs of the new-game flow, and the reason "Step 2 of 3" is computed
+   * rather than written down: a picker with one option is a label, so if only
+   * one edition is ever registered the country step drops out of the flow
+   * entirely rather than asking a question with a single answer. With the
+   * five country boards registered — which is every real build — the flow is
+   * always the three the report asked for.
+   */
+  const flow: readonly FlowStep[] =
+    editions.length > 1 ? ['players', 'country', 'difficulty'] : ['players', 'difficulty']
+
+  const goForward = (from: FlowStep): void => {
+    setStep(flow[flow.indexOf(from) + 1] ?? 'difficulty')
+  }
+  const goBack = (from: FlowStep): void => {
+    const previous = flow[flow.indexOf(from) - 1]
+    setStep(previous ?? 'title')
+  }
+
+  const hasSave = slots.some((slot) => slot.occupied)
+
+  /*
+   * The A button on the box lid. A console puts the cursor on Continue when
+   * there is something to continue and on New Game when there is not, which
+   * is the same rule as "the obvious thing" everywhere else in this game.
+   * Stood down whenever anything is layered over the title, so Space can
+   * never press a button the player cannot currently see.
+   */
+  const titlePrimaryRef = usePrimaryAction<HTMLButtonElement>(
+    step === 'title' && !showSettings && !showRecords && !showNotes && !showManual,
+  )
 
   const unlockAudioOnce = (): void => {
     if (unlockedRef.current) return
     unlockedRef.current = true
     void audio.unlock()
-  }
-
-  const updateName = (index: number, name: string): void => {
-    setPlayers((prev) => prev.map((p, i) => (i === index ? { ...p, name } : p)))
-  }
-
-  const updateColor = (index: number, color: PlayerColor): void => {
-    setPlayers((prev) => {
-      const usedByOthers = prev.filter((_, i) => i !== index).map((p) => p.color)
-      if (usedByOthers.includes(color)) return prev
-      return prev.map((p, i) => (i === index ? { ...p, color } : p))
-    })
-  }
-
-  const updateIsCpu = (index: number, isCpu: boolean): void => {
-    setPlayers((prev) => prev.map((p, i) => (i === index ? { ...p, isCpu } : p)))
-  }
-
-  /**
-   * One tap fills the whole row from a remembered player: name and colour.
-   * The saved colour yields if a rival is already holding it — two regulars
-   * who both saved red still get a legal table, and the one who tapped
-   * second keeps the colour their row already had.
-   */
-  const applyProfile = (index: number, profile: PlayerProfile): void => {
-    setPlayers((prev) => {
-      const usedByOthers = prev.filter((_, i) => i !== index).map((p) => p.color)
-      return prev.map((p, i) =>
-        i === index
-          ? {
-              ...p,
-              name: profile.name,
-              color: usedByOthers.includes(profile.color) ? p.color : profile.color,
-            }
-          : p,
-      )
-    })
-  }
-
-  const addPlayer = (): void => {
-    if (players.length >= MAX_PLAYERS) return
-    setPlayers((prev) => [
-      ...prev,
-      {
-        name: `Player ${prev.length + 1}`,
-        color: nextAvailableColor(prev.map((p) => p.color)),
-        isCpu: false,
-      },
-    ])
-  }
-
-  const removePlayer = (index: number): void => {
-    if (players.length <= MIN_PLAYERS) return
-    setPlayers((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleStart = (): void => {
@@ -279,7 +194,21 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
   }
 
   return (
-    <div className={styles.screen} onClickCapture={unlockAudioOnce}>
+    <div
+      className={`${styles.screen} ${step === 'title' ? '' : styles.screenStep}`}
+      onClickCapture={unlockAudioOnce}
+      style={
+        {
+          // Pacing lives in `tempo.ts`, including the pacing of a screen
+          // nobody has pressed anything on yet — handed to the stylesheet as
+          // variables so the animations below are tuned in the same file as
+          // the die's throw and the pawn's hop, not in a keyframe nobody
+          // thinks to look at.
+          '--title-idle': `${TEMPO.titleIdleSeconds}s`,
+          '--title-step-in': `${TEMPO.titleStepSeconds}s`,
+        } as CSSProperties
+      }
+    >
       <div className={styles.scenery} aria-hidden="true">
         {DRIFTERS.map((d) => (
           <span
@@ -298,357 +227,172 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
         ))}
       </div>
 
-      <div className={styles.logoWrap}>
-        <div className={styles.floaters} aria-hidden="true">
-          {FLOATER_LAYOUT.map((f) => (
-            <span
-              key={f.icon}
-              className={styles.floater}
-              style={{
-                top: f.top,
-                left: f.left,
-                width: f.size,
-                height: f.size,
-                animationDelay: f.delay,
-                animationDuration: f.duration,
-              }}
-            >
-              {f.icon === 'ui:dice' ? (
-                <UiIcon name="dice" size={28} className={styles.floaterGlyph} />
-              ) : (
-                <GameIcon name={f.icon} size={28} />
-              )}
-            </span>
-          ))}
-        </div>
-
-        <span className={styles.eyebrow} aria-hidden="true">
-          A board game of chance &amp; ambition
-        </span>
-        <h1 className={styles.wordmark} data-text="LIFE JOURNEY">
-          LIFE JOURNEY
-        </h1>
-        <p className={styles.tagline}>Roll, hop, and build a life worth bragging about.</p>
-      </div>
-
-      <section className={styles.setup} aria-label="Player setup">
-        <div className={styles.setupHeading}>
-          <span className={styles.setupLabel}>Choose your token</span>
-          <span className={styles.setupCount}>
-            {players.length} / {MAX_PLAYERS}
-          </span>
-        </div>
-
-        <div className={styles.players}>
-          {players.map((player, index) => {
-            const usedByOthers = players.filter((_, i) => i !== index).map((p) => p.color)
-            return (
-              <div
-                className={`${styles.playerRow} ${player.isCpu ? styles.playerRowCpu : ''}`}
-                key={index}
-                style={
-                  {
-                    '--pawn-light': `var(--player-${player.color}-light)`,
-                    '--pawn-base': `var(--player-${player.color})`,
-                    '--pawn-dark': `var(--player-${player.color}-dark)`,
-                  } as CSSProperties
-                }
+      {/* The box art. Smaller once the player is inside the flow — the logo
+          has already done its job by then, and the decision on screen should
+          own the room. It never leaves, so there is never a moment where the
+          player cannot see what game they are setting up. */}
+      <div className={`${styles.logoWrap} ${step === 'title' ? '' : styles.logoWrapCompact}`}>
+        {step === 'title' ? (
+          <div className={styles.floaters} aria-hidden="true">
+            {FLOATER_LAYOUT.map((f) => (
+              <span
+                key={f.icon}
+                className={styles.floater}
+                style={{
+                  top: f.top,
+                  left: f.left,
+                  width: f.size,
+                  height: f.size,
+                  animationDelay: f.delay,
+                  animationDuration: f.duration,
+                }}
               >
-                <span className={`${styles.pawn} ${player.isCpu ? styles.pawnCpu : ''}`} aria-hidden="true">
-                  <span className={styles.pawnHead} />
-                  <span className={styles.pawnBase} />
-                  {player.isCpu ? <span className={styles.cpuChip}>CPU</span> : null}
-                </span>
-
-                <div className={styles.playerFields}>
-                  <div className={styles.playerFieldsTop}>
-                    <input
-                      className={styles.nameInput}
-                      type="text"
-                      value={player.name}
-                      maxLength={18}
-                      aria-label={`Player ${index + 1} name`}
-                      onChange={(event) => updateName(index, event.target.value)}
-                    />
-                    <div
-                      className={styles.swatches}
-                      role="group"
-                      aria-label={`Player ${index + 1} colour`}
-                    >
-                      {PLAYER_COLORS.map((color) => (
-                        <button
-                          key={color}
-                          type="button"
-                          className={`${styles.swatch} ${player.color === color ? styles.swatchSelected : ''}`}
-                          style={
-                            {
-                              '--swatch-light': `var(--player-${color}-light)`,
-                              '--swatch-color': `var(--player-${color})`,
-                              '--swatch-dark': `var(--player-${color}-dark)`,
-                            } as CSSProperties
-                          }
-                          aria-label={color}
-                          aria-pressed={player.color === color}
-                          disabled={usedByOthers.includes(color)}
-                          onClick={() => updateColor(index, color)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* One tap re-seats a regular: name and colour. Absent
-                      entirely on a first-ever run — a strip of nobody is
-                      noise — and on a computer seat, which has no owner to
-                      remember or recall. */}
-                  {profiles.length > 0 && !player.isCpu ? (
-                    <div
-                      className={styles.recentRow}
-                      role="group"
-                      aria-label={`Player ${index + 1} recent players`}
-                    >
-                      <span className={styles.recentLabel} aria-hidden="true">
-                        Recent
-                      </span>
-                      {profiles.map((profile) => (
-                        <button
-                          key={profile.name.trim().toLowerCase()}
-                          type="button"
-                          className={styles.recentChip}
-                          style={
-                            {
-                              '--chip-base': `var(--player-${profile.color})`,
-                              '--chip-dark': `var(--player-${profile.color}-dark)`,
-                            } as CSSProperties
-                          }
-                          onClick={() => applyProfile(index, profile)}
-                        >
-                          <span className={styles.recentDot} aria-hidden="true" />
-                          {profile.name}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  <div
-                    className={styles.seatToggle}
-                    role="group"
-                    aria-label={`Player ${index + 1} seat type`}
-                  >
-                    <button
-                      type="button"
-                      className={`${styles.seatOption} ${!player.isCpu ? styles.seatSelected : ''}`}
-                      aria-pressed={!player.isCpu}
-                      onClick={() => updateIsCpu(index, false)}
-                    >
-                      Human
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.seatOption} ${player.isCpu ? styles.seatSelected : ''}`}
-                      aria-pressed={player.isCpu}
-                      onClick={() => updateIsCpu(index, true)}
-                    >
-                      CPU
-                    </button>
-                  </div>
-                </div>
-
-                {players.length > MIN_PLAYERS ? (
-                  <button
-                    type="button"
-                    className={styles.removeButton}
-                    aria-label={`Remove player ${index + 1}`}
-                    onClick={() => removePlayer(index)}
-                  >
-                    ✕
-                  </button>
-                ) : null}
-              </div>
-            )
-          })}
-        </div>
-
-        <div className={styles.actionsRow}>
-          <ChunkyButton
-            variant="secondary"
-            size="sm"
-            icon="plus"
-            disabled={players.length >= MAX_PLAYERS}
-            onClick={addPlayer}
-          >
-            Add player
-          </ChunkyButton>
-        </div>
-      </section>
-
-      {/* Which country's board the game is played on. Hidden while there is
-          only one edition to name — a picker with one option is a label. */}
-      {editions.length > 1 ? (
-        <section className={styles.editionSection} aria-label="Edition">
-          <div className={styles.setupHeading}>
-            <span className={styles.setupLabel}>Edition</span>
-          </div>
-          <div className={styles.editionGroup} role="group" aria-label="Edition">
-            {editions.map((edition) => (
-              <button
-                key={edition.id}
-                type="button"
-                className={`${styles.editionOption} ${editionId === edition.id ? styles.editionSelected : ''}`}
-                aria-pressed={editionId === edition.id}
-                aria-label={`${editionDisplayName(edition)} edition, counts in ${edition.currency.symbol}`}
-                onClick={() => setEditionId(edition.id)}
-              >
-                <span className={styles.editionLabel} aria-hidden="true">
-                  {editionDisplayName(edition)}
-                </span>
-                <span className={styles.editionHint} aria-hidden="true">
-                  counts in {edition.currency.symbol}
-                </span>
-              </button>
+                {f.icon === 'ui:dice' ? (
+                  <UiIcon name="dice" size={28} className={styles.floaterGlyph} />
+                ) : (
+                  <GameIcon name={f.icon} size={28} />
+                )}
+              </span>
             ))}
           </div>
-          <p className={styles.editionDetail}>{editionBlurb(editionFor(editionId))}</p>
-        </section>
+        ) : null}
+
+        {step === 'title' ? (
+          <span className={styles.eyebrow} aria-hidden="true">
+            A board game of chance &amp; ambition
+          </span>
+        ) : null}
+        <h1 className={styles.wordmark}>LIFE JOURNEY</h1>
+        {step === 'title' ? (
+          <p className={styles.tagline}>Roll, hop, and build a life worth bragging about.</p>
+        ) : null}
+      </div>
+
+      {step === 'title' ? (
+        <>
+          <div className={styles.menu}>
+            {/* Continue first: a table that already has a game going means to
+                get back to it, and the button they want should be the one the
+                cursor is already sitting on. It stays on the screen when there
+                is nothing to continue, disabled and saying why — a button that
+                appears out of nowhere on the second visit is a menu that
+                changes shape under the player. */}
+            <ChunkyButton
+              {...(hasSave ? { ref: titlePrimaryRef } : {})}
+              variant="primary"
+              size="lg"
+              icon="folder"
+              fullWidth
+              disabled={!hasSave}
+              aria-label={hasSave ? 'Continue a saved game' : 'Continue: no saved games yet'}
+              onClick={() => setStep('continue')}
+            >
+              Continue
+            </ChunkyButton>
+            <ChunkyButton
+              {...(hasSave ? {} : { ref: titlePrimaryRef })}
+              variant={hasSave ? 'secondary' : 'primary'}
+              size="lg"
+              icon="rocket"
+              fullWidth
+              onClick={() => setStep('players')}
+            >
+              New Game
+            </ChunkyButton>
+          </div>
+
+          <p className={styles.menuHint}>
+            {hasSave
+              ? 'Three quick choices and you are on the board.'
+              : 'No saved games yet — three quick choices and you are on the board.'}
+          </p>
+
+          {/* The handbook is always on offer — a first-time table is exactly
+              who it exists for — where the hall only appears once there is a
+              record to hang in it. The gear keeps the audio switches folded
+              away in the same drawer the game itself puts them in (#38),
+              rather than parking two toggles on the box lid. */}
+          <div className={styles.doorsRow}>
+            <ChunkyButton variant="ghost" size="md" icon="book" onClick={() => setShowManual(true)}>
+              The Handbook
+            </ChunkyButton>
+            {records.length > 0 ? (
+              <ChunkyButton variant="ghost" size="md" icon="ribbon" onClick={() => setShowRecords(true)}>
+                Hall of Records
+              </ChunkyButton>
+            ) : null}
+            <ChunkyButton variant="ghost" size="md" onClick={() => setShowNotes(true)}>
+              What&rsquo;s New
+            </ChunkyButton>
+            <ChunkyButton
+              variant="ghost"
+              size="md"
+              icon="gear"
+              aria-label="Settings"
+              onClick={() => setShowSettings(true)}
+            >
+              Settings
+            </ChunkyButton>
+          </div>
+
+          {/* The build stamp, in the footer where a build stamp belongs.
+              It used to be absolutely positioned in the top-right corner —
+              except that `.screen > *` (which it is one of) resets
+              `position: relative` on every child, so `right: 26px` was read as
+              a *relative* offset and shunted the whole full-width row 26px to
+              the left, off the padded edge and under `overflow-x: clip`. That
+              is what ate the leading "v" the playtest reported: not a
+              truncation, a nudge. Nothing here is positioned any more, so
+              there is nothing left to clip. */}
+          <footer className={styles.footer}>
+            <span className={styles.versionTag} title="The exact commit this build came from">
+              {__APP_BUILD__}
+            </span>
+          </footer>
+        </>
       ) : null}
 
-      <section className={styles.difficultySection} aria-label="Difficulty">
-        <div className={styles.setupHeading}>
-          <span className={styles.setupLabel}>Difficulty</span>
-        </div>
-        <div className={styles.difficultyGroup} role="group" aria-label="Difficulty">
-          {DIFFICULTIES.map((value) => {
-            const copy = DIFFICULTY_COPY[value]
-            return (
-              <button
-                key={value}
-                type="button"
-                className={`${styles.difficultyOption} ${difficulty === value ? styles.difficultySelected : ''}`}
-                style={
-                  {
-                    '--pick-base': `var(--candy-${copy.tone})`,
-                    '--pick-dark': `var(--candy-${copy.tone}-dark)`,
-                  } as CSSProperties
-                }
-                aria-pressed={difficulty === value}
-                aria-label={copy.aria}
-                onClick={() => setDifficulty(value)}
-              >
-                <span className={styles.difficultyLabel} aria-hidden="true">
-                  {copy.label}
-                </span>
-                <span className={styles.difficultyHint} aria-hidden="true">
-                  {copy.hint}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-        <p
-          className={styles.difficultyDetail}
-          style={
-            { '--pick-detail': `var(--candy-${DIFFICULTY_COPY[difficulty].tone}-dark)` } as CSSProperties
-          }
-        >
-          {DIFFICULTY_COPY[difficulty].detail}
-        </p>
-      </section>
+      {step === 'continue' ? (
+        <ContinueStep slots={slots} onContinue={handleContinue} onBack={() => setStep('title')} />
+      ) : null}
 
-      <div className={styles.cta}>
-        {/* Roughly how long this table will sit, priced from the seat mix and
-            difficulty — see estimatePlaytime.ts for where every figure comes
-            from. Recomputed on render, so it tracks each row and picker the
-            way the difficulty detail line does. */}
-        <p className={styles.playtimeHint}>
-          {estimatePlaytime(
-            players.filter((p) => !p.isCpu).length,
-            players.filter((p) => p.isCpu).length,
-            difficulty,
-          )}
-        </p>
-        <ChunkyButton variant="primary" size="lg" icon="rocket" fullWidth onClick={handleStart}>
-          Start Game
-        </ChunkyButton>
-      </div>
+      {step === 'players' ? (
+        <PlayersStep
+          players={players}
+          setPlayers={setPlayers}
+          profiles={profiles}
+          stepNumber={flow.indexOf('players') + 1}
+          stepCount={flow.length}
+          onBack={() => goBack('players')}
+          onNext={() => goForward('players')}
+        />
+      ) : null}
 
-      <section className={styles.slotsSection} aria-label="Saved games">
-        <div className={styles.setupHeading}>
-          <span className={styles.setupLabel}>Continue a game</span>
-        </div>
-        <div className={styles.slotsGrid}>
-          {slots.map((slot) => {
-            const isAutosave = slot.slot === AUTOSAVE_SLOT
-            const title = isAutosave ? 'Autosave' : `Slot ${slot.slot}`
-            // Four slots against five countries: without this, two half-finished
-            // games are the same three names and a turn number.
-            const slotEdition = slot.editionId === null ? null : editionDisplayName(editionFor(slot.editionId))
-            const label = slot.occupied
-              ? `Continue ${title}: ${slot.playerNames.join(' and ')}${slotEdition === null ? '' : ` on the ${slotEdition} board`}, turn ${slot.turn ?? '?'}, saved ${formatSlotTimestamp(slot.savedAt ?? '')}`
-              : `${title}, empty`
-            return (
-              <button
-                key={slot.slot}
-                type="button"
-                className={`${styles.slotCard} ${slot.occupied ? '' : styles.slotEmpty}`}
-                disabled={!slot.occupied}
-                aria-label={label}
-                onClick={() => handleContinue(slot)}
-              >
-                <span className={styles.slotTitle}>{title}</span>
-                {slot.occupied ? (
-                  <>
-                    <span className={styles.slotPlayers}>{slot.playerNames.join(' & ')}</span>
-                    <span className={styles.slotMeta}>
-                      {slotEdition === null ? null : `${slotEdition} · `}Turn {slot.turn} ·{' '}
-                      {formatSlotTimestamp(slot.savedAt ?? '')}
-                    </span>
-                  </>
-                ) : (
-                  <span className={styles.slotEmptyLabel}>Empty</span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </section>
+      {step === 'country' ? (
+        <CountryStep
+          editions={editions}
+          editionId={editionId}
+          onChoose={setEditionId}
+          stepNumber={flow.indexOf('country') + 1}
+          stepCount={flow.length}
+          onBack={() => goBack('country')}
+          onNext={() => goForward('country')}
+        />
+      ) : null}
 
-      {/* The handbook is always on offer — a first-time table is exactly who
-          it exists for — where the hall only appears once there is a record
-          to hang in it. */}
-      <div className={styles.recordsRow}>
-        <ChunkyButton variant="ghost" size="md" icon="book" onClick={() => setShowManual(true)}>
-          The Handbook
-        </ChunkyButton>
-        {records.length > 0 ? (
-          <ChunkyButton variant="ghost" size="md" icon="ribbon" onClick={() => setShowRecords(true)}>
-            Hall of Records
-          </ChunkyButton>
-        ) : null}
-        {/* Promoted out of the old top-right build bar and in among the other
-            doors off this screen. It was a 0.68rem underline in a corner
-            before; it is a way into the game's own history, and reads as one
-            here. */}
-        <ChunkyButton variant="ghost" size="md" onClick={() => setShowNotes(true)}>
-          What&rsquo;s New
-        </ChunkyButton>
-      </div>
+      {step === 'difficulty' ? (
+        <DifficultyStep
+          difficulty={difficulty}
+          onChoose={setDifficulty}
+          players={players}
+          stepNumber={flow.indexOf('difficulty') + 1}
+          stepCount={flow.length}
+          onBack={() => goBack('difficulty')}
+          onStart={handleStart}
+        />
+      ) : null}
 
-      <div className={styles.audioRow}>
-        <AudioToggle />
-      </div>
-
-      {/* The build stamp, in the footer where a build stamp belongs.
-          It used to be absolutely positioned in the top-right corner — except
-          that `.screen > *` (which it is one of) resets `position: relative`
-          on every child, so `right: 26px` was read as a *relative* offset and
-          shunted the whole full-width row 26px to the left, off the padded
-          edge and under `overflow-x: clip`. That is what ate the leading "v"
-          the playtest reported: not a truncation, a nudge. Nothing here is
-          positioned any more, so there is nothing left to clip. */}
-      <footer className={styles.footer}>
-        <span className={styles.versionTag} title="The exact commit this build came from">
-          {__APP_BUILD__}
-        </span>
-      </footer>
+      {showSettings ? <SettingsSheet onClose={() => setShowSettings(false)} /> : null}
     </div>
   )
 }

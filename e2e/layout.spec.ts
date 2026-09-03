@@ -19,16 +19,31 @@ import { expect, test, type Page } from '@playwright/test'
  * project's own screenshots have used at some point.
  */
 
+/**
+ * The title is a flow rather than one long form since #36: the lid offers
+ * Continue and New Game, and the new game asks players → country →
+ * difficulty, one screen at a time. So this walks it — and walking it is
+ * itself worth something here, since it means a broken step shows up as a
+ * failure in the layout suite too.
+ */
 async function startGame(page: Page): Promise<void> {
   await page.goto('/')
-  await page.getByText('Japancounts in ¥', { exact: false }).first().click()
+  await page.getByRole('button', { name: 'New Game' }).click()
   const cpuToggles = page.getByRole('button', { name: 'CPU', exact: true })
   const count = await cpuToggles.count()
   for (let i = 0; i < count; i += 1) await cpuToggles.nth(i).click()
+  await page.getByRole('button', { name: /next: the country/i }).click()
+  await page.getByRole('button', { name: /^Japan edition\./i }).click()
+  await page.getByRole('button', { name: /next: the difficulty/i }).click()
   await page.getByRole('button', { name: /start game/i }).click()
   const ready = page.getByRole('button', { name: /i'm ready/i })
   if (await ready.isVisible().catch(() => false)) await ready.click()
-  await expect(page.getByRole('button', { name: /^spin$/i })).toBeVisible()
+  // `/^roll/` rather than an exact name: the die's accessible name carries the
+  // previous result once there is one ("Roll — last roll 4"), and reads
+  // "Rolling…" mid-throw. It was `/^spin$/` until the vocabulary was unified on
+  // die/roll, which is what had this whole suite failing in CI — the one place
+  // that runs it — while every local run skipped it for want of a browser.
+  await expect(page.getByRole('button', { name: /^roll/i })).toBeVisible()
 }
 
 /** True if `a` and `b` share any pixels. Touching edges (area 0) do not count as an overlap. */
@@ -42,7 +57,7 @@ function rectsOverlap(
 }
 
 test.describe('board layout never overlaps the rest of the table', () => {
-  test('the board does not overlap the spin wheel or the player panels', async ({ page }) => {
+  test('the board does not overlap the player panels', async ({ page }) => {
     await startGame(page)
 
     // The rendered card (`.frame`, drawn by `Board`), not just the grid cell
@@ -52,7 +67,12 @@ test.describe('board layout never overlaps the rest of the table', () => {
     // caught v1.3.0's regression; the cell-containment test below explains why.
     const board = page.getByRole('region', { name: 'Game board' })
     const frame = board.locator(':scope > div').first()
-    const rail = page.getByRole('complementary', { name: 'Spinner and players' })
+    // Was a `complementary` landmark called "Spinner and players" holding both
+    // the wheel and the seats. The wheel became a die in a tray on the board's
+    // own card, and what is left beside the board is the seats — now a button
+    // that opens the full status. Same question as before, asked of what the
+    // layout actually has: the drawing must not reach into the panel.
+    const rail = page.getByRole('button', { name: 'Players — open full status' })
     await expect(frame).toBeVisible()
     await expect(rail).toBeVisible()
 
@@ -104,7 +124,7 @@ test.describe('board layout never overlaps the rest of the table', () => {
 
     const boardArea = page.getByRole('region', { name: 'Game board' })
     const frame = boardArea.locator(':scope > div').first()
-    const rail = page.getByRole('complementary', { name: 'Spinner and players' })
+    const rail = page.getByRole('button', { name: 'Players — open full status' })
     const zoomIn = page.getByRole('button', { name: 'Zoom in' })
     await expect(zoomIn).toBeVisible()
 
@@ -143,6 +163,38 @@ test.describe('board layout never overlaps the rest of the table', () => {
     const resetBox = await frame.boundingBox()
     expect(resetBox!.width).toBeCloseTo(frameBox!.width, 0)
     expect(resetBox!.height).toBeCloseTo(frameBox!.height, 0)
+  })
+
+  /**
+   * The die moved out of the middle of the board and into its own tray in the
+   * corner (issue #23), which makes it a new box inside the board's cell —
+   * exactly the shape of thing this file exists to keep honest. It is
+   * absolutely positioned inside the board's stage, so it cannot spill by
+   * construction; this is where that claim gets checked against real layout
+   * rather than against the CSS it was written in.
+   */
+  test('the die tray stays inside the board’s own cell and clear of the zoom rail', async ({ page }) => {
+    await startGame(page)
+
+    const boardArea = page.getByRole('region', { name: 'Game board' })
+    const die = page.getByRole('button', { name: /^roll/i })
+    const zoomIn = page.getByRole('button', { name: 'Zoom in' })
+    await expect(die).toBeVisible()
+
+    const boardAreaBox = await boardArea.boundingBox()
+    const dieBox = await die.boundingBox()
+    const zoomBox = await zoomIn.boundingBox()
+    expect(boardAreaBox).not.toBeNull()
+    expect(dieBox).not.toBeNull()
+    expect(zoomBox).not.toBeNull()
+
+    const slack = 4
+    expect(dieBox!.y).toBeGreaterThanOrEqual(boardAreaBox!.y - slack)
+    expect(dieBox!.y + dieBox!.height).toBeLessThanOrEqual(boardAreaBox!.y + boardAreaBox!.height + slack)
+    expect(dieBox!.x).toBeGreaterThanOrEqual(boardAreaBox!.x - slack)
+    expect(dieBox!.x + dieBox!.width).toBeLessThanOrEqual(boardAreaBox!.x + boardAreaBox!.width + slack)
+    // Opposite corners, and that is the whole reason the tray is on the left.
+    expect(rectsOverlap(dieBox!, zoomBox!)).toBe(false)
   })
 
   test('the whole page fits the viewport on a phone — no vertical scroll needed to see every section', async ({

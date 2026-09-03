@@ -13,6 +13,19 @@ export interface CameraShot {
   readonly cy: number
   /** 1 frames the whole board. Larger is closer; below 1 is clamped away. */
   readonly zoom: number
+  /**
+   * How far this shot is allowed to reach past the edge of the board's own
+   * card, as a fraction of the frame it shows — see `FOLLOW_SLACK`, which is
+   * the only value anything actually asks for. Absent (the default) is the
+   * old behaviour exactly: the frame stays wholly on the card.
+   *
+   * It rides on the shot rather than being a parameter of the clamp because
+   * a shot is re-clamped after it is chosen — `userZoomedShot` magnifies it
+   * and `cameraTransform` clamps again at the new zoom — and a permission
+   * that did not travel with the shot would be silently revoked on the way
+   * to the DOM.
+   */
+  readonly slack?: number
 }
 
 /** The rectangle of board a shot actually shows, in viewBox units. */
@@ -249,10 +262,104 @@ export function wideShot(
   return { cx: union.x + union.width / 2, cy: union.y + union.height / 2, zoom }
 }
 
+/* ── keeping the car in shot ───────────────────────────────────────────────
+   The band the active car is promised, and the one permission the camera
+   needs to be able to keep that promise. */
+
 /**
- * Frames `at` as closely as `zoom` allows without ever showing past the edge of
- * the board — a camera that drifts off the card breaks the illusion that the
- * board is an object rather than a picture.
+ * The slice of the frame the active car is held inside — dead centre is 0.5,
+ * and these are how far either way it is allowed to drift before the camera
+ * is doing its job badly. Straight from the playtest: "keep the pawn within
+ * 40–60% of the viewport" (issue #25).
+ */
+export const FOLLOW_BAND_MIN = 0.4
+export const FOLLOW_BAND_MAX = 0.6
+
+/**
+ * How far a following shot may reach past the board's own card, as a
+ * fraction of the frame it shows.
+ *
+ * This is not a taste number — it is exactly what the band above costs, and
+ * the arithmetic is short enough to state. Write the frame's width `w` and
+ * the car's distance from the board's edge `c`. Clamped flush to the card
+ * the frame's centre can get no nearer the edge than `w/2`, so the car lands
+ * at `c/w` of the frame: a car on the outermost tile of a ten-wide board sits
+ * at about 11% — pinned to the very edge of the screen, which is precisely
+ * what was reported. Let the centre reach `s·w` further out and the car lands
+ * at `c/w + s` instead, so `s = 0.4` puts *every* point on the card inside
+ * `[0.4, 0.6]`: at or past `0.1w` from the edge the frame simply centres on
+ * the car (`f = 0.5`), and closer in than that it degrades to no worse than
+ * `0.4`, never past it.
+ *
+ * What it costs is a strip of off-board ground in shot when the car is right
+ * at the edge of the map. That used to be reason enough not to do it — "a
+ * camera that drifts off the card breaks the illusion that the board is an
+ * object" — so the ground under the board is drawn out past the card's own
+ * edge to meet it (see `.landscape` in `Board.tsx`). The illusion the old
+ * clamp protected is kept; the pinned car it cost is not.
+ */
+export const FOLLOW_SLACK = FOLLOW_BAND_MIN
+
+/**
+ * Where `point` lands inside the frame `shot` actually puts on screen, as a
+ * fraction of that frame on each axis: 0.5 is dead centre, 0 and 1 its edges,
+ * and outside 0–1 is off screen entirely.
+ *
+ * Measured against the *visible* band rather than `shotRect`'s full rect,
+ * for the same reason that rect's own clamp is: `preserveAspectRatio="xMidYMid
+ * slice"` shows only the middle of it on whichever axis the container is not
+ * the fixed viewBox's own shape, and a promise about "the viewport" has to be
+ * a promise about the part a player can actually see.
+ */
+export function framePosition(
+  projection: BoardProjection,
+  shot: CameraShot,
+  point: Point,
+  containerAspect: number = projection.viewWidth / projection.viewHeight,
+): Point {
+  const rect = shotRect(projection, shot, containerAspect)
+  const seen = seenSpan(projection, rect, containerAspect)
+  const cx = rect.x + rect.width / 2
+  const cy = rect.y + rect.height / 2
+  return {
+    x: (point.x - (cx - seen.x / 2)) / seen.x,
+    y: (point.y - (cy - seen.y / 2)) / seen.y,
+  }
+}
+
+/**
+ * How much of `rect` is actually on screen, in viewBox units — the `slice`
+ * crop applied to whichever axis the container is not shaped for. Everything
+ * that reasons about where something sits *on screen* has to work in these
+ * numbers rather than the rect's own.
+ */
+function seenSpan(projection: BoardProjection, rect: CameraRect, containerAspect: number): Point {
+  const viewAspect = projection.viewWidth / projection.viewHeight
+  return {
+    x: containerAspect >= viewAspect ? rect.width : (rect.width * containerAspect) / viewAspect,
+    y: containerAspect >= viewAspect ? (rect.height * viewAspect) / containerAspect : rect.height,
+  }
+}
+
+/** Whether `point` sits inside the band the active car is promised. */
+export function framesPoint(
+  projection: BoardProjection,
+  shot: CameraShot,
+  point: Point,
+  containerAspect: number = projection.viewWidth / projection.viewHeight,
+): boolean {
+  const at = framePosition(projection, shot, point, containerAspect)
+  const inside = (v: number): boolean => v >= FOLLOW_BAND_MIN - EPSILON && v <= FOLLOW_BAND_MAX + EPSILON
+  return inside(at.x) && inside(at.y)
+}
+
+/**
+ * Frames `at` as closely as `zoom` allows without showing more of the world
+ * past the edge of the board than `slack` allows — a camera that drifts off
+ * the card breaks the illusion that the board is an object rather than a
+ * picture, and `slack` is how much of that illusion a shot is willing to
+ * spend to keep the car in frame (see `FOLLOW_SLACK`; the default spends
+ * none).
  *
  * `containerAspect` has to be threaded all the way through here rather than
  * left to `cameraTransform`'s own default: this function's whole job is
@@ -268,9 +375,19 @@ export function focusShot(
   at: Point,
   zoom: number,
   containerAspect: number = projection.viewWidth / projection.viewHeight,
+  slack = 0,
 ): CameraShot {
-  const rect = shotRect(projection, { cx: at.x, cy: at.y, zoom }, containerAspect)
-  return { cx: rect.x + rect.width / 2, cy: rect.y + rect.height / 2, zoom: Math.max(WIDE_ZOOM, zoom) }
+  // Written into the shot rather than passed alongside it: the shot this
+  // returns is clamped again downstream (magnified, then turned into a
+  // transform), and a permission left behind here would be revoked there.
+  const asked: CameraShot = { cx: at.x, cy: at.y, zoom, ...(slack > 0 ? { slack } : {}) }
+  const rect = shotRect(projection, asked, containerAspect)
+  return {
+    cx: rect.x + rect.width / 2,
+    cy: rect.y + rect.height / 2,
+    zoom: Math.max(WIDE_ZOOM, zoom),
+    ...(slack > 0 ? { slack } : {}),
+  }
 }
 
 /**
@@ -335,8 +452,12 @@ export function shotRect(
   const viewAspect = projection.viewWidth / projection.viewHeight
   const seenWidth = containerAspect >= viewAspect ? width : (width * containerAspect) / viewAspect
   const seenHeight = containerAspect >= viewAspect ? (height * viewAspect) / containerAspect : height
-  const cx = clamp(shot.cx, seenWidth / 2, projection.viewWidth - seenWidth / 2)
-  const cy = clamp(shot.cy, seenHeight / 2, projection.viewHeight - seenHeight / 2)
+  // The shot's own permission to overhang, in the units the clamp works in.
+  // Zero for every shot that does not ask, which is the clamp exactly as it
+  // has always been.
+  const slack = shot.slack ?? 0
+  const cx = clamp(shot.cx, seenWidth / 2 - seenWidth * slack, projection.viewWidth - seenWidth / 2 + seenWidth * slack)
+  const cy = clamp(shot.cy, seenHeight / 2 - seenHeight * slack, projection.viewHeight - seenHeight / 2 + seenHeight * slack)
   return { x: cx - width / 2, y: cy - height / 2, width, height }
 }
 
@@ -459,89 +580,30 @@ export function restPoint(board: Board, projection: BoardProjection, space: Spac
 }
 
 /**
- * How far below the frame's centre the rest shot seats the active car, as a
- * fraction of the height the frame actually shows on screen.
- *
- * The die is glued to the exact centre of the screen — an explicit
- * requirement, see `.rollDock` in App.module.css — and the rest shot used to
- * aim at exactly the tile that die is asking about, which parked the car
- * directly underneath the die's felt mat. Worst at the opening fork, where
- * both cars still share the start tile *and* the fork rail is up, but true
- * of every turn a player spends deciding whether to press. The die cannot
- * move; the board underneath it can — so the frame holds the board a little
- * higher and the car waits in the clear band below the mat instead.
- *
- * A fraction of the *visible* height rather than a tile count on purpose:
- * the mat is sized in screen pixels, so the clearance that matters is a
- * screen distance — the same slice of screen whatever board or window shape
- * the shot is framing, where a tile count would drift with every zoom's
- * worth of `aspectStretch`. Sized for the fork-rail case — the rail rides
- * above the die in a centred column, nudging the die itself down toward the
- * car — rather than swapping between two framings by whether a rail happens
- * to be showing, which would read as the camera flinching.
- */
-export const REST_DIE_CLEARANCE = 0.22
-
-/**
- * How far a car's own body can reach from its tile's centre, in tile widths
- * — the drawn car is wider than a tile, and two cars sharing a tile spill
- * off it on purpose (`Pawn`'s crowd offsets). In board units, not a screen
- * fraction, because the cars are drawn in board space and scale with the
- * camera: a tile-width of reach is a tile-width of reach at every zoom.
- *
- * Only the edge-pinned rescue below pays this on top of the clearance. An
- * ordinary lifted frame holds the car *below* the die, where the cars'
- * downward spill points away from it; a frame pinned to the board's top
- * edge holds the car *above* the die, where that same spill points straight
- * at it and eats exactly this much of the separation.
- */
-const REST_CAR_REACH_TILES = 1
-
-/**
- * Forgiveness for float noise in the clearance geometry, in viewBox units —
+ * Forgiveness for float noise in the framing geometry, in viewBox units —
  * far below a pixel at any zoom, far above what the arithmetic can drift.
  */
 const EPSILON = 1e-6
 
 /**
- * The height of board a shot at `zoom` actually puts on screen, in viewBox
- * units. Not `shotRect`'s own height whenever the container is wider than
- * the fixed viewBox: the drawing's `preserveAspectRatio="xMidYMid slice"`
- * fills the container's width first and crops the excess off the top and
- * bottom evenly, so a wide window sees only the vertical middle of the rect
- * the shot nominally covers. (A tall container crops sideways instead and
- * shows the rect's full height.)
- */
-function visibleHeight(projection: BoardProjection, zoom: number, containerAspect: number): number {
-  const viewAspect = projection.viewWidth / projection.viewHeight
-  const verticalCrop = Math.max(1, containerAspect / viewAspect)
-  return projection.viewHeight / (zoom * aspectStretch(projection, containerAspect) * verticalCrop)
-}
-
-/**
  * The shot a player plans their next spin from: `space`, at `REST_ZOOM`,
- * leaning toward the road ahead — and held so the car sits clear of the die
- * pinned to the centre of the screen, not underneath it (see
- * `REST_DIE_CLEARANCE`).
+ * leaning toward the road ahead, and framed so the car itself lands inside
+ * the band the camera promises it (`FOLLOW_BAND_MIN`/`MAX`).
  *
- * Panning up is the first resort: aim a little above the car and it settles
- * into the band below the die. But near the board's top edge `focusShot`'s
- * clamp pins the frame to the card and quietly hands the centre of the
- * screen right back to the car — worst on a window whose shape puts the
- * start corner's tile almost exactly a half-frame from the edge, where the
- * pinned frame's centre lands on the tile itself. The car is kept anyway if
- * the pin happened to leave it far enough from the centre in *some*
- * direction — a corner pin often leaves it well above or beside the die,
- * which separates just as well as below does, minus the cars' own downward
- * spill (`REST_CAR_REACH_TILES`). Only when it didn't does the shot slide
- * *along* the board instead, toward the middle of the route, far enough
- * that the car waits beside the die rather than under it. Sideways on
- * purpose, and never zoom: the top edge only ever robs the vertical, the
- * board always has route to look at toward its own middle — the same
- * direction the road out of a corner runs — and a zoom bought for
- * clearance would pass through framing the die dead on the car on its way
- * to any tighter shot, trading this bug for a worse one whenever a cap cut
- * the purchase short.
+ * There used to be a great deal more to this function, and it is worth
+ * saying what went and why, because what went was a workaround for something
+ * that is no longer true. The die used to be glued to the exact centre of
+ * the screen, so a rest shot aimed at the car parked the car underneath the
+ * die's own felt mat; the answer was to lift the frame by a fixed fraction
+ * of the visible height (`REST_DIE_CLEARANCE`, 22%), plus a second rescue
+ * for the case where the board's top edge pinned the frame and handed the
+ * centre back to the car anyway. Both are gone with their premise: the die
+ * has moved off the centre into its own tray (issue #23), and the lift they
+ * were built around is exactly what seated the car at ~72% of the viewport —
+ * the other half of the same playtest's complaint that the camera does not
+ * hold the car (issue #25). The clamp that made the corner rescue necessary
+ * is answered properly now too, by `FOLLOW_SLACK` rather than by sliding
+ * sideways along the board.
  */
 export function restShot(
   board: Board,
@@ -549,32 +611,24 @@ export function restShot(
   space: Space,
   containerAspect: number = projection.viewWidth / projection.viewHeight,
 ): CameraShot {
-  const at = restPoint(board, projection, space)
-  const lift = visibleHeight(projection, REST_ZOOM, containerAspect) * REST_DIE_CLEARANCE
-  const panned = focusShot(projection, { x: at.x, y: at.y - lift }, REST_ZOOM, containerAspect)
-
-  // The clamp only ever *raises* the centre past the aim when the frame hit
-  // the top of the card — anywhere else the lift was honoured (or bettered,
-  // at the bottom edge) and the car hangs below the die as designed.
-  if (panned.cy <= at.y - lift + EPSILON) return panned
-
-  // Pinned. The die must clear the car itself — the tile the cars are drawn
-  // on, not the leaned aim — and, held above the die, the cars' own spill
-  // reaches toward it, so the reach is owed on top of the clearance.
+  const aim = restPoint(board, projection, space)
   const car = projection.project(space.layout)
-  const required = lift + projection.tileSize * REST_CAR_REACH_TILES
-  const dy = car.y - panned.cy
-  if (Math.hypot(car.x - panned.cx, dy) >= required - EPSILON) return panned
 
-  // Slide toward the route's middle until the diagonal comes out right.
-  const slide = Math.sqrt(Math.max(0, required * required - dy * dy))
-  const inward = car.x <= projection.viewWidth / 2 ? 1 : -1
-  return focusShot(
-    projection,
-    { x: car.x + inward * slide, y: at.y - lift },
-    REST_ZOOM,
-    containerAspect,
-  )
+  /* The lean toward the road ahead is a nudge; where the car sits on screen
+     is a promise. They only conflict on a frame narrow enough that a lean
+     measured in board units is a large share of the screen — a tall phone
+     window spends a fifth of its visible width on what is barely a third of
+     a tile — so the lean gives back exactly as much as the band needs and
+     not a unit more. Measured against the frame the *unleaned* aim would
+     draw, so the cap can't chase its own tail as the aim moves. */
+  const rect = shotRect(projection, { cx: car.x, cy: car.y, zoom: REST_ZOOM, slack: FOLLOW_SLACK }, containerAspect)
+  const seen = seenSpan(projection, rect, containerAspect)
+  const reach = FOLLOW_BAND_MAX - 0.5
+  const led = {
+    x: car.x + clamp(aim.x - car.x, -seen.x * reach, seen.x * reach),
+    y: car.y + clamp(aim.y - car.y, -seen.y * reach, seen.y * reach),
+  }
+  return focusShot(projection, led, REST_ZOOM, containerAspect, FOLLOW_SLACK)
 }
 
 /**

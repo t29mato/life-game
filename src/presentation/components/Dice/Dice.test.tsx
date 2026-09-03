@@ -187,6 +187,58 @@ describe('Dice', () => {
     await waitFor(() => expect(onRollComplete).toHaveBeenCalledTimes(1))
   })
 
+  /**
+   * The reported bug (issue #23): the board's die is one object that outlives
+   * every turn taken with it, and `result` is whatever the store last rolled
+   * — so the next player arrived at a die still showing the previous
+   * player's number and read it as their own.
+   */
+  it('clears the last player’s number when the shell hands it a new turn', async () => {
+    mockReducedMotion(true)
+    const user = userEvent.setup()
+    const audio = createFakeAudioPort()
+    const onRollComplete = vi.fn()
+
+    const { rerender, container } = render(
+      <Harness audio={audio} onRollComplete={onRollComplete} resetKey="turn-1" />,
+    )
+    await user.click(screen.getByRole('button', { name: /roll/i }))
+    rerender(<Harness audio={audio} onRollComplete={onRollComplete} result={6} resetKey="turn-1" />)
+    await waitFor(() => expect(onRollComplete).toHaveBeenCalledTimes(1))
+    expect(shownFace(container)).toBe('6')
+
+    // The next turn opens. `result` has not changed — the store still holds
+    // last turn's 6 — so nothing but this key can put the die back.
+    rerender(<Harness audio={audio} onRollComplete={onRollComplete} result={6} resetKey="turn-2" />)
+
+    expect(shownFace(container)).toBe('1')
+    // …and the accessible name stops claiming a roll that was not this
+    // player's, which is the same lie in words.
+    expect(screen.getByRole('button', { name: 'Roll' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('')
+  })
+
+  /**
+   * The other half of the same report: a die that is merely sitting there
+   * says nothing about being what the game is waiting for. It bobs, and it
+   * names both ways in — but only while the press is genuinely its own.
+   */
+  it('asks to be thrown while it is the screen’s next input, and not otherwise', () => {
+    mockReducedMotion(true)
+    const audio = createFakeAudioPort()
+
+    const { rerender } = render(<Harness audio={audio} primary />)
+    expect(screen.getByText(/click to roll/i)).toBeInTheDocument()
+
+    // A die on screen but not the screen's business — the board's, under a
+    // modal — must not advertise a key that would not reach it.
+    rerender(<Harness audio={audio} />)
+    expect(screen.queryByText(/click to roll/i)).not.toBeInTheDocument()
+
+    rerender(<Harness audio={audio} primary disabled />)
+    expect(screen.queryByText(/click to roll/i)).not.toBeInTheDocument()
+  })
+
   it('prints all six faces on the cube, each with exactly its own pips', () => {
     mockReducedMotion(true)
     const audio = createFakeAudioPort()

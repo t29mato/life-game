@@ -56,7 +56,7 @@ import { AudioProvider } from './hooks/useAudio'
 import { useGameState } from './hooks/useGameState'
 import { useHandoffMode } from './hooks/useHandoffMode'
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
-import { TEMPO } from './tempo'
+import { TEMPO, paced } from './tempo'
 import { UiIcon } from './icons/ui'
 
 export interface AppProps {
@@ -848,7 +848,11 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
         return
       }
       store.dispatch(command)
-    }, CPU_THINK_MS[state.phase as keyof typeof CPU_THINK_MS])
+      // `paced`, not the raw figure. The think beat is a beat of the play loop
+      // like every one in `tempo.ts` and runs on the same clock, which the test
+      // runner turns down; the constant itself stays at its authored length
+      // because `estimatePlaytime` quotes a real game off it. See `paced`.
+    }, paced(CPU_THINK_MS[state.phase as keyof typeof CPU_THINK_MS]))
 
     return () => window.clearTimeout(timer)
   }, [
@@ -885,15 +889,12 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
     pressable && state.phase === 'awaitingDistanceSpin' && state.chosenExit
       ? roadName(state.board, state.chosenExit)
       : undefined
-  /*
-   * The one window where the dock's centre seat costs something: the camera
-   * holds the active car near the middle of the screen, and mid-move that
-   * car is the whole show. The die is spent by then — `dieSettled` is what
-   * says its own animation has finished and the hops now running are the
-   * board's — so it fades out of the way and leaves the centre to the car
-   * and the hop counter until the move resolves.
-   */
-  const carDriving = state.phase === 'moving' && dieSettled
+  /* A `carDriving` flag used to live here, fading the die out for the whole
+     of a move: the die sat dead centre, the camera parks the active car near
+     that same spot, and mid-move the car is the whole show. With the die in
+     its own corner tray the two no longer compete for the same inch of
+     screen, so the fade is gone with the collision that caused it — one
+     fewer thing blinking on and off per turn. */
 
   // --- game log drawer ---------------------------------------------------
   // The scrolling feed is rarely needed mid-turn, so it stays off screen and
@@ -967,6 +968,50 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
     setLegendOpen(false)
   }, [])
 
+  /*
+   * --- one thing on screen at a time -------------------------------------
+   *
+   * The two cards the board can raise, named up here rather than only in the
+   * JSX, because something else needs to know they are coming: everything
+   * docked over the board has to be *gone* before a card arrives.
+   *
+   * The playtest saw the opposite. Every transition to a result card
+   * crossfaded over a still-visible board die and a "0 TO GO" badge, so for
+   * a third of a second two frames of the game occupied the same pixels —
+   * read, correctly, as a rendering fault rather than as a transition (issue
+   * #24). Fading the dock out is only half the fix; the other half is the
+   * *order*, which is why the cards themselves wait `TEMPO.overlayHandoverMs`
+   * before their entrance runs. Old out, then new in.
+   */
+  const landingCardUp =
+    state.phase === 'resolved' &&
+    state.lastEvent !== null &&
+    dieSettled &&
+    !(isEmptyLandingEvent(state.lastEvent) && !activePlayer?.isCpu)
+  const passedCardUp =
+    state.phase === 'passingEvent' &&
+    state.activePassedEvent !== null &&
+    dieSettled &&
+    !passedSpinVisible &&
+    passedEventKeepsCard(state.activePassedEvent)
+  const decisionCardUp =
+    state.phase === 'awaitingDecision' &&
+    state.pendingDecision !== null &&
+    !handoffVisible &&
+    !eventSpinRequest
+  /** Anything owning the screen over the board — the dock stands down for all of it. */
+  const overlayUp =
+    eventSpinVisible ||
+    passedSpinVisible ||
+    displayedScoreRoll !== null ||
+    handoffVisible ||
+    legendOpen ||
+    statusOpen ||
+    settingsOpen ||
+    decisionCardUp ||
+    landingCardUp ||
+    passedCardUp
+
   if (state.phase === 'setup') {
     return (
       <AudioProvider audio={audio}>
@@ -1016,7 +1061,14 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
 
   return (
     <AudioProvider audio={audio}>
-      <div className={styles.shell}>
+      {/* The handover beat, published once for everything that has to obey
+          it: the dock fades out over exactly this, and the cards that follow
+          wait exactly this before arriving. One number, in `tempo.ts`, rather
+          than a CSS duration and a JS delay drifting apart. */}
+      <div
+        className={styles.shell}
+        style={{ '--overlay-handover': `${TEMPO.overlayHandoverMs}ms` } as CSSProperties}
+      >
         <header className={styles.topBar}>
           <div className={styles.brand}>
             <span className={styles.emblem} aria-hidden="true">
@@ -1135,22 +1187,61 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                 difficulty={state.difficulty}
               />
 
-              {/* The die sits at the true centre of the play area now — it
-                  moved once from the rail to the foot of the board, and the
-                  owner said that still was not central enough. With the
-                  seats gone to the strip below, the board's stage spans
-                  everything between the header and that strip, so centring
-                  in the stage *is* centring on the screen a player is
-                  actually looking at — the strip can never pull it
-                  off-centre. The camera holds the active car near this very
-                  spot, which is why the die steps aside — faded out, see
-                  `.dieAside` — while the car is actually driving; only the
-                  hop counter rides the centre then. The wrapper spans the
-                  whole stage but stays transparent to the pointer, so a
-                  drag across the board still pans it. An event roll still
-                  gets its own die in `EventSpinModal`; only the movement
-                  roll lives here. */}
-              <div className={styles.rollDock}>
+              {/* What the board itself has to say mid-move, in a column down
+                  the middle of the stage: the tile just driven over, and how
+                  much further there is to go. The wrapper spans the whole
+                  stage but stays transparent to the pointer, so a drag across
+                  the board still pans it.
+
+                  The die used to live here too, dead centre, and it does not
+                  any more — see `.dieTray` below for why. */}
+              <div className={overlayUp ? `${styles.rollDock} ${styles.dockAway}` : styles.rollDock}>
+                {/* A tile the car drove over, said out loud on the board
+                    rather than in front of it. Sits above the hop counter so
+                    the two read as one column: what just happened, and how
+                    much further there is to go. */}
+                {passedPopVisible && passedEvent && (
+                  <PassingPop key={passedEvent.spaceId} event={passedEvent} editionId={state.editionId} />
+                )}
+
+                {spacesLeft !== null && <MoveCounter spacesLeft={spacesLeft} />}
+
+                {/* The roll, leaving the die for the car. Absolutely
+                    positioned over the dock's centre, so it costs the column
+                    above no layout at all. */}
+                {rollFlight && <RollFlight key={rollFlight.token} value={rollFlight.value} />}
+              </div>
+
+              {/* ---- The die's tray -------------------------------------
+                  The die used to be pinned to the exact centre of the stage,
+                  and it had been moved there deliberately — twice, at the
+                  owner's own asking. The playtest then found what centring
+                  it costs: the die sits on top of the board, so it covered
+                  the tiles and the cars directly underneath it, in the one
+                  spot the camera is careful to park the active car (issue
+                  #23). A die is a thing you pick up, not a thing printed on
+                  the middle of the map.
+
+                  So it has a tray, in the corner opposite the zoom rail —
+                  the same "HUD side" the report asked for. What made the
+                  centre worth wanting is kept: it is still the largest,
+                  loudest object on the board, it still has the whole
+                  fork panel above it explaining what the roll decides, and
+                  Space still throws it from anywhere (`usePrimaryAction`).
+                  What is given back is the middle of the board, to the board.
+
+                  An event roll still gets its own die in `EventSpinModal`;
+                  only the movement roll lives here. */}
+              {/* `aria-hidden` only for the event modal, deliberately, and
+                  not for every card the dock fades under: that modal puts a
+                  *second* control named "Roll" on screen, which a keyboard or
+                  screen-reader user would otherwise run into with no way to
+                  tell the two apart. Every other card leaves this die exactly
+                  as findable as it was before — disabled, and saying so. */}
+              <div
+                className={overlayUp ? `${styles.dieTray} ${styles.dockAway}` : styles.dieTray}
+                aria-hidden={eventSpinVisible || undefined}
+              >
                 {forkAhead && !eventSpinVisible && (
                   <div
                     className={styles.forkAhead}
@@ -1183,30 +1274,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                   </div>
                 )}
 
-                {/* A tile the car drove over, said out loud on the board
-                    rather than in front of it. Sits above the hop counter so
-                    the two read as one column: what just happened, and how
-                    much further there is to go. */}
-                {passedPopVisible && passedEvent && (
-                  <PassingPop key={passedEvent.spaceId} event={passedEvent} editionId={state.editionId} />
-                )}
-
-                {spacesLeft !== null && <MoveCounter spacesLeft={spacesLeft} />}
-
-                {/* The roll, leaving the die for the car. Absolutely
-                    positioned over the dock's centre, so it costs the column
-                    above no layout at all. */}
-                {rollFlight && <RollFlight key={rollFlight.token} value={rollFlight.value} />}
-
-                {/* `aria-hidden` while the event modal is up: this die is
-                    inert then (disabled, and correctly so — there is nothing
-                    to move yet), and left findable it is a second control
-                    named "Roll" a keyboard or screen-reader user would run
-                    into for no reason. */}
-                <div
-                  className={carDriving ? `${styles.dieDock} ${styles.dieAside}` : styles.dieDock}
-                  aria-hidden={eventSpinVisible || undefined}
-                >
+                <div className={styles.dieDock}>
                   <Dice
                     result={state.lastSpin}
                     disabled={!SPIN_PHASES.includes(state.phase) || handoffVisible}
@@ -1214,10 +1282,12 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                     onRollComplete={handleSpinComplete}
                     autoRollToken={autoSpinToken}
                     primary={dieIsPrimary}
+                    /* Whose turn it is, which is all the die needs to know to
+                       stop showing the last player's number. See `resetKey`. */
+                    resetKey={turnKey}
                     compact
                   />
                 </div>
-
               </div>
 
               {/* Whose turn it is, for a turn nobody had to hand the device

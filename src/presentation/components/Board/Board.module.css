@@ -907,6 +907,74 @@
   }
 }
 
+/* ---- The road ahead ------------------------------------------------------
+   The tiles this roll has bought, lit in order the moment the die settles —
+   Mario Party's own answer to "where am I actually going". Each tile's own
+   `animation-delay` is written from `TEMPO.pathLightStepSeconds` in
+   `Board.tsx`, so the run reads as a wave down the road rather than a row
+   switching on at once.
+
+   Fills rather than strokes, held at low opacity: this is the road catching
+   the light, not a highlighter drawn over the board. The tile the car
+   actually stops on keeps pulsing after the rest have settled, because the
+   whole question a player has mid-move is which of these is the landing. */
+
+.pathLights {
+  pointer-events: none;
+}
+
+.pathStep,
+.pathArrival {
+  fill: var(--candy-sun);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.pathStep {
+  animation: pathLightIn var(--duration-base, 0.28s) var(--ease-out) forwards;
+}
+
+.pathArrival {
+  stroke: var(--candy-sun-dark);
+  stroke-width: 4;
+  animation:
+    pathLightIn var(--duration-base, 0.28s) var(--ease-out) forwards,
+    pathArrivalPulse 1s var(--ease-in-out) infinite;
+}
+
+@keyframes pathLightIn {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 0.34;
+    transform: scale(1);
+  }
+}
+
+@keyframes pathArrivalPulse {
+  0%,
+  100% {
+    opacity: 0.34;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.62;
+    transform: scale(1.07);
+  }
+}
+
+/* ---- Roadside signs ------------------------------------------------------
+   Painted after the cars, so a sign is never hidden behind one — see the
+   caption layer in `Board.tsx`. Non-interactive, like every other decoration
+   on the map: a tap anywhere here is a tap on the tile underneath. */
+
+.captionLayer {
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .here {
     animation: none;
@@ -917,5 +985,18 @@
   .hereGlow {
     animation: none;
     opacity: 0.45;
+  }
+
+  /* The lights are information, not decoration, so they still come on — they
+     just arrive already lit, all at once, instead of running down the road.
+     The landing keeps its stronger tint and gives up only the pulse. */
+  .pathStep,
+  .pathArrival {
+    animation: none;
+    opacity: 0.34;
+  }
+
+  .pathArrival {
+    opacity: 0.55;
   }
 }

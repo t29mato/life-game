@@ -148,8 +148,13 @@ describe('remembering players', () => {
     const profiles = createInMemoryProfileRepository()
     render(<App store={newStore()} audio={createFakeAudioPort()} profiles={profiles} />)
 
+    // The title screen is a flow now (#36), not one long form: New Game,
+    // then players → country → difficulty, with Start on the last step.
+    await user.click(screen.getByRole('button', { name: 'New Game' }))
     const group2 = screen.getByRole('group', { name: 'Player 2 seat type' })
     await user.click(within(group2).getByRole('button', { name: 'CPU' }))
+    await user.click(screen.getByRole('button', { name: /next: the country/i }))
+    await user.click(screen.getByRole('button', { name: /next: the difficulty/i }))
     await user.click(screen.getByRole('button', { name: /start game/i }))
 
     expect(profiles.list().map((profile) => profile.name)).toEqual(['Player 1'])
@@ -161,7 +166,8 @@ describe('App play loop', () => {
   it('shows the title screen while the game is in setup', () => {
     render(<App store={newStore()} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
-    expect(screen.getByRole('button', { name: /start game/i })).toBeInTheDocument()
+    // The box lid, not the setup form: two buttons and nothing else asked.
+    expect(screen.getByRole('button', { name: 'New Game' })).toBeInTheDocument()
   })
 
   it('shows the board and the active player once a game has started', () => {
@@ -1027,8 +1033,11 @@ describe('a tile the car only drove over', () => {
     render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
     await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), { timeout: 5000 })
-    // Long enough for the CPU timer (`CPU_THINK_MS.passingEvent`) to have
-    // fired too, had it not been held off.
+    // Long enough for the CPU timer (`CPU_THINK_MS.passingEvent`, run through
+    // `paced` — see `tempo.ts`) to have fired too, had it not been held off.
+    // Deliberately a flat second and a half rather than derived from the beat:
+    // the point is "comfortably past it on any clock", and a wait that tracked
+    // the constant would stop being that the moment somebody shortened it.
     await new Promise((resolve) => setTimeout(resolve, 1500))
     expect(stub.commands.filter((command) => command.type === 'settle')).toHaveLength(1)
   })
@@ -1598,19 +1607,27 @@ describe('the player strip', () => {
   })
 })
 
-describe('the die stepping aside for the driving car', () => {
+describe('the die getting out of a card’s way', () => {
   /*
-   * The die sits at the centre of the screen, which is exactly where the
-   * camera holds the driving car, so mid-move the dock has to step aside —
-   * `.dieAside` fades it out and drops its pointer events. The window is
-   * sub-second in a real game, which is why it is pinned here rather than
-   * screenshotted.
+   * This used to be a test about the die stepping aside for the *car*: the
+   * die sat dead centre, which is exactly where the camera holds the driving
+   * car, so mid-move the dock faded out. The die has its own corner tray now
+   * (issue #23) and the two no longer share that inch of screen, so that
+   * particular fade is gone along with the collision that caused it.
+   *
+   * What replaces it is the collision that was actually reported: every
+   * transition to a result card crossfaded straight through the board's die
+   * and its "0 TO GO" badge, leaving a ghost of the previous frame hanging
+   * over the new one (issue #24). So the dock has to be gone before a card
+   * is up — and present when one is not, or a player is handed a board with
+   * no die on it.
    */
-  it('steps the die aside while the car is actually driving', () => {
+  const trayOf = (): HTMLElement =>
+    screen.getByRole('button', { name: /^roll/i }).closest('[class*="dieTray"]') as HTMLElement
+
+  it('leaves the board clear while a card owns the screen', () => {
     const store = startedGame()
     const base = store.getState()
-    const dieDockOf = (): HTMLElement =>
-      screen.getByRole('button', { name: /^roll/i }).closest('[class*="dieDock"]') as HTMLElement
 
     const { unmount } = render(
       <App
@@ -1619,15 +1636,31 @@ describe('the die stepping aside for the driving car', () => {
         profiles={createInMemoryProfileRepository()}
       />,
     )
-    expect(dieDockOf().className).not.toMatch(/dieAside/)
+    expect(trayOf().className).not.toMatch(/dockAway/)
     unmount()
 
-    // Real steps for the board to animate, so nothing settles from under us.
-    const moving = { ...base, phase: 'moving' as const, movementPath: [base.players[0]!.spaceId] }
     render(
-      <App store={createStubStore(moving)} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />,
+      <App
+        store={createStubStore({
+          ...base,
+          phase: 'resolved',
+          lastEvent: {
+            spaceId: base.players[0]!.spaceId,
+            title: 'Payday',
+            description: 'Wages in.',
+            icon: 'space:payday',
+            tone: 'green',
+            moneyDelta: 4000,
+            lifeTilesGained: [],
+            notes: [],
+            emphasis: 'normal',
+          },
+        })}
+        audio={createFakeAudioPort()}
+        profiles={createInMemoryProfileRepository()}
+      />,
     )
-    expect(dieDockOf().className).toMatch(/dieAside/)
+    expect(trayOf().className).toMatch(/dockAway/)
   })
 })
 
