@@ -130,8 +130,18 @@ test.describe('board layout never overlaps the rest of the table', () => {
 
     // Pressed until the key itself says there is nothing further in — the
     // range is bounded (see `USER_ZOOM_MAX`), so this terminates.
+    //
+    // `force` because `startGame` sits every seat down as a computer, so the
+    // table plays itself and never stops: a car is always mid-hop, the camera
+    // is always easing after it, and the key rides the board's own card. An
+    // ordinary click waits for the element to hold still between two frames,
+    // which in a game that is always animating is a condition that can never
+    // arrive — this test timed out 54 stability checks deep on every phone
+    // profile until it was written this way. Visibility and enabled-ness are
+    // still asserted, on the line above and the line below; what is skipped is
+    // only the wait for a stillness this screen does not have.
     for (let press = 0; press < 12 && (await zoomIn.isEnabled()); press += 1) {
-      await zoomIn.click()
+      await zoomIn.click({ force: true })
     }
     await expect(zoomIn).toBeDisabled()
 
@@ -159,7 +169,7 @@ test.describe('board layout never overlaps the rest of the table', () => {
 
     // Back to fit, and the page is exactly the page it was — the reset key
     // is the promise that zoom is opt-in and reversible.
-    await page.getByRole('button', { name: 'Reset zoom to fit' }).click()
+    await page.getByRole('button', { name: 'Reset zoom to fit' }).click({ force: true })
     const resetBox = await frame.boundingBox()
     expect(resetBox!.width).toBeCloseTo(frameBox!.width, 0)
     expect(resetBox!.height).toBeCloseTo(frameBox!.height, 0)
