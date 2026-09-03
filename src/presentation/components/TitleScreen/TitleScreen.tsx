@@ -7,6 +7,7 @@ import type { GameRecord } from '@application/ports/StatsRepositoryPort'
 import type { PlayerProfile } from '@application/ports/PlayerProfileRepositoryPort'
 import { useAudio } from '../../hooks/useAudio'
 import { usePrimaryAction } from '../../hooks/usePrimaryAction'
+import { useUi } from '../../i18n/LocaleProvider'
 import { TEMPO } from '../../tempo'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { GameIcon } from '../../icons/GameIcon'
@@ -112,9 +113,16 @@ type FlowStep = Extract<Step, 'players' | 'country' | 'difficulty'>
  */
 export function TitleScreen({ slots, records, profiles, onStart, onContinue }: TitleScreenProps): ReactElement {
   const audio = useAudio()
+  const t = useUi()
   const unlockedRef = useRef(false)
   const [step, setStep] = useState<Step>('title')
-  const [players, setPlayers] = useState<DraftPlayer[]>(defaultPlayers)
+  /*
+   * Seeded once, in whatever language the game opened in. A player who
+   * switches language mid-setup keeps the names already in the boxes — they
+   * may have typed them — and only ever sees the new language's default on a
+   * seat they add afterwards.
+   */
+  const [players, setPlayers] = useState<DraftPlayer[]>(() => defaultPlayers(t))
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
   const [editionId, setEditionId] = useState<EditionId>(DEFAULT_EDITION_ID)
   const editions = editionOptions()
@@ -165,7 +173,7 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
     unlockAudioOnce()
     const config: NewGameConfig = {
       players: players.map((p, i) => ({
-        name: p.name.trim() || `Player ${i + 1}`,
+        name: p.name.trim() || t.title.defaultPlayerName(i + 1),
         color: p.color,
         isCpu: p.isCpu,
       })),
@@ -259,12 +267,12 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
 
         {step === 'title' ? (
           <span className={styles.eyebrow} aria-hidden="true">
-            A board game of chance &amp; ambition
+            {t.title.eyebrow}
           </span>
         ) : null}
         <h1 className={styles.wordmark}>LIFE JOURNEY</h1>
         {step === 'title' ? (
-          <p className={styles.tagline}>Roll, hop, and build a life worth bragging about.</p>
+          <p className={styles.tagline}>{t.title.tagline}</p>
         ) : null}
       </div>
 
@@ -284,10 +292,10 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
               icon="folder"
               fullWidth
               disabled={!hasSave}
-              aria-label={hasSave ? 'Continue a saved game' : 'Continue: no saved games yet'}
+              aria-label={hasSave ? t.title.continueAria : t.title.continueAriaEmpty}
               onClick={() => setStep('continue')}
             >
-              Continue
+              {t.title.continue}
             </ChunkyButton>
             <ChunkyButton
               {...(hasSave ? {} : { ref: titlePrimaryRef })}
@@ -297,15 +305,11 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
               fullWidth
               onClick={() => setStep('players')}
             >
-              New Game
+              {t.title.newGame}
             </ChunkyButton>
           </div>
 
-          <p className={styles.menuHint}>
-            {hasSave
-              ? 'Three quick choices and you are on the board.'
-              : 'No saved games yet — three quick choices and you are on the board.'}
-          </p>
+          <p className={styles.menuHint}>{hasSave ? t.title.hint : t.title.hintEmpty}</p>
 
           {/* The handbook is always on offer — a first-time table is exactly
               who it exists for — where the hall only appears once there is a
@@ -314,24 +318,24 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
               rather than parking two toggles on the box lid. */}
           <div className={styles.doorsRow}>
             <ChunkyButton variant="ghost" size="md" icon="book" onClick={() => setShowManual(true)}>
-              The Handbook
+              {t.title.handbook}
             </ChunkyButton>
             {records.length > 0 ? (
               <ChunkyButton variant="ghost" size="md" icon="ribbon" onClick={() => setShowRecords(true)}>
-                Hall of Records
+                {t.title.hallOfRecords}
               </ChunkyButton>
             ) : null}
             <ChunkyButton variant="ghost" size="md" onClick={() => setShowNotes(true)}>
-              What&rsquo;s New
+              {t.title.whatsNew}
             </ChunkyButton>
             <ChunkyButton
               variant="ghost"
               size="md"
               icon="gear"
-              aria-label="Settings"
+              aria-label={t.common.settings}
               onClick={() => setShowSettings(true)}
             >
-              Settings
+              {t.common.settings}
             </ChunkyButton>
           </div>
 
@@ -345,7 +349,7 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
               truncation, a nudge. Nothing here is positioned any more, so
               there is nothing left to clip. */}
           <footer className={styles.footer}>
-            <span className={styles.versionTag} title="The exact commit this build came from">
+            <span className={styles.versionTag} title={t.title.buildTitle}>
               {__APP_BUILD__}
             </span>
           </footer>

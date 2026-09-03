@@ -1,9 +1,10 @@
 import type { CSSProperties, ReactElement } from 'react'
 import type { Difficulty } from '@domain/model/types'
 import { DIFFICULTIES } from '@domain/rules/difficulty'
+import { useUi } from '../../i18n/LocaleProvider'
 import { StepFrame } from './StepFrame'
 import { estimatePlaytime } from './estimatePlaytime'
-import { DIFFICULTY_COPY, type DraftPlayer } from './setupDraft'
+import { difficultyCopy, type DraftPlayer } from './setupDraft'
 import styles from './TitleScreen.module.css'
 
 export interface DifficultyStepProps {
@@ -39,15 +40,17 @@ export function DifficultyStep({
   onBack,
   onStart,
 }: DifficultyStepProps): ReactElement {
+  const t = useUi()
+  const copyFor = difficultyCopy(t)
   return (
     <StepFrame
       stepNumber={stepNumber}
       stepCount={stepCount}
-      heading="How hard a life?"
-      lead="The same board, dealt kinder or crueller. Every figure below was measured over seeded games."
+      heading={t.difficulty.heading}
+      lead={t.difficulty.lead}
       onBack={onBack}
-      backLabel="Back to the country"
-      primary={{ label: 'Start Game', icon: 'rocket', onClick: onStart }}
+      backLabel={t.difficulty.backLabel}
+      primary={{ label: t.difficulty.start, icon: 'rocket', onClick: onStart }}
       aside={
         /* Roughly how long this table will sit, priced from the seat mix and
            difficulty — see estimatePlaytime.ts for where every figure comes
@@ -58,13 +61,14 @@ export function DifficultyStep({
             players.filter((p) => !p.isCpu).length,
             players.filter((p) => p.isCpu).length,
             difficulty,
+            t,
           )}
         </p>
       }
     >
-      <div className={styles.choiceGrid} role="group" aria-label="Difficulty">
+      <div className={styles.choiceGrid} role="group" aria-label={t.difficulty.groupLabel}>
         {DIFFICULTIES.map((value) => {
-          const copy = DIFFICULTY_COPY[value]
+          const copy = copyFor[value]
           return (
             <button
               key={value}

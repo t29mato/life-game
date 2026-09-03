@@ -53,6 +53,7 @@ import { TurnBanner } from './components/TurnBanner/TurnBanner'
 import { TurnHandoff } from './components/TurnHandoff/TurnHandoff'
 import { UpdateBanner } from './components/UpdateBanner/UpdateBanner'
 import { AudioProvider } from './hooks/useAudio'
+import { LocaleProvider, useUi } from './i18n/LocaleProvider'
 import { useGameState } from './hooks/useGameState'
 import { useHandoffMode } from './hooks/useHandoffMode'
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
@@ -165,13 +166,31 @@ const MANUAL_SLOTS = Array.from({ length: SAVE_SLOT_COUNT - 1 }, (_, index) => i
 const noPress = (): void => {}
 
 /**
- * Root component. Owns the play loop — the sequencing between the die
- * settling, the pawn finishing its hops, and the store being told to settle —
- * plus the two things only the shell can know: when a computer seat should
- * act, and when the device is being passed to the next person.
- * All game logic lives behind `store.dispatch`.
+ * Root component: the language, and then everything else.
+ *
+ * The locale is provided *here*, above the play loop, rather than at the
+ * composition root, for one reason — every screen the game has is rendered
+ * somewhere below this line, and the setting is meant to be changeable from
+ * any of them. Wrapping the shell rather than a screen is what makes "change
+ * the language mid-turn" a repaint instead of a reload.
  */
-export function App({ store, audio, profiles }: AppProps): ReactElement {
+export function App(props: AppProps): ReactElement {
+  return (
+    <LocaleProvider>
+      <GameShell {...props} />
+    </LocaleProvider>
+  )
+}
+
+/**
+ * The play loop — the sequencing between the die settling, the pawn finishing
+ * its hops, and the store being told to settle — plus the two things only the
+ * shell can know: when a computer seat should act, and when the device is
+ * being passed to the next person. All game logic lives behind
+ * `store.dispatch`.
+ */
+function GameShell({ store, audio, profiles }: AppProps): ReactElement {
+  const t = useUi()
   const state = useGameState(store)
   const [audioUnlocked, setAudioUnlocked] = useState(false)
 
@@ -1086,10 +1105,10 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
             </span>
             <p className={styles.turnText} aria-live="polite">
               <span className={styles.turnLabel}>
-                Turn {state.turn}
-                {activePlayer?.isCpu ? ' · Computer' : ''}
+                {t.common.turn(state.turn)}
+                {activePlayer?.isCpu ? t.app.computerTag : ''}
               </span>
-              <span className={styles.turnPlayer}>{activePlayer?.name ?? '—'}&rsquo;s move</span>
+              <span className={styles.turnPlayer}>{t.app.playersMove(activePlayer?.name ?? '—')}</span>
             </p>
           </div>
 
@@ -1102,7 +1121,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
               aria-controls="game-log-drawer"
               onClick={() => setLogOpen((open) => !open)}
             >
-              <span className={styles.btnLabel}>Log</span>
+              <span className={styles.btnLabel}>{t.app.log}</span>
             </ChunkyButton>
             <div className={styles.saveMenuAnchor}>
               <ChunkyButton
@@ -1113,10 +1132,10 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                 aria-haspopup="menu"
                 onClick={() => setSaveMenuOpen((open) => !open)}
               >
-                <span className={styles.btnLabel}>Save</span>
+                <span className={styles.btnLabel}>{t.app.save}</span>
               </ChunkyButton>
               {saveMenuOpen && (
-                <div className={styles.saveMenu} role="menu" aria-label="Choose a save slot">
+                <div className={styles.saveMenu} role="menu" aria-label={t.app.chooseSaveSlot}>
                   {MANUAL_SLOTS.map((slot) => {
                     const info = slots.find((entry) => entry.slot === slot)
                     return (
@@ -1127,18 +1146,16 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                         className={styles.saveSlot}
                         onClick={() => handleSave(slot)}
                       >
-                        <span className={styles.saveSlotName}>Slot {slot}</span>
+                        <span className={styles.saveSlotName}>{t.app.slot(slot)}</span>
                         <span className={styles.saveSlotDetail}>
                           {info?.occupied
-                            ? `Turn ${info.turn ?? '?'} · ${info.playerNames.join(', ')}`
-                            : 'Empty'}
+                            ? t.app.slotDetail(info.turn ?? '?', info.playerNames)
+                            : t.common.empty}
                         </span>
                       </button>
                     )
                   })}
-                  <p className={styles.saveHint}>
-                    Your game autosaves to slot {AUTOSAVE_SLOT} after every turn.
-                  </p>
+                  <p className={styles.saveHint}>{t.app.autosaveHint(AUTOSAVE_SLOT)}</p>
                 </div>
               )}
             </div>
@@ -1149,7 +1166,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
               variant="secondary"
               size="sm"
               icon="gear"
-              aria-label="Settings"
+              aria-label={t.app.settings}
               aria-expanded={settingsOpen}
               aria-haspopup="dialog"
               onClick={() => setSettingsOpen(true)}
@@ -1160,13 +1177,13 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
               icon="exit"
               onClick={() => store.dispatch({ type: 'reset' })}
             >
-              <span className={styles.btnLabel}>Quit</span>
+              <span className={styles.btnLabel}>{t.app.quit}</span>
             </ChunkyButton>
           </div>
         </header>
 
         <main className={styles.main}>
-          <section className={styles.boardArea} aria-label="Game board">
+          <section className={styles.boardArea} aria-label={t.app.gameBoard}>
             <div className={styles.boardStage}>
               <Board
                 board={state.board}
@@ -1246,7 +1263,7 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                   <div
                     className={styles.forkAhead}
                     role="status"
-                    aria-label="Fork ahead — this roll picks your road"
+                    aria-label={t.app.forkAhead}
                   >
                     <span className={styles.forkAheadRoad}>
                       <span className={styles.forkAheadRange}>1–3</span>
@@ -1267,10 +1284,10 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
                   <div
                     className={styles.forkAhead}
                     role="status"
-                    aria-label={`You're on ${roadTaken} — roll again for how far you go`}
+                    aria-label={t.app.onRoad(roadTaken)}
                   >
                     <span className={styles.forkAheadRoad}>{roadTaken}</span>
-                    <span className={styles.forkAheadHint}>Roll again for how far you go</span>
+                    <span className={styles.forkAheadHint}>{t.app.rollAgainHint}</span>
                   </div>
                 )}
 

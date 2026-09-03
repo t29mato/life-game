@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import type { Money, PlayerColor } from '@domain/model/types'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { useUi } from '../../i18n/LocaleProvider'
 import { Coin, Note } from '../../icons/parts'
 import styles from './CoinFlight.module.css'
 
@@ -122,6 +123,7 @@ export interface TransferLaneProps {
  */
 export function TransferLane({ entry, format, delay, flightKey }: TransferLaneProps): ReactElement {
   const reduceMotion = usePrefersReducedMotion()
+  const t = useUi()
   const gained = entry.amount > 0
   const colorVars = {
     '--lane-color': `var(--player-${entry.playerColor})`,
@@ -131,7 +133,7 @@ export function TransferLane({ entry, format, delay, flightKey }: TransferLanePr
 
   return (
     <div className={styles.lane} style={colorVars} data-reduce-motion={reduceMotion || undefined}>
-      <span className={`${styles.laneEnd} ${styles.laneYou}`}>You</span>
+      <span className={`${styles.laneEnd} ${styles.laneYou}`}>{t.coin.you}</span>
       <span className={styles.laneTrack} aria-hidden="true">
         <span
           key={flightKey}

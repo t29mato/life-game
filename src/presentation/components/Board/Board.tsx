@@ -12,6 +12,7 @@ import {
 import { animate, useMotionValue, type AnimationPlaybackControls } from 'framer-motion'
 import type { Board as BoardModel, Difficulty, GamePhase, Player, Space, SpaceId } from '@domain/model/types'
 import { editionFor } from '@domain/edition/registry'
+import { useEditionText, useUi } from '../../i18n/LocaleProvider'
 import { estimateNetWorth } from '@domain/rules/scoring'
 import { effectSign } from '@domain/rules/effectSign'
 import { GameIconGlyph } from '../../icons/GameIcon'
@@ -334,6 +335,10 @@ export function Board({
   /* Resolved here for the cars' wealth tiers: the banding is priced against
      this edition's own economy, never a hardcoded dollar figure. */
   const edition = useMemo(() => editionFor(editionId), [editionId])
+  const t = useUi()
+  /* The tiles' own prose. Only the roadside signs and the spoken description
+     of the board come from here — everything else drawn on a tile is art. */
+  const editionText = useEditionText(editionId)
 
   const captionSize = projection.tileSize * 0.34
 
@@ -359,7 +364,9 @@ export function Board({
     return spaces.map((space, index) => {
       const at = points[index] ?? { x: 0, y: 0 }
       const accent = spaceAccent(space)
-      const caption = spaceCaption(space)
+      // The roadside signs, in the reader's language — which is why `t` is a
+      // dependency of this memo below: a language change has to repaint them.
+      const caption = spaceCaption(space, t)
       const { size, half, radius, depth } = slabMetrics(projection, accent)
       const prefer: CaptionSide = accent === 'milestone' ? 'below' : 'above'
       return {
@@ -386,7 +393,7 @@ export function Board({
         depth,
       }
     })
-  }, [spaces, projection, captionSize])
+  }, [spaces, projection, captionSize, t])
 
   const activePlayer = players[currentPlayerIndex] as Player | undefined
   const activeSpaceId = activePlayer?.spaceId
@@ -1202,7 +1209,7 @@ export function Board({
           className={styles.svg}
           viewBox={`0 0 ${projection.viewWidth} ${projection.viewHeight}`}
           role="img"
-          aria-label="Game board"
+          aria-label={t.app.gameBoard}
           /* The board's cell fills whatever room it is given rather than
              capping itself to its own aspect ratio — see `.boardArea` in
              App.module.css — so `slice` crops the drawing to cover that
@@ -1454,7 +1461,9 @@ export function Board({
                     data-current={isCurrent}
                   >
                     <title>
-                      {space.title} — {space.description}
+                      {editionText.space(space.id, space.description)?.title ?? space.title} —{' '}
+                      {editionText.space(space.id, space.description)?.description ??
+                        space.description}
                     </title>
 
                     <rect
@@ -1694,19 +1703,29 @@ export function Board({
         onZoomOut={zoomOut}
         onReset={resetZoom}
         onRecentre={recentre}
-        recentreLabel={activePlayer ? `Back to ${activePlayer.name}'s car` : 'Back to the active car'}
+        recentreLabel={
+          activePlayer ? t.board.recentreTo(activePlayer.name) : t.board.recentreActive
+        }
       />
 
       {/* The drawing is a single image to assistive technology, so who is on the
           board — and, above all, who is riding with them — is stated here in
           words rather than left inside it. */}
       <ul className="visually-hidden">
-        {players.map((player) => (
-          <li key={player.id}>
-            {describeCar(player.name, player.isMarried, player.children)}, on{' '}
-            {board.spaces[player.spaceId]?.title ?? 'the board'}
-          </li>
-        ))}
+        {players.map((player) => {
+          const here = board.spaces[player.spaceId]
+          const where = here
+            ? (editionText.space(here.id, here.description)?.title ?? here.title)
+            : t.board.theBoard
+          return (
+            <li key={player.id}>
+              {t.board.carOn(
+                describeCar(player.name, player.isMarried, player.children, t),
+                where,
+              )}
+            </li>
+          )
+        })}
       </ul>
 
       {selectedTile && (

@@ -1,4 +1,5 @@
 import type { Board, Space, SpaceId } from '@domain/model/types'
+import { EN, type UiText } from '../../i18n/en'
 
 /** How many spaces ahead a lane preview walks by default. */
 export const LANE_PREVIEW_DEPTH = 4
@@ -25,10 +26,11 @@ export function previewLane(board: Board, startSpaceId: SpaceId, depth = LANE_PR
 
 export type LaneCharacter = 'payday-heavy' | 'event-heavy' | 'mixed'
 
-export const LANE_CHARACTER_LABEL: Record<LaneCharacter, string> = {
-  'payday-heavy': 'Payday-heavy',
-  'event-heavy': 'Event-heavy',
-  mixed: 'Mixed route',
+/** How a previewed lane's character reads, in the language the player is in. */
+export function laneCharacterLabel(character: LaneCharacter, t: UiText = EN): string {
+  if (character === 'payday-heavy') return t.decision.lanePaydayHeavy
+  if (character === 'event-heavy') return t.decision.laneEventHeavy
+  return t.decision.laneMixed
 }
 
 /** Spaces that resolve to nothing happening — they do not make a lane "eventful". */

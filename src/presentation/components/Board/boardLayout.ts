@@ -1,4 +1,5 @@
 import type { Board, Space, SpaceId, SpaceTone } from '@domain/model/types'
+import { EN, type UiText } from '../../i18n/en'
 
 export interface Point {
   readonly x: number
@@ -253,22 +254,22 @@ export function slabMetrics(projection: BoardProjection, accent: SpaceAccent): S
  * already said — clutter, not information. What actually happens when a
  * player lands or passes through is still announced in the event log.
  */
-export function spaceCaption(space: Space): string | null {
+export function spaceCaption(space: Space, t: UiText = EN): string | null {
   switch (space.effect.type) {
     case 'graduate':
-      return 'GRADUATE'
+      return t.board.captionGraduate
     case 'getMarried':
-      return 'MARRIED'
+      return t.board.captionMarried
     case 'haveChildren':
-      return 'BABY'
+      return t.board.captionBaby
     case 'buyHouse':
-      return 'NEW HOME'
+      return t.board.captionNewHome
     case 'retire':
-      return 'RETIRE'
+      return t.board.captionRetire
     default:
       break
   }
-  if (space.kind === 'start') return 'START'
+  if (space.kind === 'start') return t.board.captionStart
   return null
 }
 

@@ -1,16 +1,18 @@
 import { useState, type ReactElement } from 'react'
 import { useAudio } from '../../hooks/useAudio'
+import { useUi } from '../../i18n/LocaleProvider'
 import { UiIcon } from '../../icons/ui'
 import styles from './AudioToggle.module.css'
 
 /** Independent music/SFX toggles, reflecting the injected `AudioPort`'s state. */
 export function AudioToggle(): ReactElement {
   const audio = useAudio()
+  const t = useUi()
   const [musicOn, setMusicOn] = useState(() => audio.isMusicEnabled())
   const [sfxOn, setSfxOn] = useState(() => audio.isSfxEnabled())
 
   return (
-    <div className={styles.row} role="group" aria-label="Audio settings">
+    <div className={styles.row} role="group" aria-label={t.audio.group}>
       <button
         type="button"
         className={`${styles.toggle} ${musicOn ? styles.on : styles.off}`}
@@ -27,7 +29,7 @@ export function AudioToggle(): ReactElement {
           </span>
         </span>
         <span className={styles.label}>
-          Music <span className={styles.state}>{musicOn ? 'On' : 'Off'}</span>
+          {t.audio.music} <span className={styles.state}>{musicOn ? t.audio.on : t.audio.off}</span>
         </span>
       </button>
       <button
@@ -46,7 +48,7 @@ export function AudioToggle(): ReactElement {
           </span>
         </span>
         <span className={styles.label}>
-          SFX <span className={styles.state}>{sfxOn ? 'On' : 'Off'}</span>
+          {t.audio.sfx} <span className={styles.state}>{sfxOn ? t.audio.on : t.audio.off}</span>
         </span>
       </button>
     </div>

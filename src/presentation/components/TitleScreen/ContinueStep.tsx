@@ -3,6 +3,7 @@ import { AUTOSAVE_SLOT, type SaveSlotInfo } from '@application/ports/GameReposit
 import { editionFor } from '@domain/edition/registry'
 import { editionDisplayName } from '../../format'
 import { usePrimaryAction } from '../../hooks/usePrimaryAction'
+import { useUi } from '../../i18n/LocaleProvider'
 import { StepFrame } from './StepFrame'
 import { formatSlotTimestamp } from './setupDraft'
 import styles from './TitleScreen.module.css'
@@ -32,26 +33,34 @@ export function ContinueStep({ slots, onContinue, onBack }: ContinueStepProps): 
     .filter((slot) => slot.occupied)
     .sort((a, b) => (b.savedAt ?? '').localeCompare(a.savedAt ?? ''))[0]
   const primaryRef = usePrimaryAction<HTMLButtonElement>(newest !== undefined)
+  const t = useUi()
 
   return (
     <StepFrame
       stepNumber={null}
       stepCount={0}
-      heading="Continue a game"
-      lead="Pick up any table that was left mid-journey."
+      heading={t.continueStep.heading}
+      lead={t.continueStep.lead}
       onBack={onBack}
-      backLabel="Back to title"
+      backLabel={t.continueStep.backLabel}
     >
       <div className={styles.slotsGrid}>
         {slots.map((slot) => {
           const isAutosave = slot.slot === AUTOSAVE_SLOT
-          const title = isAutosave ? 'Autosave' : `Slot ${slot.slot}`
+          const title = isAutosave ? t.continueStep.autosave : t.continueStep.slot(slot.slot)
           // Four slots against five countries: without this, two half-finished
           // games are the same three names and a turn number.
-          const slotEdition = slot.editionId === null ? null : editionDisplayName(editionFor(slot.editionId))
+          const slotEdition =
+            slot.editionId === null ? null : editionDisplayName(editionFor(slot.editionId), t)
           const label = slot.occupied
-            ? `Continue ${title}: ${slot.playerNames.join(' and ')}${slotEdition === null ? '' : ` on the ${slotEdition} board`}, turn ${slot.turn ?? '?'}, saved ${formatSlotTimestamp(slot.savedAt ?? '')}`
-            : `${title}, empty`
+            ? t.continueStep.occupiedAria(
+                title,
+                slot.playerNames,
+                slotEdition,
+                slot.turn ?? '?',
+                formatSlotTimestamp(slot.savedAt ?? '', t),
+              )
+            : t.continueStep.emptyAria(title)
           return (
             <button
               key={slot.slot}
@@ -65,14 +74,19 @@ export function ContinueStep({ slots, onContinue, onBack }: ContinueStepProps): 
               <span className={styles.slotTitle}>{title}</span>
               {slot.occupied ? (
                 <>
-                  <span className={styles.slotPlayers}>{slot.playerNames.join(' & ')}</span>
+                  <span className={styles.slotPlayers}>
+                    {t.continueStep.players(slot.playerNames)}
+                  </span>
                   <span className={styles.slotMeta}>
-                    {slotEdition === null ? null : `${slotEdition} · `}Turn {slot.turn} ·{' '}
-                    {formatSlotTimestamp(slot.savedAt ?? '')}
+                    {t.continueStep.meta(
+                      slotEdition,
+                      slot.turn ?? '?',
+                      formatSlotTimestamp(slot.savedAt ?? '', t),
+                    )}
                   </span>
                 </>
               ) : (
-                <span className={styles.slotEmptyLabel}>Empty</span>
+                <span className={styles.slotEmptyLabel}>{t.continueStep.empty}</span>
               )}
             </button>
           )

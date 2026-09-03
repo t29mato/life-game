@@ -2,6 +2,7 @@ import type { Difficulty, PlayerColor } from '@domain/model/types'
 import type { Edition } from '@domain/edition/types'
 import { allEditions, DEFAULT_EDITION_ID } from '@domain/edition/registry'
 import { editionDisplayName, formatMoney, salaryPeriod, salaryRate } from '../../format'
+import { EN, type UiText } from '../../i18n/en'
 import { PLAYER_COLORS } from '../Pawn/designs'
 
 /**
@@ -28,10 +29,10 @@ export function nextAvailableColor(used: readonly PlayerColor[]): PlayerColor {
   return PLAYER_COLORS.find((color) => !used.includes(color)) ?? (PLAYER_COLORS[0] as PlayerColor)
 }
 
-export function defaultPlayers(): DraftPlayer[] {
+export function defaultPlayers(t: UiText = EN): DraftPlayer[] {
   return [
-    { name: 'Player 1', color: 'red', isCpu: false },
-    { name: 'Player 2', color: 'blue', isCpu: false },
+    { name: t.title.defaultPlayerName(1), color: 'red', isCpu: false },
+    { name: t.title.defaultPlayerName(2), color: 'blue', isCpu: false },
   ]
 }
 
@@ -42,38 +43,38 @@ export function defaultPlayers(): DraftPlayer[] {
  * a player should choose that fate, never discover it thirty minutes in.
  * `aria` carries the same warning on the control itself for screen readers.
  */
-export const DIFFICULTY_COPY: Record<
-  Difficulty,
-  {
-    readonly label: string
-    readonly hint: string
-    readonly detail: string
-    readonly aria: string
-    readonly tone: 'mint' | 'tangerine' | 'coral'
+export interface DifficultyCopy {
+  readonly label: string
+  readonly hint: string
+  readonly detail: string
+  readonly aria: string
+  readonly tone: 'mint' | 'tangerine' | 'coral'
+}
+
+export function difficultyCopy(t: UiText = EN): Record<Difficulty, DifficultyCopy> {
+  return {
+    normal: {
+      label: t.difficulty.normalLabel,
+      hint: t.difficulty.normalHint,
+      detail: t.difficulty.normalDetail,
+      aria: t.difficulty.normalAria,
+      tone: 'mint',
+    },
+    hard: {
+      label: t.difficulty.hardLabel,
+      hint: t.difficulty.hardHint,
+      detail: t.difficulty.hardDetail,
+      aria: t.difficulty.hardAria,
+      tone: 'tangerine',
+    },
+    veryHard: {
+      label: t.difficulty.veryHardLabel,
+      hint: t.difficulty.veryHardHint,
+      detail: t.difficulty.veryHardDetail,
+      aria: t.difficulty.veryHardAria,
+      tone: 'coral',
+    },
   }
-> = {
-  normal: {
-    label: 'Normal',
-    hint: 'a fair life',
-    detail: "The standard journey: setbacks happen, but they won't ruin you.",
-    aria: "Normal difficulty: setbacks happen, but they won't ruin you",
-    tone: 'mint',
-  },
-  hard: {
-    label: 'Hard',
-    hint: 'money runs tight',
-    detail: 'Twice the setbacks of Normal — about one player in ten retires in the red.',
-    aria: 'Hard difficulty: twice the setbacks, about one player in ten retires in the red',
-    tone: 'tangerine',
-  },
-  veryHard: {
-    label: 'Very Hard',
-    hint: 'survival is a win',
-    detail:
-      'Setbacks at nearly every turn, and finishing in the black at all is close to a coin flip. Retiring with anything is bragging rights.',
-    aria: 'Very hard difficulty: finishing in the black at all is close to a coin flip',
-    tone: 'coral',
-  },
 }
 
 /**
@@ -111,19 +112,30 @@ export function editionOptions(): readonly Edition[] {
  * layout arguing that four of them are alternatives to a default rather than
  * five equal choices.
  */
-export function editionBlurb(edition: Edition): string {
+export function editionBlurb(edition: Edition, t: UiText = EN): string {
   const { currency, economy, careers } = edition
   const start = formatMoney(economy.startingMoney, currency)
   const salaries = [...careers.basic, ...careers.graduate].map((career) => career.salary)
-  if (salaries.length === 0) return `Counts in ${currency.symbol} — start with ${start}.`
+  if (salaries.length === 0) return t.country.blurb(currency.symbol, start)
   const low = formatMoney(salaryRate(Math.min(...salaries), currency), currency)
   const high = formatMoney(salaryRate(Math.max(...salaries), currency), currency)
-  return `Counts in ${currency.symbol} — start with ${start}; salaries run ${low} to ${high} a ${salaryPeriod(currency)}.`
+  return t.country.blurbWithSalaries(currency.symbol, start, low, high, salaryPeriod(currency, t))
 }
 
-/** `1970-01-01T00:00:00.000Z` → `'Jan 1, 12:00 AM'`. Always English, regardless of the host locale. */
-export function formatSlotTimestamp(savedAt: string): string {
+/**
+ * `1970-01-01T00:00:00.000Z` → `'Jan 1, 12:00 AM'`.
+ *
+ * Formatted in the language the player chose rather than in the host's, on
+ * the same reasoning as the hall of records' dates: a timestamp printed on a
+ * save slot is part of the game's own voice.
+ */
+export function formatSlotTimestamp(savedAt: string, t: UiText = EN): string {
   const date = new Date(savedAt)
-  if (Number.isNaN(date.getTime())) return 'unknown time'
-  return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  if (Number.isNaN(date.getTime())) return t.format.unknownTime
+  return date.toLocaleString(t.format.dateLocale, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
 }

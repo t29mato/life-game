@@ -68,6 +68,62 @@
   gap: 0.55rem;
 }
 
+/* --------------------------------------------------------------------------
+   One labelled setting inside the drawer. The audio toggles are their own
+   component and label themselves on each switch; anything with more than two
+   states — the language — needs a heading over the row to say what the row is
+   choosing between.
+   -------------------------------------------------------------------------- */
+.setting {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settingLabel {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* Wraps rather than scrolls: a fourth and fifth language should push the row
+   onto a second line, not hide behind an edge nobody knows to drag. */
+.languages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.language {
+  flex: 1 1 auto;
+  min-width: 6rem;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--hairline, rgba(62, 48, 22, 0.18));
+  border-radius: var(--radius-md, 0.6rem);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast, 0.14s) var(--ease-out, ease-out),
+    border-color var(--duration-fast, 0.14s) var(--ease-out, ease-out),
+    color var(--duration-fast, 0.14s) var(--ease-out, ease-out);
+}
+
+.language:hover {
+  border-color: var(--candy-sky, #4a90d9);
+}
+
+.languageOn {
+  color: var(--on-accent, #fff);
+  background: var(--candy-sky, #4a90d9);
+  border-color: var(--candy-sky-dark, #2f6ba8);
+}
+
 .hint {
   margin: 0;
   font-size: 0.78rem;

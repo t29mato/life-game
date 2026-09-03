@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import type { RollTableRow, SpinValue } from '@domain/model/types'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { useUi } from '../../i18n/LocaleProvider'
 import { TEMPO } from '../../tempo'
 import { Dice } from '../Dice/Dice'
 import { RollTable } from '../RollTable/RollTable'
@@ -69,6 +70,7 @@ export function EventSpinModal({
 }: EventSpinModalProps): ReactElement {
   const containerRef = useModalFocusTrap<HTMLDivElement>()
   const reduceMotion = usePrefersReducedMotion()
+  const t = useUi()
 
   /*
    * The throw for a roll nobody was asked for, made through the very
@@ -133,7 +135,7 @@ export function EventSpinModal({
                 at, and a player who never chose to stop here should be told
                 why a die is turning for them — whether they are the one
                 throwing it or, on a computer seat, only watching it land. */}
-            <span className={styles.kind}>{passedThrough ? 'Passing through' : 'The die'}</span>
+            <span className={styles.kind}>{passedThrough ? t.spin.passingThrough : t.spin.theDie}</span>
             <h2 id="event-spin-prompt" className={styles.prompt}>
               {prompt}
             </h2>

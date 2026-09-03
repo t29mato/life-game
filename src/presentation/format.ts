@@ -1,16 +1,26 @@
 import type { CurrencySpec, Edition } from '@domain/edition/types'
 import { USA_CURRENCY } from '@domain/edition/usa'
+import { EN, type UiText } from './i18n/en'
 
 /**
- * Pure display formatters. No React — every string in the game is English, so
- * the words are hand-rolled and only the digits go through `toLocaleString`,
- * which keeps the output perfectly predictable in tests.
+ * Pure display formatters. No React, and no hooks — the language is passed in
+ * as `t` rather than read from a context, so these stay callable from the
+ * board's layout maths and from a test that names no locale at all.
  *
- * The symbol and the grouping come from the edition's `CurrencySpec`, because
- * they are the one thing about a printed amount that a country changes.
- * Everything else — the sign, the ordinal suffixes, "/ payday" — is the
- * game's own voice and is shared by every edition. `currency` defaults to
- * dollars so a component with no game state around it still renders.
+ * Two different things decide how a figure comes out here, and keeping them
+ * apart is the whole design:
+ *
+ * - **The edition decides the money.** The symbol and the digit grouping come
+ *   from `CurrencySpec`, because they are what a *country* changes. A player
+ *   reading the game in Japanese on the India board still sees ₹, grouped the
+ *   Indian way. Changing the language must never change what the board counts
+ *   in.
+ * - **The language decides the words around it.** The ordinal (`3rd` /
+ *   `3位`), the period a wage is quoted by, and the join between the two are
+ *   the game's own voice, and they follow the reader rather than the board.
+ *
+ * `t` defaults to English and `currency` to dollars, so a component with
+ * neither a game nor a provider around it still renders.
  */
 
 /** `1234` -> `'$1,234'`, `-1234` -> `'-$1,234'`. Rounds to whole units. */
@@ -30,9 +40,17 @@ export function formatMoneyDelta(amount: number, currency: CurrencySpec = USA_CU
   return formatMoney(rounded, currency)
 }
 
-/** The period an edition's salary reads by: `'payday'` normally, or `currency.salaryDisplay.unit` where an edition reads salary by its own period instead. */
-export function salaryPeriod(currency: CurrencySpec = USA_CURRENCY): string {
-  return currency.salaryDisplay?.unit ?? 'payday'
+/**
+ * The period an edition's salary reads by: a payday normally, or
+ * `currency.salaryDisplay.unit` where an edition reads salary by its own
+ * period instead — put into the reader's own language on the way out.
+ *
+ * The edition names the period in English (`'month'`), which is the id of a
+ * period rather than a word for one; `t.format.unit` is what turns it into
+ * something to print.
+ */
+export function salaryPeriod(currency: CurrencySpec = USA_CURRENCY, t: UiText = EN): string {
+  return t.format.unit(currency.salaryDisplay?.unit ?? 'payday')
 }
 
 /** A raw salary figure scaled to how its edition actually reads it — unchanged normally, or divided down and rounded to a whole unit where an edition reads salary by its own period. */
@@ -41,39 +59,40 @@ export function salaryRate(amount: number, currency: CurrencySpec = USA_CURRENCY
 }
 
 /** `65000` -> `'$65,000 / payday'`, or `4200000` on the Japan board -> `'¥350,000 / month'`. */
-export function formatSalary(amount: number, currency: CurrencySpec = USA_CURRENCY): string {
-  return `${formatMoney(salaryRate(amount, currency), currency)} / ${salaryPeriod(currency)}`
+export function formatSalary(
+  amount: number,
+  currency: CurrencySpec = USA_CURRENCY,
+  t: UiText = EN,
+): string {
+  return t.format.salary(formatMoney(salaryRate(amount, currency), currency), salaryPeriod(currency, t))
 }
 
 /**
  * The short place-name a picker or a records card calls an edition by.
  *
- * Editions name themselves `'LIFE JOURNEY: Japan'` — the box title plus the
- * place — and a control that repeats the box title once per country says
- * nothing, so only the part after the colon is shown. The USA edition predates
- * the convention (its `name` *is* the box title), so it answers to its country
- * here like everyone else; an edition with no colon in its name is shown as
- * written, which keeps an unconventionally named one legible rather than blank.
+ * A country's own name in the reader's language where the catalogue has one
+ * (`t.editions`) — 「日本」 is not a translation of the string "Japan", it is
+ * a different word for the same place, which is why it is a table rather than
+ * anything derived.
+ *
+ * The fallback is what this always did, and it still runs for an edition the
+ * catalogue has never heard of. Editions name themselves `'LIFE JOURNEY:
+ * Japan'` — the box title plus the place — and a control that repeats the box
+ * title once per country says nothing, so only the part after the colon is
+ * shown. The USA edition predates the convention (its `name` *is* the box
+ * title), so it answers to its country here like everyone else; an edition
+ * with no colon in its name is shown as written, which keeps an
+ * unconventionally named one legible rather than blank.
  */
-export function editionDisplayName(edition: Pick<Edition, 'id' | 'name'>): string {
+export function editionDisplayName(edition: Pick<Edition, 'id' | 'name'>, t: UiText = EN): string {
+  const named = (t.editions as Readonly<Record<string, string | undefined>>)[edition.id]
+  if (named !== undefined) return named
   if (edition.id === 'usa') return 'USA'
   const colon = edition.name.indexOf(':')
   return colon === -1 ? edition.name : edition.name.slice(colon + 1).trim() || edition.name
 }
 
-/** `1` -> `'1st'`, `11` -> `'11th'`, `22` -> `'22nd'`. */
-export function formatOrdinal(n: number): string {
-  const abs = Math.abs(n)
-  const lastTwo = abs % 100
-  if (lastTwo >= 11 && lastTwo <= 13) return `${n}th`
-  switch (abs % 10) {
-    case 1:
-      return `${n}st`
-    case 2:
-      return `${n}nd`
-    case 3:
-      return `${n}rd`
-    default:
-      return `${n}th`
-  }
+/** `1` -> `'1st'`, `11` -> `'11th'`, `22` -> `'22nd'` — or `'1位'` in Japanese. */
+export function formatOrdinal(n: number, t: UiText = EN): string {
+  return t.format.ordinal(n)
 }

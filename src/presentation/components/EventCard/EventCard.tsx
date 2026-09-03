@@ -8,6 +8,7 @@ import { useAudio } from '../../hooks/useAudio'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { usePrimaryAction } from '../../hooks/usePrimaryAction'
+import { useEditionText, useUi } from '../../i18n/LocaleProvider'
 import { TEMPO } from '../../tempo'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { RollingNumber } from '../RollingNumber/RollingNumber'
@@ -95,6 +96,23 @@ export function EventCard({
   const reduceMotion = usePrefersReducedMotion()
   const audio = useAudio()
   const { currency } = editionFor(editionId)
+  const t = useUi()
+  /*
+   * The tile's own words, in the reader's language.
+   *
+   * Matched on the id *and* the English sentence the event is carrying, which
+   * is what makes this correct on Hard and correct on a card the engine wrote
+   * rather than copied. A landing event built from a tile carries that tile's
+   * `title`/`description` verbatim (`baseEvent` in `applyEffect.ts`), so the
+   * lookup finds it; a career fair's result, or a bank's summary, was composed
+   * in the application layer, matches nothing, and correctly stays in English
+   * rather than being replaced by the prose of the tile it happened on.
+   */
+  const editionText = useEditionText(editionId)
+  const tileText = editionText.space(event.spaceId, event.description)
+  const title = tileText?.title ?? event.title
+  const description = tileText?.description ?? event.description
+  const footnote = tileText?.footnote ?? event.footnote
   const moneyDelta = (amount: number): string => formatMoneyDelta(amount, currency)
   const money = (amount: number): string => formatMoney(amount, currency)
   const [revealed, setRevealed] = useState(false)
@@ -119,8 +137,18 @@ export function EventCard({
   const paidOut = borrowing ? borrowing.charge > 0 : event.moneyDelta < 0
 
   const passedSummary = useMemo(
-    () => (passedThrough && passedThrough.length > 0 ? summarizePassedEvents(passedThrough, currency) : []),
-    [passedThrough, currency],
+    () =>
+      passedThrough && passedThrough.length > 0
+        ? summarizePassedEvents(
+            passedThrough,
+            currency,
+            t,
+            // Each passed tile named in the reader's language, on the same
+            // id-plus-sentence match this card's own headline uses.
+            (passed) => editionText.space(passed.spaceId, passed.description)?.title ?? passed.title,
+          )
+        : [],
+    [passedThrough, currency, t, editionText],
   )
 
   // Every card opens with its footnotes folded — see the `footnotes` block below.
@@ -271,9 +299,9 @@ export function EventCard({
       >
         {flashing ? <span className={styles.flash} aria-hidden="true" /> : null}
         <div className={styles.band} aria-hidden="true">
-          {isMilestone ? <span className={styles.milestoneRibbon}>Life Milestone</span> : null}
+          {isMilestone ? <span className={styles.milestoneRibbon}>{t.card.milestone}</span> : null}
           {isPassing && !isMilestone ? (
-            <span className={styles.passingRibbon}>Passing through</span>
+            <span className={styles.passingRibbon}>{t.card.passing}</span>
           ) : null}
           <span className={styles.emblem}>
             <span className={styles.rays} />
@@ -285,7 +313,7 @@ export function EventCard({
 
         <div className={styles.body}>
           <h2 id="event-card-title" className={styles.title}>
-            {event.title}
+            {title}
           </h2>
           {/* The die that decided this card, shown once and structurally.
               Every wheel-decided handler used to write "Rolled a 4." into
@@ -296,7 +324,7 @@ export function EventCard({
               asking each handler to spell it out again. */}
           {event.rolled !== undefined ? (
             <p className={styles.rolled}>
-              <span className={styles.rolledLabel}>Rolled</span>
+              <span className={styles.rolledLabel}>{t.card.rolled}</span>
               <span className={styles.rolledFace}>{event.rolled}</span>
             </p>
           ) : null}
@@ -318,7 +346,7 @@ export function EventCard({
           {event.narration ? (
             <p className={styles.narration}>&ldquo;{event.narration}&rdquo;</p>
           ) : (
-            <p className={styles.description}>{event.description}</p>
+            <p className={styles.description}>{description}</p>
           )}
 
           {/* The one figure a player actually wants: not just how much moved,
@@ -340,21 +368,20 @@ export function EventCard({
                 <div className={styles.beats}>
                   {borrowing.charge > 0 ? (
                     <p className={`${styles.beat} ${styles.beatPaid}`}>
-                      <span className={styles.beatLabel}>Paid</span>
+                      <span className={styles.beatLabel}>{t.card.paid}</span>
                       <span className={`${styles.beatAmount} tabular-num`}>
                         {moneyDelta(-borrowing.charge)}
                       </span>
                     </p>
                   ) : null}
                   <p className={`${styles.beat} ${styles.beatBorrowed}`}>
-                    <span className={styles.beatLabel}>Borrowed</span>
+                    <span className={styles.beatLabel}>{t.card.borrowed}</span>
                     <span className={`${styles.beatAmount} tabular-num`}>
                       {moneyDelta(borrowing.borrowed)}
                     </span>
                   </p>
                   <p className={styles.beatTerms}>
-                    {borrowing.loans === 1 ? '1 loan' : `${borrowing.loans} loans`} —{' '}
-                    {money(borrowing.dueAtRetirement)} to repay at retirement
+                    {t.card.loanTerms(borrowing.loans, money(borrowing.dueAtRetirement))}
                   </p>
                 </div>
               ) : null}
@@ -395,11 +422,11 @@ export function EventCard({
             <p
               className={`${styles.rankChange} ${event.rankAfter < event.rankBefore ? styles.rankUp : styles.rankDown}`}
             >
-              <span className={styles.rankValue}>{formatOrdinal(event.rankBefore)}</span>
+              <span className={styles.rankValue}>{formatOrdinal(event.rankBefore, t)}</span>
               <span className={styles.rankArrow} aria-hidden="true">
                 →
               </span>
-              <span className={styles.rankValue}>{formatOrdinal(event.rankAfter)}</span>
+              <span className={styles.rankValue}>{formatOrdinal(event.rankAfter, t)}</span>
             </p>
           ) : null}
 
@@ -427,7 +454,8 @@ export function EventCard({
             <div className={styles.tiles}>
               {event.lifeTilesGained.map((tile) => (
                 <span key={tile.id} className={styles.tile}>
-                  <GameIcon name={tile.icon} size={18} /> {tile.title}
+                  <GameIcon name={tile.icon} size={18} />{' '}
+                  {editionText.lifeTile(tile.id)?.title ?? tile.title}
                 </span>
               ))}
             </div>
@@ -438,7 +466,7 @@ export function EventCard({
               nothing on the card to reconcile them. Written on the tile
               itself (`Space.footnote`), because only the tile knows why its
               own number is the size it is. */}
-          {event.footnote ? <p className={styles.footnote}>{event.footnote}</p> : null}
+          {footnote ? <p className={styles.footnote}>{footnote}</p> : null}
 
           {/* The third layer, and it is one line.
               A card is a headline (the title and the sentence under it), one
@@ -460,7 +488,7 @@ export function EventCard({
                     aria-expanded={notesOpen}
                     onClick={() => setNotesOpen((open) => !open)}
                   >
-                    {notesOpen ? 'Less' : `${event.notes.length - 1} more`}
+                    {notesOpen ? t.card.less : t.card.more(event.notes.length - 1)}
                   </button>
                   {notesOpen ? (
                     <ul className={styles.notes}>
@@ -482,7 +510,7 @@ export function EventCard({
               without opening the log. Set below the notes and printed
               quieter than them on purpose: it is about somewhere else. */}
           {passedSummary.length > 0 ? (
-            <ul className={styles.passedThrough} aria-label="Passed on the way here">
+            <ul className={styles.passedThrough} aria-label={t.card.passedAria}>
               {passedSummary.map((line) => (
                 <li key={line} className={styles.passedLine}>
                   {line}
@@ -498,7 +526,7 @@ export function EventCard({
               same one control. */}
           <div className={styles.continue}>
             <ChunkyButton ref={primaryRef} variant="primary" size="lg" fullWidth onClick={onDismiss}>
-              Continue
+              {t.card.continue}
             </ChunkyButton>
           </div>
         </div>

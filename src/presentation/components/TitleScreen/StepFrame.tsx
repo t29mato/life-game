@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from 'react'
 import { usePrimaryAction } from '../../hooks/usePrimaryAction'
+import { useUi } from '../../i18n/LocaleProvider'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import type { UiIconName } from '../../icons/ui'
 import styles from './TitleScreen.module.css'
@@ -72,6 +73,7 @@ export function StepFrame({
   children,
 }: StepFrameProps): ReactElement {
   const primaryRef = usePrimaryAction<HTMLButtonElement>(primary !== undefined)
+  const t = useUi()
 
   return (
     <section className={styles.step} aria-label={heading}>
@@ -80,7 +82,7 @@ export function StepFrame({
           <span aria-hidden="true" className={styles.backArrow}>
             ←
           </span>
-          Back
+          {t.step.back}
         </ChunkyButton>
 
         {/* The dots are decoration for the sentence beside them, not a
@@ -88,9 +90,7 @@ export function StepFrame({
             once, from the text, and never a row of bullets. */}
         {stepNumber === null ? null : (
           <div className={styles.stepProgress}>
-            <span className={styles.stepCount}>
-              Step {stepNumber} of {stepCount}
-            </span>
+            <span className={styles.stepCount}>{t.step.of(stepNumber, stepCount)}</span>
             <span className={styles.stepDots} aria-hidden="true">
               {Array.from({ length: stepCount }, (_, index) => (
                 <span

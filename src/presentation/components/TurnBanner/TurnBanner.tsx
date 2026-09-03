@@ -2,6 +2,7 @@ import type { CSSProperties, ReactElement } from 'react'
 import { motion } from 'framer-motion'
 import type { Player } from '@domain/model/types'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { useUi } from '../../i18n/LocaleProvider'
 import styles from './TurnBanner.module.css'
 
 export interface TurnBannerProps {
@@ -31,6 +32,7 @@ export interface TurnBannerProps {
  */
 export function TurnBanner({ player, turn }: TurnBannerProps): ReactElement {
   const reduceMotion = usePrefersReducedMotion()
+  const t = useUi()
 
   const colorVars = {
     '--player-base': `var(--player-${player.color})`,
@@ -55,8 +57,8 @@ export function TurnBanner({ player, turn }: TurnBannerProps): ReactElement {
         {player.name.charAt(0).toUpperCase()}
       </span>
       <span className={styles.text}>
-        <span className={styles.turn}>Turn {turn}</span>
-        <span className={styles.name}>{player.name}&rsquo;s turn</span>
+        <span className={styles.turn}>{t.common.turn(turn)}</span>
+        <span className={styles.name}>{t.turn.playersTurn(player.name)}</span>
       </span>
     </motion.div>
     </div>
