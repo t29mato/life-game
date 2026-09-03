@@ -1207,7 +1207,10 @@ export function capitalSkylineFor(editionId: string | undefined): readonly Scene
   switch (editionId) {
     case 'usa':
       return ['landmark-usa-capitol', 'landmark-usa-obelisk']
+    // The researcher board is set in the same country and looks out at the
+    // same horizon; only the life on the road is different.
     case 'japan':
+    case 'japan-researcher':
       return ['landmark-japan-tower', 'landmark-japan-fuji', 'landmark-japan-pagoda']
     case 'france':
       return ['landmark-france-eiffel', 'landmark-france-arch']

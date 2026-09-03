@@ -234,14 +234,14 @@ describe('TitleScreen', () => {
       await user.clear(input)
       await user.type(input, 'Zoe')
       await toCountry(user)
-      await user.click(screen.getByRole('button', { name: /japan edition/i }))
+      await user.click(screen.getByRole('button', { name: /^japan edition/i }))
       await goBack(user)
       await goBack(user)
 
       await openNewGame(user)
       expect(screen.getByLabelText('Player 1 name')).toHaveValue('Zoe')
       await toCountry(user)
-      expect(screen.getByRole('button', { name: /japan edition/i })).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByRole('button', { name: /^japan edition/i })).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('starts a perfectly ordinary game after being abandoned once', async () => {
@@ -410,7 +410,7 @@ describe('TitleScreen', () => {
 
       await openNewGame(user)
       await toCountry(user)
-      await user.click(screen.getByRole('button', { name: /japan edition/i }))
+      await user.click(screen.getByRole('button', { name: /^japan edition/i }))
       await toDifficulty(user)
       await pressStart(user)
 
@@ -490,8 +490,14 @@ describe('TitleScreen', () => {
       await openNewGame(user)
       await toCountry(user)
 
-      // Derived from the edition's data, so Japan's card must quote yen.
-      expect(screen.getByText(/counts in ¥ — start with ¥/i)).toBeInTheDocument()
+      // Derived from the edition's data, so Japan's card must quote yen —
+      // asked of that card rather than of the page, because more than one
+      // board can share a currency now (the researcher boards cross country
+      // with a life, so two of them count in yen and quote their own salary
+      // range). A document-wide text query was ambiguous the moment a second
+      // yen board existed.
+      const japan = screen.getByRole('button', { name: /^japan edition/i })
+      expect(japan).toHaveTextContent(/counts in ¥ — start with ¥/i)
     })
   })
 
@@ -680,7 +686,7 @@ describe('TitleScreen', () => {
       // A save carries its own editionId; the flow's picker must not leak in.
       await openNewGame(user)
       await toCountry(user)
-      await user.click(screen.getByRole('button', { name: /japan edition/i }))
+      await user.click(screen.getByRole('button', { name: /^japan edition/i }))
       await goBack(user)
       await goBack(user)
 

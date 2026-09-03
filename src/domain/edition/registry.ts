@@ -5,6 +5,7 @@ import { EDITION_JAPAN } from './japan'
 import { EDITION_FRANCE } from './france'
 import { EDITION_INDIA } from './india'
 import { EDITION_BOLIVIA } from './bolivia'
+import { EDITION_RESEARCHER_JAPAN } from './japan-researcher'
 
 /**
  * Which edition a game without one is played on.
@@ -18,6 +19,12 @@ export const DEFAULT_EDITION_ID: EditionId = EDITION_USA.id
 /**
  * The shelf, in the order the picker offers it: the original game first,
  * then the rest alphabetically — which is a shelf, not a ranking.
+ *
+ * The five countries are one life told five ways, and the researcher board is
+ * a different life that happens to be set in one of them. It is registered
+ * here alongside them rather than in place of any of them: nothing on this
+ * shelf has ever been withdrawn, and a player who wants an ordinary board
+ * finds five of them in front of the sixth.
  */
 const REGISTRY = new Map<EditionId, Edition>([
   [EDITION_USA.id, EDITION_USA],
@@ -25,6 +32,7 @@ const REGISTRY = new Map<EditionId, Edition>([
   [EDITION_FRANCE.id, EDITION_FRANCE],
   [EDITION_INDIA.id, EDITION_INDIA],
   [EDITION_JAPAN.id, EDITION_JAPAN],
+  [EDITION_RESEARCHER_JAPAN.id, EDITION_RESEARCHER_JAPAN],
 ])
 
 /**

@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest'
 import type { Board, LifeTile, RollAmountRow, RollOfferRow, RollTableRow, SpinValue } from '@domain/model/types'
 import { CASUAL_WAGE_PER_PIP, EARLY_LOAN_REPAYMENT, INSURANCE_PREMIUM, SPIN_FACES } from '@domain/model/constants'
 import { BASIC_CAREERS, DOCTORATE_CAREERS, GRADUATE_CAREERS, USA_CURRENCY, USA_ECONOMY } from '@domain/edition/usa'
+import {
+  ACADEMIA_CAREERS,
+  EDITION_RESEARCHER_JAPAN,
+  INDUSTRY_CAREERS,
+  PERMANENT_CAREERS,
+} from '@domain/edition/japan-researcher'
+import { ladderPositionOf } from '@domain/edition/lookup'
 import { householdSwing, perPipPayout } from '@domain/rules/diePayout'
 import { expectedMarriageValue } from '@domain/rules/marriage'
 import { paydayPayFor } from '@domain/rules/player'
@@ -1297,6 +1304,78 @@ describe('applyEffect', () => {
       const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
       expect(next.players[0]!.career).toEqual(career)
     })
+
+    /**
+     * The two words a board may add to a redraw, and the labour market they
+     * describe. Both are absent on every board but the Researcher: Japan one,
+     * where two tiles carry them — and those two tiles are the whole of what
+     * makes that board's career fair Japanese rather than American. See
+     * `SpaceEffect`'s `careerChange`.
+     */
+    describe('when the tile names a shelf and a rung', () => {
+      /** A doctorate holder, mid-career, at the top of a three-rung academic ladder. */
+      const academic = () =>
+        fixturePlayer({
+          hasDegree: true,
+          hasDoctorate: true,
+          career: ACADEMIA_CAREERS.find((c) => c.id === 'career-jpr-project-associate-professor')!,
+        })
+      const onResearcherBoard = (player = academic()) =>
+        fixtureState({ editionId: EDITION_RESEARCHER_JAPAN.id, players: [player] })
+      const rungOf = (id: string) => ladderPositionOf(id, EDITION_RESEARCHER_JAPAN)!.rung
+
+      it('deals from the named shelf rather than from the one the player is entitled to', () => {
+        // Without the cap this player would be offered a second permanent post
+        // at the very tile that represents giving up on ever getting one.
+        const space = fixtureSpace({
+          effect: { type: 'careerChange', reason: 'You left the university', compulsory: true, pool: 'basic' },
+        })
+        const { state: next } = applyEffect(onResearcherBoard(), space, { random: createFakeRandom() })
+        const industry = new Set(INDUSTRY_CAREERS.map((career) => career.id))
+        for (const id of next.pendingDecision!.offeredCareerIds!) expect(industry.has(id)).toBe(true)
+      })
+
+      it('carries the climb across by default, even between shelves', () => {
+        // The board's standing promise: a change of trade is not a demotion.
+        const space = fixtureSpace({
+          effect: { type: 'careerChange', reason: 'The fair', compulsory: true, pool: 'basic' },
+        })
+        const { state: next } = applyEffect(onResearcherBoard(), space, { random: createFakeRandom() })
+        for (const id of next.pendingDecision!.offeredCareerIds!) expect(rungOf(id)).toBe(2)
+      })
+
+      it('deals the door-in rung to somebody crossing shelves when the tile says so', () => {
+        const space = fixtureSpace({
+          effect: {
+            type: 'careerChange',
+            reason: 'You left the university',
+            compulsory: true,
+            pool: 'basic',
+            startsOver: true,
+          },
+        })
+        const { state: next } = applyEffect(onResearcherBoard(), space, { random: createFakeRandom() })
+        for (const id of next.pendingDecision!.offeredCareerIds!) expect(rungOf(id)).toBe(1)
+        // And it says so out loud, because "at the level you are on" would be
+        // a lie on this one tile.
+        expect(next.pendingDecision!.prompt).not.toContain('the level you are on')
+      })
+
+      it('leaves the climb alone for somebody already working on that shelf', () => {
+        // Moving between two research divisions is an ordinary move, and this
+        // tile is not charging for that.
+        const inIndustry = fixturePlayer({
+          career: INDUSTRY_CAREERS.find((c) => c.id === 'career-jpr-research-group-leader')!,
+        })
+        const space = fixtureSpace({
+          effect: { type: 'careerChange', reason: 'The fair', compulsory: true, pool: 'basic', startsOver: true },
+        })
+        const { state: next } = applyEffect(onResearcherBoard(inIndustry), space, {
+          random: createFakeRandom(),
+        })
+        for (const id of next.pendingDecision!.offeredCareerIds!) expect(rungOf(id)).toBe(2)
+      })
+    })
   })
 
   describe('loseCareer', () => {
@@ -1324,6 +1403,38 @@ describe('applyEffect', () => {
       const { state: next, event } = applyEffect(state, space, { random: createFakeRandom() })
       expect(next.players[0]).toEqual(player)
       expect(event.emphasis).toBe('normal')
+    })
+
+    it('cannot reach a post that is not the employer\'s to end', () => {
+      /*
+       * The mechanical payoff of the Researcher: Japan board's gated road: ten
+       * years of one-year contracts, and then work this tile cannot touch. It
+       * is a different exemption from a calling's — this is an ordinary job
+       * with a ladder above it and a payroll behind it — so it is checked
+       * separately. See `Career.cannotBeLaidOff`.
+       */
+      const permanent = PERMANENT_CAREERS[0]!
+      expect(permanent.cannotBeLaidOff).toBe(true)
+      expect(permanent.isCalling).toBeUndefined()
+      const player = fixturePlayer({ hasDegree: true, hasDoctorate: true, career: permanent })
+      const state = fixtureState({ editionId: EDITION_RESEARCHER_JAPAN.id, players: [player] })
+      const space = fixtureSpace({ effect: { type: 'loseCareer', reason: 'The programme ended early.' } })
+      const { state: next, event } = applyEffect(state, space, { random: createFakeRandom() })
+
+      expect(next.players[0]!.career).toEqual(permanent)
+      expect(event.emphasis).toBe('big')
+      expect(next.log[0]!.message).toContain('keeps their permanent post')
+    })
+
+    it('still takes an ordinary job on that same board', () => {
+      // The exemption is a property of the shelf, not of the edition: a
+      // fixed-term academic post on the same board is lost like any other.
+      const fixedTerm = ACADEMIA_CAREERS[0]!
+      const player = fixturePlayer({ hasDegree: true, hasDoctorate: true, career: fixedTerm })
+      const state = fixtureState({ editionId: EDITION_RESEARCHER_JAPAN.id, players: [player] })
+      const space = fixtureSpace({ effect: { type: 'loseCareer', reason: 'Not renewed.' } })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      expect(next.players[0]!.career).toBeNull()
     })
   })
 
