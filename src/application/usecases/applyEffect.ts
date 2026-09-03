@@ -26,6 +26,7 @@ import type { CurrencySpec, EconomyConstants, Edition, TuitionSpec } from '@doma
 import { USA_ECONOMY } from '@domain/edition/usa'
 import { editionOf } from '@domain/edition/registry'
 import {
+  careerShelfOf,
   careerTierOf,
   hiringPoolFor,
   ladderPositionOf,
@@ -1300,8 +1301,23 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        * worth having.
        */
       const here = player.career ? ladderPositionOf(player.career.id, edition) : undefined
-      const seniority = seniorityOf(player, edition)
-      const pool = hiringPoolFor(edition, careerTierOf(player)).filter((entry) => entry.id !== here?.entry.id)
+      /*
+       * Which shelf, and whether the climb travels — both the tile's business
+       * when it says so, and both unchanged on every board that does not.
+       *
+       * `pool` is capped by the player's own schooling exactly as a fair's is,
+       * so a tile naming the industry shelf hands a school-leaver the same
+       * shelf it hands a doctor, and neither is offered work they could not
+       * have been dealt anywhere else. `startsOver` then asks whether this
+       * player is crossing *into* that shelf from another one: somebody
+       * already working on it keeps the rung they climbed to, and somebody
+       * arriving from a different shelf — or from no job at all — starts at
+       * the door, however far up they were standing a moment ago.
+       */
+      const dealt = effect.pool ? lowerTier(effect.pool, careerTierOf(player)) : careerTierOf(player)
+      const crossing = effect.startsOver === true && careerShelfOf(player.career?.id, edition) !== dealt
+      const seniority = crossing ? 1 : seniorityOf(player, edition)
+      const pool = hiringPoolFor(edition, dealt).filter((entry) => entry.id !== here?.entry.id)
       const [first, second] = deps.random
         .shuffle(pool)
         .slice(0, 2)
@@ -1356,10 +1372,19 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         })
       }
 
+      /*
+       * The one sentence that must not survive a `startsOver` tile. "At the
+       * level you are on" is the board's promise everywhere else, and quoting
+       * it while dealing the door-in rung would be the game lying about the
+       * only thing this tile does differently.
+       */
+      const openingLine = crossing
+        ? 'Two doors in, and neither counts a year of what you did before.'
+        : 'Two other trades would take you at the level you are on.'
       const decision: Decision = {
         kind: 'valueSpin',
         prompt: mayStay
-          ? `Two other trades would take you at the level you are on. ${currentIncomeNote(player, economy, currency)}`
+          ? `${openingLine} ${currentIncomeNote(player, economy, currency)}`
           : `Your job is changing — pick your next one. ${currentIncomeNote(player, economy, currency)}`,
         options,
         offeredCareerIds: [first.id, second.id],
@@ -1369,7 +1394,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         0,
         [
           effect.reason,
-          ...(mayStay ? ['Same rung, same money today — but a different ladder above it.'] : []),
+          ...(crossing
+            ? ['They are hiring at the bottom rung, and only at the bottom rung.']
+            : mayStay
+              ? ['Same rung, same money today — but a different ladder above it.']
+              : []),
         ],
         'milestone',
         mayStay
@@ -1420,6 +1449,35 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           state,
           player.id,
           `${player.name} cannot lose their calling as a ${player.career.title}.`,
+          'milestone',
+        )
+        return { state: { ...state, log, pendingDecision: null }, event }
+      }
+
+      /*
+       * The other job a layoff cannot reach, and the reason it is a separate
+       * check from the calling above rather than a second condition on it.
+       *
+       * A calling is unlosable because nobody employs you to do it. This is
+       * work with a payroll, a ladder and a line manager, that is still not
+       * the employer's to end — the permanent post the Researcher: Japan
+       * board's gated road exists to reach. The whole argument for walking
+       * ten years of one-year contracts is that the thing at the end of them
+       * cannot be taken away, so this tile is precisely where the road is
+       * supposed to pay out. See `Career.cannotBeLaidOff`.
+       */
+      if (player.career.cannotBeLaidOff === true) {
+        const event = baseEvent(
+          space,
+          0,
+          [effect.reason, `Still a ${player.career.title}. The post is permanent, and permanent means this.`],
+          'big',
+          `The notice goes round the building and stops at ${player.name}'s door — this post is not the employer's to end.`,
+        )
+        const log = appendLog(
+          state,
+          player.id,
+          `${player.name} keeps their permanent post as a ${player.career.title}.`,
           'milestone',
         )
         return { state: { ...state, log, pendingDecision: null }, event }

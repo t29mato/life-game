@@ -169,7 +169,9 @@ describe('TitleScreen', () => {
     it('sends the chosen edition with the start config', async () => {
       const user = userEvent.setup()
       const { onStart } = renderTitleScreen()
-      await user.click(screen.getByRole('button', { name: /japan edition/i }))
+      // Anchored: the shelf now holds a researcher board set in Japan too, and
+      // an unanchored "japan edition" matches both of their labels.
+      await user.click(screen.getByRole('button', { name: /^japan edition/i }))
       await user.click(screen.getByRole('button', { name: /start game/i }))
       expect(onStart).toHaveBeenCalledWith(expect.objectContaining({ editionId: 'japan' }))
     })
@@ -200,7 +202,7 @@ describe('TitleScreen', () => {
     it('tells the truth about the selected edition in its own money', async () => {
       const user = userEvent.setup()
       renderTitleScreen()
-      await user.click(screen.getByRole('button', { name: /japan edition/i }))
+      await user.click(screen.getByRole('button', { name: /^japan edition/i }))
       // Derived from the edition's data, so it must quote yen, not dollars.
       expect(screen.getByText(/counts in ¥ — start with ¥/i)).toBeInTheDocument()
     })
@@ -215,7 +217,7 @@ describe('TitleScreen', () => {
       ]
       const { onStart, onContinue } = renderTitleScreen({ slots })
       // A save carries its own editionId; the picker must not leak into it.
-      await user.click(screen.getByRole('button', { name: /japan edition/i }))
+      await user.click(screen.getByRole('button', { name: /^japan edition/i }))
       await user.click(screen.getByRole('button', { name: /continue slot 1/i }))
       expect(onContinue).toHaveBeenCalledWith(1)
       expect(onStart).not.toHaveBeenCalled()

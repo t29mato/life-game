@@ -468,6 +468,12 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
        */
       return 0
     case 'loseCareer':
+      // A permanent post is not the employer's to end, so the tile is worth
+      // nothing at all to whoever holds one — see `Career.cannotBeLaidOff`.
+      // (A calling is unlosable too, and is deliberately *not* priced in here:
+      // it has been mispriced this way since before the flag existed, and
+      // every balance figure in the repository was measured against it.)
+      if (player.career?.cannotBeLaidOff === true) return 0
       // Being laid off costs the drop from the wage to casual shifts, not the
       // whole wage: the pay window still pays something on the way out.
       return Math.min(0, (casualPayday - expectedPayday(player, economy)) * 3)

@@ -56,6 +56,8 @@ interface EditionIndex {
   readonly lifeTiles: ReadonlyMap<LifeTileId, LifeTile>
   readonly stocks: ReadonlyMap<StockId, Stock>
   readonly ladders: ReadonlyMap<CareerId, LadderPosition>
+  /** Which shelf each career was written on. See `careerShelfOf`. */
+  readonly shelves: ReadonlyMap<CareerId, CareerTier>
   /** Bottom rungs only, split the way the shelves are. */
   readonly hiring: Readonly<Record<CareerTier, readonly Career[]>>
 }
@@ -130,6 +132,15 @@ function indexOf(edition: Edition): EditionIndex {
     })
   }
 
+  const shelves = new Map<CareerId, CareerTier>()
+  for (const [tier, pool] of [
+    ['basic', edition.careers.basic],
+    ['graduate', edition.careers.graduate],
+    ['doctorate', edition.careers.doctorate ?? []],
+  ] as const) {
+    for (const career of pool) shelves.set(career.id, tier)
+  }
+
   const built: EditionIndex = {
     // Every shelf, so that a career carried in a save still resolves to the
     // job it names. Leaving the doctoral shelf out of this one map would let
@@ -144,6 +155,7 @@ function indexOf(edition: Edition): EditionIndex {
     lifeTiles: new Map(edition.lifeTiles.map((tile) => [tile.id, tile])),
     stocks: new Map(edition.stocks.map((stock) => [stock.id, stock])),
     ladders,
+    shelves,
     hiring: {
       basic: basicLadders.map((rungs) => rungs[0]!),
       graduate: graduateLadders.map((rungs) => rungs[0]!),
@@ -210,6 +222,25 @@ export function hiringPoolFor(edition: Edition, tier: CareerTier): readonly Care
  */
 export function tradeYearStoriesFor(edition: Edition, family: CareerFamily): TradeYearStories {
   return edition.tradeYearStories?.[family] ?? TRADE_YEAR_STORIES[family]
+}
+
+/**
+ * Which shelf this career was written on, or undefined for a career this
+ * edition has never heard of.
+ *
+ * Not the same question as `careerTierOf`, which asks what a *player's*
+ * schooling entitles them to. This asks where the work itself lives, and the
+ * two genuinely come apart: on the Researcher: Japan board a player holding a
+ * doctorate is entitled to the permanent shelf and is very often standing on
+ * a fixed-term academic post that sits one shelf below it. `careerChange`'s
+ * `startsOver` is the rule that needs to tell those apart — crossing shelves
+ * costs you the climb, moving within one does not.
+ */
+export function careerShelfOf(
+  id: CareerId | undefined,
+  edition: Edition = EDITION_USA,
+): CareerTier | undefined {
+  return id === undefined ? undefined : indexOf(edition).shelves.get(id)
 }
 
 /** Where `id` sits on its ladder, or undefined if the edition has never heard of it. */

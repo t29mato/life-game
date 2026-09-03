@@ -153,6 +153,25 @@ export interface Career {
    * and it has to be worth choosing on its own terms.
    */
   readonly isCalling?: boolean
+  /**
+   * Work a layoff cannot reach, which is still an ordinary job in every other
+   * respect.
+   *
+   * A calling is already unlosable, but for a quite different reason: nobody
+   * employs you to be a curator of beetles, so there is no badge to hand back
+   * and no ladder above it either. This flag is for the opposite case — work
+   * that is employment in the fullest sense, with a chain of rungs above it
+   * and a payroll behind it, that still cannot be taken away. The permanent
+   * post at the far end of the Researcher: Japan board is the one this was
+   * written for: ten years of one-year contracts, and then a job nobody can
+   * end. Making that the safest shelf in the game is the whole payoff of that
+   * board's gated road, and the Layoff Notice tile is exactly what it has to
+   * be safe *from*.
+   *
+   * Absent on every career in every other edition, which is the point: a
+   * layoff still takes the job everywhere it always did.
+   */
+  readonly cannotBeLaidOff?: boolean
 }
 
 export interface House {
@@ -365,7 +384,47 @@ export type SpaceEffect =
    * there is nothing to stay in, and the board's one guarantee is that a layoff
    * always has a way back.
    */
-  | { readonly type: 'careerChange'; readonly reason: string; readonly compulsory?: boolean }
+  | {
+      readonly type: 'careerChange'
+      readonly reason: string
+      readonly compulsory?: boolean
+      /**
+       * The best shelf *this* redraw deals from, capped by the player's own
+       * schooling exactly the way `chooseCareer.pool` is.
+       *
+       * Absent — every tile on every board until the Researcher: Japan one —
+       * means the fair deals from whatever shelf the player is entitled to,
+       * which is what a hall of booths has always done.
+       *
+       * Naming a shelf is how a board says a particular door leads somewhere
+       * specific rather than everywhere. On the researcher board the mid-career
+       * exit and the re-entry fair both deal `basic`, the industry shelf,
+       * because leaving the university is precisely what those tiles *are* —
+       * without the cap, a player holding a doctorate would be offered a
+       * second permanent academic post at the very tile that is supposed to
+       * represent giving up on ever getting one.
+       */
+      readonly pool?: CareerTier
+      /**
+       * Deals at the bottom rung to anybody crossing in from another shelf:
+       * the years you climbed somewhere else do not count here.
+       *
+       * The board's default is the opposite and stays the default — a change
+       * of trade is not a demotion, and `rungFor` deals every offer at the
+       * rung the player has already reached, which is what keeps a re-draw a
+       * gamble rather than a punishment.
+       *
+       * This is the exception a labour market can insist on, and it is the one
+       * line that makes the Researcher: Japan board play differently from the
+       * American one it is otherwise shaped like. A Japanese hiring calendar
+       * prices a decade of academic contracts at nothing: leaving at forty is
+       * worse than never having gone, and the tile that says so has to be able
+       * to deal the door-in rung to a full professor. Somebody already working
+       * on the shelf being dealt keeps their rung, because moving between two
+       * firms in the same industry is not the thing being charged for.
+       */
+      readonly startsOver?: boolean
+    }
   /** The player loses their job entirely and earns nothing until re-hired. */
   | { readonly type: 'loseCareer'; readonly reason: string }
   // --- investing ----------------------------------------------------------
