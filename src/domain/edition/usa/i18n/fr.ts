@@ -118,7 +118,7 @@ export const USA_FR: EditionTranslation = {
     },
     'main-early-review': {
       title: 'Bilan d’essai',
-      description: 'Six mois plus tard, quelqu’un s’assoit avec un formulaire et vous demande comment ça se passe, selon vous. Lancez le dé.',
+      description: 'Six mois plus tard, quelqu’un s’assoit avec un formulaire et vous demande comment ça se passe, selon vous.',
       reason: 'La fin de la période d’essai',
     },
     'grad-1': {
@@ -207,7 +207,7 @@ export const USA_FR: EditionTranslation = {
     },
     'ladder-raise': {
       title: 'Ancienneté',
-      description: 'Personne n’a quitté ce service depuis dix ans, alors le poste au-dessus ne se libère que le jour où quelqu’un s’en va enfin. Lancez le dé pour savoir si c’était cette année.',
+      description: 'Personne n’a quitté ce service depuis dix ans, alors le poste au-dessus ne se libère que le jour où quelqu’un s’en va enfin.',
       reason: 'Le poste au-dessus s’est libéré',
     },
     'hopper-lookout': {
@@ -225,7 +225,7 @@ export const USA_FR: EditionTranslation = {
     },
     'main-review': {
       title: 'L’entretien annuel',
-      description: 'Une petite salle, deux personnes avec votre dossier ouvert devant elles, et une seule question : êtes-vous prêt pour le poste au-dessus ? Lancez le dé et écoutez la réponse.',
+      description: 'Une petite salle, deux personnes avec votre dossier ouvert devant elles, et une seule question : êtes-vous prêt pour le poste au-dessus ?',
       reason: 'Votre entretien est arrivé',
     },
     'main-tax-audit': {
@@ -245,7 +245,7 @@ export const USA_FR: EditionTranslation = {
     },
     'main-career-fair': {
       title: 'Forum de l’emploi',
-      description: 'Un hall plein de stands, des stylos gratuits, et deux offres entre lesquelles il faut trancher.',
+      description: 'Un hall plein de stands, des stylos gratuits, et deux offres à votre nom.',
       reason: 'Un nouveau départ au forum de l’emploi',
     },
     'main-gifts': {
@@ -360,7 +360,7 @@ export const USA_FR: EditionTranslation = {
     },
     'risky-1': {
       title: 'Pari sur une start-up',
-      description: 'Vous versez vos économies dans la start-up d’un ami et lancez le dé pour voir ce qui revient.',
+      description: 'Vous versez vos économies dans la start-up d’un ami.',
       reason: 'Retour sur investissement',
     },
     'risky-2': {
@@ -385,7 +385,7 @@ export const USA_FR: EditionTranslation = {
     },
     'risky-6': {
       title: 'Ticket de loterie',
-      description: 'Un ticket à un dollar, un grattage chanceux, et un lancer de dé pour le montant.',
+      description: 'Un ticket à un dollar et un grattage chanceux.',
       reason: 'Ticket à gratter',
     },
     'risky-payday': {
@@ -479,7 +479,7 @@ export const USA_FR: EditionTranslation = {
     },
     'sunset-handshake': {
       title: 'Dernière promotion',
-      description: 'Un dernier titre avant la porte, si on se laisse convaincre. Lancez le dé et laissez le dernier entretien de votre vie trancher.',
+      description: 'Un dernier titre avant la porte, si on se laisse convaincre.',
       reason: 'Le dernier entretien de votre vie',
     },
     'sunset-payday-2': {

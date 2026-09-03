@@ -2,8 +2,20 @@ import type { CurrencySpec } from '@domain/edition/types'
 import type { LandingEvent } from '@domain/model/types'
 import { formatMoneyDelta } from '../../format'
 
+/** One line of the receipt: a tile, how many times the car crossed it, and what it came to. */
+export interface PassedSummaryRow {
+  /** The tile's own name, with its count where it was crossed more than once. */
+  readonly label: string
+  /**
+   * What the group came to, already formatted and signed — absent where no
+   * member of the group moved any money at all, which is the one case where
+   * a figure would be noise rather than a number.
+   */
+  readonly amount?: string
+}
+
 /**
- * The footnote a landing card carries for everything the car merely drove
+ * The receipt a landing card carries for everything the car merely drove
  * over on the way there.
  *
  * Passing tiles used to each stop the game with a card of their own
@@ -23,11 +35,19 @@ import { formatMoneyDelta } from '../../format'
  * group moved money, even if the sum is zero — a payday of +$40,000 and a
  * bill of -$40,000 sharing a title is vanishingly unlikely, but "×2" with no
  * figure at all would be the one case where the aggregate hid something.
+ *
+ * Rows rather than sentences, because the card sets these as a table. The
+ * strings this used to build each opened with the word "Passed" and separated
+ * the sum with a middle dot — "Passed Payday ×3 · +$111,000" — which is a
+ * two-column table typed out longhand, three times over, with the column
+ * heading repeated on every line. The heading says "Passed" once now, and the
+ * figures line up in a column a player can add up by eye instead of hunting
+ * for each one at a different indent.
  */
 export function summarizePassedEvents(
   events: readonly LandingEvent[],
   currency?: CurrencySpec,
-): readonly string[] {
+): readonly PassedSummaryRow[] {
   const order: string[] = []
   const groups = new Map<string, { count: number; money: number; anyMoney: boolean }>()
 
@@ -49,8 +69,8 @@ export function summarizePassedEvents(
 
   return order.map((title) => {
     const group = groups.get(title)!
-    const times = group.count > 1 ? ` ×${group.count}` : ''
-    if (!group.anyMoney) return `Passed ${title}${times}`
-    return `Passed ${title}${times} · ${formatMoneyDelta(group.money, currency)}`
+    const label = group.count > 1 ? `${title} ×${group.count}` : title
+    if (!group.anyMoney) return { label }
+    return { label, amount: formatMoneyDelta(group.money, currency) }
   })
 }

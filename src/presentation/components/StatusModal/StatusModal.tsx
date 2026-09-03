@@ -298,27 +298,49 @@ function PlayerStatus({
       {/* The spreadsheet is not deleted — a player who wants to argue with
           the total still needs every line that made it, and there is no
           other place in the game that shows them. It is folded, so it is
-          something asked for rather than something read past. */}
+          something asked for rather than something read past.
+
+          And it is a real table now, matching `RollTable`: a visually-hidden
+          caption, `<th scope="col">` over the columns, `<th scope="row">` on
+          each holding. This is the one thing in the game that genuinely *is*
+          a spreadsheet — a player opens it precisely to check somebody's
+          arithmetic — and a `<ul>` of flex rows gave it none of what makes a
+          column of money checkable: a screen reader read "Cash $84,000 House
+          — Tiny Cabin $60,000" as one run of prose with no header to hang the
+          figures on, and no browser would let a player select the column. */}
       <details className={styles.breakdown}>
         <summary className={styles.breakdownSummary}>Full breakdown</summary>
-        <ul className={styles.ledger}>
-          {lines.map((line, index) => (
-            <li
-              key={`${line.label}-${index}`}
-              className={line.item ? `${styles.ledgerLine} ${styles.item}` : styles.ledgerLine}
-            >
-              <span className={styles.ledgerLabel}>
-                {line.icon && (
-                  <span className={styles.ledgerIcon} aria-hidden="true">
-                    <GameIcon name={line.icon} size={15} />
-                  </span>
-                )}
-                {line.label}
-              </span>
-              <span className={styles.ledgerValue}>{line.value}</span>
-            </li>
-          ))}
-        </ul>
+        <table className={styles.ledger}>
+          <caption className="visually-hidden">
+            What {player.name}&apos;s net worth is made of
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Holding</th>
+              <th scope="col" className={styles.ledgerValue}>
+                Worth
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((line, index) => (
+              <tr
+                key={`${line.label}-${index}`}
+                className={line.item ? `${styles.ledgerLine} ${styles.item}` : styles.ledgerLine}
+              >
+                <th scope="row" className={styles.ledgerLabel}>
+                  {line.icon && (
+                    <span className={styles.ledgerIcon} aria-hidden="true">
+                      <GameIcon name={line.icon} size={15} />
+                    </span>
+                  )}
+                  {line.label}
+                </th>
+                <td className={styles.ledgerValue}>{line.value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </details>
 
       {player.insurance.length > 0 && (

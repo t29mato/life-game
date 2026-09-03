@@ -189,7 +189,13 @@ export function DecisionModal({
                 )}
                 <span className={styles.optionBody}>
                   <span className={styles.optionLabel}>{option.label}</span>
-                  <span className={styles.optionDescription}>{option.description}</span>
+                  {/* Empty where the label and the table under it leave the
+                      sentence nothing to add — an option labelled "Roll",
+                      above a table of what each face deals, does not also
+                      need a line reading "Roll to see which one you take." */}
+                  {option.description ? (
+                    <span className={styles.optionDescription}>{option.description}</span>
+                  ) : null}
                   {/* What each face is actually worth, as rows — see
                       `DecisionOption.table`. Only ever present alongside a
                       real breakdown; `description` above stays the plain-

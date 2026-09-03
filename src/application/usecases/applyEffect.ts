@@ -65,7 +65,7 @@ import {
 import { withBalanceAfter } from './balanceAfter'
 import { withBorrowing } from './borrowing'
 import { withStandingChange } from './standingChange'
-import { formatMoney, paydayReceipt, raiseNote, salaryPeriod, salaryRate } from './format'
+import { formatMoney, paydayReceipt, paydayWorking, raiseNote, salaryPeriod, salaryRate } from './format'
 import { appendLog } from './logging'
 import { collectPaydays } from './payday'
 import type { UseCaseDeps } from './types'
@@ -640,16 +640,18 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const collection = collectPaydays(player, 1, deps, economy)
         const updated = collection.player
         const delta = updated.money - player.money
+        // Only the working — the rate times the periods it adds up over, and
+        // no total. An edition that reads salary as one lump has no working
+        // to show at all, and even where there is one, the sum on the end of
+        // it was the plate's own figure printed a second time: "¥333,333 × 12
+        // months = ¥4,000,000" under a chip already reading +¥4,000,000. The
+        // plate is the equals sign.
+        const working = paydayWorking(delta, currency)
         const event = {
           ...baseEvent(
             space,
             delta,
-            // Only where the receipt is actually working — the rate times
-            // the periods it adds up over. An edition that reads salary as
-            // one lump has no working to show, and printing the lump again
-            // under the plate that already shouts it is not a note, it is
-            // an echo.
-            currency.salaryDisplay ? [paydayReceipt(delta, currency)] : [],
+            working === undefined ? [] : [working],
             emphasisOf(delta),
             `Payday — ${player.name} clocks out with the packet in hand.`,
           ),
@@ -750,8 +752,10 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             label: 'Roll',
             // The title and the narration above this have already said what
             // tile this is; the table below says exactly what each face is
-            // worth. Nothing here needs to repeat either.
-            description: 'Roll to find out what you owe.',
+            // worth. Nothing here needs to repeat either — including the
+            // instruction to roll, which was aimed at a die already on screen,
+            // already focused, and already answering the space bar.
+            description: '',
             icon: 'space:tuition-bill',
             table: tuitionBands(tuitionSpecFor(effect.bill, economy), currency),
           },
@@ -915,7 +919,10 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
             label: 'Roll',
-            description: 'Roll to see who hires you.',
+            // The owner's own example of the class. A player looking at a
+            // hiring tile, with the two offers tabled beneath and the die
+            // under those, does not need a sentence telling them to roll it.
+            description: '',
             icon: space.icon,
             table: careerOfferTable(first, second, currency, edition),
           },
@@ -983,7 +990,9 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
             label: 'Roll',
-            description: `Roll — a ${marriage.proposalSpin} or higher (out of ${SPIN_FACES}) and it's a yes outright. Lower gets a kinder second ask before it's a no.`,
+            // No table on this one, so the bar genuinely has to be said —
+            // but only the bar. The leading "Roll —" was the scaffolding.
+            description: `A ${marriage.proposalSpin} or higher (out of ${SPIN_FACES}) and it's a yes outright. Lower gets a kinder second ask before it's a no.`,
             icon: 'space:wedding-day',
           },
         ],
@@ -1031,7 +1040,9 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
             label: 'Roll',
-            description: `${effect.reason} — the spending against the two incomes, and the die settles it.`,
+            // The mechanism, and not the die that resolves it: `swingBands`
+            // below prints all six outcomes, signed.
+            description: `${effect.reason} — the spending against the two incomes.`,
             icon: 'finance:bank-visit',
             table: swingBands(currency, (face) => householdSwing(player, economy, face)),
           },
@@ -1118,9 +1129,9 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             turnsTheDie: true,
             label: 'Roll',
             // The rate the envelopes come at is in the table below, six
-            // times over. What is left for the sentence is what the roll is
-            // actually for.
-            description: 'Roll for the gift envelopes.',
+            // times over. What is left for the sentence is what the money
+            // *is* — which the tile's own title ("New Baby") does not say.
+            description: 'The gift envelopes.',
             icon: 'space:new-baby',
             table: perPipBands(effect.celebrationPerPip, currency),
           },
@@ -1239,7 +1250,8 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
             label: 'Roll',
-            description: `${effect.reason} — the die says how much.`,
+            // `perPipBands` below says how much, six times over.
+            description: effect.reason,
             icon: 'space:payday',
             table: perPipBands(effect.perPip, currency),
           },
@@ -1278,7 +1290,12 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           // option prints all six — and this is the one die on the board a
           // player chooses to throw, so it is the one where knowing what is
           // on it is the decision rather than a courtesy.
-          description: `Put ${money(fireNumber)} into the fund and stop working today. One roll decides what it comes back as, and you take the next retirement place — forfeiting every payday still on the road.`,
+          // Not the stake, and not the roll. `detail` prints the stake on
+          // this very option as `-¥X`, and `table` below prints all six
+          // things the roll can come back as — this one screen said the
+          // number four separate times before it was cut back to what only a
+          // sentence can say: what stopping costs you that is not money.
+          description: `Stop working today and take the next retirement place — forfeiting every payday still on the road.`,
           icon: 'space:retirement-fund',
           detail: `-${money(fireNumber)}`,
           table: perPipBands(firePayoutPerPip, currency),
@@ -1289,7 +1306,8 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         label: affordable ? 'Not yet — keep working' : 'Keep working',
         description: affordable
           ? 'Walk on, collect the rest of the paydays, and take whatever else the last stretch of road has in it.'
-          : `The number is ${money(fireNumber)} and you are not there. Walk on and keep earning.`,
+          // The prompt directly above already opens "The number is ¥X."
+          : 'Walk on and keep earning.',
         icon: 'space:steady-hustle',
       })
       const decision: Decision = {
@@ -1303,7 +1321,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         space,
         0,
         affordable
-          ? [`The fund costs ${money(fireNumber)}, and one roll decides what it comes back as.`]
+          ? ['The fund buys the rest of your life back, or it does not. One roll.']
           : [`You need ${money(fireNumber)} in hand to buy your way out here.`],
         'normal',
         affordable
@@ -1400,10 +1418,13 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           id: VALUE_SPIN_OPTION_ID,
           turnsTheDie: true,
           label: 'Roll',
-          description:
-            gate === undefined
-              ? 'Roll to see which one you take.'
-              : 'Roll for the result. Most people do not get one.',
+          // The worst of the family before it was cut: this option renders
+          // in `DecisionModal`, so "Roll to see which one you take" sat
+          // directly under a button whose label is the word Roll, over the
+          // two-row offer table, and then again as the stakes line over the
+          // die. Three times, for one instruction nobody needed once. The
+          // gated variant keeps the half a table cannot say.
+          description: gate === undefined ? '' : 'Most people do not get one.',
           icon: space.icon,
           table:
             gate === undefined

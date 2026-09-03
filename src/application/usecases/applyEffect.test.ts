@@ -773,7 +773,9 @@ describe('applyEffect', () => {
       expect(next.pendingDecision?.kind).toBe('valueSpin')
       expect(next.pendingDecision?.options).toHaveLength(1)
       const option = next.pendingDecision?.options[0]
-      expect(option?.description).toBe('Roll for the gift envelopes.')
+      // Names what the money is — which the tile title does not — and not
+      // the die, which is on screen underneath with the table above it.
+      expect(option?.description).toBe('The gift envelopes.')
       expect(amountRows(option?.table)).toEqual([
         { range: '1', amount: '$500' },
         { range: '2', amount: '$1,000' },

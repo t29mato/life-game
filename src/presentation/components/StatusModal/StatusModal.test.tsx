@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { Player } from '@domain/model/types'
@@ -235,6 +235,27 @@ describe('StatusModal', () => {
       expect(details).not.toBeNull()
       expect(screen.getByText('Full breakdown')).toBeInTheDocument()
       expect(details).toHaveTextContent('Cash')
+    })
+
+    /*
+     * And what is behind that summary is the one thing in the game that
+     * genuinely *is* a spreadsheet — it is opened precisely to check
+     * somebody's arithmetic. It was a `<ul>` of flex rows, which gave a
+     * screen reader "Cash $84,000 House — Tiny Cabin $60,000" as one run of
+     * prose with no heading to hang the figures on. A real table, built the
+     * way `RollTable` is.
+     */
+    it('sets the breakdown as a real table, headed and captioned', () => {
+      const { container } = renderModal(
+        <StatusModal players={[makePlayer()]} activePlayerId="p1" onClose={vi.fn()} />,
+      )
+
+      const table = container.querySelector('details table')
+      expect(table).not.toBeNull()
+      expect(within(table as HTMLElement).getByRole('columnheader', { name: 'Holding' })).toBeInTheDocument()
+      expect(within(table as HTMLElement).getByRole('columnheader', { name: 'Worth' })).toBeInTheDocument()
+      expect(within(table as HTMLElement).getByRole('rowheader', { name: 'Cash' })).toBeInTheDocument()
+      expect((table as HTMLElement).querySelector('caption')?.textContent).toContain('net worth is made of')
     })
   })
 })

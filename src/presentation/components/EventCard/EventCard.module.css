@@ -223,16 +223,19 @@
   color: var(--ink-faint);
 }
 
+/* Sized up from 1.55rem. This is the number a player just watched land and
+   then lost — on a die-paid payday it is the multiplier on the figure
+   directly beneath it, so it is read, not merely recorded. */
 .rolledFace {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.55rem;
-  height: 1.55rem;
+  min-width: 2rem;
+  height: 2rem;
   border-radius: var(--radius-sm);
   background: var(--surface);
   box-shadow: 0 1px 0 var(--card-tone-edge);
-  font-size: 0.98rem;
+  font-size: 1.24rem;
   font-weight: 800;
   font-variant-numeric: var(--tabular, tabular-nums);
   color: var(--card-tone-ink);
@@ -628,25 +631,6 @@
   line-height: 1.45;
 }
 
-.moreButton {
-  padding: 0.1rem 0.4rem;
-  font: inherit;
-  font-size: 0.76rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--ink-faint);
-  text-decoration: underline dotted;
-  text-underline-offset: 0.2em;
-  cursor: pointer;
-  background: none;
-  border: none;
-  border-radius: var(--radius-sm);
-}
-
-.moreButton:hover {
-  color: var(--ink);
-}
-
 .notes {
   display: flex;
   flex-direction: column;
@@ -715,22 +699,43 @@
    still adds up when somebody looks away, not to be read again. Ruled off
    above so it never reads as one more thing this tile did. */
 .passedThrough {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
   width: 100%;
   margin-top: 0.35rem;
   padding-top: 0.4rem;
   border-top: 1px dashed color-mix(in srgb, var(--ink-soft) 42%, transparent);
+  border-collapse: collapse;
   color: var(--ink-soft);
   font-size: 0.8rem;
   font-weight: 600;
   opacity: 0.85;
+  text-align: left;
 }
 
-.passedLine::before {
-  content: '↳ ';
-  opacity: 0.65;
+.passedThrough th,
+.passedThrough td {
+  padding: 0.11rem 0 0.11rem 0;
+  font-weight: inherit;
+}
+
+/* The headings are the quiet part: the rows are the receipt, and a player
+   scanning it already knows what a receipt has in it. */
+.passedThrough thead th {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.passedThrough tbody th {
+  text-align: left;
+}
+
+.passedAmount {
+  text-align: right;
+  font-variant-numeric: var(--tabular, tabular-nums);
+  white-space: nowrap;
+  padding-left: 0.7rem;
 }
 
 .continue {

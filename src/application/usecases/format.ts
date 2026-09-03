@@ -50,6 +50,27 @@ export function paydayReceipt(amount: Money, currency: CurrencySpec = USA_CURREN
 }
 
 /**
+ * The same receipt with the answer torn off: `"¥333,333 × 12 months"`, and
+ * nothing where the total would be.
+ *
+ * `paydayReceipt` is right for a log line, which has no plate beside it and
+ * has to carry the sum itself. On the card it was one figure too many — the
+ * receipt ends in the lump, and the lump is already the delta chip and the
+ * number the balance counts up to, so an owner reading a single payday card
+ * found the same ¥2,800,000 printed twice. The working is the half a plate
+ * genuinely cannot show; the plate is the half a note should not.
+ *
+ * `undefined` where there is no working to show — an edition that reads
+ * salary as one lump has no rate and no period, and "the lump = the lump" is
+ * not a note.
+ */
+export function paydayWorking(amount: Money, currency: CurrencySpec = USA_CURRENCY): string | undefined {
+  if (!currency.salaryDisplay) return undefined
+  const { unit, periods } = currency.salaryDisplay
+  return `${formatMoney(salaryRate(amount, currency), currency)} × ${periods} ${unit}s`
+}
+
+/**
  * A raise, read the way its edition reads salary: "Salary raised to $92,000"
  * by itself, or — where an edition reads salary by its own period — the
  * period-sized delta first, since that is the number the player actually

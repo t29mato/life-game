@@ -69,7 +69,7 @@ export const JAPAN_FR: EditionTranslation = {
     },
     'jp-job-hunt': {
       title: 'La chasse à l’emploi',
-      description: 'Quarante mille candidats achètent le même costume noir la même semaine et passent le même test d’aptitude. Deux portes s’ouvrent ; choisissez.',
+      description: 'Quarante mille candidats achètent le même costume noir la même semaine et passent le même test d’aptitude. Deux portes s’ouvrent.',
     },
     'jp-placement-day': {
       title: 'Placement par l’école',
@@ -119,7 +119,7 @@ export const JAPAN_FR: EditionTranslation = {
     },
     'jp-main-probation': {
       title: 'Bilan d’essai',
-      description: 'Six mois plus tard, quelqu’un s’assoit en face de vous avec un formulaire à remplir en trois exemplaires et vous demande comment ça se passe, selon vous. Lancez le dé.',
+      description: 'Six mois plus tard, quelqu’un s’assoit en face de vous avec un formulaire à remplir en trois exemplaires et vous demande comment ça se passe, selon vous.',
       reason: 'La fin de la période d’essai',
     },
     'jp-main-bank': {
@@ -163,7 +163,7 @@ export const JAPAN_FR: EditionTranslation = {
     },
     'jp-loyal-seniority': {
       title: 'L’ancienneté',
-      description: 'Personne n’a quitté ce service depuis dix ans, alors le poste au-dessus ne se libère que le jour où quelqu’un part enfin à la retraite. Lancez le dé pour savoir si c’était cette année.',
+      description: 'Personne n’a quitté ce service depuis dix ans, alors le poste au-dessus ne se libère que le jour où quelqu’un part enfin à la retraite.',
       reason: 'Le poste au-dessus s’est libéré',
     },
     'jp-hopper-lookout': {
@@ -181,7 +181,7 @@ export const JAPAN_FR: EditionTranslation = {
     },
     'jp-main-review': {
       title: 'L’entretien annuel',
-      description: 'Une petite salle de réunion, deux chefs avec votre dossier ouvert entre eux, et une seule question : êtes-vous prêt pour le bureau au-dessus ? Lancez le dé et écoutez la réponse.',
+      description: 'Une petite salle de réunion, deux chefs avec votre dossier ouvert entre eux, et une seule question : êtes-vous prêt pour le bureau au-dessus ?',
       reason: 'Votre entretien est arrivé',
     },
     'jp-main-tax-audit': {
@@ -201,7 +201,7 @@ export const JAPAN_FR: EditionTranslation = {
     },
     'jp-main-midcareer-fair': {
       title: 'Salon des expérimentés',
-      description: 'Un hall de stands pour les gens qui ont tout fait comme il faut dans une entreprise qui, non. Deux firmes aiment votre CV ; choisissez.',
+      description: 'Un hall de stands pour les gens qui ont tout fait comme il faut dans une entreprise qui, non. Deux firmes aiment votre CV.',
       reason: 'Un nouveau départ au salon des expérimentés',
     },
     'jp-main-seasonal-gifts': {
@@ -316,7 +316,7 @@ export const JAPAN_FR: EditionTranslation = {
     },
     'jp-risky-startup': {
       title: 'Pari sur une start-up',
-      description: 'Vous versez vos économies dans la start-up d’un ami à Shibuya et lancez le dé pour voir ce qui revient.',
+      description: 'Vous versez vos économies dans la start-up d’un ami à Shibuya.',
       reason: 'Retour sur investissement',
     },
     'jp-risky-bad-tip': {
@@ -341,7 +341,7 @@ export const JAPAN_FR: EditionTranslation = {
     },
     'jp-risky-jumbo': {
       title: 'La grande loterie',
-      description: 'Vous faites quarante minutes de queue au guichet réputé chanceux, parce que le guichet réputé chanceux est réputé chanceux. Lancez le dé pour savoir ce que valait la queue.',
+      description: 'Vous faites quarante minutes de queue au guichet réputé chanceux, parce que le guichet réputé chanceux est réputé chanceux.',
       reason: 'Grande loterie de fin d’année',
     },
     'jp-risky-payday': {
@@ -435,7 +435,7 @@ export const JAPAN_FR: EditionTranslation = {
     },
     'jp-sunset-last-title': {
       title: 'Un dernier titre',
-      description: 'Un titre de plus avant la porte, si on se laisse convaincre. Lancez le dé et laissez le dernier entretien de votre vie trancher.',
+      description: 'Un titre de plus avant la porte, si on se laisse convaincre.',
       reason: 'Le dernier entretien de votre vie',
     },
     'jp-sunset-payday-2': {

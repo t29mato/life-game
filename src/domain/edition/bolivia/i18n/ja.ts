@@ -72,7 +72,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'bo-grad-fair': {
       title: '有資格者の就職フェア',
-      description: '学位記は額に入り、称号は一生、名前の前につく。二つの会社がそれを自社の便箋に載せたがっている。どちらかを選ぶ。',
+      description: '学位記は額に入り、称号は一生、名前の前につく。二つの会社がそれを自社の便箋に載せたがっている。',
     },
     'bo-market-monday': {
       title: '市場の月曜日',
@@ -122,7 +122,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'bo-main-probation': {
       title: '試用期間の面談',
-      description: '入って三か月、店主が午前中ずっと一言も言わずに仕事ぶりを見ている。そして何か言う。振ろう。',
+      description: '入って三か月、店主が午前中ずっと一言も言わずに仕事ぶりを見ている。そして何か言う。',
       reason: '試用期間の終わり',
     },
     'bo-main-bank': {
@@ -166,7 +166,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'bo-payroll-seniority': {
       title: '年功名簿',
-      description: 'この事務所はここ十年、誰も辞めていない。上の席は誰かが定年を迎えて初めて空く。今年がその年かどうか、振ってみよう。',
+      description: 'この事務所はここ十年、誰も辞めていない。上の席は誰かが定年を迎えて初めて空く。',
       reason: '上の席が空いた',
     },
     'bo-own-lookout': {
@@ -184,7 +184,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'bo-main-review': {
       title: '評価の面談',
-      description: '奥の小さな部屋、その年の帳簿を挟んで座る二人、そして質問はひとつ。今より大きく回せるか。振って、返事を聞こう。',
+      description: '奥の小さな部屋、その年の帳簿を挟んで座る二人、そして質問はひとつ。今より大きく回せるか。',
       reason: '評価の順番が回ってきた',
     },
     'bo-main-tax-audit': {
@@ -204,7 +204,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'bo-main-career-fair': {
       title: '合同就職フェア',
-      description: 'ブースだらけの会場、配られるボールペン、外ではまったく無関係の理由でブラスバンドが音出しをしている。そして二つのうちどちらかを選ばなければならない。',
+      description: 'ブースだらけの会場、配られるボールペン、外ではまったく無関係の理由でブラスバンドが音出しをしている。そして自分の名前が入った内定が二つ。',
       reason: '就職フェアで仕切り直し',
     },
     'bo-main-godparent': {
@@ -319,7 +319,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'bo-risky-container': {
       title: 'コンテナに賭ける',
-      description: 'いとこが海沿いの自由港に知り合いがいると言う。貯金は共同コンテナひとつぶんに変わる。その勘を市場がどう評価するかは、振って決まる。',
+      description: 'いとこが海沿いの自由港に知り合いがいると言う。貯金は共同コンテナひとつぶんに変わる。',
       reason: 'コンテナが入港する',
     },
     'bo-risky-bad-tip': {
@@ -344,7 +344,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'bo-risky-lottery': {
       title: 'クリスマスくじ',
-      description: '誰もが縁起がいいと言う売店に並ぶ。縁起のいい売店は縁起がいいことで有名だからだ。並んだ甲斐があったかどうかは、振って決める。',
+      description: '誰もが縁起がいいと言う売店に並ぶ。縁起のいい売店は縁起がいいことで有名だからだ。',
       reason: 'クリスマスの抽選',
     },
     'bo-risky-payday': {
@@ -438,7 +438,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'bo-sunset-last-title': {
       title: '最後の肩書き',
-      description: '引退の前に、組合が名誉会長にしたいと言っている。投票が通れば、の話だが。振って、人生最後の選挙に決めてもらおう。',
+      description: '引退の前に、組合が名誉会長にしたいと言っている。投票が通れば、の話だが。',
       reason: '人生最後の選挙',
     },
     'bo-sunset-payday-2': {

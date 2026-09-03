@@ -89,7 +89,7 @@ const THE_UNIVERSITY: readonly SpaceContent[] = [
   }),
   {
     id: 'frr-uni-thesis-years', kind: 'event', title: 'The Thesis Years',
-    description: 'Enrolment, rent, and five years of one question — against whatever the doctoral school decided about you in the summer. Roll, and find out which of these five years you are living.',
+    description: 'Enrolment, rent, and five years of one question — against whatever the doctoral school decided about you in the summer.',
     effect: { type: 'tuition', reason: 'The thesis years' },
     tone: 'blue', icon: 'space:tuition-bill',
   },
@@ -156,7 +156,7 @@ const THE_UNIVERSITY: readonly SpaceContent[] = [
 
 const FIRST_POST: SpaceContent = {
   id: 'frr-uni-first-post', kind: 'event', title: 'The First Contract',
-  description: 'The list goes up in the spring: posts all over Europe, each with a start date, an end date and a project already written. Two of them would take you; pick one.',
+  description: 'The list goes up in the spring: posts all over Europe, each with a start date, an end date and a project already written. Two of them would take you.',
   effect: { type: 'chooseCareer', pool: 'graduate' },
   tone: 'gold', icon: 'space:grad-job-fair',
 }
@@ -239,7 +239,7 @@ const THE_GRANDE_ECOLE: readonly SpaceContent[] = [
 const BOULEVARD_EARLY: readonly SpaceContent[] = [
   {
     id: 'frr-blvd-first-review', kind: 'normal', title: 'The End of the Trial Period',
-    description: 'Four months in, somebody sits down opposite you with a form and confirms, warmly, that they are keeping you. Roll, and hear what else they say.',
+    description: 'Four months in, somebody sits down opposite you with a form and confirms, warmly, that they are keeping you.',
     effect: { type: 'promotion', reason: 'The end of the trial period' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -313,7 +313,7 @@ const MID_CAREER_FORK: SpaceContent = {
 const STAY_WHERE_YOU_ARE: readonly SpaceContent[] = [
   {
     id: 'frr-stay-renewal', kind: 'normal', title: 'The Renewal',
-    description: 'The post above yours comes free when somebody finally retires, and the person who decides has known your work for six years. Roll to see whether this was the year.',
+    description: 'The post above yours comes free when somebody finally retires, and the person who decides has known your work for six years.',
     effect: { type: 'promotion', reason: 'The post above yours came free' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -375,7 +375,7 @@ const THE_MOVE_TO_INDUSTRY: readonly SpaceContent[] = [
 const BOULEVARD_LATE: readonly SpaceContent[] = [
   {
     id: 'frr-blvd-review', kind: 'event', title: 'The Review',
-    description: 'Two people, your file open on the table between them, and the question everybody in the corridor already knows they are going to ask. Roll, and hear the answer.',
+    description: 'Two people, your file open on the table between them, and the question everybody in the corridor already knows they are going to ask.',
     effect: { type: 'promotion', reason: 'Your review came round' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -777,7 +777,7 @@ const HOME_BUYING: SpaceContent = {
 const THE_SPINOUT: readonly SpaceContent[] = [
   {
     id: 'frr-spin-seed', kind: 'normal', title: 'The Seed Round',
-    description: 'You put your savings into the company built on your own patent, sign eleven documents in front of the notary, and roll to see what the round comes back as.',
+    description: 'You put your savings into the company built on your own patent and sign eleven documents in front of the notary.',
     effect: { type: 'spinForMoney', perPip: 3_100, reason: 'The seed round' },
     tone: 'pink', icon: 'space:startup-bet',
   },
@@ -805,7 +805,7 @@ const THE_SPINOUT: readonly SpaceContent[] = [
     'pink', 'space:market-crash'),
   {
     id: 'frr-spin-acquisition', kind: 'normal', title: 'The Acquisition Talk',
-    description: 'A very large group has been reading your patents for two years and would like a conversation. Roll for what the conversation was worth.',
+    description: 'A very large group has been reading your patents for two years and would like a conversation.',
     effect: { type: 'spinForMoney', perPip: 5_500, reason: 'The acquisition talk' },
     tone: 'pink', icon: 'space:lottery-ticket',
   },
@@ -915,7 +915,7 @@ const EMERITUS_YEARS: readonly SpaceContent[] = [
   },
   {
     id: 'frr-emeritus-last-grade', kind: 'normal', title: 'The Exceptional Grade',
-    description: 'One more step before the door, if the national committee can be persuaded that thirty years counts for something. Roll, and let the last commission of a research life decide it.',
+    description: 'One more step before the door, if the national committee can be persuaded that thirty years counts for something.',
     effect: { type: 'promotion', reason: 'The last commission of your life' },
     tone: 'slate', icon: 'space:big-promotion',
   },

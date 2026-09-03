@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { CurrencySpec } from '@domain/edition/types'
-import { formatAmount, formatMoney, paydayReceipt, raiseNote, salaryPeriod, salaryRate } from './format'
+import {
+  formatAmount,
+  formatMoney,
+  paydayReceipt,
+  paydayWorking,
+  raiseNote,
+  salaryPeriod,
+  salaryRate,
+} from './format'
 
 /** A ×100 currency, to prove the symbol and grouping are the edition's. */
 const YEN: CurrencySpec = { symbol: '¥', locale: 'en-US', tileRounding: 10_000, payoutRounding: 100_000 }
@@ -67,6 +75,22 @@ describe('paydayReceipt', () => {
 
   it('spells out the rate times the period count, where an edition reads salary by one', () => {
     expect(paydayReceipt(4_200_000, YEN_MONTHLY)).toBe('¥350,000 × 12 months = ¥4,200,000')
+  })
+})
+
+describe('paydayWorking', () => {
+  /*
+   * The card's half of the receipt. The delta plate beside it is already
+   * printing the total, signed, and counting the balance up to it — so a note
+   * ending "= ¥4,200,000" put the same figure on one card twice, which is
+   * exactly what an owner reading a single payday card reported.
+   */
+  it('is the rate times the period count, and stops before the total', () => {
+    expect(paydayWorking(4_200_000, YEN_MONTHLY)).toBe('¥350,000 × 12 months')
+  })
+
+  it('has nothing to say where an edition reads salary as one lump', () => {
+    expect(paydayWorking(86_000)).toBeUndefined()
   })
 })
 

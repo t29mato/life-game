@@ -72,7 +72,7 @@ export const JAPAN_JA: EditionTranslation = {
     },
     'jp-job-hunt': {
       title: '就職活動',
-      description: '四万人が同じ週に同じ黒いスーツを買い、同じ適性検査を受ける。開く扉は二つ。どちらかを選ぶ。',
+      description: '四万人が同じ週に同じ黒いスーツを買い、同じ適性検査を受ける。開く扉は二つ。',
     },
     'jp-placement-day': {
       title: '学校推薦の就職',
@@ -122,7 +122,7 @@ export const JAPAN_JA: EditionTranslation = {
     },
     'jp-main-probation': {
       title: '試用期間の面談',
-      description: '入社から半年、三枚複写の用紙を持った人が向かいに座り、調子はどうかと尋ねる。振ろう。',
+      description: '入社から半年、三枚複写の用紙を持った人が向かいに座り、調子はどうかと尋ねる。',
       reason: '試用期間の終わり',
     },
     'jp-main-bank': {
@@ -166,7 +166,7 @@ export const JAPAN_JA: EditionTranslation = {
     },
     'jp-loyal-seniority': {
       title: '年功序列',
-      description: 'この部署はここ十年、誰も辞めていない。上のポストは誰かが定年を迎えて初めて空く。今年がその年かどうか、振ってみよう。',
+      description: 'この部署はここ十年、誰も辞めていない。上のポストは誰かが定年を迎えて初めて空く。',
       reason: '上のポストが空いた',
     },
     'jp-hopper-lookout': {
@@ -184,7 +184,7 @@ export const JAPAN_JA: EditionTranslation = {
     },
     'jp-main-review': {
       title: '人事考課',
-      description: '小さな会議室、こちらの資料を挟んで座る課長が二人、そして質問はひとつ。上の席を任せて大丈夫か。振って、返事を聞こう。',
+      description: '小さな会議室、こちらの資料を挟んで座る課長が二人、そして質問はひとつ。上の席を任せて大丈夫か。',
       reason: '考課の順番が回ってきた',
     },
     'jp-main-tax-audit': {
@@ -204,7 +204,7 @@ export const JAPAN_JA: EditionTranslation = {
     },
     'jp-main-midcareer-fair': {
       title: '中途採用フェア',
-      description: '何ひとつ間違えなかった人たちのための会場。間違えたのは会社のほうだ。二社が経歴を気に入る。どちらかを選ぶ。',
+      description: '何ひとつ間違えなかった人たちのための会場。間違えたのは会社のほうだ。二社が経歴を気に入る。',
       reason: '中途採用フェアで仕切り直し',
     },
     'jp-main-seasonal-gifts': {
@@ -319,7 +319,7 @@ export const JAPAN_JA: EditionTranslation = {
     },
     'jp-risky-startup': {
       title: 'スタートアップに出資',
-      description: '友人の渋谷のスタートアップに貯金をつぎ込む。いくら返ってくるかはサイコロ次第。',
+      description: '友人の渋谷のスタートアップに貯金をつぎ込む。',
       reason: '出資の払い戻し',
     },
     'jp-risky-bad-tip': {
@@ -344,7 +344,7 @@ export const JAPAN_JA: EditionTranslation = {
     },
     'jp-risky-jumbo': {
       title: '年末ジャンボ',
-      description: 'よく当たると評判の売り場に四十分並ぶ。よく当たると評判なのだから、よく当たるはずだ。並んだ甲斐があったかどうかは、振って決める。',
+      description: 'よく当たると評判の売り場に四十分並ぶ。よく当たると評判なのだから、よく当たるはずだ。',
       reason: '年末ジャンボの当選金',
     },
     'jp-risky-payday': {
@@ -438,7 +438,7 @@ export const JAPAN_JA: EditionTranslation = {
     },
     'jp-sunset-last-title': {
       title: '最後の肩書き',
-      description: '説得できれば、退職前にもうひとつだけ肩書きがつく。振って、人生最後の考課に決めてもらおう。',
+      description: '説得できれば、退職前にもうひとつだけ肩書きがつく。',
       reason: '人生最後の考課',
     },
     'jp-sunset-payday-2': {

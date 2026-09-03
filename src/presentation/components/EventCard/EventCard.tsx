@@ -123,9 +123,6 @@ export function EventCard({
     [passedThrough, currency],
   )
 
-  // Every card opens with its footnotes folded — see the `footnotes` block below.
-  const [notesOpen, setNotesOpen] = useState(false)
-
   const emphasis = event.emphasis ?? 'normal'
   const isPassing = variant === 'passing'
   const isMilestone = emphasis === 'milestone' || (event.emphasis === undefined && MILESTONE_TONES.has(event.tone))
@@ -135,7 +132,6 @@ export function EventCard({
 
   useEffect(() => {
     setRevealed(false)
-    setNotesOpen(false)
     const revealTimer = setTimeout(() => {
       setRevealed(true)
       // Coins (or a transfer) fire the moment the number starts rolling —
@@ -287,19 +283,6 @@ export function EventCard({
           <h2 id="event-card-title" className={styles.title}>
             {event.title}
           </h2>
-          {/* The die that decided this card, shown once and structurally.
-              Every wheel-decided handler used to write "Rolled a 4." into
-              `notes` *and* open its narration with "A 4!", so the same
-              number reached the player twice in two voices. `rolled` is
-              already on the event — the die the player watched land was
-              thrown from it — so the card reads it straight rather than
-              asking each handler to spell it out again. */}
-          {event.rolled !== undefined ? (
-            <p className={styles.rolled}>
-              <span className={styles.rolledLabel}>Rolled</span>
-              <span className={styles.rolledFace}>{event.rolled}</span>
-            </p>
-          ) : null}
           {/* Whose trade this packet was earned at — the same portrait a
               career fair's own table draws, so a payday reads as *this*
               job's wage on sight rather than a generic paycheck. Only ever
@@ -320,6 +303,29 @@ export function EventCard({
           ) : (
             <p className={styles.description}>{event.description}</p>
           )}
+
+          {/* The die that decided this card, shown once and structurally.
+              Every wheel-decided handler used to write "Rolled a 4." into
+              `notes` *and* open its narration with "A 4!", so the same
+              number reached the player twice in two voices. `rolled` is
+              already on the event — the die the player watched land was
+              thrown from it — so the card reads it straight rather than
+              asking each handler to spell it out again.
+
+              It sits *here*, immediately over the plate, rather than up by
+              the title where it used to. A player on a pay-per-pip payday
+              reported not being able to tell what they rolled or what it had
+              paid them, and the two facts were at opposite ends of the card
+              with a portrait and a quote between them. They are one fact —
+              the face is the multiplier and the plate is the product — so
+              they are now one block, read in one glance, with the rate that
+              joins them in the note underneath. */}
+          {event.rolled !== undefined ? (
+            <p className={styles.rolled}>
+              <span className={styles.rolledLabel}>Rolled</span>
+              <span className={styles.rolledFace}>{event.rolled}</span>
+            </p>
+          ) : null}
 
           {/* The one figure a player actually wants: not just how much moved,
               but where it left them — one line the wallet itself could
@@ -440,38 +446,36 @@ export function EventCard({
               own number is the size it is. */}
           {event.footnote ? <p className={styles.footnote}>{event.footnote}</p> : null}
 
-          {/* The third layer, and it is one line.
-              A card is a headline (the title and the sentence under it), one
-              big figure (the plate, or the die), and a footnote. A playtest
-              card broke all three at once: three bullets, two of which read as
-              contradicting each other, under a badge and a quote. Handlers are
-              trimmed at the source where they were saying the same thing
-              twice, and this is the structural half of it — however many lines
-              a card arrives with, the first one is what a player reads, and
-              the rest wait behind a press. */}
+          {/* The third layer. A card is a headline (the title and the
+              sentence under it), one big figure (the plate, or the die), and
+              then the notes — and the notes are *read*, not offered.
+
+              They were folded behind a "2 more" press for a while (issue #30,
+              "one card, one message"), on the theory that a card arriving with
+              three bullets was three messages. Playing it says otherwise: what
+              is actually in `notes` is the mechanical small print — the rate a
+              week is paid at, what a loan now costs to settle, what a rank
+              buys — and every one of those is something the player needs
+              before they press Continue, not something to go looking for.
+              A press to reveal the terms of the deal is a press nobody makes.
+
+              The hierarchy that came with the fold stays: the first note keeps
+              the leading size and the rest are set quieter beneath it, so the
+              card still has an order to read it in. No cap, because there is
+              no long tail to cap — the fattest card in the game is early
+              retirement at three notes, and three quiet lines under a plate is
+              a paragraph, not a wall. */}
           {event.notes.length > 0 ? (
             <div className={styles.footnotes}>
               <p className={styles.footnote}>{event.notes[0]}</p>
               {event.notes.length > 1 ? (
-                <>
-                  <button
-                    type="button"
-                    className={styles.moreButton}
-                    aria-expanded={notesOpen}
-                    onClick={() => setNotesOpen((open) => !open)}
-                  >
-                    {notesOpen ? 'Less' : `${event.notes.length - 1} more`}
-                  </button>
-                  {notesOpen ? (
-                    <ul className={styles.notes}>
-                      {event.notes.slice(1).map((note, index) => (
-                        <li key={index} className={styles.note}>
-                          {note}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </>
+                <ul className={styles.notes}>
+                  {event.notes.slice(1).map((note, index) => (
+                    <li key={index} className={styles.note}>
+                      {note}
+                    </li>
+                  ))}
+                </ul>
               ) : null}
             </div>
           ) : null}
@@ -480,15 +484,34 @@ export function EventCard({
               board as it happened — this is the receipt, so a player who
               looked away for a second can still account for their balance
               without opening the log. Set below the notes and printed
-              quieter than them on purpose: it is about somewhere else. */}
+              quieter than them on purpose: it is about somewhere else.
+
+              A real table, built the way `RollTable` is: a visually-hidden
+              caption so a screen reader knows what it has arrived at, and
+              `<th scope="col">` over each column. It is a receipt, and a
+              receipt's whole job is that the figures share an edge — the
+              prose version set each sum wherever its own tile name happened
+              to end, which is exactly the shape you cannot add up by eye. */}
           {passedSummary.length > 0 ? (
-            <ul className={styles.passedThrough} aria-label="Passed on the way here">
-              {passedSummary.map((line) => (
-                <li key={line} className={styles.passedLine}>
-                  {line}
-                </li>
-              ))}
-            </ul>
+            <table className={styles.passedThrough}>
+              <caption className="visually-hidden">Passed on the way here</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Passed</th>
+                  <th scope="col" className={styles.passedAmount}>
+                    Amount
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {passedSummary.map((row) => (
+                  <tr key={row.label}>
+                    <th scope="row">{row.label}</th>
+                    <td className={styles.passedAmount}>{row.amount ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           ) : null}
 
           {/* Continue is this card's A button: it takes focus as the card

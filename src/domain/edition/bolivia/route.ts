@@ -89,7 +89,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
 
 const GRAD_FAIR: SpaceContent = {
   id: 'bo-grad-fair', kind: 'event', title: 'The Professionals\' Fair',
-  description: 'The degree is framed and the title goes in front of your name forever. Two firms want it on their letterhead; pick one.',
+  description: 'The degree is framed and the title goes in front of your name forever. Two firms want it on their letterhead.',
   effect: { type: 'chooseCareer', pool: 'graduate' },
   tone: 'gold', icon: 'space:grad-job-fair',
 }
@@ -159,7 +159,7 @@ const WORK_LANE: readonly SpaceContent[] = [
 const MARKET_STREET_EARLY: readonly SpaceContent[] = [
   {
     id: 'bo-main-probation', kind: 'normal', title: 'Probation Review',
-    description: 'Three months in, the boss watches you work a whole morning without saying anything at all. Then she says something. Roll.',
+    description: 'Three months in, the boss watches you work a whole morning without saying anything at all. Then she says something.',
     effect: { type: 'promotion', reason: 'The end of probation' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -229,7 +229,7 @@ const MID_CAREER_FORK: SpaceContent = {
 const PAYROLL_ROAD: readonly SpaceContent[] = [
   {
     id: 'bo-payroll-seniority', kind: 'normal', title: 'The Seniority List',
-    description: 'Nobody has left this office in a decade, so the desk above yours only comes free when somebody finally retires. Roll to see whether this was the year.',
+    description: 'Nobody has left this office in a decade, so the desk above yours only comes free when somebody finally retires.',
     effect: { type: 'promotion', reason: 'The desk above came free' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -266,7 +266,7 @@ const OWN_ACCOUNT_ALLEY: readonly SpaceContent[] = [
 const MARKET_STREET_LATE: readonly SpaceContent[] = [
   {
     id: 'bo-main-review', kind: 'event', title: 'The Review',
-    description: 'A small back room, two people with the year\'s ledger open between them, and one question: are you ready to run more than you run now? Roll, and hear what they say.',
+    description: 'A small back room, two people with the year\'s ledger open between them, and one question: are you ready to run more than you run now?',
     effect: { type: 'promotion', reason: 'Your review came round' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -291,7 +291,7 @@ const MARKET_STREET_LATE: readonly SpaceContent[] = [
   },
   {
     id: 'bo-main-career-fair', kind: 'stop', title: 'The Hiring Fair',
-    description: 'A hall of booths, free pens, a brass band warming up outside for an unrelated reason, and two offers you have to pick between.',
+    description: 'A hall of booths, free pens, a brass band warming up outside for an unrelated reason, and two offers with your name on them.',
     effect: { type: 'careerChange', reason: 'A fresh start at the hiring fair' },
     tone: 'orange', icon: 'space:career-fair-return',
   },
@@ -455,7 +455,7 @@ const HOME_BUYING: SpaceContent = {
 const DOLLAR_ROAD: readonly SpaceContent[] = [
   {
     id: 'bo-risky-container', kind: 'normal', title: 'The Container Bet',
-    description: 'Your cousin knows a man at the free port on the coast, and your savings fill one shared container — roll to see what the market thinks of the instinct.',
+    description: 'Your cousin knows a man at the free port on the coast, and your savings fill one shared container.',
     effect: { type: 'spinForMoney', perPip: 3_100, reason: 'The container comes in' },
     tone: 'pink', icon: 'space:startup-bet',
   },
@@ -483,7 +483,7 @@ const DOLLAR_ROAD: readonly SpaceContent[] = [
     'pink', 'space:market-crash'),
   {
     id: 'bo-risky-lottery', kind: 'normal', title: 'The Christmas Lottery',
-    description: 'You queue at the kiosk everyone swears is lucky, because the lucky kiosk is famously lucky. Roll for what the queue was worth.',
+    description: 'You queue at the kiosk everyone swears is lucky, because the lucky kiosk is famously lucky.',
     effect: { type: 'spinForMoney', perPip: 5_500, reason: 'The Christmas draw' },
     tone: 'pink', icon: 'space:lottery-ticket',
   },
@@ -587,7 +587,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   },
   {
     id: 'bo-sunset-last-title', kind: 'normal', title: 'One Last Title',
-    description: 'The association wants to make you honorary president before you go, if the vote lands. Roll, and let the last election of your life decide it.',
+    description: 'The association wants to make you honorary president before you go, if the vote lands.',
     effect: { type: 'promotion', reason: 'The last election of your life' },
     tone: 'slate', icon: 'space:big-promotion',
   },

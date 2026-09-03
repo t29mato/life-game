@@ -219,35 +219,52 @@
 }
 
 .ledger {
-  list-style: none;
+  width: 100%;
   margin: 0;
-  padding: 0.4rem 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
   border-top: 1px dashed rgba(92, 70, 34, 0.18);
+  border-collapse: collapse;
+  text-align: left;
+}
+
+/* The headings name the two columns once, quietly. The rows are what is
+   being read; the header is only there so the money column has a name. */
+.ledger thead th {
+  padding: 0.35rem 0 0.2rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
 }
 
 .ledgerLine {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.6rem;
   font-size: 0.78rem;
   line-height: 1.3;
+}
+
+.ledgerLine th,
+.ledgerLine td {
+  padding: 0.15rem 0;
+  vertical-align: baseline;
 }
 
 /* Itemised entries step in beneath the group line whose total they feed, so
    a run of tiles or holdings reads as one possession unpacked, not five new
    possessions. */
-.item {
+.item > .ledgerLabel {
   padding-left: 0.85rem;
 }
 
 .ledgerLabel {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
+  font-weight: inherit;
   color: var(--ink-faint);
+  /* The label column takes whatever the money column does not want, so the
+     figures keep one right edge however long a house's name runs. */
+  width: 100%;
+}
+
+.ledgerLabel > * {
+  vertical-align: middle;
 }
 
 .item .ledgerLabel {
@@ -257,10 +274,13 @@
 .ledgerIcon {
   display: inline-flex;
   flex: none;
+  margin-right: 0.3rem;
 }
 
 .ledgerValue {
-  flex: none;
+  text-align: right;
+  white-space: nowrap;
+  padding-left: 0.6rem;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: var(--ink);

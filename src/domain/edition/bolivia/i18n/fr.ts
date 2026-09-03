@@ -73,7 +73,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'bo-grad-fair': {
       title: 'Le forum des diplômés',
-      description: 'Le diplôme est encadré et le titre précédera votre nom pour toujours. Deux cabinets le veulent sur leur papier à en-tête ; choisissez.',
+      description: 'Le diplôme est encadré et le titre précédera votre nom pour toujours. Deux cabinets le veulent sur leur papier à en-tête.',
     },
     'bo-market-monday': {
       title: 'Lundi au marché',
@@ -123,7 +123,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'bo-main-probation': {
       title: 'Fin de période d’essai',
-      description: 'Trois mois plus tard, la patronne vous regarde travailler toute une matinée sans rien dire du tout. Puis elle dit quelque chose. Lancez le dé.',
+      description: 'Trois mois plus tard, la patronne vous regarde travailler toute une matinée sans rien dire du tout. Puis elle dit quelque chose.',
       reason: 'La fin de la période d’essai',
     },
     'bo-main-bank': {
@@ -167,7 +167,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'bo-payroll-seniority': {
       title: 'Le tableau d’ancienneté',
-      description: 'Personne n’a quitté ce bureau depuis dix ans, alors la place au-dessus ne se libère que le jour où quelqu’un part enfin à la retraite. Lancez le dé pour savoir si c’était cette année.',
+      description: 'Personne n’a quitté ce bureau depuis dix ans, alors la place au-dessus ne se libère que le jour où quelqu’un part enfin à la retraite.',
       reason: 'La place au-dessus s’est libérée',
     },
     'bo-own-lookout': {
@@ -185,7 +185,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'bo-main-review': {
       title: 'L’entretien',
-      description: 'Une petite arrière-salle, deux personnes avec le livre de comptes de l’année ouvert entre elles, et une seule question : êtes-vous prêt à gérer plus que vous ne gérez ? Lancez le dé et écoutez la réponse.',
+      description: 'Une petite arrière-salle, deux personnes avec le livre de comptes de l’année ouvert entre elles, et une seule question : êtes-vous prêt à gérer plus que vous ne gérez ?',
       reason: 'Votre entretien est arrivé',
     },
     'bo-main-tax-audit': {
@@ -205,7 +205,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'bo-main-career-fair': {
       title: 'Le forum de l’emploi',
-      description: 'Un hall de stands, des stylos gratuits, une fanfare qui s’échauffe dehors pour une raison sans rapport, et deux offres entre lesquelles il faut trancher.',
+      description: 'Un hall de stands, des stylos gratuits, une fanfare qui s’échauffe dehors pour une raison sans rapport, et deux offres à votre nom.',
       reason: 'Un nouveau départ au forum de l’emploi',
     },
     'bo-main-godparent': {
@@ -320,7 +320,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'bo-risky-container': {
       title: 'Le pari du conteneur',
-      description: 'Votre cousin connaît quelqu’un au port franc sur la côte, et vos économies remplissent un conteneur partagé — lancez le dé pour savoir ce que le marché pense de l’intuition.',
+      description: 'Votre cousin connaît quelqu’un au port franc sur la côte, et vos économies remplissent un conteneur partagé.',
       reason: 'Le conteneur arrive',
     },
     'bo-risky-bad-tip': {
@@ -345,7 +345,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'bo-risky-lottery': {
       title: 'La loterie de Noël',
-      description: 'Vous faites la queue au kiosque que tout le monde jure porte-bonheur, parce que le kiosque porte-bonheur est fameusement porte-bonheur. Lancez le dé pour savoir ce que valait la queue.',
+      description: 'Vous faites la queue au kiosque que tout le monde jure porte-bonheur, parce que le kiosque porte-bonheur est fameusement porte-bonheur.',
       reason: 'Le tirage de Noël',
     },
     'bo-risky-payday': {
@@ -439,7 +439,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'bo-sunset-last-title': {
       title: 'Un dernier titre',
-      description: 'L’association veut vous faire président d’honneur avant votre départ, si le vote passe. Lancez le dé et laissez la dernière élection de votre vie trancher.',
+      description: 'L’association veut vous faire président d’honneur avant votre départ, si le vote passe.',
       reason: 'La dernière élection de votre vie',
     },
     'bo-sunset-payday-2': {

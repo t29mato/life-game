@@ -156,4 +156,29 @@ describe('EventSpinModal', () => {
       expect(screen.queryByRole('table')).not.toBeInTheDocument()
     })
   })
+
+  /*
+   * The other half of the same argument. Where a table *is* published, the
+   * sentence above it often had nothing left to say and said "Roll to find
+   * out what you owe." anyway — to a player looking at a focused die that
+   * answers the space bar. The handler now hands over an empty string on
+   * those, and an empty stakes line must leave no paragraph behind.
+   */
+  describe('the stakes line', () => {
+    it('is printed when the roll genuinely needs framing', () => {
+      show({ description: "A 4 or higher and it's a yes outright." })
+      expect(screen.getByText("A 4 or higher and it's a yes outright.")).toBeInTheDocument()
+    })
+
+    it('leaves no empty paragraph behind when there is nothing to frame', () => {
+      render(
+        <AudioProvider audio={createFakeAudioPort()}>
+          <EventSpinModal prompt="Tuition Bill" stakes="" result={null} onSpin={() => {}} onSpinComplete={() => {}} />
+        </AudioProvider>,
+      )
+      const header = screen.getByTestId('event-spin').querySelector('header')!
+      expect(header).toHaveTextContent('Tuition Bill')
+      expect(header.querySelectorAll('p')).toHaveLength(0)
+    })
+  })
 })

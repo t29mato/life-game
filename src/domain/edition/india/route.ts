@@ -89,7 +89,7 @@ const COLLEGE_LANE: readonly SpaceContent[] = [
 
 const GRAD_FAIR: SpaceContent = {
   id: 'in-campus-placement', kind: 'event', title: 'Campus Placement',
-  description: 'One week of aptitude tests, group discussions, and a notice board the whole batch keeps walking past to check. Two offer letters carry your name; pick one.',
+  description: 'One week of aptitude tests, group discussions, and a notice board the whole batch keeps walking past to check. Two offer letters carry your name.',
   effect: { type: 'chooseCareer', pool: 'graduate' },
   tone: 'gold', icon: 'space:grad-job-fair',
 }
@@ -159,7 +159,7 @@ const WORK_LANE: readonly SpaceContent[] = [
 const OFFICE_ROAD_EARLY: readonly SpaceContent[] = [
   {
     id: 'in-main-probation', kind: 'normal', title: 'Probation Review',
-    description: 'Six months in, somebody sits down opposite you with a form in triplicate and asks how you think it is going. Roll.',
+    description: 'Six months in, somebody sits down opposite you with a form in triplicate and asks how you think it is going.',
     effect: { type: 'promotion', reason: 'The end of probation' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -228,7 +228,7 @@ const MID_CAREER_FORK: SpaceContent = {
 const PERMANENT_POST_ROAD: readonly SpaceContent[] = [
   {
     id: 'in-loyal-seniority', kind: 'normal', title: 'The Seniority List',
-    description: 'Nobody has left this department in a decade, so the post above yours only comes free when somebody finally retires. Roll to see whether this was the year.',
+    description: 'Nobody has left this department in a decade, so the post above yours only comes free when somebody finally retires.',
     effect: { type: 'promotion', reason: 'The post above yours came free' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -264,7 +264,7 @@ const SWITCH_ALLEY: readonly SpaceContent[] = [
 const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
   {
     id: 'in-main-appraisal', kind: 'event', title: 'The Appraisal',
-    description: 'A small meeting room, two managers with your self-review open between them, and a rating that ranks you against everyone else on the team. Roll, and hear where you land.',
+    description: 'A small meeting room, two managers with your self-review open between them, and a rating that ranks you against everyone else on the team.',
     effect: { type: 'promotion', reason: 'Your appraisal came round' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -289,7 +289,7 @@ const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
   },
   {
     id: 'in-main-job-portal', kind: 'stop', title: 'The Job Portal',
-    description: 'You set the profile to "actively looking" at midnight, and by breakfast two firms like your CV. Pick one.',
+    description: 'You set the profile to "actively looking" at midnight, and by breakfast two firms like your CV.',
     effect: { type: 'careerChange', reason: 'A fresh start off the portal' },
     tone: 'orange', icon: 'space:career-fair-return',
   },
@@ -452,7 +452,7 @@ const HOME_BUYING: SpaceContent = {
 const DALAL_STREET: readonly SpaceContent[] = [
   {
     id: 'in-risky-startup', kind: 'normal', title: 'The Startup Bet',
-    description: 'You pour savings into a friend\'s Bengaluru startup and roll to see what comes back.',
+    description: 'You pour savings into a friend\'s Bengaluru startup.',
     effect: { type: 'spinForMoney', perPip: 310_000, reason: 'Startup investment payout' },
     tone: 'pink', icon: 'space:startup-bet',
   },
@@ -480,7 +480,7 @@ const DALAL_STREET: readonly SpaceContent[] = [
     'pink', 'space:market-crash'),
   {
     id: 'in-risky-lottery', kind: 'normal', title: 'The Bumper Draw',
-    description: 'You queue forty minutes at the famously lucky ticket counter, because the famously lucky counter is famously lucky. Roll for what the queue was worth.',
+    description: 'You queue forty minutes at the famously lucky ticket counter, because the famously lucky counter is famously lucky.',
     effect: { type: 'spinForMoney', perPip: 550_000, reason: 'The festival bumper draw' },
     tone: 'pink', icon: 'space:lottery-ticket',
   },
@@ -584,7 +584,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   },
   {
     id: 'in-sunset-last-title', kind: 'normal', title: 'One Last Title',
-    description: 'One more designation before the door, if they can be persuaded. Roll, and let the last appraisal of your life decide it.',
+    description: 'One more designation before the door, if they can be persuaded.',
     effect: { type: 'promotion', reason: 'The last appraisal of your life' },
     tone: 'slate', icon: 'space:big-promotion',
   },

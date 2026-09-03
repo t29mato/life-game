@@ -114,6 +114,40 @@ const AUTHORED = {
   dieReturnSeconds: 0.4,
 
   /**
+   * How long a die inside a card keeps its number before that card gives way
+   * to the one that spends it.
+   *
+   * This is not a beat being *added* back. It is `dieReturnDelaySeconds`,
+   * above, finally being allowed to happen. The board's own die is docked
+   * beside the map and nothing ever takes it away, so its half-second of
+   * sitting on the number it rolled has always run. A die inside
+   * `EventSpinModal` is a different story: `Dice` reports the result and
+   * paints the settled face in the same commit, App clears `activeSpin` in
+   * the callback, and the modal — die, number and payout table together — is
+   * unmounted on the very next one. Measured at the code rather than
+   * eyeballed: the settled face got somewhere between zero and one frame.
+   *
+   * Which is exactly what a player reported, on the one card where it costs
+   * something real: a pay-per-pip payday, where the face *is* the wage. "The
+   * screen changes right after the die lands, so I can't tell what I rolled
+   * or what I got paid." Both halves of that are the same missing half
+   * second.
+   *
+   * Rule 2 is not broken by it, because nothing is still: the die is doing
+   * its own return glide through the back half of this, and the payout table
+   * the player is now able to check the face against is on screen for all of
+   * it. Rule 1 is not broken either — that caps the gap between a result and
+   * *motion*, and the motion here started before the hold did.
+   *
+   * A dwell, not an animation, so reduced motion keeps it: how long a number
+   * stays readable is not a motion preference. Held at exactly the die's own
+   * return delay rather than a new number of its own — the card leaves at the
+   * moment the die stops being still, so the last thing on screen is always
+   * the number and never a cube sliding off with the answer still on it.
+   */
+  eventDieHoldMs: 500,
+
+  /**
    * One tile of travel. The reference is Mario Party's 0.25–0.35s hop; 280ms
    * sits in the middle of it and is what the report asked for by name. Fast
    * enough that six tiles is under two seconds, slow enough that the
