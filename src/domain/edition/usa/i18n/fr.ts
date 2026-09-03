@@ -243,6 +243,10 @@ export const USA_FR: EditionTranslation = {
       description: 'Tout l’étage est convoqué dans une même réunion, et ensuite votre badge ne fonctionne plus.',
       reason: 'Licencié',
     },
+    'main-notice-period': {
+      title: 'Jour de paie',
+      description: 'La dernière paie d’un mois qui s’est mal passé pour tout l’étage. Tous ceux qui sont encore sur le registre sont payés le jour habituel.',
+    },
     'main-career-fair': {
       title: 'Forum de l’emploi',
       description: 'Un hall plein de stands, des stylos gratuits, et deux offres entre lesquelles il faut trancher.',
@@ -331,10 +335,6 @@ export const USA_FR: EditionTranslation = {
     'midtown-insurance': {
       title: 'Agence d’assurance',
       description: 'Avant qu’on vous confie un trousseau de clés, quelqu’un aimerait vous parler garanties.',
-    },
-    'midtown-payday': {
-      title: 'Jour de paie',
-      description: 'Un virement tombe la semaine même où l’apport pour la maison est dû.',
     },
     'midtown-party': {
       title: 'Compte joint',

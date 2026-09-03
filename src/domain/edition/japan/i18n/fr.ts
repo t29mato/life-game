@@ -199,6 +199,10 @@ export const JAPAN_FR: EditionTranslation = {
       description: 'L’entreprise annonce un plan de départs « volontaires », et votre nom figure sur la liste des volontaires.',
       reason: 'Volontaire, paraît-il',
     },
+    'jp-main-notice-period': {
+      title: 'Jour de paie',
+      description: 'Le 25 revient, comme chaque mois depuis des années, et la paie tombe pour tous ceux qui figurent encore sur la liste.',
+    },
     'jp-main-midcareer-fair': {
       title: 'Salon des expérimentés',
       description: 'Un hall de stands pour les gens qui ont tout fait comme il faut dans une entreprise qui, non. Deux firmes aiment votre CV ; choisissez.',
@@ -287,10 +291,6 @@ export const JAPAN_FR: EditionTranslation = {
     'jp-midtown-insurance': {
       title: 'Agence d’assurance',
       description: 'Avant qu’on vous confie un trousseau de clés, quelqu’un aimerait vous parler garanties — et déroule une carte des risques de votre quartier, complète, récente, et discrètement terrifiante.',
-    },
-    'jp-midtown-payday': {
-      title: 'Jour de paie',
-      description: 'Un virement tombe la semaine même où l’apport pour l’appartement est dû.',
     },
     'jp-midtown-allowance': {
       title: 'L’argent de poche',

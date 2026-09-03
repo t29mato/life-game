@@ -288,6 +288,11 @@ const SALARYMAN_STREET_LATE: readonly SpaceContent[] = [
     effect: { type: 'loseCareer', reason: 'Volunteered, apparently' },
     tone: 'orange', icon: 'space:layoff-notice',
   },
+  // The month between the two, and the only thing that makes losing the job
+  // cost anything — see `main-notice-period` on the USA board for the whole
+  // argument. Everyone still on the books is paid on the twenty-fifth; the
+  // person who was just volunteered out picks up shifts instead.
+  payday('jp-main-notice-period', 'The twenty-fifth comes round, as it has every month for years, and payroll pays everybody it still has on its list.'),
   {
     id: 'jp-main-midcareer-fair', kind: 'stop', title: 'Mid-Career Fair',
     description: 'A hall of booths for people who did everything right at a company that did not. Two firms like your CV; pick one.',
@@ -414,10 +419,16 @@ const MIDTOWN: readonly SpaceContent[] = [
     effect: { type: 'buyInsurance', kinds: ['home', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office',
   },
-  // The only payday in this stretch too — see jp-main-payday-1. Harshening it
-  // zeroed Very Hard's income for the whole run between the marriage fork and
-  // the home-buying fork, so it stays unconditional.
-  payday('jp-midtown-payday', 'A deposit lands the week the deposit on an apartment is due.'),
+  /*
+   * The payday this stretch used to open with now sits between the Layoff
+   * Notice and the career fair, half a board earlier — see the notice-period
+   * payday there for why it had to be somewhere a jobless player walks over
+   * it. It is a move rather than an addition on purpose: a board one tile
+   * longer pushes its whole back half one tile further away, and measured,
+   * that alone dropped the share of games in which anybody ever reaches the
+   * fire tile from 9.2% to 7.5% and left the home policy mispriced. The
+   * bonus below is what still pays out in here.
+   */
   {
     id: 'jp-midtown-allowance', kind: 'normal', title: 'The Allowance',
     description: 'The accounts are merged. Your whole salary now goes into a shared account, and a fixed sum comes back to you each month — labelled "allowance" in the family ledger.',

@@ -234,7 +234,7 @@ describe('the researcher france economy stays in a playable band', () => {
   const bustShare = (totals: number[]) => totals.filter((t) => t < 0).length / totals.length
 
   it('keeps normal comfortably profitable — the country board\'s band, in the same euros', () => {
-    // Measured over these 60 games: mean €734,348, median €701,700, nobody
+    // Measured over these 60 games: mean €736,137, median €701,200, nobody
     // ever bust. That is the same band the Researcher: Japan board measures
     // in yen at ×100, which is what a shared skeleton is supposed to produce.
     expect(mean(normal.totals)).toBeGreaterThan(450_000)
@@ -251,8 +251,8 @@ describe('the researcher france economy stays in a playable band', () => {
   })
 
   it('makes hard a clear step down that is still usually a winning game', () => {
-    // Measured: median €449,800 against normal's €701,700, one player in
-    // eleven bust.
+    // Measured: median €458,200 against normal's €701,200, one player in
+    // eleven bust (9.4%).
     expect(median(hard.totals)).toBeLessThan(median(normal.totals) * 0.8)
     expect(median(hard.totals)).toBeGreaterThan(100_000)
     expect(bustShare(hard.totals)).toBeGreaterThan(0)
@@ -260,7 +260,7 @@ describe('the researcher france economy stays in a playable band', () => {
   })
 
   it('puts very hard on a knife edge', () => {
-    // Measured: 35.6% bust, median €183,028, mean €90,492.
+    // Measured: 34.4% bust, median €190,800, mean €68,499.
     expect(bustShare(veryHard.totals)).toBeGreaterThan(0.2)
     expect(bustShare(veryHard.totals)).toBeLessThan(0.7)
     expect(median(veryHard.totals)).toBeGreaterThan(-200_000)
@@ -306,8 +306,8 @@ describe('the opening fork: the underdog road is a road, not a mistake', () => {
 
   it('splits the wins between the two lanes', () => {
     /*
-     * Measured at 45.0% to the University over these 240 games — ahead of the
-     * USA board's own 43.3% for College Lane, and reached by real tuning
+     * Measured at 46.7% to the University over these 240 games — level with
+     * the USA board's own 44.7% for College Lane, and reached by real tuning
      * rather than by luck. The first cut measured 23.3%: the doctorate's
      * shelf opened barely above the cadre shelf, and a road that forgoes
      * three paydays for a 5% raise is not a road, it is a fine. What closed
@@ -321,7 +321,7 @@ describe('the opening fork: the underdog road is a road, not a mistake', () => {
   })
 
   it('leaves neither lane the obvious money play', () => {
-    // Measured at €768,645 against €807,256 — a 5.0% gap, well inside the
+    // Measured at €759,207 against €802,694 — a 5.7% gap, well inside the
     // 15% every other board's opening fork is held to.
     const gap = Math.abs(mean(sample.university) - mean(sample.grandeEcole))
     expect(gap / mean(sample.university)).toBeLessThan(0.15)
@@ -334,8 +334,11 @@ describe('the opening fork: the underdog road is a road, not a mistake', () => {
      * doctorate opens is five times the width of the industry shelf and the
      * whole of the life's variance sits on it.
      *
-     * This board is built the other way and measures accordingly: 1.012 on
-     * normal, 0.992 on hard, 0.953 on very hard — level, at every setting.
+     * This board is built the other way and measures accordingly: 0.939 on
+     * normal, 1.050 on hard, 1.140 on very hard — level, at every setting,
+     * and level from *either* side of 1, which is the point. (It was 1.012,
+     * 0.992 and 0.953 before the layoff started costing a payday; a month
+     * with no wages in it is variance both roads carry.)
      * France's volatility is not on a lane. It is on one competition and on
      * the shelf behind it, and the block below is where that is measured. A
      * ratio that drifted far off 1 here would mean one of the two roads had
@@ -357,7 +360,8 @@ describe('the opening fork: the underdog road is a road, not a mistake', () => {
     ['hard', { difficulty: 'hard' } as PlayOptions],
     ['very hard', { difficulty: 'veryHard' } as PlayOptions],
   ])('stays an even fork on the %s', (_label, options) => {
-    // Measured over 100 seeds: 47.9% on hard and 45.4% on very hard.
+    // Measured over 100 seeds: 43.0% on hard and 49.0% on very hard (47.9%
+    // and 45.4% before the layoff cost a payday).
     const harder = splitOf(MANY.slice(0, 100), options)
     expect(harder.universityWinRate).toBeGreaterThan(0.33)
     expect(harder.universityWinRate).toBeLessThan(0.62)

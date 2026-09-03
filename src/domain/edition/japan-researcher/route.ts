@@ -541,22 +541,27 @@ const STAFF_JOB: readonly SpaceContent[] = [
  */
 const CORRIDOR_AFTER_THE_GATE: readonly SpaceContent[] = [
   {
-    // Sits with the notice below immediately in front of the fair, for the
-    // same reason: two ways to lose the post, one hall to fix it, and neither
-    // more than a tile away from the fix.
+    // Sits with the notice below in front of the fair, for the same reason:
+    // two ways to lose the post, one hall to fix it, and the same month of no
+    // wages charged in between whichever one you land on.
     id: 'jpr-after-nonrenewal', kind: 'normal', title: 'Not Renewed',
     description: 'The contract everyone swore blind would be renewed in April is, very quietly, not renewed. The farewell bouquet is lovely.',
     effect: { type: 'loseCareer', reason: 'The contract was not renewed' },
     tone: 'orange', icon: 'space:layoff-notice', appearsFrom: 'hard',
   },
   {
-    // Keep this immediately in front of the fair below: the swing is only fair
-    // because the way back is the very next tile.
+    // Keep this in front of the fair below, with exactly one payday between
+    // the two — see the payday itself.
     id: 'jpr-after-layoff', kind: 'normal', title: 'Layoff Notice',
     description: 'The programme ends two years early, the whole floor is called into one meeting, and afterwards your key card opens nothing.',
     effect: { type: 'loseCareer', reason: 'The programme ended early' },
     tone: 'orange', icon: 'space:layoff-notice',
   },
+  // The month between losing the post and the hall of booths, and the only
+  // thing that makes losing it cost anything — see `main-notice-period` on the
+  // USA board for the whole argument. The twenty-fifth pays everybody the
+  // university still employs; whoever it does not picks up teaching sessions.
+  payday('jpr-after-notice-period', 'The twenty-fifth comes round, and the payroll office three buildings away pays everybody whose name is still on its list.'),
   {
     /*
      * A stop, and on every board, because it is the layoff's only way back —
@@ -694,10 +699,16 @@ const GRANT_SEASON: readonly SpaceContent[] = [
     effect: { type: 'buyInsurance', kinds: ['home', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office',
   },
-  // The only payday in this stretch too. Harshening it zeroed Very Hard's
-  // income for the whole run between the marriage fork and the home-buying
-  // fork, so it stays unconditional.
-  payday('jpr-grant-payday', 'A deposit lands the week the deposit on a flat is due.'),
+  /*
+   * The payday this stretch used to open with now sits between the Layoff
+   * Notice and the career fair, half a board earlier — see the notice-period
+   * payday there for why it had to be somewhere a jobless player walks over
+   * it. It is a move rather than an addition on purpose: a board one tile
+   * longer pushes its whole back half one tile further away, and measured,
+   * that alone dropped the share of games in which anybody ever reaches the
+   * fire tile from 9.2% to 7.5% and left the home policy mispriced. The
+   * bonus below is what still pays out in here.
+   */
   {
     id: 'jpr-grant-joint-account', kind: 'normal', title: 'The Joint Account',
     description: 'The accounts are merged, and for the first time somebody else\'s spending is also, unavoidably, your spending. They have opinions about how much of the budget is books.',

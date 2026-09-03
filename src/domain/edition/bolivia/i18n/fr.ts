@@ -203,6 +203,10 @@ export const BOLIVIA_FR: EditionTranslation = {
       description: 'Tout l’étage est convoqué dans une même réunion avec un consultant venu de la capitale, et ensuite votre badge ne fonctionne plus.',
       reason: 'Poste supprimé',
     },
+    'bo-main-notice-period': {
+      title: 'Jour de paie',
+      description: 'La paie de fin de mois tombe pour tous ceux que le consultant a laissés sur la liste, dans la même enveloppe que toujours.',
+    },
     'bo-main-career-fair': {
       title: 'Le forum de l’emploi',
       description: 'Un hall de stands, des stylos gratuits, une fanfare qui s’échauffe dehors pour une raison sans rapport, et deux offres entre lesquelles il faut trancher.',
@@ -291,10 +295,6 @@ export const BOLIVIA_FR: EditionTranslation = {
     'bo-midtown-insurance': {
       title: 'Agence d’assurance',
       description: 'Avant qu’on vous confie un trousseau de clés, quelqu’un aimerait vous parler garanties — et déroule une carte des risques de votre versant, complète, récente, et discrètement terrifiante.',
-    },
-    'bo-midtown-payday': {
-      title: 'Jour de paie',
-      description: 'L’argent du mois arrive la semaine même où l’apport pour la maison est dû.',
     },
     'bo-midtown-shared-purse': {
       title: 'La bourse commune',

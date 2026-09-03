@@ -291,6 +291,11 @@ const BOULEVARD_LATE: readonly SpaceContent[] = [
     effect: { type: 'loseCareer', reason: 'Restructured out' },
     tone: 'orange', icon: 'space:layoff-notice',
   },
+  // The month between the two, and the only thing that makes losing the job
+  // cost anything — see `main-notice-period` on the USA board for the whole
+  // argument. The 28th arrives for everybody still on the payroll; whoever the
+  // plan took off it picks up hours instead.
+  payday('fr-main-notice-period', 'The 28th arrives, as it does, and everybody the company still employs is paid on it.'),
   {
     id: 'fr-main-employment-office', kind: 'stop', title: 'The Employment Office',
     description: 'A caseworker at the unemployment office reviews your file and finds two jobs that fit. Pick one.',
@@ -418,10 +423,16 @@ const MIDTOWN: readonly SpaceContent[] = [
     effect: { type: 'buyInsurance', kinds: ['home', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office',
   },
-  // The only payday in this stretch too — see fr-main-payday-1. Harshening it
-  // zeroed Very Hard's income for the whole run between the marriage fork and
-  // the home-buying fork, so it stays unconditional.
-  payday('fr-midtown-payday', 'Your pay lands the same week your apartment deposit is due.'),
+  /*
+   * The payday this stretch used to open with now sits between the Layoff
+   * Notice and the career fair, half a board earlier — see the notice-period
+   * payday there for why it had to be somewhere a jobless player walks over
+   * it. It is a move rather than an addition on purpose: a board one tile
+   * longer pushes its whole back half one tile further away, and measured,
+   * that alone dropped the share of games in which anybody ever reaches the
+   * fire tile from 9.2% to 7.5% and left the home policy mispriced. The
+   * bonus below is what still pays out in here.
+   */
   {
     id: 'fr-midtown-joint-account', kind: 'normal', title: 'The Joint Account',
     description: 'You merge your bank accounts at a formal appointment. For the first time, someone else\'s spending is now, unavoidably, your problem too.',

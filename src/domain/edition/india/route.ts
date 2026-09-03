@@ -287,6 +287,11 @@ const OFFICE_ROAD_LATE: readonly SpaceContent[] = [
     effect: { type: 'loseCareer', reason: 'Volunteered, apparently' },
     tone: 'orange', icon: 'space:layoff-notice',
   },
+  // The month between the two, and the only thing that makes losing the job
+  // cost anything — see `main-notice-period` on the USA board for the whole
+  // argument. Salary credits for everybody still on the rolls; whoever
+  // volunteered picks up whatever work they can find.
+  payday('in-main-notice-period', 'Salary credit day comes round and lands for everybody the firm still has on its rolls, with the same three-letter reference it always carries.'),
   {
     id: 'in-main-job-portal', kind: 'stop', title: 'The Job Portal',
     description: 'You set the profile to "actively looking" at midnight, and by breakfast two firms like your CV. Pick one.',
@@ -413,10 +418,16 @@ const MIDTOWN: readonly SpaceContent[] = [
     effect: { type: 'buyInsurance', kinds: ['home', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office',
   },
-  // The only payday in this stretch too — see in-main-payday-1. Harshening it
-  // zeroed Very Hard's income for the whole run between the marriage fork and
-  // the home-buying fork, so it stays unconditional.
-  payday('in-midtown-payday', 'A credit lands the week the booking amount on a flat is due.'),
+  /*
+   * The payday this stretch used to open with now sits between the Layoff
+   * Notice and the career fair, half a board earlier — see the notice-period
+   * payday there for why it had to be somewhere a jobless player walks over
+   * it. It is a move rather than an addition on purpose: a board one tile
+   * longer pushes its whole back half one tile further away, and measured,
+   * that alone dropped the share of games in which anybody ever reaches the
+   * fire tile from 9.2% to 7.5% and left the home policy mispriced. The
+   * bonus below is what still pays out in here.
+   */
   {
     id: 'in-midtown-joint-account', kind: 'normal', title: 'The Joint Account',
     description: 'The salaries are merged, and yours now arrives in a shared account from which a fixed sum returns to you, titled, in the family ledger, "pocket money".',

@@ -329,7 +329,7 @@ parentheses; amounts pre-×100-scaled yen; hardships shown where they earn it):
 | **New Year Cards** (t2) | "You address seventy postcards to people you will also see in person, so that a lottery number printed on each may change nothing." | `payMoney ¥30,000` |
 | **Convenience Dinner** (t2) | "Fried chicken and a rice ball at 11 p.m. under excellent lighting. Cheap, delicious, quietly becoming your entire personality." | `payMoney ¥20,000` |
 | **The Transfer Order** (t0, `appearsFrom: 'hard'`) | "Osaka. April first. The company decided in February; you found out on Friday. Your apartment, gym, and favourite ramen counter are now souvenirs." | `careerChange` — the forced re-draw *is* the transfer |
-| **Restructuring** (t0) | "The firm announces a 'voluntary' early retirement scheme, and your name is on the list of volunteers." | `loseCareer` (sits one tile before the Career Fair stop, exactly like today's layoff) |
+| **Restructuring** (t0) | "The firm announces a 'voluntary' early retirement scheme, and your name is on the list of volunteers." | `loseCareer` (sits before the Career Fair stop with one payday in between, exactly like today's layoff — the layoff has to cost a month's wages or it costs nothing at all) |
 | **Mid-Career Fair** (t0, stop) | "A hall of booths for people who did everything right at a company that did not. Two firms like your CV; pick one." | `careerChange` |
 
 The `missedPayday` hardship gets its perfect Japanese name here: **"Service

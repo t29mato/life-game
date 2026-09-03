@@ -433,25 +433,30 @@ describe('the economy stays in a playable band', () => {
    * wallet frozen. Now they pick up shifts, and the die decides how good the
    * week was — meagre money, but the turn is still worth taking.
    *
-   * On this board nobody has needed to since the wheel became a die. This
-   * used to also assert that casual shifts genuinely *happen* in play — a
-   * floor nobody stands on is not a floor — and they no longer do: measured
-   * across 600 games at all three difficulties, not one player reaches a
-   * payday still out of work. Every layoff tile forks onto the career fair,
-   * the fair is a `stop` nobody spins past, and a 1-6 roll can no longer
-   * carry a laid-off player beyond the fork the way a 1-10 wheel could. The
-   * rule is still priced and still tested (`choose.test.ts`,
-   * `player.test.ts`, `payday.test.ts`); it is the board that has stopped
-   * putting anyone on it, which is a fact about the route rather than about
-   * the wage, and worth someone's attention before the next route change.
+   * **This test used to say the floor was never stood on, and that was the
+   * bug.** For a long stretch every layoff tile sat directly against the
+   * career fair, the fair is a `stop` nobody spins past, and so — measured
+   * across 600 games at all three difficulties — not one player ever reached
+   * a payday out of work. The note here flagged that as a fact about the
+   * route worth somebody's attention before the next route change. It was: a
+   * layoff you are re-hired out of on the following turn costs nothing at
+   * all, which is the report that moved the payday now standing between the
+   * two (see `main-notice-period`). So the floor is stood on again, on
+   * purpose, by exactly the player who was just laid off — and both halves
+   * are asserted here, because a penalty nobody ever pays and a penalty paid
+   * in an `info` shrug are the same bug twice.
    */
-  it('never leaves a player between jobs collecting nothing at a payday', () => {
+  it('makes a layoff cost a payday, and pays that payday in casual shifts', () => {
     const entries = games.flatMap((game) => game.finalState.log)
     const everyLine = entries.map((entry) => entry.message)
     expect(everyLine.some((line) => /payday pays nothing|no job yet, so payday/i.test(line))).toBe(false)
+    // The gap bites: somebody, somewhere in these games, walks over a payday
+    // between the layoff and the hall of booths and collects shifts for it.
+    const shifts = entries.filter((e) => /picks up (casual )?shifts/i.test(e.message))
+    expect(shifts.length).toBeGreaterThan(0)
     // And whenever the floor is stood on, it has to be money: `money-in`,
     // never an `info` shrug.
-    for (const entry of entries.filter((e) => /picks up (casual )?shifts/i.test(e.message))) {
+    for (const entry of shifts) {
       expect(entry.tone).toBe('money-in')
     }
   })
@@ -527,7 +532,11 @@ describe('difficulty means something measurable', () => {
   it('keeps normal comfortably profitable — this is the regression guard', () => {
     // The band the game ships in: comfortably profitable, nobody ever bust.
     //
-    // Re-measured on the six-face die at $611.9k mean / $590.8k median, down
+    // Re-measured at $673.3k mean / $652.0k median, on a board whose layoff
+    // now costs a payday: the tile between the Layoff Notice and the career
+    // fair is Midtown's own payday moved rather than a new one, so the count
+    // is unchanged and what moved is *when* it is collected (see
+    // `main-notice-period`). The die itself put this figure at $611.9k, down
     // from $700.8k on the ten-wedge wheel. Two effects pull against each
     // other and the smaller one wins: a die that averages 3.5 where the wheel
     // averaged 5.5 means a pawn *stops* roughly half as far along, so a game
@@ -552,8 +561,8 @@ describe('difficulty means something measurable', () => {
 
   it('makes hard a clear step down that is still usually a winning game', () => {
     // Down by a third or so on normal, but a player still expects to profit.
-    // Re-measured on the die at a $349.2k median and one player in twelve
-    // retiring in the red.
+    // Re-measured at a $368.2k median and one player in eight retiring in the
+    // red (12.8%); it was $349.2k and one in twelve when the die landed.
     expect(median(hard.totals)).toBeLessThan(median(normal.totals) * 0.8)
     expect(median(hard.totals)).toBeGreaterThan(100_000)
     expect(bustShare(hard)).toBeGreaterThan(0)
@@ -565,10 +574,11 @@ describe('difficulty means something measurable', () => {
     // the very-hard-only reorganisation that used to follow it with no wage
     // in between (see fast-payday-severance) — a small, deliberate softening
     // for the players who draw that specific stretch, re-measured here.
-    // Re-measured on the die at a bust share of 0.472 — the coin flip the
-    // title screen promises, arrived at without touching a single difficulty
-    // dial — and a median of $39.9k, which is as near to nothing as this
-    // measurement has ever come.
+    // Re-measured at a bust share of 0.456 — the coin flip the title screen
+    // promises, arrived at without touching a single difficulty dial — and a
+    // median of $57.8k against a mean of -$77.1k, which is as near to nothing
+    // as the middle of this table gets. It was 0.472 and $39.9k before the
+    // layoff started costing a payday.
     expect(bustShare(veryHard)).toBeGreaterThan(0.25)
     expect(bustShare(veryHard)).toBeLessThan(0.7)
     // The median player finishes near nothing at all, either side of zero.
@@ -773,6 +783,9 @@ describe('neither opening lane is the right answer', () => {
     // seeds, not a bias either lane can play for. The band is wide enough that
     // a little content drift is allowed and narrow enough that a return to the
     // old 92.5% is impossible.
+    // Re-measured at 44.7% once the layoff started costing a payday: the
+    // month with no wages in it lands on whoever the fair is about to re-hire,
+    // which is both lanes equally, and the split moved a point and a half.
     expect(sample.collegeWinRate).toBeGreaterThan(0.38)
     expect(sample.collegeWinRate).toBeLessThan(0.58)
   })
@@ -803,15 +816,17 @@ describe('neither opening lane is the right answer', () => {
      * re-measured at a ratio of 0.85 (sd 199,430 against 234,336). What
      * still has to hold: neither lane's own gamble swallows the other's.
      */
-    // Re-measured at 1.26 on the die (was 0.85 on the wheel).
+    // Re-measured at 1.28 (sd 273,536 against 213,064); it was 1.26 on the die
+    // and 0.85 on the wheel.
     const ratio = spread(sample.work) / spread(sample.college)
     expect(ratio).toBeGreaterThan(0.7)
     expect(ratio).toBeLessThan(1.4)
   })
 
   it('leaves neither lane the obvious money play', () => {
-    // Re-measured at $611,064 against $680,897 — within 12%, where it was
-    // within 1% on the wheel. College used to earn 2.05x what work did.
+    // Re-measured at $677,319 against $733,290 — within 8.3%, where it was
+    // within 12% on the die and within 1% on the wheel. College used to earn
+    // 2.05x what work did.
     const gap = Math.abs(mean(sample.college) - mean(sample.work))
     expect(gap / mean(sample.college)).toBeLessThan(0.15)
   })
@@ -838,14 +853,15 @@ describe('neither opening lane is the right answer', () => {
 
   it.each(GRID)('stays an even fork on the %s', (_label, options) => {
     const sample = splitOf(MANY.slice(0, 120), 2, options)
-    // The short board measures 0.375 now that every fork on the route,
+    // Hard measures 0.383 and very hard 0.433 now that every fork on the route,
     // not only this one, is the wheel's own call (see spin.ts) — a short
     // game has the fewest turns for the mid-career and later forks' own
     // roulette outcomes to average back out, so its opening split carries
     // more of their noise than a longer board's does. Still a coin a
     // first-time player has no way to load.
     expect(sample.collegeWinRate).toBeGreaterThan(0.35)
-    // Hard measures exactly 0.6 now that the tuition bill holds for a spin —
+    // The ceiling: hard measured exactly 0.6 when the tuition bill first held
+    // for a spin —
     // same `random.spin()`-reshuffles-every-later-draw effect documented
     // above for the standard board, confirmed here the same way: the bands
     // flattened to one deterministic cost still measure 0.6, so this is
@@ -855,7 +871,7 @@ describe('neither opening lane is the right answer', () => {
 
   it('stays an even fork at a full table', () => {
     /*
-     * 35.8% on these 120 seeds now that a fork spends a press on the road and
+     * 40.0% on these 120 seeds — 35.8% when a fork first spent a press on the road and
      * a second one on the distance (see `spin.ts`) — and that is a sub-sample
      * talking, not the fork moving. Run over all 300 seeds the rate is 37.7%,
      * against 38.7% measured the same way with the old single-roll fork: one
@@ -924,7 +940,8 @@ describe('the mid-career fork is a decision, not decoration', () => {
     ['a graduate', () => fromCollege],
     ['a school-leaver', () => fromWork],
   ] as const)('splits its wins evenly for %s', (_who, sampleOf) => {
-    // Measured at 53.7% for the graduate and 52.3% for the school-leaver.
+    // Measured at 49.0% for the graduate and 47.7% for the school-leaver
+    // (53.7% and 52.3% before the layoff started costing a payday).
     const sample = sampleOf()
     expect(sample.roadWinRate).toBeGreaterThan(0.42)
     expect(sample.roadWinRate).toBeLessThan(0.58)
@@ -1006,10 +1023,14 @@ describe('every policy on sale is a bet, not a verdict', () => {
 
   it('lands a pawn on a hazard tile about as often as the premiums assume', () => {
     // The two figures the USA premiums are priced against, and the reason
-    // they differ: the crash sits on the trunk everybody drives, while the
-    // fire is late enough that plenty of players have retired before they
-    // reach it. Pinned rather than dropped so the next person to weigh
-    // $4,000 against $24,000 is arguing with a measurement.
+    // they differ: the crash sits on the trunk everybody drives (33.3% of
+    // player-games), while the fire is late enough that plenty of players
+    // have retired before they reach it (10.4%). Pinned rather than dropped
+    // so the next person to weigh $4,000 against $24,000 is arguing with a
+    // measurement — and because the fire figure is a *route* measurement:
+    // lengthening the board by one tile pushes its whole back half further
+    // from the start and drops it to 7.5%, which is why the notice-period
+    // payday is Midtown's payday moved rather than a new one.
     expect(hazardLandings('accident')).toBeGreaterThan(0.2)
     expect(hazardLandings('accident')).toBeLessThan(0.4)
     expect(hazardLandings('fire')).toBeGreaterThan(0.05)
@@ -1053,8 +1074,8 @@ describe('every policy on sale is a bet, not a verdict', () => {
     const worse = deltas.filter((d) => d < 0).length / deltas.length
 
     // Neither outcome may be a lock. Measured on the standard board: the home
-    // policy leaves a buyer better off 9.4% of the time and worse off 84.4%,
-    // the auto policy 20.4% and 73.0%, and the life policy 56.1% and 43.9%.
+    // policy leaves a buyer better off 11.4% of the time and worse off 78.1%,
+    // the auto policy 20.3% and 66.1%, and the life policy 59.0% and 41.0%.
     // The old numbers failed this in both directions at once — 2.8% better for
     // home, 96.7% better for life.
     expect(better).toBeGreaterThan(0.05)
@@ -1067,10 +1088,22 @@ describe('every policy on sale is a bet, not a verdict', () => {
     const premium = EDITION_USA.economy.insurancePremium[kind]
 
     // Fair means the expected gap between buying and declining is small
-    // beside the premium itself: measured at -$1,933 (home, on $4,000),
-    // -$1,671 (auto, on $3,000) and +$1,934 (life, on $20,000). A premium's
+    // beside the premium itself: measured at -$3,992 (home, on $4,000),
+    // -$1,814 (auto, on $3,000) and +$1,610 (life, on $20,000). A premium's
     // worth of slack either way is the band, which the old prices missed by a
     // factor of seven on the covers and by more than that on the life policy.
+    //
+    // **The home figure is the tightest number in this file and it is worth
+    // knowing why.** These are paired runs — the same seed played once buying
+    // and once declining — so the difference is the policy and nothing else,
+    // but it is a small difference of two six-figure totals and it moves with
+    // any change to where pawns stop. The board move that put a payday
+    // between the Layoff Notice and the career fair took it from -$1,881 to
+    // -$3,992 without touching a premium or a payout, and an earlier draft of
+    // the same change that *added* a tile rather than moving one took it to
+    // -$5,117, i.e. straight out of the band. Anyone who moves a tile on the
+    // trunk should expect to re-read this number, and should suspect the
+    // route before suspecting the price.
     expect(Math.abs(mean)).toBeLessThan(premium)
   })
 

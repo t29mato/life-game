@@ -202,6 +202,10 @@ export const JAPAN_JA: EditionTranslation = {
       description: '会社が「希望退職」の募集を発表し、その希望者の名簿に自分の名前が載っている。',
       reason: '希望した、ことになっている',
     },
+    'jp-main-notice-period': {
+      title: '給料日',
+      description: '二十五日は何年も同じようにやってきて、経理はまだ名簿に残っている全員に振り込む。',
+    },
     'jp-main-midcareer-fair': {
       title: '中途採用フェア',
       description: '何ひとつ間違えなかった人たちのための会場。間違えたのは会社のほうだ。二社が経歴を気に入る。どちらかを選ぶ。',
@@ -290,10 +294,6 @@ export const JAPAN_JA: EditionTranslation = {
     'jp-midtown-insurance': {
       title: '保険の窓口',
       description: '家の鍵を渡す前に、補償について少し話をさせてほしい人がいる。広げられた地域のハザードマップは、網羅的で、更新も新しく、そして静かに恐ろしい。',
-    },
-    'jp-midtown-payday': {
-      title: '給料日',
-      description: 'マンションの頭金を払う週に、給料の振り込みが届く。',
     },
     'jp-midtown-allowance': {
       title: 'お小遣い制',

@@ -289,6 +289,11 @@ const MARKET_STREET_LATE: readonly SpaceContent[] = [
     effect: { type: 'loseCareer', reason: 'Restructured out' },
     tone: 'orange', icon: 'space:layoff-notice',
   },
+  // The month between the two, and the only thing that makes losing the job
+  // cost anything — see `main-notice-period` on the USA board for the whole
+  // argument. Payroll runs for everybody the consultant left on it; the rest
+  // pick up whatever the week has.
+  payday('bo-main-notice-period', 'Payroll runs at the end of the month for everybody the consultant left on the list, in the same envelope it has always come in.'),
   {
     id: 'bo-main-career-fair', kind: 'stop', title: 'The Hiring Fair',
     description: 'A hall of booths, free pens, a brass band warming up outside for an unrelated reason, and two offers you have to pick between.',
@@ -416,10 +421,16 @@ const MIDTOWN: readonly SpaceContent[] = [
     effect: { type: 'buyInsurance', kinds: ['home', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office',
   },
-  // The only payday in this stretch too — see bo-main-payday-1. Harshening it
-  // zeroed Very Hard's income for the whole run between the marriage fork and
-  // the home-buying fork, so it stays unconditional.
-  payday('bo-midtown-payday', 'The month\'s money lands the week the deposit on a house is due.'),
+  /*
+   * The payday this stretch used to open with now sits between the Layoff
+   * Notice and the career fair, half a board earlier — see the notice-period
+   * payday there for why it had to be somewhere a jobless player walks over
+   * it. It is a move rather than an addition on purpose: a board one tile
+   * longer pushes its whole back half one tile further away, and measured,
+   * that alone dropped the share of games in which anybody ever reaches the
+   * fire tile from 9.2% to 7.5% and left the home policy mispriced. The
+   * bonus below is what still pays out in here.
+   */
   {
     id: 'bo-midtown-shared-purse', kind: 'normal', title: 'The Shared Purse',
     description: 'The money is pooled now — the wage, the stall\'s takings, and the dollar envelope taped behind the wardrobe that officially does not exist. Settling the month is a summit meeting.',

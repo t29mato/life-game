@@ -245,6 +245,10 @@ export const USA_JA: EditionTranslation = {
       description: 'フロア全員がひとつの会議室に集められ、その後、社員証が反応しなくなる。',
       reason: '解雇された',
     },
+    'main-notice-period': {
+      title: '給料日',
+      description: 'フロア全体にとって最悪だった一か月の、最後の給与計算。まだ籍のある者には、いつもと同じ日に振り込まれる。',
+    },
     'main-career-fair': {
       title: '転職フェア',
       description: 'ブースだらけの会場、配られるボールペン、そして二つのうちどちらかを選ばなければならない。',
@@ -333,10 +337,6 @@ export const USA_JA: EditionTranslation = {
     'midtown-insurance': {
       title: '保険代理店',
       description: '家の鍵を渡す前に、補償について少し話をさせてほしい人がいる。',
-    },
-    'midtown-payday': {
-      title: '給料日',
-      description: '家の頭金を払う週に、給料の振り込みが届く。',
     },
     'midtown-party': {
       title: '共同口座',
