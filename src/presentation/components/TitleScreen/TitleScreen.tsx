@@ -1,7 +1,7 @@
 import { useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import type { IconName } from '@domain/model/icons'
 import type { Difficulty, EditionId, NewGameConfig } from '@domain/model/types'
-import { DEFAULT_EDITION_ID } from '@domain/edition/registry'
+import { DEFAULT_EDITION_ID, editionFor } from '@domain/edition/registry'
 import type { SaveSlotInfo } from '@application/ports/GameRepositoryPort'
 import type { GameRecord } from '@application/ports/StatsRepositoryPort'
 import type { PlayerProfile } from '@application/ports/PlayerProfileRepositoryPort'
@@ -18,8 +18,15 @@ import { SettingsSheet } from '../SettingsSheet/SettingsSheet'
 import { ContinueStep } from './ContinueStep'
 import { CountryStep } from './CountryStep'
 import { DifficultyStep } from './DifficultyStep'
+import { LifeStep } from './LifeStep'
 import { PlayersStep } from './PlayersStep'
-import { defaultPlayers, editionOptions, type DraftPlayer } from './setupDraft'
+import {
+  countryOptions,
+  defaultPlayers,
+  researcherEditionFor,
+  resolveEditionId,
+  type DraftPlayer,
+} from './setupDraft'
 import styles from './TitleScreen.module.css'
 
 export interface TitleScreenProps {
@@ -80,8 +87,26 @@ const DRIFTERS = [
  * buttons on it; `'continue'` is the shelf of saves; the rest are the rungs of
  * the new-game flow.
  */
-type Step = 'title' | 'continue' | 'players' | 'country' | 'difficulty'
-type FlowStep = Extract<Step, 'players' | 'country' | 'difficulty'>
+type Step = 'title' | 'continue' | 'players' | 'country' | 'life' | 'difficulty'
+type FlowStep = Extract<Step, 'players' | 'country' | 'life' | 'difficulty'>
+
+/**
+ * Where Back goes, said out loud, per step it goes *to*.
+ *
+ * The flow's shape is computed rather than written down — a country with no
+ * researcher board has no life step — so the label a step's Back button wears
+ * cannot be written down on the step either. It is read off whatever the
+ * previous rung turns out to be, which is the only way "Back to the country"
+ * stays true on a screen that sometimes sits behind the life choice instead.
+ */
+const BACK_LABELS: Readonly<Record<Step, string>> = {
+  title: 'Back to title',
+  continue: 'Back to the saves',
+  players: 'Back to the players',
+  country: 'Back to the country',
+  life: 'Back to the life choice',
+  difficulty: 'Back to the difficulty',
+}
 
 /**
  * --- the title screen ------------------------------------------------------
@@ -96,6 +121,14 @@ type FlowStep = Extract<Step, 'players' | 'country' | 'difficulty'>
  *
  *   title ──▶ Continue ──▶ the save shelf
  *         └─▶ New Game ──▶ players ──▶ country ──▶ difficulty ──▶ Start
+ *                                          └──▶ life ──┘
+ *
+ * The life rung — the classic board, or the researcher board set in the same
+ * country — is there only for a country that has a researcher board written
+ * for it (Japan and France today). The country step's table says which do, so
+ * the extra rung is announced before it appears; the countries that do not
+ * have one simply are not asked, which is the same rule that drops the
+ * country step itself when only one country is registered.
  *
  * One decision per screen, each screen with one A button (Space and Enter,
  * via `usePrimaryAction`) and one Back — and Back is a required prop of
@@ -104,7 +137,7 @@ type FlowStep = Extract<Step, 'players' | 'country' | 'difficulty'>
  * handbook, the hall, the release notes, the audio settings and the build
  * stamp all hang off the title view, one press from the front.
  *
- * The draft — names, colours, seats, country, difficulty — lives up here
+ * The draft — names, colours, seats, country, life, difficulty — lives up here
  * rather than in the steps, so backing all the way out to the title and
  * walking in again finds the table exactly as it was left. Abandoning a
  * half-finished setup should cost a player nothing; it is a menu, not a form
@@ -116,8 +149,10 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
   const [step, setStep] = useState<Step>('title')
   const [players, setPlayers] = useState<DraftPlayer[]>(defaultPlayers)
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
-  const [editionId, setEditionId] = useState<EditionId>(DEFAULT_EDITION_ID)
-  const editions = editionOptions()
+  const [countryId, setCountryId] = useState<EditionId>(DEFAULT_EDITION_ID)
+  const [researcher, setResearcher] = useState(false)
+  const countries = countryOptions()
+  const researcherEdition = researcherEditionFor(countryId)
   const [showRecords, setShowRecords] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
   const [showManual, setShowManual] = useState(false)
@@ -125,14 +160,25 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
 
   /*
    * The rungs of the new-game flow, and the reason "Step 2 of 3" is computed
-   * rather than written down: a picker with one option is a label, so if only
-   * one edition is ever registered the country step drops out of the flow
-   * entirely rather than asking a question with a single answer. With the
-   * five country boards registered — which is every real build — the flow is
-   * always the three the report asked for.
+   * rather than written down: a picker with one option is a label, so a
+   * question with a single possible answer drops out of the flow entirely
+   * rather than being asked.
+   *
+   * That rule now decides two rungs. The country step is skipped if only one
+   * country is ever registered. The life step — classic board or the
+   * researcher board set in the same country — is offered only for a country
+   * that actually has one, which today is Japan and France; for the other
+   * three there is no second life to choose between, so there is no step, no
+   * disabled card and no dead end. The country step's own table says which
+   * countries have one, so a flow that grows a fourth rung under Japan is
+   * announced a screen before it happens rather than sprung.
    */
-  const flow: readonly FlowStep[] =
-    editions.length > 1 ? ['players', 'country', 'difficulty'] : ['players', 'difficulty']
+  const flow: readonly FlowStep[] = [
+    'players',
+    ...(countries.length > 1 ? (['country'] as const) : []),
+    ...(researcherEdition === undefined ? [] : (['life'] as const)),
+    'difficulty',
+  ]
 
   const goForward = (from: FlowStep): void => {
     setStep(flow[flow.indexOf(from) + 1] ?? 'difficulty')
@@ -141,6 +187,8 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
     const previous = flow[flow.indexOf(from) - 1]
     setStep(previous ?? 'title')
   }
+  /** What the step before `from` is called, for that step's Back button. */
+  const backLabel = (from: FlowStep): string => BACK_LABELS[flow[flow.indexOf(from) - 1] ?? 'title']
 
   const hasSave = slots.some((slot) => slot.occupied)
 
@@ -170,7 +218,11 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
         isCpu: p.isCpu,
       })),
       difficulty,
-      editionId,
+      // Two answers, one id: `japan` + the researcher life is the board
+      // registered as `japan-researcher`. A researcher answer left behind on a
+      // country that has no researcher board resolves to that country's own
+      // board rather than to an id nothing can load — see `resolveEditionId`.
+      editionId: resolveEditionId(countryId, researcher),
     }
     onStart(config)
   }
@@ -370,13 +422,30 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
 
       {step === 'country' ? (
         <CountryStep
-          editions={editions}
-          editionId={editionId}
-          onChoose={setEditionId}
+          editions={countries}
+          editionId={countryId}
+          onChoose={setCountryId}
           stepNumber={flow.indexOf('country') + 1}
           stepCount={flow.length}
           onBack={() => goBack('country')}
           onNext={() => goForward('country')}
+        />
+      ) : null}
+
+      {/* Only ever built with a researcher board in hand: the step is not in
+          the flow at all for a country that has none, so the player can never
+          arrive here to be told there is nothing to choose. */}
+      {step === 'life' && researcherEdition !== undefined ? (
+        <LifeStep
+          country={editionFor(countryId)}
+          researcherEdition={researcherEdition}
+          researcher={researcher}
+          onChoose={setResearcher}
+          stepNumber={flow.indexOf('life') + 1}
+          stepCount={flow.length}
+          onBack={() => goBack('life')}
+          backLabel={backLabel('life')}
+          onNext={() => goForward('life')}
         />
       ) : null}
 
@@ -388,6 +457,7 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
           stepNumber={flow.indexOf('difficulty') + 1}
           stepCount={flow.length}
           onBack={() => goBack('difficulty')}
+          backLabel={backLabel('difficulty')}
           onStart={handleStart}
         />
       ) : null}

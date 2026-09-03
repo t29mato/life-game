@@ -59,9 +59,21 @@ type User = ReturnType<typeof userEvent.setup>
 
 const openNewGame = (user: User) => user.click(screen.getByRole('button', { name: 'New Game' }))
 const toCountry = (user: User) => user.click(screen.getByRole('button', { name: /next: the country/i }))
+const toLife = (user: User) => user.click(screen.getByRole('button', { name: /next: which life/i }))
 const toDifficulty = (user: User) => user.click(screen.getByRole('button', { name: /next: the difficulty/i }))
 const pressStart = (user: User) => user.click(screen.getByRole('button', { name: /start game/i }))
 const goBack = (user: User) => user.click(screen.getByRole('button', { name: /^back to/i }))
+const pickJapan = (user: User) => user.click(screen.getByRole('button', { name: /^japan edition/i }))
+
+/** The country table's row for one country, found by its row header. */
+function countryRow(name: string): HTMLElement {
+  const table = screen.getByRole('table', { name: /country boards compared/i })
+  const row = within(table)
+    .getAllByRole('row')
+    .find((candidate) => within(candidate).queryByRole('rowheader')?.textContent === name)
+  if (!row) throw new Error(`no row for ${name} in the country table`)
+  return row
+}
 
 /** Title → players → country → difficulty, leaving the flow on its last step. */
 async function walkToDifficulty(user: User): Promise<void> {
@@ -410,7 +422,10 @@ describe('TitleScreen', () => {
 
       await openNewGame(user)
       await toCountry(user)
-      await user.click(screen.getByRole('button', { name: /^japan edition/i }))
+      await pickJapan(user)
+      // Japan has a researcher board, so it is asked about — and the classic
+      // life is already the answer, so the step is walked straight through.
+      await toLife(user)
       await toDifficulty(user)
       await pressStart(user)
 
@@ -460,11 +475,104 @@ describe('TitleScreen', () => {
 
       // Not one shared detail line about whichever country is selected: a
       // country that says nothing until it is chosen reads as the alternative
-      // to a default rather than as one of five equals.
+      // to a default rather than as one of five equals. The figures are
+      // printed in the table now rather than on the card, so the card says
+      // them where a screen reader is standing — on the button itself.
       const group = screen.getByRole('group', { name: 'Edition' })
       for (const card of within(group).getAllByRole('button')) {
         expect(card).toHaveAccessibleName(/counts in .+ — start with /i)
       }
+    })
+
+    /*
+     * The owner's other note from the same session: five cards each carrying
+     * their own derived paragraph is the hardest possible way to compare
+     * them. Same facts, one row per country, under column headings — the
+     * markup and the accessibility `RollTable` already uses.
+     */
+    it('compares the countries as a real table, not a paragraph per card', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+
+      const table = screen.getByRole('table', { name: /country boards compared/i })
+      const headers = within(table)
+        .getAllByRole('columnheader')
+        .map((header) => header.textContent)
+      expect(headers).toEqual(['Country', 'Start with', 'Salaries', 'Researcher board'])
+    })
+
+    it('tells the truth about each edition in its own money', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+
+      // Derived from the edition's data, so Japan's row must quote yen and
+      // the USA's dollars — asked of each row rather than of the page,
+      // because more than one board can share a currency (the researcher
+      // boards cross country with a life, so two of them count in yen).
+      const japan = within(countryRow('Japan'))
+        .getAllByRole('cell')
+        .map((cell) => cell.textContent)
+      expect(japan[0]).toMatch(/^¥/)
+      expect(japan[1]).toMatch(/^¥.+–¥.+ \/ month$/)
+
+      // And the card itself still speaks the same facts, for a screen reader
+      // standing on the control rather than reading the table.
+      expect(screen.getByRole('button', { name: /^japan edition/i })).toHaveAccessibleName(
+        /counts in ¥ — start with ¥/i,
+      )
+    })
+
+    /*
+     * The honest half of "the step simply does not appear": a country with no
+     * researcher board is marked as such on the screen *before* the flow
+     * quietly skips a rung for it, so a shorter flow is a fact the player was
+     * told rather than something they have to notice.
+     */
+    it('says which countries have a researcher board, and which do not yet', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+
+      const cellsOf = (country: string) =>
+        within(countryRow(country))
+          .getAllByRole('cell')
+          .map((cell) => cell.textContent)
+      expect(cellsOf('Japan')[2]).toBe('Yes')
+      expect(cellsOf('France')[2]).toBe('Yes')
+      expect(cellsOf('USA')[2]).toBe('Not yet')
+      expect(cellsOf('Bolivia')[2]).toBe('Not yet')
+    })
+
+    /*
+     * The bug this whole change exists for: the researcher boards were
+     * registered as siblings of the countries, so this grid offered "Japan"
+     * and "Researcher — Japan" side by side, as though one could live in
+     * either. A researcher board is a life crossed with a country, and it is
+     * offered on the step that asks that question instead.
+     */
+    it('offers no researcher board as if it were a country', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+
+      const group = screen.getByRole('group', { name: 'Edition' })
+      for (const card of within(group).getAllByRole('button')) {
+        expect(card.getAttribute('aria-label')).not.toMatch(/^Researcher/i)
+      }
+      expect(within(group).getAllByRole('button').map((card) => card.textContent)).toEqual(
+        expect.arrayContaining([expect.stringContaining('Japan')]),
+      )
+      expect(
+        within(group)
+          .getAllByRole('button')
+          .filter((card) => (card.textContent ?? '').includes('Japan')),
+      ).toHaveLength(1)
     })
 
     it('offers a newly registered edition with no further edit', async () => {
@@ -484,20 +592,195 @@ describe('TitleScreen', () => {
       expect(screen.getByRole('button', { name: /testland edition\. counts in ₮/i })).toBeInTheDocument()
     })
 
-    it('tells the truth about each edition in its own money', async () => {
+  })
+
+  /*
+   * --- the second axis ------------------------------------------------------
+   *
+   * The owner's ask from a play session: choose the country, *then* choose
+   * whether it is a researcher life. The two researcher boards used to be
+   * cards on the country grid, which put Japan on that screen twice.
+   */
+  describe('the researcher life step', () => {
+    it('follows the country, for a country that has a researcher board', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+      await pickJapan(user)
+      await toLife(user)
+
+      expect(screen.getByRole('heading', { name: /which life in japan/i })).toBeInTheDocument()
+      const group = screen.getByRole('group', { name: 'Life' })
+      expect(within(group).getAllByRole('button')).toHaveLength(2)
+    })
+
+    /*
+     * Never a dead end and never a lie: a country with no researcher board is
+     * not asked a question with one answer. It is marked "Not yet" on the
+     * country table instead, and the flow is honestly three steps long.
+     */
+    it('is not in the flow at all for a country with no researcher board', async () => {
       const user = userEvent.setup()
       renderTitleScreen()
       await openNewGame(user)
       await toCountry(user)
 
-      // Derived from the edition's data, so Japan's card must quote yen —
-      // asked of that card rather than of the page, because more than one
-      // board can share a currency now (the researcher boards cross country
-      // with a life, so two of them count in yen and quote their own salary
-      // range). A document-wide text query was ambiguous the moment a second
-      // yen board existed.
-      const japan = screen.getByRole('button', { name: /^japan edition/i })
-      expect(japan).toHaveTextContent(/counts in ¥ — start with ¥/i)
+      // The USA is the default and has no researcher board: the forward
+      // button says where it really goes, and it goes to the difficulty.
+      expect(screen.queryByRole('button', { name: /next: which life/i })).not.toBeInTheDocument()
+      expect(screen.getByText('Step 2 of 3')).toBeInTheDocument()
+      await toDifficulty(user)
+      expect(screen.getByRole('heading', { name: /how hard a life/i })).toBeInTheDocument()
+      expect(screen.queryByRole('group', { name: 'Life' })).not.toBeInTheDocument()
+    })
+
+    it('grows the flow by exactly one rung for a country that has one', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+      await pickJapan(user)
+
+      expect(screen.getByText('Step 2 of 4')).toBeInTheDocument()
+      await toLife(user)
+      expect(screen.getByText('Step 3 of 4')).toBeInTheDocument()
+      await toDifficulty(user)
+      expect(screen.getByText('Step 4 of 4')).toBeInTheDocument()
+    })
+
+    it('maps the country and the researcher answer onto the one edition id', async () => {
+      const user = userEvent.setup()
+      const { onStart } = renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+      await pickJapan(user)
+      await toLife(user)
+      await user.click(screen.getByRole('button', { name: /^the researcher life in japan/i }))
+      await toDifficulty(user)
+      await pressStart(user)
+
+      expect(onStart).toHaveBeenCalledWith(expect.objectContaining({ editionId: 'japan-researcher' }))
+    })
+
+    /*
+     * The owner's constraint on #7 and #8: plain play is the default, and it
+     * has to read as a full answer rather than as declining an upsell. So the
+     * classic life is the card that is already stamped, and walking straight
+     * past this step starts the ordinary Japan board.
+     */
+    it('keeps the classic board the default, and a whole answer in itself', async () => {
+      const user = userEvent.setup()
+      const { onStart } = renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+      await pickJapan(user)
+      await toLife(user)
+
+      const classic = screen.getByRole('button', { name: /^the classic life in japan/i })
+      expect(classic).toHaveAttribute('aria-pressed', 'true')
+      await toDifficulty(user)
+      await pressStart(user)
+      expect(onStart).toHaveBeenCalledWith(expect.objectContaining({ editionId: 'japan' }))
+    })
+
+    it('gives both lives the same card, each with its own figures on it', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+      await pickJapan(user)
+      await toLife(user)
+
+      const group = screen.getByRole('group', { name: 'Life' })
+      for (const card of within(group).getAllByRole('button')) {
+        expect(card).toBeEnabled()
+        expect(card).toHaveAccessibleName(/salaries run ¥.+ to ¥.+ a month/i)
+      }
+    })
+
+    it('has one primary action, focused and pressable from the keyboard', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+      await pickJapan(user)
+      await toLife(user)
+
+      expect(screen.getByRole('button', { name: /next: the difficulty/i })).toHaveFocus()
+      await user.keyboard(' ')
+      expect(screen.getByRole('heading', { name: /how hard a life/i })).toBeInTheDocument()
+    })
+
+    it('goes back to the country step, saying so', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+      await pickJapan(user)
+      await toLife(user)
+
+      expect(screen.getByRole('button', { name: 'Back to the country' })).toBeInTheDocument()
+      await goBack(user)
+      expect(screen.getByRole('heading', { name: /where are you living it/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^japan edition/i })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('names the life step on the difficulty step behind it', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+      await pickJapan(user)
+      await toLife(user)
+      await toDifficulty(user)
+
+      expect(screen.getByRole('button', { name: 'Back to the life choice' })).toBeInTheDocument()
+      await goBack(user)
+      expect(screen.getByRole('heading', { name: /which life in japan/i })).toBeInTheDocument()
+    })
+
+    it('keeps the answer when the flow is walked out of and re-entered', async () => {
+      const user = userEvent.setup()
+      renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+      await pickJapan(user)
+      await toLife(user)
+      await user.click(screen.getByRole('button', { name: /^the researcher life in japan/i }))
+      await goBack(user)
+      await goBack(user)
+      await goBack(user)
+
+      await openNewGame(user)
+      await toCountry(user)
+      await toLife(user)
+      expect(screen.getByRole('button', { name: /^the researcher life in japan/i })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+    })
+
+    /*
+     * A researcher answer left behind on a country that never asked the
+     * question must resolve to that country's own board, not to an id nothing
+     * can load. The answer itself survives — going back to Japan finds it
+     * where it was left — but Bolivia is played on Bolivia's board.
+     */
+    it('starts an ordinary board when the researcher answer is left on a country without one', async () => {
+      const user = userEvent.setup()
+      const { onStart } = renderTitleScreen()
+      await openNewGame(user)
+      await toCountry(user)
+      await pickJapan(user)
+      await toLife(user)
+      await user.click(screen.getByRole('button', { name: /^the researcher life in japan/i }))
+      await goBack(user)
+
+      await user.click(screen.getByRole('button', { name: /^bolivia edition/i }))
+      await toDifficulty(user)
+      await pressStart(user)
+      expect(onStart).toHaveBeenCalledWith(expect.objectContaining({ editionId: 'bolivia' }))
     })
   })
 

@@ -25,6 +25,12 @@ import { expect, test, type Page } from '@playwright/test'
  * difficulty, one screen at a time. So this walks it — and walking it is
  * itself worth something here, since it means a broken step shows up as a
  * failure in the layout suite too.
+ *
+ * The flow's *shape* now depends on the country: one with a researcher board
+ * written for it (Japan, France) is asked which life is being played on it,
+ * and one without is not asked at all. This helper picks Japan — for the yen
+ * column widths, which are the widest money in the suite — so it walks the
+ * four-rung version, taking the classic life that is already selected.
  */
 async function startGame(page: Page): Promise<void> {
   await page.goto('/')
@@ -48,6 +54,10 @@ async function startGame(page: Page): Promise<void> {
    */
   await page.getByRole('button', { name: /next: the country/i }).click()
   await page.getByRole('button', { name: /^Japan edition\./i }).click()
+  // Japan has a researcher board, so the country step's forward button says
+  // "which life" rather than "the difficulty". The classic life is already
+  // the answer — pressing forward again takes it.
+  await page.getByRole('button', { name: /next: which life/i }).click()
   await page.getByRole('button', { name: /next: the difficulty/i }).click()
   await page.getByRole('button', { name: /start game/i }).click()
   const ready = page.getByRole('button', { name: /i'm ready/i })

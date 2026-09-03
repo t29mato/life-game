@@ -960,6 +960,73 @@
 }
 
 /* ==========================================================================
+   The country comparison table — the same sunken insert `RollTable` uses,
+   because it is the same kind of object: a small printed table you scan once
+   before deciding. Five cards each carrying their own derived paragraph is
+   the hardest possible shape to answer "which of these starts me with more?"
+   in; columns answer it by sitting under each other. The cards above are
+   still the controls — this compares, it does not choose.
+   ========================================================================== */
+.compareScroll {
+  margin-top: 0.8rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.compareTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(92, 70, 34, 0.12);
+}
+
+.compareTable th,
+.compareTable td {
+  padding: 0.4rem 0.75rem;
+  text-align: left;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.compareTable thead th {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-bottom: 0.2rem;
+}
+
+.compareTable tbody th {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.compareTable tbody td {
+  font-weight: 600;
+  color: var(--ink-soft, var(--ink-faint));
+}
+
+/* Money under money: the whole reason this is a table. */
+.compareFigure {
+  font-variant-numeric: var(--tabular, tabular-nums);
+}
+
+.compareTable tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--surface) 45%, transparent);
+}
+
+/* The row for the card that is currently stamped. Decoration only — the
+   choice itself is announced by the button's `aria-pressed`, and a row that
+   also claimed to be selected would say it twice. */
+.compareRowOn,
+.compareTable tbody tr.compareRowOn:nth-child(even) {
+  background: color-mix(in srgb, var(--candy-sun) 22%, transparent);
+}
+
+/* ==========================================================================
    Save slots — slot 0 is the rolling autosave, 1–3 are manual saves
    ========================================================================== */
 .slotsGrid {

@@ -152,7 +152,7 @@ const CONTENTS: readonly { readonly id: string; readonly label: string }[] = [
 /**
  * The shelf, in the order the title screen's picker offers it: the classic
  * USA game first, then the rest alphabetically by place name — same sort as
- * `TitleScreen`'s `editionOptions`, so the handbook and the picker never
+ * `TitleScreen`'s `countryOptions`, so the handbook and the picker never
  * disagree about the order the countries come in.
  */
 function editionShelf(): readonly Edition[] {

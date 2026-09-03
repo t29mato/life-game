@@ -13,6 +13,13 @@ export interface DifficultyStepProps {
   readonly stepNumber: number
   readonly stepCount: number
   readonly onBack: () => void
+  /**
+   * What Back goes back to, spoken. Handed in rather than written here: the
+   * step before this one is the country for most countries and the life
+   * choice for one with a researcher board, and a Back button that names the
+   * wrong screen is worse than one that names none.
+   */
+  readonly backLabel: string
   readonly onStart: () => void
 }
 
@@ -37,6 +44,7 @@ export function DifficultyStep({
   stepNumber,
   stepCount,
   onBack,
+  backLabel,
   onStart,
 }: DifficultyStepProps): ReactElement {
   return (
@@ -46,7 +54,7 @@ export function DifficultyStep({
       heading="How hard a life?"
       lead="The same board, dealt kinder or crueller. Every figure below was measured over seeded games."
       onBack={onBack}
-      backLabel="Back to the country"
+      backLabel={backLabel}
       primary={{ label: 'Start Game', icon: 'rocket', onClick: onStart }}
       aside={
         /* Roughly how long this table will sit, priced from the seat mix and
