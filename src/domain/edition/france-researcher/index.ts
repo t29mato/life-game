@@ -64,6 +64,22 @@ export const EDITION_RESEARCHER_FRANCE: Edition = {
     graduate: CONTRACT_CAREERS,
     doctorate: FONCTIONNAIRE_CAREERS,
   },
+  /*
+   * Higher education is the premise here, not one of the roads — and on this
+   * board that is even harder to argue with than on the Japanese one, because
+   * the *prestigious* side of the fork is the one that never saw a laboratory:
+   * two years of preparatory class, a national competition, three years at an
+   * engineering school. The route says "it is not 'no degree'" in as many
+   * words. The engine used to say otherwise, on every pawn, all game.
+   *
+   * `degreeOpens: 'basic'` keeps every shelf where it was measured. The
+   * `graduate` shelf here is the contract shelf — the hourly lecturer, the
+   * postdoc, the private laboratory — and it is what a *doctorate* opens.
+   * Without this line the Industry Fair, which caps at the contract shelf so
+   * that no career fair can hand out a permanent state post, would start
+   * offering a laid-off engineering cadre a job as an hourly lecturer.
+   */
+  schooling: { everyoneGraduates: true, degreeOpens: 'basic' },
   houses: HOUSES,
   lifeTiles: LIFE_TILE_DECK,
   stocks: STOCKS,

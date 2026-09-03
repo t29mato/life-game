@@ -273,6 +273,29 @@ describe('career tiers', () => {
     it('reads a doctorate as the doctoral shelf', () => {
       expect(careerTierOf(playerWith({ hasDegree: true, hasDoctorate: true }))).toBe('doctorate')
     })
+
+    /*
+     * A degree does not open the same shelf on every board. On a researcher's
+     * board the `graduate` shelf is academia, and academia is opened by the
+     * doctorate — so an edition gets to say what a first degree is worth, and
+     * one that says nothing keeps the base game's answer. Without this, a
+     * board where everybody has been to university would have no way left to
+     * tell the master's exit from the doctorate at a career fair.
+     */
+    it('lets an edition say which shelf a first degree opens', () => {
+      const researcherish: Edition = {
+        ...editionWith(basics, grads, docs),
+        schooling: { everyoneGraduates: true, degreeOpens: 'basic' },
+      }
+      expect(careerTierOf(playerWith({ hasDegree: true }), researcherish)).toBe('basic')
+      // The doctorate still answers for itself, and so does no schooling at all.
+      expect(careerTierOf(playerWith({ hasDegree: true, hasDoctorate: true }), researcherish)).toBe('doctorate')
+      expect(careerTierOf(playerWith(), researcherish)).toBe('basic')
+    })
+
+    it('keeps the base game\'s answer for an edition that says nothing', () => {
+      expect(careerTierOf(playerWith({ hasDegree: true }), editionWith(basics, grads))).toBe('graduate')
+    })
   })
 
   describe('lowerTier', () => {

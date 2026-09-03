@@ -115,6 +115,13 @@ const DOCTORAL_COURSE: readonly SpaceContent[] = [
      * is the exit the road opposite is named for, seen from inside. Staying is
      * the decision this lane was chosen to make, and the next tile is what it
      * buys.
+     *
+     * The `graduate` effect is idempotent here and lands on a player who
+     * already holds a degree, because this board takes university as read for
+     * everybody. It stays a `graduate` tile rather than becoming scenery: it
+     * is the milestone this cohort is actually standing in, it holds the
+     * mirror to the USA board's Cap and Gown, and an edition that ever
+     * dropped the premise would need it working again.
      */
     id: 'jpr-doc-masters', kind: 'event', title: 'The Master\'s Gown',
     description: 'Two years done, a thesis bound in the university\'s own blue, and a rented gown for the photograph. Most of the people in this room are starting work in April. You are not.',
@@ -158,6 +165,13 @@ const ACADEMIC_FAIR: SpaceContent = {
  * the person on this road has a master's, works in research, and is doing the
  * respectable thing. What they gave up is the one question that would have
  * been theirs.
+ *
+ * For a while the board said that and the engine did not — the degree was
+ * awarded on the doctoral lane only, so anybody who took this one played the
+ * whole game recorded as a school-leaver, missing mortarboard and all.
+ * University is the edition's premise now rather than a tile on one road (see
+ * `EditionSchooling` and this edition's `index.ts`), which is what makes the
+ * sentence above true everywhere a player can actually see it.
  */
 const MASTERS_EXIT: readonly SpaceContent[] = [
   {

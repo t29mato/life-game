@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import type { SpaceContent } from '../../board/route'
-import type { SpaceEffect } from '../../model/types'
+import type { Player, SpaceEffect } from '../../model/types'
 import { spacesOf } from '../../board/route'
 import { validateRoute } from '../../board/validateRoute'
 import { CAREER_FAMILY, isCareerIcon } from '../../rules/careerFamily'
 import { TRADE_YEAR_STORIES } from '../../rules/tradeYear'
-import { tradeYearStoriesFor } from '../lookup'
+import { careerTierOf, tradeYearStoriesFor } from '../lookup'
 import { editionFor } from '../registry'
 import { EDITION_USA } from '../usa'
 import { EDITION_FRANCE } from '../france'
@@ -39,6 +39,28 @@ const DIVERGENCES: Readonly<Record<string, string>> = {
   'frr-conc-first-sitting': 'mirrors grad-5 (the doctorate); sits the concours instead',
 }
 
+/** A seat with nothing on it, for the questions that are only about schooling. */
+const BLANK_PLAYER: Player = {
+  id: 'p1',
+  name: 'Alex',
+  color: 'red',
+  spaceId: 'frr-start',
+  money: 0,
+  loans: 0,
+  career: null,
+  hasDegree: false,
+  hasDoctorate: false,
+  isMarried: false,
+  children: 0,
+  house: null,
+  lifeTiles: [],
+  stocks: [],
+  insurance: [],
+  isCpu: false,
+  isRetired: false,
+  retirementRank: null,
+}
+
 /** The two tiles that carry a bar rather than a hall of booths. */
 const GATES = ['frr-conc-first-sitting', 'frr-conc-second-sitting']
 
@@ -63,6 +85,37 @@ describe('the researcher france edition is registered and sound', () => {
 
   it('builds a legal board at every difficulty', () => {
     expect(validateRoute(EDITION_RESEARCHER_FRANCE.route, EDITION_RESEARCHER_FRANCE)).toEqual([])
+  })
+
+  /*
+   * **Higher education is the premise here, not one of the roads** — and this
+   * is the board where that is hardest to argue with, because the prestigious
+   * side of the fork is the one that never saw a laboratory: preparatory
+   * class, a national competition, an engineering school, a contract signed
+   * before the diploma. The route says "it is not 'no degree'" in as many
+   * words, and the engine used to contradict it on every pawn.
+   *
+   * `degreeOpens: 'basic'` is what keeps the Industry Fair honest. It caps at
+   * the contract shelf so that no career fair in this country can hand out a
+   * permanent state post; with a degree opening the contract shelf by itself,
+   * the same tile would start offering a laid-off engineering cadre work as
+   * an hourly lecturer paid by the class.
+   */
+  it('takes higher education as read, and keeps the contract shelf a doctor\'s', () => {
+    expect(EDITION_RESEARCHER_FRANCE.schooling).toEqual({
+      everyoneGraduates: true,
+      degreeOpens: 'basic',
+    })
+    const seat = (over: Partial<Player>): Player => ({ ...BLANK_PLAYER, ...over })
+    expect(careerTierOf(seat({ hasDegree: true }), EDITION_RESEARCHER_FRANCE)).toBe('basic')
+    expect(
+      careerTierOf(seat({ hasDegree: true, hasDoctorate: true }), EDITION_RESEARCHER_FRANCE),
+    ).toBe('doctorate')
+  })
+
+  it('says the same thing as the other researcher board, in the same field', () => {
+    // The premise belongs to the axis, not to one country on it.
+    expect(EDITION_RESEARCHER_FRANCE.schooling).toEqual(EDITION_RESEARCHER_JAPAN.schooling)
   })
 })
 

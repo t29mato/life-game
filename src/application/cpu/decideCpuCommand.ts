@@ -378,7 +378,7 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
       // see `chooseCareer` in `applyEffect.ts`. A seat that priced a doctoral
       // fair at doctoral money while holding no doctorate would walk toward a
       // hall that has nothing on that table for it.
-      const salary = fairSalaryBy[lowerTier(effect.pool, careerTierOf(player))]
+      const salary = fairSalaryBy[lowerTier(effect.pool, careerTierOf(player, edition))]
       // What the job *adds*: an unemployed player is already earning casual
       // shifts at every one of those paydays.
       return (salary - casualPayday) * paydaysAhead

@@ -78,10 +78,25 @@ export function lowerTier(a: CareerTier, b: CareerTier): CareerTier {
   return TIERS.indexOf(a) <= TIERS.indexOf(b) ? a : b
 }
 
-/** The best shelf this player's schooling entitles them to. */
-export function careerTierOf(player: Player): CareerTier {
+/**
+ * The best shelf this player's schooling entitles them to.
+ *
+ * The doctorate always answers for itself, and no schooling at all always
+ * answers `basic`. The middle rung is the one that is not universal: a first
+ * degree opens the `graduate` shelf on every country board, and on a
+ * researcher's board it does not, because there the `graduate` shelf *is*
+ * academia and academia is opened by the doctorate. So the edition gets to say
+ * — see `EditionSchooling.degreeOpens` — and an edition that says nothing
+ * keeps the base game's answer.
+ *
+ * The edition argument is optional for the same reason every other lookup's
+ * is: a panel rendering one player, or a test naming a shelf directly, has no
+ * game in hand and should get the rule the game shipped with.
+ */
+export function careerTierOf(player: Player, edition: Edition = EDITION_USA): CareerTier {
   if (player.hasDoctorate) return 'doctorate'
-  return player.hasDegree ? 'graduate' : 'basic'
+  if (!player.hasDegree) return 'basic'
+  return edition.schooling?.degreeOpens ?? 'graduate'
 }
 
 /**

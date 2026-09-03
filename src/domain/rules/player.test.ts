@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Career, House, LifeTile, Player, Stock } from '../model/types'
+import { USA_ECONOMY } from '../edition/usa/economy'
 import {
   CASUAL_WAGE_PER_PIP,
   EARLY_LOAN_REPAYMENT,
@@ -125,6 +126,26 @@ describe('createPlayer', () => {
 
   it('marks a computer seat as such', () => {
     expect(createPlayer('p2', 'Robo', 'blue', 'start', true).isCpu).toBe(true)
+  })
+
+  /*
+   * The board's premise about school, not anything this player has done. A
+   * researcher's board forks between two roads that both start after
+   * university, so there is no tile on it where the degree could honestly be
+   * awarded — everybody already has one before the first roll. Every country
+   * board passes nothing here and starts where the base game always started.
+   */
+  it('starts a seat graduated when the edition says everybody has been', () => {
+    const player = createPlayer('p3', 'Rin', 'green', 'start', false, USA_ECONOMY, {
+      everyoneGraduates: true,
+    })
+    expect(player.hasDegree).toBe(true)
+    // A first degree only. The doctorate is still something a road hands out.
+    expect(player.hasDoctorate).toBe(false)
+  })
+
+  it('leaves a seat unschooled for an edition that says nothing about it', () => {
+    expect(createPlayer('p4', 'Sam', 'yellow', 'start', false, USA_ECONOMY, {}).hasDegree).toBe(false)
   })
 })
 

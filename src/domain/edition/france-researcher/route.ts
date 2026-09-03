@@ -127,6 +127,13 @@ const THE_UNIVERSITY: readonly SpaceContent[] = [
      * road actually forks in France — half this cohort is already gone to
      * work, and the ones still here are the ones who are going to sign for a
      * thesis in September.
+     *
+     * The `graduate` effect is idempotent here and lands on somebody who
+     * already holds a degree, because this board takes higher education as
+     * read for everybody. It stays a `graduate` tile rather than becoming
+     * scenery: it is the milestone this cohort is actually standing in, it
+     * holds the mirror to the USA board's Cap and Gown, and an edition that
+     * ever dropped the premise would need it working again.
      */
     id: 'frr-uni-master', kind: 'event', title: 'The Research Master\'s',
     description: 'A year of seminars, a first laboratory placement, and a mark that decides whether anybody will fund three more years of you. There is no ceremony. There is a list, on a wall, in July.',
@@ -175,6 +182,13 @@ const FIRST_POST: SpaceContent = {
  * difference this board exists to draw: the person on this road holds an
  * engineering diploma, works in research, and did the prestigious thing. The
  * doctorate was never on the table, because nobody they respected had one.
+ *
+ * For a while the board said that and the engine did not — the degree was
+ * awarded on the university lane only, so the *prestigious* road was the one
+ * the game recorded as unschooled. Higher education is the edition's premise
+ * now rather than a tile on one road (see `EditionSchooling` and this
+ * edition's `index.ts`), which is what makes the paragraph above true
+ * everywhere a player can actually see it.
  */
 const THE_GRANDE_ECOLE: readonly SpaceContent[] = [
   {

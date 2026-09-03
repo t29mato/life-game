@@ -14,7 +14,7 @@ import type {
   Stock,
 } from '../model/types'
 import { SPIN_FACES } from '../model/constants'
-import type { EconomyConstants } from '../edition/types'
+import type { EconomyConstants, EditionSchooling } from '../edition/types'
 import { USA_ECONOMY } from '../edition/usa/economy'
 
 /**
@@ -28,6 +28,17 @@ import { USA_ECONOMY } from '../edition/usa/economy'
  * always knows which edition it is running, passes the real one.
  */
 
+/**
+ * A fresh seat.
+ *
+ * `schooling` is the board's premise about education rather than anything this
+ * player has done — see `EditionSchooling`. On every country board it is
+ * absent and everybody starts where the base game always started them: no
+ * degree, and College Lane is where one is got. On a researcher's board
+ * university is not one of the roads, it is the ground both roads stand on, so
+ * the seat starts holding a degree and the opening fork gets to be about
+ * research instead of about school.
+ */
 export function createPlayer(
   id: PlayerId,
   name: string,
@@ -35,6 +46,7 @@ export function createPlayer(
   startSpaceId: SpaceId,
   isCpu: boolean,
   economy: EconomyConstants = USA_ECONOMY,
+  schooling?: EditionSchooling,
 ): Player {
   return {
     id,
@@ -44,7 +56,7 @@ export function createPlayer(
     money: economy.startingMoney,
     loans: 0,
     career: null,
-    hasDegree: false,
+    hasDegree: schooling?.everyoneGraduates === true,
     hasDoctorate: false,
     isMarried: false,
     children: 0,
