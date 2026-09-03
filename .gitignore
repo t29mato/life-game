@@ -30,3 +30,6 @@ dist-ssr
 /blob-report/
 /playwright/.cache/
 .claude/scheduled_tasks.lock
+
+# Agent worktrees: live checkouts of this same repo, never content of it.
+.claude/worktrees/
