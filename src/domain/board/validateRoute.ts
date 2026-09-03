@@ -210,8 +210,16 @@ export function boardProblems(board: Board, label: string): readonly string[] {
  * ordinary `careerChange` tile on the way is no guarantee at all.
  */
 function strandedByALayoff(board: Board): readonly string[] {
+  /*
+   * A gated `careerChange` is not a hire and must not be counted as one: a
+   * concours appoints on two faces in six and leaves the other four exactly
+   * where they were, so a lane whose only way back into work is a gate is a
+   * lane an unemployed player can walk to retirement down. See
+   * `SpaceEffect`'s `passSpin`.
+   */
   const hires = (space: Space): boolean =>
-    (space.effect.type === 'careerChange' || space.effect.type === 'chooseCareer') &&
+    ((space.effect.type === 'careerChange' && space.effect.passSpin === undefined) ||
+      space.effect.type === 'chooseCareer') &&
     (space.kind === 'stop' || space.kind === 'event')
 
   const memo = new Map<SpaceId, boolean>()

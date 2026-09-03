@@ -454,6 +454,14 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
        * With no job at all, either kind is the way back.
        */
       if (!player.career) return units(30)
+      /*
+       * A *gate* is neither of those. It cannot cost the job already held —
+       * a face under the bar changes nothing at all — so the thing that
+       * makes a compulsory redraw worth walking away from simply is not
+       * there. It is priced like the declinable kind: a small good, most of
+       * which the die keeps.
+       */
+      if (effect.passSpin !== undefined) return units(3)
       return effect.compulsory ? -units(5) : units(3)
     case 'tradeYear':
       /*

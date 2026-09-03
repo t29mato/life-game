@@ -424,6 +424,40 @@ export type SpaceEffect =
        * firms in the same industry is not the thing being charged for.
        */
       readonly startsOver?: boolean
+      /**
+       * Turns the redraw into a **gate**: this face or better and the post is
+       * yours, under it nothing happens at all.
+       *
+       * Absent — every tile on every board until the Researcher: France one —
+       * means the die only ever chooses *which* of the two offers you take,
+       * which is what a hall of booths has always been. A gate is a different
+       * question: it asks whether you are taking one at all, and the answer
+       * is usually no.
+       *
+       * It exists because one thing could not be said with the vocabulary
+       * that was here. Every other roll in this game either climbs a ladder
+       * you are already on (`promotion` — fail-soft, but it can only hand you
+       * the rung above the one you hold) or deals a job unconditionally
+       * (`chooseCareer`, an ungated `careerChange`). A national entrance
+       * competition is neither: it deals a post from a shelf you are not on,
+       * it fails far more often than it lands, and failing costs you nothing
+       * but the year. Faking it by mixing "another year of the same" into the
+       * shelf being dealt would have broken the shelf's own promise — the
+       * shelf a gate protects is the safest work on its board, and one that
+       * sometimes deals a temporary contract is not that.
+       *
+       * Failure is deliberately not a branch. The player keeps the job, the
+       * rung and the money they walked in with, and the board carries on;
+       * how many times they may try is the number of gate tiles the lane
+       * carries, and what happens when those run out is whatever the lane
+       * rejoins the trunk in front of. On the Researcher: France board that
+       * is two sittings and then the industry redraw, which is exactly what
+       * ageing out of a concours looks like from the inside.
+       *
+       * Always written with `compulsory`: a gate nobody sat is not a gate,
+       * and the roll cannot be declined without making the tile a free look.
+       */
+      readonly passSpin?: SpinValue
     }
   /** The player loses their job entirely and earns nothing until re-hired. */
   | { readonly type: 'loseCareer'; readonly reason: string }

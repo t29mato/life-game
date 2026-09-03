@@ -120,7 +120,7 @@ Implement every variant of `SpaceEffect`:
 | `payEach` | The mover pays `amount` to every other player |
 | `spinForMoney` | Spin; gain `perPip × result` |
 | `retire` | Retire the player |
-| `careerChange` | Offer 2 fresh careers from the qualifying pool; declinable unless `compulsory`. `pool` caps which shelf they come off (like `chooseCareer`); `startsOver` deals the bottom rung to anyone crossing in from another shelf |
+| `careerChange` | Offer 2 fresh careers from the qualifying pool; declinable unless `compulsory`. `pool` caps which shelf they come off (like `chooseCareer`); `startsOver` deals the bottom rung to anyone crossing in from another shelf; `passSpin` turns the offer into a **gate** — that face or better and one of the two posts is yours, under it nothing happens at all (the Researcher: France concours) |
 | `loseCareer` | `career = null`; paydays pay nothing until re-hired. No effect on a calling, or on a career marked `cannotBeLaidOff` |
 | `buyStock` | Offer 3 random stocks plus a decline option → decision |
 | `stockDividend` | Pay `perShare × totalShares`; nothing to a player holding none |
