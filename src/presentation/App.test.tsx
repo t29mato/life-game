@@ -1027,8 +1027,11 @@ describe('a tile the car only drove over', () => {
     render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
     await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), { timeout: 5000 })
-    // Long enough for the CPU timer (`CPU_THINK_MS.passingEvent`) to have
-    // fired too, had it not been held off.
+    // Long enough for the CPU timer (`CPU_THINK_MS.passingEvent`, run through
+    // `paced` — see `tempo.ts`) to have fired too, had it not been held off.
+    // Deliberately a flat second and a half rather than derived from the beat:
+    // the point is "comfortably past it on any clock", and a wait that tracked
+    // the constant would stop being that the moment somebody shortened it.
     await new Promise((resolve) => setTimeout(resolve, 1500))
     expect(stub.commands.filter((command) => command.type === 'settle')).toHaveLength(1)
   })

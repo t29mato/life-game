@@ -56,7 +56,7 @@ import { AudioProvider } from './hooks/useAudio'
 import { useGameState } from './hooks/useGameState'
 import { useHandoffMode } from './hooks/useHandoffMode'
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
-import { TEMPO } from './tempo'
+import { TEMPO, paced } from './tempo'
 import { UiIcon } from './icons/ui'
 
 export interface AppProps {
@@ -848,7 +848,11 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
         return
       }
       store.dispatch(command)
-    }, CPU_THINK_MS[state.phase as keyof typeof CPU_THINK_MS])
+      // `paced`, not the raw figure. The think beat is a beat of the play loop
+      // like every one in `tempo.ts` and runs on the same clock, which the test
+      // runner turns down; the constant itself stays at its authored length
+      // because `estimatePlaytime` quotes a real game off it. See `paced`.
+    }, paced(CPU_THINK_MS[state.phase as keyof typeof CPU_THINK_MS]))
 
     return () => window.clearTimeout(timer)
   }, [
