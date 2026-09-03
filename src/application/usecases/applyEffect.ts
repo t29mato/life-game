@@ -901,7 +901,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        * school-leaver the basic pool" has always meant, said in a way that
        * keeps meaning it now there are three shelves rather than two.
        */
-      const pool = hiringPoolFor(edition, lowerTier(effect.pool, careerTierOf(player)))
+      const pool = hiringPoolFor(edition, lowerTier(effect.pool, careerTierOf(player, edition)))
       const [first, second] = deps.random.shuffle(pool).slice(0, 2) as [Career, Career]
 
       /*
@@ -1387,7 +1387,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        * arriving from a different shelf — or from no job at all — starts at
        * the door, however far up they were standing a moment ago.
        */
-      const dealt = effect.pool ? lowerTier(effect.pool, careerTierOf(player)) : careerTierOf(player)
+      const dealt = effect.pool ? lowerTier(effect.pool, careerTierOf(player, edition)) : careerTierOf(player, edition)
       const crossing = effect.startsOver === true && careerShelfOf(player.career?.id, edition) !== dealt
       const seniority = crossing ? 1 : seniorityOf(player, edition)
       const pool = hiringPoolFor(edition, dealt).filter((entry) => entry.id !== here?.entry.id)

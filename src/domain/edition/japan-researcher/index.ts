@@ -53,6 +53,23 @@ export const EDITION_RESEARCHER_JAPAN: Edition = {
     graduate: ACADEMIA_CAREERS,
     doctorate: PERMANENT_CAREERS,
   },
+  /*
+   * University is the premise here, not one of the roads.
+   *
+   * Both sides of the opening fork are graduates — the master's exit into a
+   * manufacturer's research division against the doctoral course — and the
+   * prose above and on the route has always said so. The engine did not: with
+   * the degree awarded only on the doctoral lane, everybody who took the
+   * national default finished the game recorded as a school-leaver, with no
+   * cap and gown on the pawn and no degree on the panel. That is the road the
+   * owner reported seeing and the one this edition was written to not have.
+   *
+   * `degreeOpens: 'basic'` is the other half, and it is what keeps every shelf
+   * exactly where it was measured: on this board the `graduate` shelf is
+   * academia, and academia is opened by the doctorate. A master's opens the
+   * industry shelf, which is precisely what the fairs already deal.
+   */
+  schooling: { everyoneGraduates: true, degreeOpens: 'basic' },
   houses: HOUSES,
   lifeTiles: LIFE_TILE_DECK,
   stocks: STOCKS,

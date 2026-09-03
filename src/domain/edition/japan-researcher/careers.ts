@@ -31,8 +31,11 @@ import type { Career } from '../../model/types'
  * Measured, not chosen. The industry shelf opened a full 20% higher than it
  * stands now and the academia shelf's middle rungs a good deal lower, and the
  * opening fork measured 37.1% to the doctorate — a road nobody sane takes. The
- * figures below are where it settled at 42.5%, against the USA board's own
- * 43.3% for College Lane, with the mean gap between the two lanes at 8.2%.
+ * figures below are where it settled at 42.5%, and it measures 46.7% today
+ * against the USA board's own 44.7% for College Lane, with the mean gap
+ * between the two lanes at 6.1%. (The move from 42.5% to 46.7% was not a
+ * shelf edit: it is the payday the board now charges a layoff, which costs a
+ * salaried division researcher more than it costs somebody on a contract.)
  *
  * The one thing to defend when these numbers are next edited: the academia
  * shelf's band has to stay several times the industry shelf's, because that

@@ -1,5 +1,6 @@
 import type {
   Career,
+  CareerTier,
   Difficulty,
   EditionId,
   House,
@@ -363,6 +364,57 @@ export interface CareerPools {
 }
 
 /**
+ * What a board takes as read about schooling — the premise underneath the
+ * opening fork, rather than a thing the fork decides.
+ *
+ * The base game has exactly one story here and never had to name it: nobody
+ * has been to university at tile one, College Lane is where a degree is got,
+ * and the degree is what opens the `graduate` shelf. Five country boards later
+ * that was still true, so the assumption stayed unwritten — which is precisely
+ * how it came to be wrong on the two boards it does not fit.
+ *
+ * A researcher's board forks between two *post*-university roads. Both sides
+ * have a degree; what they differ on is what they did next. With the premise
+ * unwritten, the engine had to read the safe side as a school-leaver — no
+ * degree, no cap and gown on the pawn, the school-leaver's shelf at the fair —
+ * and the board's own prose ("it is not 'no degree'") was contradicted by
+ * every part of the game a player can actually see. The owner's report was
+ * exactly that: *in researcher mode assume everybody goes to university; a
+ * road that skips it does not belong here.*
+ *
+ * Two fields, because the assumption was really two:
+ *
+ * 1. **Who has been.** `everyoneGraduates` moves university from the board to
+ *    the premise: every seat starts holding a first degree, so the opening
+ *    fork is a choice between research careers rather than a choice about
+ *    school.
+ * 2. **What it buys.** `degreeOpens` says which shelf that degree entitles
+ *    somebody to, because it is not the same shelf everywhere. On a country
+ *    board a degree opens the graduate careers. On a researcher's board the
+ *    `graduate` shelf *is* academia, and academia is opened by the doctorate,
+ *    not by a master's — so a degree there opens the industry shelf and the
+ *    doctorate opens the rest. Without this second field the first one would
+ *    quietly promote every laid-off engineer onto the postdoctoral ladder.
+ *
+ * Absent means the base game's story, unchanged, which is what all five
+ * country editions want.
+ */
+export interface EditionSchooling {
+  /**
+   * Everybody starts with a first degree already in hand.
+   *
+   * A premise, not a tile: no space on the route can award it, because there
+   * is no point on a researcher's board where it was ever in doubt.
+   */
+  readonly everyoneGraduates?: boolean
+  /**
+   * The best shelf a first degree entitles a player to. Defaults to
+   * `'graduate'`, which is the base game's rule and every country board's.
+   */
+  readonly degreeOpens?: CareerTier
+}
+
+/**
  * One country's worth of content.
  *
  * Everything the board needs from a country is here: the money it counts in,
@@ -382,6 +434,12 @@ export interface Edition {
    */
   readonly route: RouteDefinition
   readonly careers: CareerPools
+  /**
+   * What this board assumes about school before anybody rolls. Absent is the
+   * base game's assumption — nobody has a degree yet, and the degree opens the
+   * graduate shelf. See `EditionSchooling`.
+   */
+  readonly schooling?: EditionSchooling
   readonly houses: readonly House[]
   readonly lifeTiles: readonly LifeTile[]
   readonly stocks: readonly Stock[]

@@ -202,6 +202,10 @@ export const BOLIVIA_JA: EditionTranslation = {
       description: 'フロア全員が、首都から来たコンサルタントのいる会議室に集められる。その後、社員証が反応しなくなる。',
       reason: '再編で職を失った',
     },
+    'bo-main-notice-period': {
+      title: '給料日',
+      description: '月末の給与計算は、コンサルタントが名簿に残した全員に対して行われ、いつもと同じ封筒で渡される。',
+    },
     'bo-main-career-fair': {
       title: '合同就職フェア',
       description: 'ブースだらけの会場、配られるボールペン、外ではまったく無関係の理由でブラスバンドが音出しをしている。そして自分の名前が入った内定が二つ。',
@@ -290,10 +294,6 @@ export const BOLIVIA_JA: EditionTranslation = {
     'bo-midtown-insurance': {
       title: '保険代理店',
       description: '家の鍵を渡す前に、補償について少し話をさせてほしい人がいる。広げられた斜面のハザードマップは、網羅的で、更新も新しく、そして静かに恐ろしい。',
-    },
-    'bo-midtown-payday': {
-      title: '給料日',
-      description: '家の頭金を払う週に、今月ぶんのお金が届く。',
     },
     'bo-midtown-shared-purse': {
       title: '共同の財布',

@@ -41,6 +41,22 @@ describe('startGame', () => {
   })
 
   /*
+   * The one thing about a seat that the *edition* decides rather than the
+   * board: on a researcher's board both roads out of the opening fork start
+   * after university, so there is no honest tile on which to award the degree
+   * and everybody holds one before the first roll. Every country board leaves
+   * the field unset and starts a seat unschooled, which the test above pins.
+   */
+  it('starts everybody graduated on a board where university is the premise', () => {
+    const state = startGame({ ...config(['Alex', 'Bo']), editionId: 'japan-researcher' }, deps)
+    for (const player of state.players) {
+      expect(player.hasDegree).toBe(true)
+      // The doctorate is still a road, not a premise.
+      expect(player.hasDoctorate).toBe(false)
+    }
+  })
+
+  /*
    * Everyone starts standing on the very first fork, so the opening move of a
    * game is choosing a road — college or straight to work — not a spin. The
    * road is picked before the wheel so a player cannot take whichever lane the

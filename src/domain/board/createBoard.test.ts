@@ -739,6 +739,62 @@ describe('nobody can be laid off with no way back', () => {
     const rehires = Object.values(createBoard(difficulty).spaces).filter(isGuaranteedRehire)
     expect(rehires.length).toBeGreaterThanOrEqual(2)
   })
+
+  /*
+   * …and losing your job has to cost something, which is the other half of the
+   * same rule and the half that was missing.
+   *
+   * Every board put its layoff tiles directly against the hall of booths that
+   * undoes them, on the argument written on those tiles: the swing is only
+   * fair because the way back is the very next tile. Played, that reads as
+   * nothing happening — *"being laid off and then walking straight onto a pick
+   * a job tile makes the layoff meaningless; at least one payday should sit
+   * between them"* — because a career is only worth what its paydays pay, and
+   * a layoff you are hired out of before the next one costs precisely zero
+   * paydays.
+   *
+   * A payday is also the only tile that *can* charge for it, since it is the
+   * one tile that pays for being passed rather than landed on: everybody else
+   * collects a month's wages on the way to the fair and the person who just
+   * lost their job collects casual shifts (see `paydayPayFor`). So the rule is
+   * a route rule, it is stated here rather than left to seven route files to
+   * remember, and it is checked on every path rather than on the obvious one —
+   * a fair reachable down some branch with no payday on it is the same bug
+   * wearing a lane name.
+   */
+  const CHOOSES_A_CAREER: readonly SpaceEffect['type'][] = ['careerChange', 'chooseCareer']
+
+  it.each(
+    allEditions().flatMap((edition) => DIFFICULTIES.map((difficulty) => [edition.id, difficulty, edition] as const)),
+  )('%s on %s never offers a job before the next payday after a layoff', (_id, difficulty, edition) => {
+    const board = createBoard(difficulty, edition)
+    const layoffs = Object.values(board.spaces).filter((space) => space.effect.type === 'loseCareer')
+    expect(layoffs.length, 'the board has no layoff to check').toBeGreaterThan(0)
+
+    for (const layoff of layoffs) {
+      // Walk forward from the layoff, stopping at the first payday down each
+      // road: a payday is the gap, so anything behind one is out of scope.
+      const seen = new Set<SpaceId>()
+      const frontier: { id: SpaceId; path: readonly SpaceId[] }[] = layoff.next.map((id) => ({ id, path: [id] }))
+      const tooSoon: string[] = []
+      while (frontier.length > 0) {
+        const { id, path } = frontier.pop()!
+        if (seen.has(id)) continue
+        seen.add(id)
+        const space = board.spaces[id]
+        if (!space || space.kind === 'payday') continue
+        if (CHOOSES_A_CAREER.includes(space.effect.type)) {
+          tooSoon.push(path.join(' → '))
+          continue
+        }
+        for (const next of space.next) frontier.push({ id: next, path: [...path, next] })
+      }
+      expect(
+        tooSoon,
+        `"${layoff.id}" reaches a career tile with no payday in between, via ${tooSoon.join('; ')}`,
+      ).toEqual([])
+    }
+  })
 })
 
 /**

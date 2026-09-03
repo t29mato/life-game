@@ -198,6 +198,10 @@ export const FRANCE_JA: EditionTranslation = {
       description: 'フロア全員が、高そうなスーツのコンサルタントのいる会議室に集められる。その後、社員証が反応しなくなる。',
       reason: 'ポストが消えた',
     },
+    'fr-main-notice-period': {
+      title: '給料日',
+      description: '二十八日は今月もやってきて、会社がまだ雇っている全員に給与が支払われる。',
+    },
     'fr-main-employment-office': {
       title: '公共職業安定所',
       description: '相談員が書類を確かめ、条件に合う仕事を二つ見つけてくる。',
@@ -286,10 +290,6 @@ export const FRANCE_JA: EditionTranslation = {
     'fr-midtown-insurance': {
       title: '保険代理店',
       description: '公証人が鍵を渡す前に保険の証明が要る。担当者は、これから住む通りの浸水リスク地図を丁寧に広げてみせる。',
-    },
-    'fr-midtown-payday': {
-      title: '給料日',
-      description: '住まいの頭金を払う週に、給料が振り込まれる。',
     },
     'fr-midtown-joint-account': {
       title: '共同口座',

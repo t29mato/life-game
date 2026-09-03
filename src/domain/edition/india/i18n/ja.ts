@@ -204,6 +204,10 @@ export const INDIA_JA: EditionTranslation = {
       description: '会社が「希望退職」の制度を発表し、その希望者の名簿に自分の名前が載っている。',
       reason: '希望した、ことになっている',
     },
+    'in-main-notice-period': {
+      title: '給料日',
+      description: '給与の入金日が巡ってきて、会社の名簿にまだ載っている全員の口座に、いつもと同じ三文字の摘要とともに着金する。',
+    },
     'in-main-job-portal': {
       title: '転職サイト',
       description: '深夜にプロフィールを「積極的に求職中」に切り替えると、朝食の頃には二社が経歴を気に入っている。',
@@ -292,10 +296,6 @@ export const INDIA_JA: EditionTranslation = {
     'in-midtown-insurance': {
       title: '保険の窓口',
       description: '家の鍵を渡す前に、補償について少し話をさせてほしい人がいる。広げられた地域の浸水地図は、網羅的で、更新も新しく、そして静かに恐ろしい。',
-    },
-    'in-midtown-payday': {
-      title: '給料日',
-      description: 'マンションの申込金を払う週に、給料が振り込まれる。',
     },
     'in-midtown-joint-account': {
       title: '共同口座',

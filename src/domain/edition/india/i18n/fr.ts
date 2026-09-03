@@ -201,6 +201,10 @@ export const INDIA_FR: EditionTranslation = {
       description: 'L’entreprise annonce un plan de départs « volontaires », et votre nom figure sur la liste des volontaires.',
       reason: 'Volontaire, paraît-il',
     },
+    'in-main-notice-period': {
+      title: 'Jour de paie',
+      description: 'Le jour du virement revient et tombe pour tous ceux qui figurent encore sur les registres, avec le même libellé de trois lettres que d’habitude.',
+    },
     'in-main-job-portal': {
       title: 'Le site d’emploi',
       description: 'Vous passez le profil en « en recherche active » à minuit, et au petit-déjeuner deux entreprises ont aimé votre CV.',
@@ -289,10 +293,6 @@ export const INDIA_FR: EditionTranslation = {
     'in-midtown-insurance': {
       title: 'Agence d’assurance',
       description: 'Avant qu’on vous confie un trousseau de clés, quelqu’un aimerait vous parler garanties — et déroule une carte des inondations de votre quartier, complète, récente, et discrètement terrifiante.',
-    },
-    'in-midtown-payday': {
-      title: 'Jour de paie',
-      description: 'Un virement tombe la semaine même où l’acompte de réservation de l’appartement est dû.',
     },
     'in-midtown-joint-account': {
       title: 'Le compte joint',

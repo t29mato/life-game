@@ -654,28 +654,71 @@ const GRAD_SCHOOL_FORK: SpaceContent = {
  */
 const MAIN_STREET_AFTER_GRAD: readonly SpaceContent[] = [
   {
-    // Sits with `main-layoff` immediately in front of the career fair below,
-    // for the same reason: two ways to lose the job, one hall of booths to fix
-    // it, and neither of them more than a tile away from the fix.
+    // Sits with `main-layoff` in front of the career fair below, for the same
+    // reason: two ways to lose the job and one hall of booths to fix it, with
+    // the same month of no wages charged in between whichever one you land on.
     id: 'main-hours-cut', kind: 'normal', title: 'Contract Ends',
     description: 'The contract everyone was sure would be renewed is, very quietly, not renewed.',
     effect: { type: 'loseCareer', reason: 'Contract not renewed' },
     tone: 'orange', icon: 'space:layoff-notice', appearsFrom: 'hard',
   },
   {
-    // Keep this immediately in front of the career fair below: the swing is
-    // only fair because the way back is the very next tile.
+    // Keep this in front of the career fair below, with exactly one payday
+    // between the two — see that payday for why it is one and not none.
     id: 'main-layoff', kind: 'normal', title: 'Layoff Notice',
     description: 'The whole floor is called into one meeting, and afterwards your badge stops working.',
     effect: { type: 'loseCareer', reason: 'Laid off' },
     tone: 'orange', icon: 'space:layoff-notice',
   },
+  /*
+   * The month between losing the job and finding the next one, and the tile
+   * that makes the layoff mean anything at all.
+   *
+   * The two tiles above used to sit directly on top of the hall of booths, and
+   * the argument written here was that the swing is only fair because the way
+   * back is the very next tile. It was too fair: the owner watched a pawn get
+   * laid off and pick a new career on the following turn, having lost
+   * precisely nothing — *"being laid off and then walking straight onto a pick
+   * a job tile makes the layoff meaningless; at least one payday should sit
+   * between them."* They are right. A layoff whose entire cost is one tile of
+   * walking is a piece of scenery with a bad photograph on it.
+   *
+   * A payday is the only tile on the board that can charge for this, because
+   * it is the only one that pays for being *passed*: everybody else here
+   * collects a month's wages on the way to the fair, and the player who just
+   * lost their job collects casual shifts instead — the die, times the
+   * edition's casual wage, which is a fraction of any salary on any shelf.
+   * That gap is the whole penalty, it is paid by exactly the person who earned
+   * it, and it is one month rather than three because the fair behind it is
+   * still a `stop` nobody can spin past. Losing your job should cost a month.
+   * It should not cost the rest of the game.
+   *
+   * Unconditional, like the other trunk paydays and for the same reason: a
+   * missed payroll here would take the penalty *off* the laid-off player, who
+   * was never going to collect it, and put it on everybody else.
+   *
+   * **And it is Midtown's payday, moved, not a new one.** That was measured
+   * rather than assumed. Added as an extra tile it plays as an extra payday
+   * for everybody who still has a job — the mean final total went from
+   * $697,764 to $756,857, straight through the ceiling of the economy's own
+   * regression guard — and, worse, a board one tile longer pushes its whole
+   * back half one tile further from the start: the share of games in which a
+   * pawn ever lands on the fire tile fell from 9.2% to 7.5%, which took the
+   * home policy from $1,881 short of fair to $5,117 short of it, outside the
+   * band that says a policy on sale is a bet rather than a verdict. Moving the
+   * Midtown payday up here instead leaves the route exactly as long, the
+   * payday count exactly what it was, and every landing distribution behind
+   * this tile where two years of measurement left it. The layoff still costs a
+   * month; nobody else pays for that month.
+   */
+  payday('main-notice-period', 'The last payroll run of a month that went badly for the whole floor. Everyone still on the books is paid on the usual day.'),
   {
     // A stop, and on every board, because it is the layoff's only way back.
-    // `loseCareer` sits one tile behind it, so anyone who loses their job walks
-    // straight into this hall and cannot spin past it. Left as an ordinary
-    // space it could be stepped over, and an unlucky player would spend the
-    // rest of the game on casual shifts, which keep you fed and nothing more.
+    // `loseCareer` sits two tiles behind it — the payday above is the gap the
+    // layoff is charged in — so anyone who loses their job walks into this
+    // hall a month later and cannot spin past it. Left as an ordinary space it
+    // could be stepped over, and an unlucky player would spend the rest of the
+    // game on casual shifts, which keep you fed and nothing more.
     id: 'main-career-fair', kind: 'stop', title: 'Career Fair',
     description: 'A hall full of booths, free pens, and two offers with your name on them.',
     effect: { type: 'careerChange', reason: 'A fresh start at the career fair' },
@@ -861,10 +904,16 @@ const MIDTOWN: readonly SpaceContent[] = [
     effect: { type: 'buyInsurance', kinds: ['home', 'life'] },
     tone: 'slate', icon: 'finance:insurance-office',
   },
-  // The only payday in this stretch too — see main-6. Harshening it zeroed
-  // Very Hard's income for the entire run between the marriage fork and the
-  // home-buying fork, so it stays unconditional.
-  payday('midtown-payday', 'A deposit lands the week the deposit on a house is due.'),
+  /*
+   * The payday this stretch used to open with now sits between the Layoff
+   * Notice and the career fair, half a board earlier — see the notice-period
+   * payday there for why it had to be somewhere a jobless player walks over
+   * it. It is a move rather than an addition on purpose: a board one tile
+   * longer pushes its whole back half one tile further away, and measured,
+   * that alone dropped the share of games in which anybody ever reaches the
+   * fire tile from 9.2% to 7.5% and left the home policy mispriced. The
+   * bonus below is what still pays out in here.
+   */
   /*
    * The other half of marrying, and the reason the wedding is no longer the
    * whole story. A single player walks past this; a married one finds out what

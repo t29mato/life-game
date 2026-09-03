@@ -48,6 +48,11 @@ export function startGame(config: NewGameConfig, _deps: UseCaseDeps): GameState 
       board.startSpaceId,
       entry.isCpu,
       edition.economy,
+      // The board's premise about school, applied before anybody rolls: on a
+      // researcher's board everybody has already been to university, so the
+      // opening fork is a choice between research careers rather than a choice
+      // about school. Absent on every country board. See `EditionSchooling`.
+      edition.schooling,
     ),
   )
 

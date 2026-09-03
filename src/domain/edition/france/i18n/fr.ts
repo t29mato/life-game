@@ -201,6 +201,10 @@ export const FRANCE_FR: EditionTranslation = {
       description: 'Tout l’étage est convoqué dans une même réunion avec un consultant en costume coûteux. Ensuite, votre badge ne fonctionne plus.',
       reason: 'Poste supprimé',
     },
+    'fr-main-notice-period': {
+      title: 'Jour de paie',
+      description: 'Le 28 arrive, comme toujours, et tous ceux que l’entreprise emploie encore sont payés.',
+    },
     'fr-main-employment-office': {
       title: 'L’agence pour l’emploi',
       description: 'Un conseiller reprend votre dossier et trouve deux postes qui vous vont.',
@@ -289,10 +293,6 @@ export const FRANCE_FR: EditionTranslation = {
     'fr-midtown-insurance': {
       title: 'L’agence d’assurance',
       description: 'Avant que le notaire ne vous remette les clés, il lui faut une attestation d’assurance — et l’agent vous déroule une carte détaillée du risque d’inondation de votre future rue.',
-    },
-    'fr-midtown-payday': {
-      title: 'Jour de paie',
-      description: 'Votre paie tombe la semaine même où l’apport de l’appartement est dû.',
     },
     'fr-midtown-joint-account': {
       title: 'Le compte joint',

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import type { SpaceContent } from '../../board/route'
-import type { SpaceEffect } from '../../model/types'
+import type { Player, SpaceEffect } from '../../model/types'
 import { spacesOf } from '../../board/route'
 import { validateRoute } from '../../board/validateRoute'
 import { CAREER_FAMILY, isCareerIcon } from '../../rules/careerFamily'
 import { TRADE_YEAR_STORIES } from '../../rules/tradeYear'
-import { tradeYearStoriesFor } from '../lookup'
+import { careerTierOf, tradeYearStoriesFor } from '../lookup'
 import { editionFor } from '../registry'
 import { EDITION_USA } from '../usa'
 import { EDITION_JAPAN } from '../japan'
@@ -26,6 +26,28 @@ import { EDITION_RESEARCHER_JAPAN } from './index'
  */
 
 const FACTOR = 100
+
+/** A seat with nothing on it, for the questions that are only about schooling. */
+const BLANK_PLAYER: Player = {
+  id: 'p1',
+  name: 'Alex',
+  color: 'red',
+  spaceId: 'jpr-start',
+  money: 0,
+  loans: 0,
+  career: null,
+  hasDegree: false,
+  hasDoctorate: false,
+  isMarried: false,
+  children: 0,
+  house: null,
+  lifeTiles: [],
+  stocks: [],
+  insurance: [],
+  isCpu: false,
+  isRetired: false,
+  retirementRank: null,
+}
 
 /**
  * The tiles this board is allowed to differ on, and nothing else.
@@ -71,6 +93,42 @@ describe('the researcher japan edition is registered and sound', () => {
 
   it('builds a legal board at every difficulty', () => {
     expect(validateRoute(EDITION_RESEARCHER_JAPAN.route, EDITION_RESEARCHER_JAPAN)).toEqual([])
+  })
+
+  /*
+   * **Everybody on this board has been to university, and the engine has to
+   * agree with the prose.**
+   *
+   * The route has always said so — the opening fork is the master's exit into
+   * corporate research against the doctoral course, and the lane comment reads
+   * "It is not 'no degree'". The engine said otherwise for as long as the
+   * degree was only ever awarded on the doctoral lane: a player who took the
+   * national default finished the game with `hasDegree` false, which is a
+   * school-leaver everywhere it is read — no cap and gown on the pawn, no
+   * degree on the panel, the school-leaver's shelf at a fair. That is the road
+   * the owner reported and the road this edition exists not to have.
+   *
+   * The second half is what keeps the shelves where they were measured: here
+   * the `graduate` shelf *is* academia, so a master's opens the industry shelf
+   * and only the doctorate opens the rest.
+   */
+  it('takes university as read, and says which shelf that degree opens', () => {
+    expect(EDITION_RESEARCHER_JAPAN.schooling).toEqual({
+      everyoneGraduates: true,
+      degreeOpens: 'basic',
+    })
+    // The country boards are untouched: there, school is still the fork.
+    for (const id of ['usa', 'japan', 'france', 'india', 'bolivia']) {
+      expect(editionFor(id).schooling, id).toBeUndefined()
+    }
+  })
+
+  it('opens the industry shelf to a master\'s and the academia shelf only to a doctor', () => {
+    const seat = (over: Partial<Player>): Player => ({ ...BLANK_PLAYER, ...over })
+    expect(careerTierOf(seat({ hasDegree: true }), EDITION_RESEARCHER_JAPAN)).toBe('basic')
+    expect(
+      careerTierOf(seat({ hasDegree: true, hasDoctorate: true }), EDITION_RESEARCHER_JAPAN),
+    ).toBe('doctorate')
   })
 })
 

@@ -219,7 +219,7 @@ describe('the researcher economy stays in a playable band', () => {
   const bustShare = (totals: number[]) => totals.filter((t) => t < 0).length / totals.length
 
   it('keeps normal comfortably profitable — the country board\'s band, in the same yen', () => {
-    // Measured over these 60 games: mean ¥70.9M, median ¥69.8M, nobody ever
+    // Measured over these 60 games: mean ¥70.1M, median ¥69.7M, nobody ever
     // bust. That is the country Japan board's band (its own measurement is
     // ¥65.9M) with the top of it opened out, because this board's academia
     // shelf genuinely pays more per payday than any country shelf does — a
@@ -239,7 +239,8 @@ describe('the researcher economy stays in a playable band', () => {
   })
 
   it('makes hard a clear step down that is still usually a winning game', () => {
-    // Measured: median ¥40.6M against normal's ¥69.8M, one player in ten bust.
+    // Measured: median ¥37.9M against normal's ¥69.7M, one player in nine bust
+    // (11.7%). It was ¥40.6M and one in ten before the layoff cost a payday.
     expect(median(hard.totals)).toBeLessThan(median(normal.totals) * 0.8)
     expect(median(hard.totals)).toBeGreaterThan(10_000_000)
     expect(bustShare(hard.totals)).toBeGreaterThan(0)
@@ -247,7 +248,12 @@ describe('the researcher economy stays in a playable band', () => {
   })
 
   it('puts very hard on a knife edge: the median finishes near zero', () => {
-    // Measured: 45.0% bust, median ¥8.1M, mean slightly under zero.
+    // Measured: 42.8% bust, median ¥11.1M, mean ¥2.7M — it was 45.0%, ¥8.1M
+    // and slightly under zero before the layoff cost a payday, which is the
+    // one board where charging for the layoff made the hardest setting
+    // *kinder*: the payday it charges is one this board's very hard setting
+    // was mostly cancelling anyway, and it now arrives half a board earlier,
+    // before the bills that were bankrupting people.
     expect(bustShare(veryHard.totals)).toBeGreaterThan(0.25)
     expect(bustShare(veryHard.totals)).toBeLessThan(0.7)
     expect(median(veryHard.totals)).toBeGreaterThan(-20_000_000)
@@ -294,11 +300,16 @@ describe('the opening fork: the doctorate is the gamble, not the mistake', () =>
 
   it('splits the wins between the two lanes', () => {
     /*
-     * Measured at 42.5% to the doctorate over these 240 games — within a
-     * point of the USA board's own 43.3% for College Lane, and reached by
-     * real tuning rather than by luck: the first cut of the career shelves
-     * measured 37.1%, and the industry shelf came down 8% and the academia
-     * shelf's middle rungs went up to close it.
+     * Measured at 46.7% to the doctorate over these 240 games — two points
+     * off the USA board's own 44.7% for College Lane, and reached by real
+     * tuning rather than by luck: the first cut of the career shelves
+     * measured 37.1%, the industry shelf came down 8% and the academia
+     * shelf's middle rungs went up to bring it to 42.5%, and the payday now
+     * standing between the Layoff Notice and the career fair carried it the
+     * rest of the way. That last one is not a tuning of this fork at all: it
+     * lands on whichever seat is being re-hired, which is both roads, and it
+     * costs the industry shelf slightly more because a salary is a bigger
+     * thing to miss than a fixed-term contract's.
      *
      * Under a hand's own judgement it is kinder still, and the difference is
      * this board's own doing. These games take whichever option the seed
@@ -325,7 +336,10 @@ describe('the opening fork: the doctorate is the gamble, not the mistake', () =>
      * inside ¥4.2M–¥6.5M.
      *
      * Measured: the doctoral seats finish with a standard deviation of
-     * ¥20.7M against the master's ¥15.9M, a ratio of 0.77. The assertion is
+     * ¥20.1M against the master's ¥17.1M, a ratio of 0.85 — it was 0.77
+     * before a missed month's wages became a thing that can happen to
+     * anybody, which is variance the industry shelf did not used to carry.
+     * The assertion is
      * one-sided on purpose. A ratio that drifted back to 1 would mean the
      * shelves had stopped saying anything, and this is the one property no
      * other edition's suite can hold for us.
@@ -337,8 +351,9 @@ describe('the opening fork: the doctorate is the gamble, not the mistake', () =>
   })
 
   it('leaves neither lane the obvious money play', () => {
-    // Measured at ¥69.0M against ¥74.7M — an 8.2% gap, inside the same 15%
-    // every other board's opening fork is held to.
+    // Measured at ¥68.3M against ¥72.5M — a 6.1% gap, inside the same 15%
+    // every other board's opening fork is held to, and narrower than the 8.2%
+    // it measured before the layoff cost a payday.
     const gap = Math.abs(mean(sample.doctoral) - mean(sample.masters))
     expect(gap / mean(sample.doctoral)).toBeLessThan(0.15)
   })
@@ -353,8 +368,9 @@ describe('the opening fork: the doctorate is the gamble, not the mistake', () =>
     ['hard', { difficulty: 'hard' } as PlayOptions],
     ['very hard', { difficulty: 'veryHard' } as PlayOptions],
   ])('stays an even fork on the %s, and keeps the inversion', (_label, options) => {
-    // Measured: 47.0% on hard and 41.0% on very hard, with the spread ratio
-    // at 0.86 and 0.93. The harder boards compress the inversion — a missed
+    // Measured: 51.0% on hard and 48.0% on very hard, with the spread ratio
+    // at 0.68 and 0.96 (47.0%/41.0% and 0.86/0.93 before the layoff cost a
+    // payday). The harder boards compress the inversion — a missed
     // payroll costs the same whichever shelf you are on — so the ratio is
     // held to a looser bound here than on the standard board, and still to
     // the right side of 1.
