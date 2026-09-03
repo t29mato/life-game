@@ -1,4 +1,5 @@
 import type { RouteBranch, RouteDefinition, SpaceContent } from '../../board/route'
+import { NEW_BABY_ARRIVALS, TWINS_ARRIVALS } from '../../rules/children'
 import {
   flavour,
   fork,
@@ -320,8 +321,8 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'bo-family-new-baby', kind: 'event', title: 'New Baby',
-    description: 'A tiny new roommate arrives, and is immediately declared by four separate grandmothers to look exactly like four separate people.',
-    effect: { type: 'haveChildren', count: 1, celebrationPerPip: 600 },
+    description: 'The room is painted and the crib is built. Four grandmothers have already started knitting, which they consider a reasonable bet.',
+    effect: { type: 'haveChildren', arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 2_500 },
     tone: 'purple', icon: 'space:new-baby',
   },
   setback('hard', 'bo-family-childcare', 'Childcare Bill',
@@ -343,7 +344,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'bo-family-twins', kind: 'normal', title: 'Twins',
     description: 'The technician goes quiet at the scan, turns the screen around, and holds up two fingers. Four grandmothers begin knitting simultaneously in four districts.',
-    effect: { type: 'haveChildren', count: 2, celebrationPerPip: 1_100 },
+    effect: { type: 'haveChildren', arrivals: TWINS_ARRIVALS, celebrationPerChild: 2_500 },
     tone: 'purple', icon: 'space:second-baby',
   },
 ]
@@ -425,6 +426,17 @@ const MIDTOWN: readonly SpaceContent[] = [
     description: 'The money is pooled now — the wage, the stall\'s takings, and the dollar envelope taped behind the wardrobe that officially does not exist. Settling the month is a summit meeting.',
     effect: { type: 'household', reason: 'The shared purse, settled up' },
     tone: 'purple', icon: 'finance:bank-visit',
+  },
+  /*
+   * The child-mischief tile — see the USA route's own comment on
+   * `midtown-phone-call` for why it is a trunk `payPerChild` rather than
+   * anything new. Zero for a player with no children, by construction.
+   */
+  {
+    id: 'bo-midtown-window', kind: 'event', title: 'The Broken Window',
+    description: 'A football, a neighbour\'s window, and a neighbour who stays extremely calm about it — which, as everyone on the street understands, is far worse.',
+    effect: { type: 'payPerChild', amount: 4_000, reason: 'Whatever they broke, per child' },
+    tone: 'purple', icon: 'space:school-fees',
   },
   {
     id: 'bo-midtown-aguinaldo', kind: 'payday', title: 'December Pays Twice',

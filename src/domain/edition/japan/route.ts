@@ -1,4 +1,5 @@
 import type { RouteBranch, RouteDefinition, SpaceContent } from '../../board/route'
+import { NEW_BABY_ARRIVALS, TWINS_ARRIVALS } from '../../rules/children'
 import {
   flavour,
   fork,
@@ -319,8 +320,8 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'jp-family-new-baby', kind: 'event', title: 'New Baby',
-    description: 'A tiny new roommate arrives. The ward office sends a nurse, a handbook, and a lump sum that almost covers the hospital.',
-    effect: { type: 'haveChildren', count: 1, celebrationPerPip: 60_000 },
+    description: 'The spare room is painted and the crib is built. The ward office has a handbook, a nurse and a lump sum ready, and will keep them ready.',
+    effect: { type: 'haveChildren', arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 250_000 },
     tone: 'purple', icon: 'space:new-baby',
   },
   setback('hard', 'jp-family-waitlist', 'The Nursery Waitlist',
@@ -342,7 +343,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'jp-family-twins', kind: 'normal', title: 'Twins',
     description: 'The technician goes quiet at the scan, turns the screen around, and holds up two fingers.',
-    effect: { type: 'haveChildren', count: 2, celebrationPerPip: 110_000 },
+    effect: { type: 'haveChildren', arrivals: TWINS_ARRIVALS, celebrationPerChild: 250_000 },
     tone: 'purple', icon: 'space:second-baby',
   },
 ]
@@ -423,6 +424,17 @@ const MIDTOWN: readonly SpaceContent[] = [
     description: 'The accounts are merged. Your whole salary now goes into a shared account, and a fixed sum comes back to you each month — labelled "allowance" in the family ledger.',
     effect: { type: 'household', reason: 'The household ledger, settled up' },
     tone: 'purple', icon: 'finance:bank-visit',
+  },
+  /*
+   * The child-mischief tile — see the USA route's own comment on
+   * `midtown-phone-call` for why it is a trunk `payPerChild` rather than
+   * anything new. Zero for a player with no children, by construction.
+   */
+  {
+    id: 'jp-midtown-phone-call', kind: 'event', title: 'The Teacher Calls',
+    description: 'The homeroom teacher telephones during a meeting. Your child is fine. The classroom window is not, and the school would like it settled quietly.',
+    effect: { type: 'payPerChild', amount: 400_000, reason: 'Whatever they broke, per child' },
+    tone: 'purple', icon: 'space:school-fees',
   },
   {
     id: 'jp-midtown-bonus', kind: 'payday', title: 'Year-End Bonus',

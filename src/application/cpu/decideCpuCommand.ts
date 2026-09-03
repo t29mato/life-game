@@ -26,7 +26,7 @@ import {
   nextRungOf,
 } from '@domain/edition/lookup'
 import { AVERAGE_SPIN, expectedPayday, isCoveredAgainst, totalShares } from '@domain/rules/player'
-import { expectedChildValue } from '@domain/rules/children'
+import { expectedArrivals, expectedChildValue } from '@domain/rules/children'
 import { expectedMarriageValue } from '@domain/rules/marriage'
 import { maturityMidpoint } from '@domain/rules/scoring'
 import { hazardBillsAhead } from '@domain/board/movement'
@@ -425,11 +425,16 @@ export function valueOfSpace(space: Space, player: Player, state: GameState, pay
        * chosen the lane — the bills were charged twice and the child paid
        * $10,000 once.
        *
-       * On top of that, same as `spinForMoney`, the gift envelopes are a real
-       * spin at a quoted rate — worth its per-pip price times the average
-       * spin, regardless of whether the computer or a human presses it.
+       * How many arrive is the die's call now, so the tile is priced at the
+       * mean of its own bands rather than at a promise — 5/6 of a child on a
+       * New Baby tile, two on a Twins scan. The envelopes follow the arrivals
+       * rather than the face, so they are worth the same mean times the rate
+       * per head; there is no separate spin left to price.
        */
-      return effect.count * expectedChildValue(player, economy) + effect.celebrationPerPip * AVERAGE_SPIN
+      return (
+        expectedArrivals(effect.arrivals) *
+        (expectedChildValue(player, economy) + effect.celebrationPerChild)
+      )
     case 'buyHouse':
     case 'upgradeHouse':
       return units(5)
@@ -859,7 +864,10 @@ function scoreBranch(option: DecisionOption, context: Context, decision: Decisio
       }
     }
     if (space.effect.type === 'haveChildren') {
-      walked = { ...walked, children: walked.children + space.effect.count }
+      // The mean, not a promise — a New Baby tile hands over 5/6 of a child on
+      // average, and a lane valued as though it always lands one would price
+      // its own school fees against a family it does not always get.
+      walked = { ...walked, children: walked.children + expectedArrivals(space.effect.arrivals) }
     }
   }
   // What the lane's bills really cost on top of their face value: the interest

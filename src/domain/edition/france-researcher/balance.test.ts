@@ -234,13 +234,24 @@ describe('the researcher france economy stays in a playable band', () => {
   const bustShare = (totals: number[]) => totals.filter((t) => t < 0).length / totals.length
 
   it('keeps normal comfortably profitable — the country board\'s band, in the same euros', () => {
-    // Measured over these 60 games: mean €734,348, median €701,700, nobody
-    // ever bust. That is the same band the Researcher: Japan board measures
-    // in yen at ×100, which is what a shared skeleton is supposed to produce.
+    // Measured over these 60 games: mean €734,348, median €701,700. That is
+    // the same band the Researcher: Japan board measures in yen at ×100,
+    // which is what a shared skeleton is supposed to produce.
+    //
+    // The bust line used to read `toBe(0)`, and it stopped being true the day
+    // a new arrival became a die: one seat in 180 finishes in the red now.
+    // It is not the child bill that put them there — the same seat goes bust
+    // with the phone call priced at €0 — it is that the board no longer hands
+    // every family a guaranteed child, and that seat's whole margin was the
+    // one child's bonus at the final scoring. An exact zero over a sample was
+    // a fact about one random sequence rather than a promise the board ever
+    // made, so what is asserted now is the promise: going bust on normal
+    // stays rare, on the same order as `gameBalance`'s own 15% ceiling and
+    // far under it.
     expect(mean(normal.totals)).toBeGreaterThan(450_000)
     expect(mean(normal.totals)).toBeLessThan(900_000)
     expect(median(normal.totals)).toBeGreaterThan(450_000)
-    expect(bustShare(normal.totals)).toBe(0)
+    expect(bustShare(normal.totals)).toBeLessThan(0.02)
     expect(mean(normal.turns)).toBeGreaterThan(6)
     expect(mean(normal.turns)).toBeLessThan(30)
   })

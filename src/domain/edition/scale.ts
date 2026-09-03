@@ -170,7 +170,7 @@ export function scaleEffect(effect: SpaceEffect, factor: number): SpaceEffect {
     case 'spinForMoney':
       return { ...effect, perPip: effect.perPip * factor }
     case 'haveChildren':
-      return { ...effect, celebrationPerPip: effect.celebrationPerPip * factor }
+      return { ...effect, celebrationPerChild: effect.celebrationPerChild * factor }
     case 'stockDividend':
       return { ...effect, perShare: effect.perShare * factor }
     default:

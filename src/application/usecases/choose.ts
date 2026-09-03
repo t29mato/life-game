@@ -14,12 +14,14 @@ import { nextMovementLeg, planMovementVia } from '@domain/board/movement'
 import { editionOf } from '@domain/edition/registry'
 import { findCareer, findHouse, findStock, nextRungOf, tradeYearStoriesFor } from '@domain/edition/lookup'
 import { gateOfferIndex, gatePassed } from '@domain/rules/careerGate'
+import { childrenArrivingOn } from '@domain/rules/children'
 import { earlyLoanRepaymentFor } from '@domain/rules/difficulty'
 import { householdSwing, perPipPayout } from '@domain/rules/diePayout'
 import { marriageBandFor } from '@domain/rules/marriage'
 import { tuitionBandFor, tuitionSpecFor } from '@domain/rules/tuition'
 import { tradeFamilyOf, tradeYearFor } from '@domain/rules/tradeYear'
 import {
+  addChildren,
   addInsurance,
   addLifeTiles,
   applyPayRaise,
@@ -61,6 +63,7 @@ import {
 } from './applyEffect'
 import { formatMoney, raiseNote, salaryPeriod, salaryRate } from './format'
 import { appendLog } from './logging'
+import { arrivalCopy, celebrationFor } from './newBaby'
 import type { UseCaseDeps } from './types'
 
 function replacePlayer(players: readonly Player[], updated: Player): readonly Player[] {
@@ -1009,24 +1012,27 @@ function spinOutcome(
   }
 
   if (space?.effect.type === 'haveChildren') {
-    const gain = perPipPayout(space.effect.celebrationPerPip, spinValue)
-    const updated = creditPlayer(player, gain)
+    /*
+     * The whole tile, settled here — who arrived and what the envelopes came
+     * to, in that order, because the second follows from the first. The die
+     * used to decide only the money, with the baby handed over on landing;
+     * see the `haveChildren` case in `applyEffect` for why that changed.
+     *
+     * The empty face credits nothing and debits nothing. It is not a loss and
+     * is not dressed as one — `arrivalCopy` owns every word of it.
+     */
+    const arriving = childrenArrivingOn(space.effect.arrivals, spinValue)
+    const gift = celebrationFor(arriving, space.effect.celebrationPerChild)
+    const updated = creditPlayer(addChildren(player, arriving), gift)
     const delta = updated.money - player.money
-    const event = outcomeEvent(
-      space,
-      player,
-      'Gift Envelopes',
-      delta,
-      [],
-      emphasisForMoney(delta, economy),
-      `The gift envelopes add up to ${money(gain)} for ${player.name}!`,
-    )
+    const copy = arrivalCopy(player.name, arriving, spinValue, gift, money)
+    const event = outcomeEvent(space, player, 'New Baby', delta, copy.notes, copy.emphasis, copy.narration)
     return resolved(
       state,
       replacePlayer(state.players, updated),
       event,
-      `${player.name} rolls ${spinValue} for the gift envelopes: ${money(gain)}.`,
-      'money-in',
+      copy.logMessage,
+      arriving === 0 ? 'info' : 'milestone',
     )
   }
 

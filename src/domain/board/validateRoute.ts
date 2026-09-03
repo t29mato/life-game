@@ -59,6 +59,12 @@ const AUTO_RESOLVABLE_EFFECT_TYPES: readonly SpaceEffect['type'][] = [
   'none',
   'gainMoney',
   'payMoney',
+  // A bill that multiplies by the household, asked of nobody: it raises no
+  // decision at all (`applyEffect` returns with `pendingDecision: null` on
+  // both paths), and a player with no children is passed by having been
+  // charged nothing. That second half is what makes it safe to fire on a
+  // pass — the tile excuses itself rather than needing to be excused.
+  'payPerChild',
   'graduate',
   'doctorate',
   'tuition',

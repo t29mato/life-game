@@ -1,4 +1,5 @@
 import type { RouteBranch, RouteDefinition, SpaceContent } from '../../board/route'
+import { NEW_BABY_ARRIVALS, TWINS_ARRIVALS } from '../../rules/children'
 import {
   flavour,
   fork,
@@ -582,8 +583,8 @@ const TWO_BODIES: readonly SpaceContent[] = [
   },
   {
     id: 'jpr-family-new-baby', kind: 'event', title: 'New Baby',
-    description: 'A tiny new roommate arrives, three weeks before a grant deadline, and the grant deadline turns out to matter a great deal less than you had thought.',
-    effect: { type: 'haveChildren', count: 1, celebrationPerPip: 60_000 },
+    description: 'The spare room is painted and the crib is built, three weeks before a grant deadline. The deadline is the only part of the year you control.',
+    effect: { type: 'haveChildren', arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 250_000 },
     tone: 'purple', icon: 'space:new-baby',
   },
   setback('hard', 'jpr-family-waitlist', 'The Nursery Waitlist',
@@ -605,7 +606,7 @@ const TWO_BODIES: readonly SpaceContent[] = [
   {
     id: 'jpr-family-twins', kind: 'normal', title: 'Twins',
     description: 'The technician goes quiet at the scan, turns the screen around, and holds up two fingers. You are, professionally, quite good at reading images, and you had not seen it.',
-    effect: { type: 'haveChildren', count: 2, celebrationPerPip: 110_000 },
+    effect: { type: 'haveChildren', arrivals: TWINS_ARRIVALS, celebrationPerChild: 250_000 },
     tone: 'purple', icon: 'space:second-baby',
   },
 ]
@@ -689,6 +690,17 @@ const GRANT_SEASON: readonly SpaceContent[] = [
     description: 'The accounts are merged, and for the first time somebody else\'s spending is also, unavoidably, your spending. They have opinions about how much of the budget is books.',
     effect: { type: 'household', reason: 'The household ledger, settled up' },
     tone: 'purple', icon: 'finance:bank-visit',
+  },
+  /*
+   * The child-mischief tile — see the USA route's own comment on
+   * `midtown-phone-call` for why it is a trunk `payPerChild` rather than
+   * anything new. Zero for a player with no children, by construction.
+   */
+  {
+    id: 'jpr-phone-call', kind: 'event', title: 'The Teacher Calls',
+    description: 'The homeroom teacher telephones twenty minutes into your seminar. Your child is fine. The classroom window is not, and somebody else finishes the talk.',
+    effect: { type: 'payPerChild', amount: 400_000, reason: 'Whatever they broke, per child' },
+    tone: 'purple', icon: 'space:school-fees',
   },
   {
     id: 'jpr-grant-bonus', kind: 'payday', title: 'Year-End Bonus',

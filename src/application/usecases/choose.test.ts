@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Decision, DecisionOption } from '@domain/model/types'
+import type { Decision, DecisionOption, SpinValue } from '@domain/model/types'
 import {
   CASUAL_WAGE_PER_PIP,
   EARLY_LOAN_REPAYMENT,
@@ -22,6 +22,7 @@ import { STOCKS } from '@domain/edition/usa'
 import { applyEffect, insuranceOptionId, VALUE_SPIN_OPTION_ID } from './applyEffect'
 import { formatMoney } from './format'
 import { branchDecision } from './branch'
+import { NEW_BABY_ARRIVALS } from '@domain/rules/children'
 import { TRADE_YEAR_STORIES } from '@domain/rules/tradeYear'
 import { fixtureMovementBoard, fixturePlayer, fixtureState } from '../testing/fixtures'
 import { createFakeRandom } from '../testing/fakes'
@@ -725,10 +726,46 @@ describe('choose', () => {
 
     describe('haveChildren', () => {
       const board = fixtureMovementBoard()
-      const babySpace = { ...board.spaces.a!, effect: { type: 'haveChildren' as const, count: 1, celebrationPerPip: 500 } }
+      const babySpace = {
+        ...board.spaces.a!,
+        effect: { type: 'haveChildren' as const, arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 2_500 },
+      }
 
-      it('spins for the gift envelopes only once the player presses the button', () => {
-        const player = fixturePlayer({ spaceId: 'a', money: 0 })
+      const rollOn = (face: SpinValue, children = 0) => {
+        const player = fixturePlayer({ spaceId: 'a', money: 0, children })
+        const state = decisionState({
+          board: { ...board, spaces: { ...board.spaces, a: babySpace } },
+          players: [player],
+          pendingDecision: decision('valueSpin', VALUE_SPIN_OPTION_ID),
+        })
+        return choose(state, VALUE_SPIN_OPTION_ID, { random: createFakeRandom({ spins: [face] }) })
+      }
+
+      /*
+       * The owner's distribution, face by face — 1〜2だと0人、3〜5で一人、6で双子.
+       * Written out rather than derived from `NEW_BABY_ARRIVALS`, because a
+       * test that reads the same table the engine reads cannot notice the day
+       * somebody edits the table.
+       */
+      it.each([
+        [1 as SpinValue, 0],
+        [2 as SpinValue, 0],
+        [3 as SpinValue, 1],
+        [4 as SpinValue, 1],
+        [5 as SpinValue, 1],
+        [6 as SpinValue, 2],
+      ])('rolling a %i brings %i', (face, expected) => {
+        expect(rollOn(face).players[0]!.children).toBe(expected)
+      })
+
+      it('scales the gifts to how many arrived, and pays nothing for nobody', () => {
+        expect(rollOn(1).players[0]!.money).toBe(0)
+        expect(rollOn(4).players[0]!.money).toBe(2_500)
+        expect(rollOn(6).players[0]!.money).toBe(5_000)
+      })
+
+      it('spins only once the player presses the button, and settles the whole tile at once', () => {
+        const player = fixturePlayer({ spaceId: 'a', money: 0, children: 1 })
         const state = decisionState({
           board: { ...board, spaces: { ...board.spaces, a: babySpace } },
           players: [player],
@@ -741,13 +778,27 @@ describe('choose', () => {
         expect(random.calls.spins).toBe(1)
         expect(next.phase).toBe('resolved')
         expect(next.pendingDecision).toBeNull()
-        expect(next.players[0]!.money).toBe(3_000)
-        expect(next.lastEvent!.moneyDelta).toBe(3_000)
-        // The roll is on the event and the total is on the delta plate, so
-        // the note that said both of them over again is gone.
+        expect(next.players[0]!.children).toBe(3)
+        expect(next.players[0]!.money).toBe(5_000)
+        expect(next.lastEvent!.moneyDelta).toBe(5_000)
         expect(next.lastEvent!.rolled).toBe(6)
+        expect(next.lastEvent!.narration).toContain(player.name)
+      })
+
+      /*
+       * The face the whole rework exists for. It is not a loss, so it takes
+       * nothing, is not emphasised as one, and the card says what happened
+       * without consoling anybody about it.
+       */
+      it('reads an empty face with dignity: nothing taken, nothing consoled', () => {
+        const next = rollOn(1)
+        expect(next.players[0]!.children).toBe(0)
+        expect(next.lastEvent!.moneyDelta).toBe(0)
+        expect(next.lastEvent!.emphasis).toBe('normal')
         expect(next.lastEvent!.notes).toEqual([])
-        expect(next.lastEvent!.narration).toContain(formatMoney(3_000))
+        const narration = next.lastEvent!.narration ?? ''
+        expect(narration).toBe('No child this year. The house stays the size it is.')
+        expect(narration.toLowerCase()).not.toMatch(/sad|sorry|unlucky|bad luck|next time|afraid|unfortunate/)
       })
     })
 

@@ -36,6 +36,7 @@ import {
   seniorityOf,
 } from '@domain/edition/lookup'
 import { passingCut } from '@domain/rules/careerGate'
+import { certainArrivals } from '@domain/rules/children'
 import { earlyLoanRepaymentFor, loanRepaymentFor } from '@domain/rules/difficulty'
 import { hazardBillsAhead } from '@domain/board/movement'
 import { SPIN_VALUES, householdSwing, perPipPayout } from '@domain/rules/diePayout'
@@ -67,6 +68,7 @@ import { withBorrowing } from './borrowing'
 import { withStandingChange } from './standingChange'
 import { formatMoney, paydayReceipt, raiseNote, salaryPeriod, salaryRate } from './format'
 import { appendLog } from './logging'
+import { arrivalBands, arrivalCopy, celebrationFor } from './newBaby'
 import { collectPaydays } from './payday'
 import type { UseCaseDeps } from './types'
 
@@ -1100,15 +1102,31 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
 
     case 'haveChildren': {
       /*
-       * The arrival itself is certain — a spin has no business deciding
-       * whether a baby shows up — so that part still happens the instant the
-       * pawn lands here, milestone card and all. What waits for a press is
-       * the gift envelopes: real money, same `rate × the spin` formula as
-       * every other value-spin tile, deferred to `resolveValueSpin` in
-       * `choose.ts` for the same reason the rest of them are.
+       * Who arrives is now the die's call — 1-2 nobody, 3-5 one, 6 two — so
+       * unlike every other value-spin tile this one settles the *whole* tile
+       * in `resolveValueSpin`, arrival and envelopes together. Handing the
+       * baby over here and rolling only for the money is what the tile used to
+       * do, and it is exactly the shape the owner asked us to drop: it made
+       * Family Lane the one road whose headline could not miss.
+       *
+       * The exception is a tile whose six faces all say the same thing — the
+       * Twins scan, which has already happened by the time the pawn arrives.
+       * A die nobody can lose is a press for its own sake, so a certain
+       * arrival is settled on the spot, envelopes and all.
        */
-      const updated = addChildren(player, effect.count)
-      const label = effect.count === 1 ? 'child' : 'children'
+      const certain = certainArrivals(effect.arrivals)
+      if (certain !== null) {
+        const gift = celebrationFor(certain, effect.celebrationPerChild)
+        const updated = creditPlayer(addChildren(player, certain), gift)
+        const copy = arrivalCopy(player.name, certain, null, gift, money)
+        const event = baseEvent(space, updated.money - player.money, copy.notes, copy.emphasis, copy.narration)
+        const log = appendLog(state, player.id, copy.logMessage, 'milestone')
+        return {
+          state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null },
+          event,
+        }
+      }
+
       const decision: Decision = {
         kind: 'valueSpin',
         prompt: space.title,
@@ -1117,24 +1135,18 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
             label: 'Roll',
-            // The rate the envelopes come at is in the table below, six
-            // times over. What is left for the sentence is what the roll is
-            // actually for.
-            description: 'Roll for the gift envelopes.',
+            // Both halves of the news are in the table below, band by band.
+            // What is left for the sentence is what the roll is actually for
+            // — and it is no longer the envelopes.
+            description: 'Roll for the year ahead.',
             icon: 'space:new-baby',
-            table: perPipBands(effect.celebrationPerPip, currency),
+            table: arrivalBands(effect.arrivals, effect.celebrationPerChild, currency),
           },
         ],
       }
-      const event = baseEvent(
-        space,
-        0,
-        [`+${effect.count} ${label}`],
-        'milestone',
-        `Congratulations ${player.name} — the family just got bigger!`,
-      )
-      const log = appendLog(state, player.id, `${player.name} welcomes ${effect.count} ${label}.`, 'milestone')
-      return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: decision }, event }
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} is up for the roll: who is in the house next year?`)
+      const log = appendLog(state, player.id, `${player.name} rolls for a new arrival.`, 'event')
+      return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
     case 'buyHouse': {

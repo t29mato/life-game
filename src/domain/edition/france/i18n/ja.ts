@@ -219,7 +219,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'fr-family-new-baby': {
       title: '赤ちゃん誕生',
-      description: '小さな家族が増える。準備万端で待ち構えていた国が、ただちに登録と手当と予防接種の予定表を用意する。',
+      description: '小さな部屋を塗り、ベビーベッドを組み立てた。準備万端で待ち構えている国は、書類ができた日に書類を開く。',
     },
     'fr-family-creche': {
       title: '保育所の待機',
@@ -295,6 +295,11 @@ export const FRANCE_JA: EditionTranslation = {
       title: '共同口座',
       description: '正式な面談の場で口座をひとつにまとめる。他人の出費が、否応なく自分の問題でもある日々がここから始まる。',
       reason: '共同口座の精算',
+    },
+    'fr-midtown-convocation': {
+      title: '学校への呼び出し',
+      description: '火曜の朝に来てくださいと手紙が届く。生徒指導の担当は丁寧で、几帳面で、扉の見積書を手にしている。',
+      reason: '壊したものの弁償、子ども一人につき',
     },
     'fr-midtown-bonus': {
       title: '十三か月目の給与',

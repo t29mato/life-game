@@ -1,4 +1,5 @@
 import type { RouteBranch, RouteDefinition, SpaceContent } from '../../board/route'
+import { NEW_BABY_ARRIVALS, TWINS_ARRIVALS } from '../../rules/children'
 import {
   flavour,
   fork,
@@ -318,8 +319,8 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   },
   {
     id: 'in-family-new-baby', kind: 'event', title: 'New Baby',
-    description: 'A tiny new roommate arrives, and so does the entire extended family, with sweets, opinions, and a naming ceremony that requires a hall.',
-    effect: { type: 'haveChildren', count: 1, celebrationPerPip: 60_000 },
+    description: 'The room is painted and the cot is built. The entire extended family is standing by with sweets, opinions, and the number of a hall.',
+    effect: { type: 'haveChildren', arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 250_000 },
     tone: 'purple', icon: 'space:new-baby',
   },
   setback('hard', 'in-family-admission', 'The School Admission',
@@ -341,7 +342,7 @@ const FAMILY_LANE: readonly SpaceContent[] = [
   {
     id: 'in-family-twins', kind: 'normal', title: 'Twins',
     description: 'The technician goes quiet at the scan, turns the screen around, and holds up two fingers.',
-    effect: { type: 'haveChildren', count: 2, celebrationPerPip: 110_000 },
+    effect: { type: 'haveChildren', arrivals: TWINS_ARRIVALS, celebrationPerChild: 250_000 },
     tone: 'purple', icon: 'space:second-baby',
   },
 ]
@@ -422,6 +423,17 @@ const MIDTOWN: readonly SpaceContent[] = [
     description: 'The salaries are merged, and yours now arrives in a shared account from which a fixed sum returns to you, titled, in the family ledger, "pocket money".',
     effect: { type: 'household', reason: 'The household ledger, settled up' },
     tone: 'purple', icon: 'finance:bank-visit',
+  },
+  /*
+   * The child-mischief tile — see the USA route's own comment on
+   * `midtown-phone-call` for why it is a trunk `payPerChild` rather than
+   * anything new. Zero for a player with no children, by construction.
+   */
+  {
+    id: 'in-midtown-head-office', kind: 'event', title: 'The Head\'s Office',
+    description: 'You are asked to come in on a working day. The experiment was ambitious, the laboratory is fine, and the equipment listed on the invoice is not.',
+    effect: { type: 'payPerChild', amount: 400_000, reason: 'Whatever they broke, per child' },
+    tone: 'purple', icon: 'space:school-fees',
   },
   {
     id: 'in-midtown-festival-bonus', kind: 'payday', title: 'The Festival Bonus',

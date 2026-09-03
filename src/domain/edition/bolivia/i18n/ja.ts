@@ -223,7 +223,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'bo-family-new-baby': {
       title: '赤ちゃん誕生',
-      description: '小さな同居人がやってくる。そして四人の祖母が即座に、それぞれ別の四人にそっくりだと断言する。',
+      description: '部屋を塗り、ベビーベッドを組み立てた。四人の祖母はもう編み始めている。妥当な賭けだと思っているらしい。',
     },
     'bo-family-childcare': {
       title: '保育料',
@@ -299,6 +299,11 @@ export const BOLIVIA_JA: EditionTranslation = {
       title: '共同の財布',
       description: 'お金はもう一緒だ。給料、露店の売り上げ、そして公式には存在しないことになっている、たんすの裏に貼りつけたドルの封筒。ひと月の精算は首脳会談である。',
       reason: '共同の財布の精算',
+    },
+    'bo-midtown-window': {
+      title: '割れた窓',
+      description: 'サッカーボールと、隣家の窓と、それについて実に落ち着いている隣人。通りの誰もが知っているとおり、そのほうがずっと厄介だ。',
+      reason: '壊したものの弁償、子ども一人につき',
     },
     'bo-midtown-aguinaldo': {
       title: '十二月は二回払う',

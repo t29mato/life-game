@@ -222,7 +222,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'in-family-new-baby': {
       title: 'Naissance',
-      description: 'Un tout petit colocataire arrive, et toute la famille élargie avec lui : des sucreries, des avis, et une cérémonie du prénom qui nécessite une salle.',
+      description: 'La chambre est peinte et le berceau monté. Toute la famille élargie attend avec des sucreries, des avis, et le numéro d’une salle.',
     },
     'in-family-admission': {
       title: 'L’admission à l’école',
@@ -298,6 +298,11 @@ export const INDIA_FR: EditionTranslation = {
       title: 'Le compte joint',
       description: 'Les salaires fusionnent, et le vôtre arrive désormais sur un compte commun d’où une somme fixe vous revient, intitulée, dans le livre de comptes de la maison, « argent de poche ».',
       reason: 'Le livre de comptes du foyer, soldé',
+    },
+    'in-midtown-head-office': {
+      title: 'Chez le directeur',
+      description: 'On vous demande de passer un jour de semaine. L’expérience était ambitieuse, le laboratoire va bien, et le matériel listé sur la facture, non.',
+      reason: 'Ce qu’ils ont cassé, par enfant',
     },
     'in-midtown-festival-bonus': {
       title: 'La prime de fête',

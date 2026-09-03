@@ -14,7 +14,11 @@ import {
   FONCTIONNAIRE_CAREERS,
   RESEARCHER_FRANCE_ECONOMY,
 } from '@domain/edition/france-researcher'
+import { createBoard } from '@domain/board/createBoard'
+import { allEditions } from '@domain/edition/registry'
+import { DIFFICULTIES } from '@domain/rules/difficulty'
 import { ladderPositionOf } from '@domain/edition/lookup'
+import { NEW_BABY_ARRIVALS, TWINS_ARRIVALS } from '@domain/rules/children'
 import { householdSwing, perPipPayout } from '@domain/rules/diePayout'
 import { expectedMarriageValue } from '@domain/rules/marriage'
 import { paydayPayFor } from '@domain/rules/player'
@@ -761,27 +765,56 @@ describe('applyEffect', () => {
   })
 
   describe('haveChildren', () => {
-    it('adds children to the player instantly, then holds for the player to spin for the gift envelopes', () => {
-      const player = fixturePlayer({ children: 1 })
+    it('hands nobody over on landing: who arrives is what the die is for', () => {
+      const player = fixturePlayer({ children: 1, money: 0 })
       const state = fixtureState({ players: [player] })
-      const space = fixtureSpace({ effect: { type: 'haveChildren', count: 2, celebrationPerPip: 500 } })
+      const space = fixtureSpace({
+        effect: { type: 'haveChildren', arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 2_500 },
+      })
       const random = createFakeRandom({ spins: [4] })
       const { state: next, event } = applyEffect(state, space, { random })
-      expect(next.players[0]!.children).toBe(3)
+      expect(next.players[0]!.children).toBe(1)
+      expect(next.players[0]!.money).toBe(0)
       expect(event.moneyDelta).toBe(0)
       expect(random.calls.spins).toBe(0)
       expect(next.pendingDecision?.kind).toBe('valueSpin')
       expect(next.pendingDecision?.options).toHaveLength(1)
-      const option = next.pendingDecision?.options[0]
-      expect(option?.description).toBe('Roll for the gift envelopes.')
-      expect(amountRows(option?.table)).toEqual([
-        { range: '1', amount: '$500' },
-        { range: '2', amount: '$1,000' },
-        { range: '3', amount: '$1,500' },
-        { range: '4', amount: '$2,000' },
-        { range: '5', amount: '$2,500' },
-        { range: '6', amount: '$3,000' },
+      expect(next.pendingDecision?.options[0]?.description).toBe('Roll for the year ahead.')
+    })
+
+    /*
+     * The published table is the whole contract with the player, and the empty
+     * face is the half of it that is new — a card that quietly listed only the
+     * two faces that hand a child over would be promising what the die does
+     * not.
+     */
+    it('publishes the distribution honestly, empty face included', () => {
+      const state = fixtureState({ players: [fixturePlayer()] })
+      const space = fixtureSpace({
+        effect: { type: 'haveChildren', arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 2_500 },
+      })
+      const { state: next } = applyEffect(state, space, { random: createFakeRandom() })
+      expect(amountRows(next.pendingDecision?.options[0]?.table)).toEqual([
+        { range: '1-2', amount: 'No child this year' },
+        { range: '3-5', amount: 'One child, +$2,500 in gifts' },
+        { range: '6', amount: 'Twins, +$5,000 in gifts' },
       ])
+    })
+
+    it('settles a certain tile on the spot rather than asking for a die nobody can lose', () => {
+      const player = fixturePlayer({ children: 1, money: 0 })
+      const state = fixtureState({ players: [player] })
+      const space = fixtureSpace({
+        effect: { type: 'haveChildren', arrivals: TWINS_ARRIVALS, celebrationPerChild: 2_500 },
+      })
+      const random = createFakeRandom({ spins: [4] })
+      const { state: next, event } = applyEffect(state, space, { random })
+      expect(next.pendingDecision).toBeNull()
+      expect(random.calls.spins).toBe(0)
+      expect(next.players[0]!.children).toBe(3)
+      expect(next.players[0]!.money).toBe(5_000)
+      expect(event.moneyDelta).toBe(5_000)
+      expect(event.emphasis).toBe('milestone')
     })
   })
 
@@ -975,7 +1008,7 @@ describe('applyEffect', () => {
         { type: 'chooseCareer', pool: 'basic' },
         { type: 'graduate' },
         { type: 'getMarried' },
-        { type: 'haveChildren', count: 1, celebrationPerPip: 500 },
+        { type: 'haveChildren', arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 500 },
         { type: 'buyHouse' },
         { type: 'collectFromEach', amount: 100, reason: 'Prize' },
         { type: 'payEach', amount: 100, reason: 'Drinks' },
@@ -1024,7 +1057,7 @@ describe('applyEffect', () => {
         { type: 'payday' },
         { type: 'payRaise' },
         { type: 'graduate' },
-        { type: 'haveChildren', count: 1, celebrationPerPip: 500 },
+        { type: 'haveChildren', arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 500 },
         { type: 'collectFromEach', amount: 100, reason: 'Prize' },
         { type: 'payEach', amount: 100, reason: 'Drinks' },
         { type: 'spinForMoney', perPip: 100, reason: 'Lucky roll' },
@@ -1075,7 +1108,7 @@ describe('applyEffect', () => {
         { type: 'gainLifeTiles', count: 1 },
         { type: 'graduate' },
         { type: 'getMarried' },
-        { type: 'haveChildren', count: 1, celebrationPerPip: 500 },
+        { type: 'haveChildren', arrivals: NEW_BABY_ARRIVALS, celebrationPerChild: 500 },
         { type: 'collectFromEach', amount: 100_000, reason: 'Prize' },
         { type: 'payEach', amount: 100_000, reason: 'Drinks' },
         { type: 'spinForMoney', perPip: 100, reason: 'Lucky roll' },
@@ -1686,6 +1719,48 @@ describe('applyEffect', () => {
       // net number with a footnote arguing against it. See `withBorrowing`.
       expect(event.borrowing?.loans).toBe(next.players[0]!.loans)
       expect(event.borrowing?.charge).toBe(40_000)
+    })
+
+    /*
+     * The promise the child-mischief tiles are built on, held across every
+     * board rather than on one fixture: nobody is ever billed for a life they
+     * did not live. It is what makes it safe to put a per-child bill on the
+     * shared trunk and let it fire on a pass — a childless pawn walks through
+     * it and is charged nothing at all, at every difficulty, on every edition.
+     */
+    it('charges a childless player nothing on any per-child bill any board carries', () => {
+      for (const edition of allEditions()) {
+        for (const difficulty of DIFFICULTIES) {
+          const board = createBoard(difficulty, edition)
+          for (const space of Object.values(board.spaces)) {
+            if (space.effect.type !== 'payPerChild') continue
+            const state = fixtureState({
+              editionId: edition.id,
+              board,
+              players: [fixturePlayer({ children: 0, money: 100_000, spaceId: space.id })],
+            })
+            const { state: next, event } = applyEffect(state, space, { random: createFakeRandom() })
+            expect(next.players[0]!.money, `${edition.id}/${difficulty}/${space.id}`).toBe(100_000)
+            expect(event.moneyDelta, `${edition.id}/${difficulty}/${space.id}`).toBe(0)
+          }
+        }
+      }
+    })
+
+    /*
+     * And the other half: a bill a parent cannot simply fail to land on. Every
+     * board carries exactly this — one per-child cost on an `event` tile, so a
+     * family meets it by walking past rather than one game in five. Anything
+     * rarer is not a consequence, it is a rumour.
+     */
+    it('gives every edition one per-child bill that fires on a pass', () => {
+      for (const edition of allEditions()) {
+        const board = createBoard('normal', edition)
+        const passed = Object.values(board.spaces).filter(
+          (space) => space.kind === 'event' && space.effect.type === 'payPerChild',
+        )
+        expect(passed.length, `${edition.id}`).toBeGreaterThan(0)
+      }
     })
   })
 

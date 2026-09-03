@@ -266,7 +266,7 @@ export const USA_JA: EditionTranslation = {
     },
     'family-2': {
       title: '赤ちゃん誕生',
-      description: '小さな同居人がやってくる。この家に静けさは二度と戻らない。',
+      description: '予備の部屋を黄色く塗り、ベビーベッドを組み立てた。この一年がどうなるかは、こちらの都合では決まらない。',
     },
     'family-childcare': {
       title: '保育料',
@@ -342,6 +342,11 @@ export const USA_JA: EditionTranslation = {
       title: '共同口座',
       description: '口座をひとつにまとめる。他人の出費が、否応なく自分の出費でもある日々が始まる。',
       reason: '共同口座の精算',
+    },
+    'midtown-phone-call': {
+      title: '学校からの電話',
+      description: '会議の最中に学校から電話が来る。けが人はなし。全員が叱られ、教室のうしろにあった何かは弁償になる。',
+      reason: '壊したものの弁償、子ども一人につき',
     },
     'midtown-bonus': {
       title: '年末賞与',

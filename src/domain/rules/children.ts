@@ -1,8 +1,69 @@
-import type { Money, Player, SpinValue } from '../model/types'
+import type { ChildArrivalBand, Money, Player, SpinValue } from '../model/types'
 import { SPIN_FACES } from '../model/constants'
 import type { EconomyConstants } from '../edition/types'
 import { USA_ECONOMY } from '../edition/usa/economy'
+import { SPIN_VALUES } from './diePayout'
 import { expectedPayday } from './player'
+
+/**
+ * The distribution every New Baby tile on every board is written to.
+ *
+ * The owner's call, from a play session: 1〜2だと0人、3〜5で一人、6で双子 —
+ * two faces in six where no child arrives, three where one does, one where two
+ * do. It lives here rather than in each edition's route because it is not a
+ * local fact: what a wedding costs and what a child pays back differ by
+ * country, and the odds a pregnancy happens at all do not. Only the money on
+ * the tile is edition data.
+ *
+ * The empty faces are the point of the whole shape. Family Lane was the one
+ * road whose headline could not miss, and "you took the lane, so you have the
+ * children" is a claim the board has no business making. Mean arrivals per
+ * tile: 5/6.
+ */
+export const NEW_BABY_ARRIVALS: readonly ChildArrivalBand[] = [
+  { upTo: 2, children: 0 },
+  { upTo: 5, children: 1 },
+  { upTo: 6, children: 2 },
+]
+
+/** A scan that has already happened: two, whatever the die says. */
+export const TWINS_ARRIVALS: readonly ChildArrivalBand[] = [{ upTo: 6, children: 2 }]
+
+/**
+ * How many arrive on this face — the first band the face fits in, worst-first,
+ * exactly the way a tuition bill is read.
+ *
+ * Falls back to the last band rather than to zero if a malformed table somehow
+ * stops short of six: a tile that quietly hands out nothing is a far worse
+ * failure here than one that repeats its best band.
+ */
+export function childrenArrivingOn(
+  arrivals: readonly ChildArrivalBand[],
+  face: SpinValue,
+): number {
+  const band = arrivals.find((candidate) => face <= candidate.upTo) ?? arrivals[arrivals.length - 1]
+  return band?.children ?? 0
+}
+
+/**
+ * The count when every face agrees, or `null` when the die actually decides
+ * something.
+ *
+ * This is what separates the two tiles the effect covers. A scan has already
+ * shown two, so asking a player to roll a die whose six faces read the same is
+ * theatre — `applyEffect` settles a certain tile on the spot. A New Baby tile
+ * has a real distribution and gets a real press.
+ */
+export function certainArrivals(arrivals: readonly ChildArrivalBand[]): number | null {
+  const first = childrenArrivingOn(arrivals, SPIN_VALUES[0]!)
+  return SPIN_VALUES.every((face) => childrenArrivingOn(arrivals, face) === first) ? first : null
+}
+
+/** Mean arrivals per press — what a computer seat prices the tile at. */
+export function expectedArrivals(arrivals: readonly ChildArrivalBand[]): number {
+  const total = SPIN_VALUES.reduce((sum, face) => sum + childrenArrivingOn(arrivals, face), 0)
+  return total / SPIN_FACES
+}
 
 /**
  * What a grown-up child pays back, and why it is two different things.
