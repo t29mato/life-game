@@ -4,6 +4,7 @@ import { editionFor } from '@domain/edition/registry'
 import { loanRepaymentFor } from '@domain/rules/difficulty'
 import { formatMoney, formatOrdinal } from '../../format'
 import { UiIcon } from '../../icons/ui'
+import { useUi } from '../../i18n/LocaleProvider'
 import { RollingNumber } from '../RollingNumber/RollingNumber'
 import type { Standing } from '@domain/rules/standing'
 import styles from './PlayerStrip.module.css'
@@ -57,6 +58,7 @@ export function PlayerStrip({
   difficulty = 'normal',
   onOpenStatus,
 }: PlayerStripProps): ReactElement {
+  const t = useUi()
   const edition = editionFor(editionId)
   const { currency } = edition
   const money = (amount: number): string => formatMoney(amount, currency)
@@ -70,7 +72,7 @@ export function PlayerStrip({
       // accessible name they would bury what the control actually does, so
       // the label says that instead. The modal it opens is the readable view
       // of every fact abbreviated here.
-      aria-label="Players — open full status"
+      aria-label={t.strip.aria}
       aria-haspopup="dialog"
       onClick={onOpenStatus}
     >
@@ -93,12 +95,12 @@ export function PlayerStrip({
         const breakdown =
           rank === undefined || standing === undefined
             ? undefined
-            : [
-                `${formatOrdinal(rank)} on net worth ${money(standing.netWorth)}`,
-                `cash ${money(player.money)}`,
-                ...(player.loans > 0 ? [`${player.loans} loan${player.loans === 1 ? '' : 's'} to settle ${money(owed)}`] : []),
-                'plus house, shares, tiles and family',
-              ].join(' — ')
+            : t.strip.breakdownJoin([
+                t.strip.rankOn(formatOrdinal(rank, t), money(standing.netWorth)),
+                t.strip.cash(money(player.money)),
+                ...(player.loans > 0 ? [t.strip.loansToSettle(player.loans, money(owed))] : []),
+                t.strip.plusTheRest,
+              ])
         return (
           <span
             key={player.id}
@@ -120,7 +122,7 @@ export function PlayerStrip({
                   wallet is just a second wallet. */}
               {standing !== undefined ? (
                 <span className={styles.worth}>
-                  <span className={styles.worthLabel}>Worth</span>
+                  <span className={styles.worthLabel}>{t.strip.worth}</span>
                   <RollingNumber
                     className={standing.netWorth < 0 ? `${styles.worthValue} ${styles.debt}` : styles.worthValue}
                     value={standing.netWorth}
@@ -131,10 +133,10 @@ export function PlayerStrip({
             </span>
             <span className={styles.badges}>
               {player.isRetired ? (
-                <span className={styles.retired}>Retired</span>
+                <span className={styles.retired}>{t.strip.retired}</span>
               ) : rank !== undefined ? (
                 <span className={styles.rank} title={breakdown}>
-                  {formatOrdinal(rank)}
+                  {formatOrdinal(rank, t)}
                 </span>
               ) : null}
               {/* The one holding that can make a rank look wrong, and the
@@ -144,7 +146,7 @@ export function PlayerStrip({
               {player.loans > 0 ? (
                 <span
                   className={styles.loans}
-                  title={`${player.loans} loan${player.loans === 1 ? '' : 's'} — ${money(owed)} to repay at retirement`}
+                  title={t.strip.loansTitle(player.loans, money(owed))}
                 >
                   −{money(owed)}
                 </span>
@@ -158,7 +160,7 @@ export function PlayerStrip({
           exist. Decorative to AT: the button's own label already says it. */}
       <span className={styles.open} aria-hidden="true">
         <UiIcon name="wallet" size={15} />
-        <span className={styles.openLabel}>Status</span>
+        <span className={styles.openLabel}>{t.strip.status}</span>
       </span>
     </button>
   )

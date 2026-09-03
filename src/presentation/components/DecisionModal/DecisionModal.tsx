@@ -9,8 +9,10 @@ import { useAudio } from '../../hooks/useAudio'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { usePrimaryAction } from '../../hooks/usePrimaryAction'
+import { useUi } from '../../i18n/LocaleProvider'
+import type { UiText } from '../../i18n/en'
 import { TEMPO } from '../../tempo'
-import { LANE_CHARACTER_LABEL, previewLane, summarizeLane } from './branchPreview'
+import { laneCharacterLabel, previewLane, summarizeLane } from './branchPreview'
 import styles from './DecisionModal.module.css'
 
 export interface DecisionModalProps {
@@ -32,14 +34,24 @@ export interface DecisionModalProps {
   readonly cpuPlayerName?: string
 }
 
-const KIND_LABEL: Record<Decision['kind'], string> = {
-  branch: 'Fork in the road',
-  house: 'House hunting',
-  stock: 'Trading floor',
-  insurance: 'Insurance office',
-  bank: 'The bank',
-  retire: 'The number',
-  valueSpin: 'The die',
+/** Which of the game's seven questions this card is asking. */
+function kindLabel(kind: Decision['kind'], t: UiText): string {
+  switch (kind) {
+    case 'branch':
+      return t.decision.kindBranch
+    case 'house':
+      return t.decision.kindHouse
+    case 'stock':
+      return t.decision.kindStock
+    case 'insurance':
+      return t.decision.kindInsurance
+    case 'bank':
+      return t.decision.kindBank
+    case 'retire':
+      return t.decision.kindRetire
+    case 'valueSpin':
+      return t.decision.kindValueSpin
+  }
 }
 
 /**
@@ -68,7 +80,8 @@ export function DecisionModal({
    * hint below promises.
    */
   const primaryRef = usePrimaryAction<HTMLButtonElement>(!isCpu)
-  const cpuName = cpuPlayerName?.trim() || 'The computer'
+  const t = useUi()
+  const cpuName = cpuPlayerName?.trim() || t.decision.theComputer
 
   /*
    * --- the confirm beat ---------------------------------------------------
@@ -144,9 +157,9 @@ export function DecisionModal({
         transition={entrance.transition}
       >
         <header className={styles.header}>
-          <span className={styles.kind}>{KIND_LABEL[decision.kind]}</span>
+          <span className={styles.kind}>{kindLabel(decision.kind, t)}</span>
           <h2 id="decision-prompt" className={styles.prompt}>
-            {isCpu ? `${cpuName} is choosing…` : decision.prompt}
+            {isCpu ? t.decision.isChoosing(cpuName) : decision.prompt}
           </h2>
           {isCpu ? (
             // role="status" is an implicit polite live region, so its
@@ -158,7 +171,7 @@ export function DecisionModal({
                 <span className={styles.dot} />
                 <span className={styles.dot} />
               </span>
-              Thinking it over — no input needed.
+              {t.decision.thinking}
             </p>
           ) : null}
         </header>
@@ -222,7 +235,7 @@ export function DecisionModal({
                         ))}
                       </span>
                       {laneCharacter ? (
-                        <span className={styles.laneTag}>{LANE_CHARACTER_LABEL[laneCharacter]}</span>
+                        <span className={styles.laneTag}>{laneCharacterLabel(laneCharacter, t)}</span>
                       ) : null}
                     </span>
                   ) : null}
@@ -234,7 +247,9 @@ export function DecisionModal({
                   <span className={styles.optionDetail}>
                     <span className={styles.optionFigure}>{option.detail}</span>
                     {option.detailUnit ? (
-                      <span className={styles.optionUnit}>per {option.detailUnit}</span>
+                      <span className={styles.optionUnit}>
+                        {t.decision.per(t.format.unit(option.detailUnit))}
+                      </span>
                     ) : null}
                   </span>
                 ) : !isCpu ? (
@@ -307,8 +322,9 @@ export function DecisionModal({
           <p className={styles.hint}>
             <kbd className={styles.key}>↑</kbd>
             <kbd className={styles.key}>↓</kbd>
-            to browse &middot; <kbd className={styles.key}>Enter</kbd> or{' '}
-            <kbd className={styles.key}>Space</kbd> to choose
+            {t.decision.browse} &middot; <kbd className={styles.key}>{t.decision.enterKey}</kbd>{' '}
+            {t.decision.or} <kbd className={styles.key}>{t.decision.spaceKey}</kbd>{' '}
+            {t.decision.choose}
           </p>
         )}
       </motion.div>

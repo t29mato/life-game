@@ -1,6 +1,7 @@
 import type { CSSProperties, Dispatch, ReactElement, SetStateAction } from 'react'
 import type { PlayerColor } from '@domain/model/types'
 import type { PlayerProfile } from '@application/ports/PlayerProfileRepositoryPort'
+import { useUi } from '../../i18n/LocaleProvider'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { PLAYER_COLORS } from '../Pawn/designs'
 import { StepFrame } from './StepFrame'
@@ -36,6 +37,8 @@ export function PlayersStep({
   onBack,
   onNext,
 }: PlayersStepProps): ReactElement {
+  const t = useUi()
+
   const updateName = (index: number, name: string): void => {
     setPlayers((prev) => prev.map((p, i) => (i === index ? { ...p, name } : p)))
   }
@@ -79,7 +82,7 @@ export function PlayersStep({
       return [
         ...prev,
         {
-          name: `Player ${prev.length + 1}`,
+          name: t.title.defaultPlayerName(prev.length + 1),
           color: nextAvailableColor(prev.map((p) => p.color)),
           isCpu: false,
         },
@@ -95,17 +98,15 @@ export function PlayersStep({
     <StepFrame
       stepNumber={stepNumber}
       stepCount={stepCount}
-      heading="Who's playing?"
-      lead="Two to four seats. Name them, pick a token, and hand any seat to the computer."
+      heading={t.players.heading}
+      lead={t.players.lead}
       onBack={onBack}
-      backLabel="Back to title"
-      primary={{ label: 'Next: the country', onClick: onNext }}
+      backLabel={t.backTo.title}
+      primary={{ label: t.players.next, onClick: onNext }}
     >
       <div className={styles.setupHeading}>
-        <span className={styles.setupLabel}>Choose your token</span>
-        <span className={styles.setupCount}>
-          {players.length} / {MAX_PLAYERS}
-        </span>
+        <span className={styles.setupLabel}>{t.players.chooseToken}</span>
+        <span className={styles.setupCount}>{t.players.count(players.length, MAX_PLAYERS)}</span>
       </div>
 
       <div className={styles.players}>
@@ -126,7 +127,7 @@ export function PlayersStep({
               <span className={`${styles.pawn} ${player.isCpu ? styles.pawnCpu : ''}`} aria-hidden="true">
                 <span className={styles.pawnHead} />
                 <span className={styles.pawnBase} />
-                {player.isCpu ? <span className={styles.cpuChip}>CPU</span> : null}
+                {player.isCpu ? <span className={styles.cpuChip}>{t.common.cpu}</span> : null}
               </span>
 
               <div className={styles.playerFields}>
@@ -136,10 +137,14 @@ export function PlayersStep({
                     type="text"
                     value={player.name}
                     maxLength={18}
-                    aria-label={`Player ${index + 1} name`}
+                    aria-label={t.players.nameLabel(index + 1)}
                     onChange={(event) => updateName(index, event.target.value)}
                   />
-                  <div className={styles.swatches} role="group" aria-label={`Player ${index + 1} colour`}>
+                  <div
+                    className={styles.swatches}
+                    role="group"
+                    aria-label={t.players.colourLabel(index + 1)}
+                  >
                     {PLAYER_COLORS.map((color) => (
                       <button
                         key={color}
@@ -169,10 +174,10 @@ export function PlayersStep({
                   <div
                     className={styles.recentRow}
                     role="group"
-                    aria-label={`Player ${index + 1} recent players`}
+                    aria-label={t.players.recentLabel(index + 1)}
                   >
                     <span className={styles.recentLabel} aria-hidden="true">
-                      Recent
+                      {t.players.recent}
                     </span>
                     {profiles.map((profile) => (
                       <button
@@ -194,14 +199,18 @@ export function PlayersStep({
                   </div>
                 ) : null}
 
-                <div className={styles.seatToggle} role="group" aria-label={`Player ${index + 1} seat type`}>
+                <div
+                  className={styles.seatToggle}
+                  role="group"
+                  aria-label={t.players.seatTypeLabel(index + 1)}
+                >
                   <button
                     type="button"
                     className={`${styles.seatOption} ${!player.isCpu ? styles.seatSelected : ''}`}
                     aria-pressed={!player.isCpu}
                     onClick={() => updateIsCpu(index, false)}
                   >
-                    Human
+                    {t.common.human}
                   </button>
                   <button
                     type="button"
@@ -209,7 +218,7 @@ export function PlayersStep({
                     aria-pressed={player.isCpu}
                     onClick={() => updateIsCpu(index, true)}
                   >
-                    CPU
+                    {t.common.cpu}
                   </button>
                 </div>
               </div>
@@ -218,7 +227,7 @@ export function PlayersStep({
                 <button
                   type="button"
                   className={styles.removeButton}
-                  aria-label={`Remove player ${index + 1}`}
+                  aria-label={t.players.removeLabel(index + 1)}
                   onClick={() => removePlayer(index)}
                 >
                   ✕
@@ -237,7 +246,7 @@ export function PlayersStep({
           disabled={players.length >= MAX_PLAYERS}
           onClick={addPlayer}
         >
-          Add player
+          {t.players.addPlayer}
         </ChunkyButton>
       </div>
     </StepFrame>

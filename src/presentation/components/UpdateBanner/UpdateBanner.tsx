@@ -1,5 +1,6 @@
 import { useCallback, type ReactElement } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import { useUi } from '../../i18n/LocaleProvider'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import styles from './UpdateBanner.module.css'
 
@@ -25,6 +26,7 @@ const UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000
  * — the two moments a stale build is most likely to have gone unnoticed.
  */
 export function UpdateBanner(): ReactElement | null {
+  const t = useUi()
   const {
     needRefresh: [needRefresh],
     updateServiceWorker,
@@ -49,9 +51,9 @@ export function UpdateBanner(): ReactElement | null {
 
   return (
     <div className={styles.banner} role="status">
-      <p className={styles.text}>A new version is ready.</p>
+      <p className={styles.text}>{t.update.ready}</p>
       <ChunkyButton variant="primary" size="sm" icon="replay" onClick={handleUpdate}>
-        Update
+        {t.update.action}
       </ChunkyButton>
     </div>
   )

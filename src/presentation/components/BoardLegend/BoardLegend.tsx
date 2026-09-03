@@ -4,6 +4,8 @@ import type { IconName } from '@domain/model/icons'
 import { GameIcon } from '../../icons/GameIcon'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { useUi } from '../../i18n/LocaleProvider'
+import type { UiText } from '../../i18n/en'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import styles from './BoardLegend.module.css'
 
@@ -26,17 +28,26 @@ interface LegendMark {
   readonly rule: string
 }
 
-const LEGEND_MARKS: readonly LegendMark[] = [
-  { icon: 'space:payday', name: 'The coin', rule: 'Payday. Your salary, collected landing here or driving past.' },
-  { icon: 'space:first-paycheck', name: 'Arrow up', rule: 'Money in.' },
-  { icon: 'space:rent-due', name: 'Arrow down', rule: 'Money out.' },
-  { icon: 'space:market-crash', name: 'The triangle', rule: 'A setback — a crash, a fire, a repair bill.' },
-  { icon: 'finance:bank-visit', name: 'The bank', rule: 'Borrow, or pay a loan off. Never the market.' },
-  { icon: 'space:stock-tip', name: 'The chart', rule: 'The market. Shares to buy, dividends to collect.' },
-  { icon: 'finance:insurance-office', name: 'The shield', rule: 'Policies, and what they cover you against.' },
-  { icon: 'space:lucky-find', name: 'The star', rule: 'A LIFE tile — a keepsake, worth real money at the end.' },
-  { icon: 'space:cap-and-gown', name: 'The milestones', rule: 'Cap, heart, pram, house, sunset: the five moments the game is about.' },
-]
+/**
+ * The nine marks, built from the catalogue rather than written here.
+ *
+ * The pairing of a glyph with its sentence is the part that belongs to this
+ * component; the sentence itself is prose a player reads, so it lives where
+ * every other sentence in the game lives.
+ */
+function legendMarks(t: UiText): readonly LegendMark[] {
+  return [
+    { icon: 'space:payday', name: t.legend.coinName, rule: t.legend.coinRule },
+    { icon: 'space:first-paycheck', name: t.legend.upName, rule: t.legend.upRule },
+    { icon: 'space:rent-due', name: t.legend.downName, rule: t.legend.downRule },
+    { icon: 'space:market-crash', name: t.legend.triangleName, rule: t.legend.triangleRule },
+    { icon: 'finance:bank-visit', name: t.legend.bankName, rule: t.legend.bankRule },
+    { icon: 'space:stock-tip', name: t.legend.chartName, rule: t.legend.chartRule },
+    { icon: 'finance:insurance-office', name: t.legend.shieldName, rule: t.legend.shieldRule },
+    { icon: 'space:lucky-find', name: t.legend.starName, rule: t.legend.starRule },
+    { icon: 'space:cap-and-gown', name: t.legend.milestonesName, rule: t.legend.milestonesRule },
+  ]
+}
 
 /** How a tile is *built*, as opposed to what is printed on it. */
 interface LegendBuild {
@@ -45,20 +56,21 @@ interface LegendBuild {
   readonly rule: string
 }
 
-const LEGEND_BUILD: readonly LegendBuild[] = [
-  {
-    swatch: 'stripe',
-    name: 'Red-and-white stripe',
-    rule: 'This tile always happens — landed on or driven past. Some of them stop your turn outright.',
-  },
-  { swatch: 'gain', name: 'Green cut edge', rule: 'The tile pays you.' },
-  { swatch: 'cost', name: 'Red cut edge', rule: 'The tile charges you.' },
-  { swatch: 'choice', name: 'Purple cut edge', rule: 'You will be asked something. A house, a loan, a job.' },
-  { swatch: 'milestone', name: 'Gold bezel', rule: 'A Life Milestone. Confetti included.' },
-]
+function legendBuild(t: UiText): readonly LegendBuild[] {
+  return [
+    { swatch: 'stripe', name: t.legend.stripeName, rule: t.legend.stripeRule },
+    { swatch: 'gain', name: t.legend.gainName, rule: t.legend.gainRule },
+    { swatch: 'cost', name: t.legend.costName, rule: t.legend.costRule },
+    { swatch: 'choice', name: t.legend.choiceName, rule: t.legend.choiceRule },
+    { swatch: 'milestone', name: t.legend.milestoneName, rule: t.legend.milestoneRule },
+  ]
+}
 
 /** The rows on their own, so the Handbook can print the same key as the card. */
 export function BoardLegendList(): ReactElement {
+  const t = useUi()
+  const LEGEND_MARKS = legendMarks(t)
+  const LEGEND_BUILD = legendBuild(t)
   return (
     <div className={styles.list}>
       <ul className={styles.marks}>
@@ -97,6 +109,7 @@ export interface BoardLegendProps {
 export function BoardLegend({ onDismiss }: BoardLegendProps): ReactElement {
   const containerRef = useModalFocusTrap<HTMLDivElement>(onDismiss)
   const reduceMotion = usePrefersReducedMotion()
+  const t = useUi()
 
   const entrance = reduceMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 }, transition: { duration: 0 } }
@@ -119,20 +132,17 @@ export function BoardLegend({ onDismiss }: BoardLegendProps): ReactElement {
         transition={entrance.transition}
       >
         <header className={styles.header}>
-          <span className={styles.kind}>Reading the board</span>
+          <span className={styles.kind}>{t.legend.kind}</span>
           <h2 id="board-legend-title" className={styles.title}>
-            One picture, one meaning
+            {t.legend.title}
           </h2>
-          <p className={styles.lede}>
-            Every mark on the board means exactly one thing. Here is all of them — you will not be
-            shown this again, and the Handbook keeps a copy.
-          </p>
+          <p className={styles.lede}>{t.legend.lede}</p>
         </header>
 
         <BoardLegendList />
 
         <ChunkyButton variant="primary" size="lg" fullWidth onClick={onDismiss}>
-          Got it
+          {t.common.gotIt}
         </ChunkyButton>
       </motion.div>
     </div>

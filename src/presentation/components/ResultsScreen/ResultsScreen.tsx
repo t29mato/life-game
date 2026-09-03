@@ -5,6 +5,8 @@ import type { GameRecord } from '@application/ports/StatsRepositoryPort'
 import { useAudio } from '../../hooks/useAudio'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { formatMoney, formatOrdinal } from '../../format'
+import { useUi } from '../../i18n/LocaleProvider'
+import type { UiText } from '../../i18n/en'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { RollingNumber } from '../RollingNumber/RollingNumber'
 import { Confetti } from '../Confetti/Confetti'
@@ -38,16 +40,19 @@ type MoneyKey =
   | 'retirementBonus'
   | 'loanPenalty'
 
-const BREAKDOWN_LABELS: ReadonlyArray<readonly [string, MoneyKey]> = [
-  ['Cash', 'cash'],
-  ['Life tiles', 'lifeTileValue'],
-  ['House', 'houseValue'],
-  ['Shares', 'stockValue'],
-  ['Insurance', 'insurancePayout'],
-  ['Kids', 'childrenBonus'],
-  ['Retirement', 'retirementBonus'],
-  ['Loans', 'loanPenalty'],
-]
+/** The eight sums a final total is made of, in the order they are read. */
+function breakdownLabels(t: UiText): ReadonlyArray<readonly [string, MoneyKey]> {
+  return [
+    [t.results.cash, 'cash'],
+    [t.results.lifeTiles, 'lifeTileValue'],
+    [t.results.house, 'houseValue'],
+    [t.results.shares, 'stockValue'],
+    [t.results.insurance, 'insurancePayout'],
+    [t.results.kids, 'childrenBonus'],
+    [t.results.retirement, 'retirementBonus'],
+    [t.results.loans, 'loanPenalty'],
+  ]
+}
 
 function colorVars(color: PlayerResult['color']): CSSProperties {
   return {
@@ -85,10 +90,10 @@ function pastTotalsFor(name: string, history: readonly GameRecord[]): readonly n
 }
 
 /** A short badge for a standing row, when the data honestly supports one. */
-function rowBadge(entry: PlayerResult, history: readonly GameRecord[]): string | null {
+function rowBadge(entry: PlayerResult, history: readonly GameRecord[], t: UiText): string | null {
   const pastTotals = pastTotalsFor(entry.name, history)
   if (pastTotals.length === 0) return null
-  return entry.total > Math.max(...pastTotals) ? 'Personal best' : null
+  return entry.total > Math.max(...pastTotals) ? t.results.personalBest : null
 }
 
 /** One headline about where this game sits in the table's history, if any. */
@@ -96,20 +101,21 @@ function recordNoteFor(
   winner: PlayerResult | undefined,
   history: readonly GameRecord[],
   money: (amount: number) => string,
+  t: UiText,
 ): string | null {
   if (!winner) return null
-  if (history.length === 0) return 'The first game in the hall of records.'
+  if (history.length === 0) return t.results.firstGame
 
   const allPastTotals = history.flatMap((record) => record.standings.map((s) => s.total))
   const tableHigh = allPastTotals.length > 0 ? Math.max(...allPastTotals) : -Infinity
-  if (winner.total > tableHigh) return `A new high score for the table — ${money(winner.total)}.`
+  if (winner.total > tableHigh) return t.results.newHighScore(money(winner.total))
 
   const priorWins = history.filter((record) => record.winnerName === winner.name).length
-  if (priorWins === 0) return `${winner.name}'s first win.`
+  if (priorWins === 0) return t.results.firstWin(winner.name)
 
   const pastTotals = pastTotalsFor(winner.name, history)
   if (pastTotals.length > 0 && winner.total > Math.max(...pastTotals)) {
-    return `A personal best for ${winner.name}.`
+    return t.results.personalBestFor(winner.name)
   }
 
   return null
@@ -118,6 +124,8 @@ function recordNoteFor(
 /** `phase === 'gameOver'`: podium, full standings, and a Play Again CTA. */
 export function ResultsScreen({ results, records, onPlayAgain, editionId }: ResultsScreenProps): ReactElement {
   const { currency } = editionFor(editionId)
+  const t = useUi()
+  const breakdown = breakdownLabels(t)
   // Stable across renders so the memoised record note is not rebuilt every time.
   const money = useCallback((amount: number) => formatMoney(amount, currency), [currency])
   const audio = useAudio()
@@ -130,7 +138,10 @@ export function ResultsScreen({ results, records, onPlayAgain, editionId }: Resu
 
   const history = useMemo(() => priorRecords(records), [records])
   const winner = standings.find((s) => s.playerId === results.winnerId)
-  const recordNote = useMemo(() => recordNoteFor(winner, history, money), [winner, history, money])
+  const recordNote = useMemo(
+    () => recordNoteFor(winner, history, money, t),
+    [winner, history, money, t],
+  )
 
   useEffect(() => {
     if (reduceMotion) {
@@ -189,9 +200,11 @@ export function ResultsScreen({ results, records, onPlayAgain, editionId }: Resu
       <Confetti burstKey={fanfareTick} pieceCount={150} />
 
       <header className={styles.masthead}>
-        <span className={styles.eyebrow}>Final standings</span>
-        <h1 className={styles.heading} data-text="Game Over">
-          Game Over
+        <span className={styles.eyebrow}>{t.results.eyebrow}</span>
+        {/* `data-text` drives the heading's own printed shadow in CSS, so it
+            has to carry the same words the heading does. */}
+        <h1 className={styles.heading} data-text={t.results.heading}>
+          {t.results.heading}
         </h1>
         {winnerLanded && recordNote ? (
           <p className={styles.recordNote} aria-live="polite">
@@ -223,7 +236,7 @@ export function ResultsScreen({ results, records, onPlayAgain, editionId }: Resu
               </span>
               <div className={styles.podiumBlock}>
                 <span className={styles.podiumTop} aria-hidden="true" />
-                <span className={styles.podiumFace}>{formatOrdinal(entry.rank)}</span>
+                <span className={styles.podiumFace}>{formatOrdinal(entry.rank, t)}</span>
               </div>
             </div>
           ))}
@@ -231,11 +244,11 @@ export function ResultsScreen({ results, records, onPlayAgain, editionId }: Resu
         <div className={styles.plinth} aria-hidden="true" />
       </div>
 
-      <div className={styles.table} role="table" aria-label="Final standings">
+      <div className={styles.table} role="table" aria-label={t.results.tableAria}>
         {seatOrder.map((entry) => {
           const revealed = isRevealed(entry.playerId)
           const isWinner = entry.playerId === results.winnerId
-          const badge = revealed ? rowBadge(entry, history) : null
+          const badge = revealed ? rowBadge(entry, history, t) : null
           return (
             <div
               key={entry.playerId}
@@ -246,7 +259,7 @@ export function ResultsScreen({ results, records, onPlayAgain, editionId }: Resu
               style={colorVars(entry.color)}
             >
               <span role="cell" className={styles.rank} aria-hidden={!revealed || undefined}>
-                {revealed ? formatOrdinal(entry.rank) : '?'}
+                {revealed ? formatOrdinal(entry.rank, t) : '?'}
               </span>
               <span role="cell" className={styles.rowIdentity}>
                 <span className={styles.rowDot} aria-hidden="true" />
@@ -254,7 +267,7 @@ export function ResultsScreen({ results, records, onPlayAgain, editionId }: Resu
                 {badge ? <span className={styles.badge}>{badge}</span> : null}
               </span>
               <div role="cell" className={styles.breakdown}>
-                {BREAKDOWN_LABELS.map(([label, key]) => (
+                {breakdown.map(([label, key]) => (
                   <span key={label} className={styles.breakdownItem}>
                     <span className={styles.breakdownLabel}>{label}</span>
                     <RollingNumber
@@ -281,7 +294,7 @@ export function ResultsScreen({ results, records, onPlayAgain, editionId }: Resu
 
       <div className={styles.playAgain}>
         <ChunkyButton variant="primary" size="lg" icon="replay" fullWidth onClick={onPlayAgain}>
-          Play Again
+          {t.results.playAgain}
         </ChunkyButton>
       </div>
     </div>

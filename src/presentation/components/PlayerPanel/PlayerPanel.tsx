@@ -7,8 +7,10 @@ import { loanRepaymentFor } from '@domain/rules/difficulty'
 import { estimateNetWorth } from '@domain/rules/scoring'
 import { formatMoney, formatOrdinal, formatSalary } from '../../format'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { useEditionText, useUi } from '../../i18n/LocaleProvider'
+import type { UiText } from '../../i18n/en'
 import { GameIcon } from '../../icons/GameIcon'
-import { INSURANCE_ICON, INSURANCE_LABEL } from '../../icons/insurance'
+import { INSURANCE_ICON, insuranceLabel } from '../../icons/insurance'
 import { UiIcon, type UiIconName } from '../../icons/ui'
 import { RollingNumber } from '../RollingNumber/RollingNumber'
 import styles from './PlayerPanel.module.css'
@@ -48,10 +50,10 @@ export interface PlayerPanelProps {
 }
 
 /** The tooltip a wage carries: what decides it, in the player's own terms. */
-function variablePayNote(career: Career, currency: CurrencySpec): string {
+function variablePayNote(career: Career, title: string, currency: CurrencySpec, t: UiText): string {
   return career.payPerPip === undefined
-    ? `${career.title}: the same packet every payday.`
-    : `${career.title}: every payday pays ${formatMoney(career.payPerPip, currency)} for each pip you roll.`
+    ? t.panel.fixedPayNote(title)
+    : t.panel.variablePayNote(title, formatMoney(career.payPerPip, currency))
 }
 
 const MEDAL_ICON: Record<1 | 2 | 3, UiIconName> = {
@@ -75,8 +77,16 @@ export function PlayerPanel({
   editionId,
 }: PlayerPanelProps): ReactElement {
   const reduceMotion = usePrefersReducedMotion()
+  const t = useUi()
+  const text = useEditionText(editionId)
   const edition = editionFor(editionId)
   const { currency, economy } = edition
+  // The trade and the house are catalogue entries carried on the player, so
+  // they translate by id — no sentence-matching needed, unlike a tile.
+  const careerTitle = player.career
+    ? (text.career(player.career.id)?.title ?? player.career.title)
+    : null
+  const houseName = player.house ? (text.house(player.house.id)?.name ?? player.house.name) : null
   const money = (amount: number): string => formatMoney(amount, currency)
   const totalShares = player.stocks.reduce((sum, holding) => sum + holding.shares, 0)
   const loanPayoff = player.loans * loanRepaymentFor(difficulty, edition)
@@ -121,20 +131,20 @@ export function PlayerPanel({
             <span className={styles.careerEmoji} aria-hidden="true">
               {player.career ? <GameIcon name={player.career.icon} size={16} /> : null}
             </span>
-            {player.career ? player.career.title : 'Unemployed'}
+            {careerTitle ?? t.panel.unemployed}
           </span>
         </div>
         {player.isRetired ? (
           <span className={styles.retiredBadge}>
-            {player.retirementRank ? `Retired #${player.retirementRank}` : 'Retired'}
+            {player.retirementRank ? t.panel.retiredRank(player.retirementRank) : t.panel.retired}
           </span>
         ) : isActive ? (
-          <span className={styles.turnFlag}>Now playing</span>
+          <span className={styles.turnFlag}>{t.panel.nowPlaying}</span>
         ) : null}
       </header>
 
       <div className={styles.money}>
-        <span className={styles.moneyLabel}>Cash</span>
+        <span className={styles.moneyLabel}>{t.panel.cash}</span>
         <RollingNumber
           className={player.money < 0 ? `${styles.cash} ${styles.debt}` : styles.cash}
           value={player.money}
@@ -146,17 +156,17 @@ export function PlayerPanel({
             jobs is quoted the casual rate they are actually picking up — they
             are earning something now, and the card has to say so. */}
         {player.career ? (
-          <span className={styles.salary} title={variablePayNote(player.career, currency)}>
-            {player.career.payPerPip === undefined
-              ? formatSalary(player.career.salary, currency)
-              : `${formatSalary(player.career.salary, currency)} on average`}
-          </span>
-        ) : (
           <span
             className={styles.salary}
-            title={`Between jobs: every payday pays ${money(economy.casualWagePerPip)} for each pip you roll.`}
+            title={variablePayNote(player.career, careerTitle ?? player.career.title, currency, t)}
           >
-            Casual shifts: {money(economy.casualWagePerPip)} a pip
+            {player.career.payPerPip === undefined
+              ? formatSalary(player.career.salary, currency, t)
+              : t.panel.onAverage(formatSalary(player.career.salary, currency, t))}
+          </span>
+        ) : (
+          <span className={styles.salary} title={t.panel.casualNote(money(economy.casualWagePerPip))}>
+            {t.panel.casualShifts(money(economy.casualWagePerPip))}
           </span>
         )}
       </div>
@@ -169,7 +179,7 @@ export function PlayerPanel({
           be read as one number disagreeing with itself. */}
       <div
         className={styles.worthStrip}
-        title="Cash plus house, shares, life tiles and child bonuses, minus loan payoffs — what this player scores if the game ends now"
+        title={t.panel.worthTitle}
       >
         {rank !== undefined && (
           <span className={styles.rankSlot}>
@@ -187,13 +197,13 @@ export function PlayerPanel({
                 // no transition at all.
                 {...(reduceMotion ? {} : { exit: { y: 8, opacity: 0, scale: 0.5 } })}
               >
-                {medal ? <UiIcon name={medal} size={14} /> : formatOrdinal(rank)}
+                {medal ? <UiIcon name={medal} size={14} /> : formatOrdinal(rank, t)}
               </motion.span>
             </AnimatePresence>
-            <span className="visually-hidden">{formatOrdinal(rank)} place</span>
+            <span className="visually-hidden">{t.format.ordinalPlace(formatOrdinal(rank, t))}</span>
           </span>
         )}
-        <span className={styles.worthLabel}>Net worth</span>
+        <span className={styles.worthLabel}>{t.panel.netWorth}</span>
         {netWorth === player.money ? (
           // Worth equals cash for a player who owns and owes nothing — true
           // for every seat at the start of a game. Printing the same figure
@@ -201,7 +211,7 @@ export function PlayerPanel({
           // teaches players to skip one of them — so the band explains the
           // relationship instead, and its number *appearing* later is itself
           // the news that worth and wallet have parted company.
-          <span className={styles.worthSame}>Same as cash</span>
+          <span className={styles.worthSame}>{t.panel.sameAsCash}</span>
         ) : (
           <RollingNumber className={`${styles.worth} tabular-num`} value={netWorth} format={money} />
         )}
@@ -212,16 +222,14 @@ export function PlayerPanel({
           <span className={styles.chipIcon} aria-hidden="true">
             <UiIcon name="ribbon" size={15} />
           </span>
-          <span className={styles.chipText}>
-            {player.lifeTiles.length} tile{player.lifeTiles.length === 1 ? '' : 's'}
-          </span>
+          <span className={styles.chipText}>{t.panel.tiles(player.lifeTiles.length)}</span>
         </span>
         {player.hasDegree ? (
           <span className={`${styles.chip} ${styles.degreeChip}`}>
             <span className={styles.chipIcon} aria-hidden="true">
               <GameIcon name="space:cap-and-gown" size={16} />
             </span>
-            <span className={styles.chipText}>Graduate</span>
+            <span className={styles.chipText}>{t.panel.graduate}</span>
           </span>
         ) : null}
         {player.isMarried ? (
@@ -229,7 +237,7 @@ export function PlayerPanel({
             <span className={styles.chipIcon} aria-hidden="true">
               <GameIcon name="space:wedding-day" size={16} />
             </span>
-            <span className={styles.chipText}>Married</span>
+            <span className={styles.chipText}>{t.panel.married}</span>
           </span>
         ) : null}
         {player.children > 0 ? (
@@ -237,9 +245,7 @@ export function PlayerPanel({
             <span className={styles.chipIcon} aria-hidden="true">
               <GameIcon name="space:new-baby" size={16} />
             </span>
-            <span className={styles.chipText}>
-              {player.children} kid{player.children === 1 ? '' : 's'}
-            </span>
+            <span className={styles.chipText}>{t.panel.kids(player.children)}</span>
           </span>
         ) : null}
         {player.house ? (
@@ -247,21 +253,19 @@ export function PlayerPanel({
             <span className={styles.chipIcon} aria-hidden="true">
               <GameIcon name={player.house.icon} size={16} />
             </span>
-            <span className={styles.chipText}>{player.house.name}</span>
+            <span className={styles.chipText}>{houseName}</span>
           </span>
         ) : null}
         {player.loans > 0 ? (
           <span
             className={`${styles.chip} ${styles.loanChip}`}
-            title={`${money(loanPrincipal)} borrowed · ${money(loanPayoff)} owed at retirement`}
+            title={t.panel.loanTitle(money(loanPrincipal), money(loanPayoff))}
           >
             <span className={styles.chipIcon} aria-hidden="true">
               <GameIcon name="space:interest-payout" size={16} />
             </span>
-            <span className={styles.chipText}>
-              {player.loans} loan{player.loans === 1 ? '' : 's'}
-            </span>
-            <span className={styles.chipSub}>{money(loanPayoff)} at retirement</span>
+            <span className={styles.chipText}>{t.panel.loans(player.loans)}</span>
+            <span className={styles.chipSub}>{t.panel.atRetirement(money(loanPayoff))}</span>
           </span>
         ) : null}
         {totalShares > 0 ? (
@@ -269,9 +273,7 @@ export function PlayerPanel({
             <span className={styles.chipIcon} aria-hidden="true">
               <GameIcon name="finance:trading-floor" size={16} />
             </span>
-            <span className={styles.chipText}>
-              {totalShares} share{totalShares === 1 ? '' : 's'}
-            </span>
+            <span className={styles.chipText}>{t.panel.shares(totalShares)}</span>
           </span>
         ) : null}
         {player.insurance.map((kind) => (
@@ -279,7 +281,7 @@ export function PlayerPanel({
             <span className={styles.chipIcon} aria-hidden="true">
               <GameIcon name={INSURANCE_ICON[kind]} size={16} />
             </span>
-            <span className={styles.chipText}>{INSURANCE_LABEL[kind]} policy</span>
+            <span className={styles.chipText}>{t.panel.policy(insuranceLabel(kind, t))}</span>
           </span>
         ))}
       </div>

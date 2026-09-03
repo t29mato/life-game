@@ -1,3 +1,5 @@
+import { EN, type UiText } from '../../i18n/en'
+
 /**
  * Who is riding in a player's car, and how to say it.
  *
@@ -37,15 +39,23 @@ export function childPegs(childCount: number): BackSeat {
  * The board is a single image as far as assistive technology is concerned, so
  * this is the only way a player using one learns that a rival has a full car —
  * and it always reports the true number of children, never the badged one.
+ *
+ * The list is handed to the catalogue whole rather than joined here: "a
+ * partner and 2 children" is English joining a list, and a language that does
+ * it differently has to be able to say so.
  */
-export function describeCar(name: string, isMarried: boolean, childCount: number): string {
+export function describeCar(
+  name: string,
+  isMarried: boolean,
+  childCount: number,
+  t: UiText = EN,
+): string {
   const count = Math.max(0, Math.floor(childCount))
   const seats = [
-    isMarried ? 'a partner alongside' : null,
-    count === 1 ? '1 child' : count > 1 ? `${count} children` : null,
+    isMarried ? t.passengers.partner : null,
+    count > 0 ? t.passengers.children(count) : null,
   ].filter((seat): seat is string => seat !== null)
 
-  if (seats.length === 0) return `${name}, driving alone`
-  if (seats.length === 1) return `${name}, driving with ${seats[0] as string}`
-  return `${name}, driving with ${seats[0] as string} and ${seats[1] as string}`
+  if (seats.length === 0) return t.passengers.alone(name)
+  return t.passengers.with(name, seats)
 }

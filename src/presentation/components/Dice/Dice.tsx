@@ -10,6 +10,7 @@ import {
 import type { SpinValue } from '@domain/model/types'
 import { useAudio } from '../../hooks/useAudio'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { useUi } from '../../i18n/LocaleProvider'
 import { usePrimaryAction } from '../../hooks/usePrimaryAction'
 import { TEMPO } from '../../tempo'
 import { FACE_PLACEMENTS, SETTLE_ROTATIONS, pipsFor } from './diceFaces'
@@ -283,6 +284,7 @@ export function Dice({
 }: DiceProps): ReactElement {
   const audio = useAudio()
   const reduceMotion = usePrefersReducedMotion()
+  const t = useUi()
   const rotX = useMotionValue(0)
   const rotY = useMotionValue(0)
   const throwX = useMotionValue(0)
@@ -539,7 +541,7 @@ export function Dice({
   }, [autoRollToken])
 
   const ready = !disabled && !rolling
-  const label = rolling ? 'Rolling…' : landed === null ? 'Roll' : `Roll — last roll ${landed}`
+  const label = rolling ? t.dice.rolling : landed === null ? t.dice.roll : t.dice.rollWithLast(landed)
   /*
    * Waiting for a press, and saying so. Only while this die is genuinely the
    * screen's next input: a die that is merely on screen (the board's, under
@@ -622,17 +624,17 @@ export function Dice({
           already carries this for anyone not reading the screen. */}
       {waiting && (
         <p className={styles.prompt} aria-hidden="true">
-          <span className={styles.promptKey}>Space</span>
+          <span className={styles.promptKey}>{t.dice.spaceKey}</span>
           <span className={styles.promptSlash}> / </span>
-          <span className={styles.promptClick}>click to roll</span>
-          <span className={styles.promptTap}>Tap to roll</span>
+          <span className={styles.promptClick}>{t.dice.clickToRoll}</span>
+          <span className={styles.promptTap}>{t.dice.tapToRoll}</span>
         </p>
       )}
 
       {/* The drawing is one image to assistive technology, so the number it
           came to rest on is stated in words rather than left inside it. */}
       <p className="visually-hidden" role="status">
-        {landed === null ? '' : `Rolled a ${landed}`}
+        {landed === null ? '' : t.dice.rolledA(landed)}
       </p>
     </div>
   )

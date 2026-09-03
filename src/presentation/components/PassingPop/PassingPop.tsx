@@ -5,6 +5,7 @@ import { editionFor } from '@domain/edition/registry'
 import { formatMoneyDelta } from '../../format'
 import { GameIcon } from '../../icons/GameIcon'
 import { useAudio } from '../../hooks/useAudio'
+import { useEditionText } from '../../i18n/LocaleProvider'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import styles from './PassingPop.module.css'
 
@@ -39,6 +40,9 @@ export function PassingPop({ event, editionId }: PassingPopProps): ReactElement 
   const reduceMotion = usePrefersReducedMotion()
   const { currency } = editionFor(editionId)
   const hasMoney = event.moneyDelta !== 0
+  // The tile's own words, matched on the sentence it is carrying — see
+  // `EventCard`, which resolves the same two fields the same way.
+  const tileText = useEditionText(editionId).space(event.spaceId, event.description)
 
   // The same coin the card played, kept: money changing hands is the one
   // thing about a passed tile a player might otherwise miss entirely now
@@ -73,7 +77,7 @@ export function PassingPop({ event, editionId }: PassingPopProps): ReactElement 
         <GameIcon name={event.icon} size={26} />
       </span>
       <span className={styles.body}>
-        <span className={styles.title}>{event.title}</span>
+        <span className={styles.title}>{tileText?.title ?? event.title}</span>
         {hasMoney ? (
           <span
             className={`${styles.amount} tabular-num ${
@@ -86,7 +90,9 @@ export function PassingPop({ event, editionId }: PassingPopProps): ReactElement 
           // A passed tile that moved no money still has to say *something*,
           // or the pop is a title with an empty space under it. Its own
           // one-line story is what the card used to lead with.
-          <span className={styles.note}>{event.narration ?? event.description}</span>
+          <span className={styles.note}>
+            {event.narration ?? tileText?.description ?? event.description}
+          </span>
         )}
       </span>
     </motion.div>

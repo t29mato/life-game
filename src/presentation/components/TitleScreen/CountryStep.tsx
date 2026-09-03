@@ -2,6 +2,7 @@ import type { ReactElement } from 'react'
 import type { EditionId } from '@domain/model/types'
 import type { Edition } from '@domain/edition/types'
 import { editionDisplayName } from '../../format'
+import { useUi } from '../../i18n/LocaleProvider'
 import { StepFrame } from './StepFrame'
 import { editionBlurb, editionFacts, researcherEditionFor } from './setupDraft'
 import styles from './TitleScreen.module.css'
@@ -59,6 +60,7 @@ export function CountryStep({
   onBack,
   onNext,
 }: CountryStepProps): ReactElement {
+  const t = useUi()
   // Where the forward button actually goes. A country with a researcher board
   // has one more question waiting; one without does not, and the button says
   // which — a primary action that names the wrong destination is worse than
@@ -69,21 +71,21 @@ export function CountryStep({
     <StepFrame
       stepNumber={stepNumber}
       stepCount={stepCount}
-      heading="Where are you living it?"
-      lead="Each country counts in its own money and pays its own wages. Every board is the full game."
+      heading={t.country.heading}
+      lead={t.country.lead}
       onBack={onBack}
-      backLabel="Back to the players"
-      primary={{ label: nextIsLife ? 'Next: which life' : 'Next: the difficulty', onClick: onNext }}
+      backLabel={t.backTo.players}
+      primary={{ label: nextIsLife ? t.country.nextLife : t.country.next, onClick: onNext }}
     >
-      <div className={styles.choiceGrid} role="group" aria-label="Edition">
+      <div className={styles.choiceGrid} role="group" aria-label={t.country.groupLabel}>
         {editions.map((edition) => {
           const researcher = researcherEditionFor(edition.id)
           /* The card's own sentence, spoken. The figures are printed in the
              table below rather than on the card, but a button whose whole
              accessible name is a place name tells a screen reader nothing it
              could compare, so the sentence rides in the label. */
-          const spoken = `${editionDisplayName(edition)} edition. ${editionBlurb(edition)}${
-            researcher === undefined ? '' : ' It also has a researcher board.'
+          const blurb = `${editionBlurb(edition, t)}${
+            researcher === undefined ? '' : ` ${t.country.alsoResearcher}`
           }`
           return (
             <button
@@ -91,14 +93,19 @@ export function CountryStep({
               type="button"
               className={`${styles.choiceCard} ${editionId === edition.id ? styles.choiceSelected : ''}`}
               aria-pressed={editionId === edition.id}
-              aria-label={spoken}
+              /* The blurb used to sit outside the buttons as a `<p>` about
+                 whichever one was selected, which read fine but meant a card
+                 announced nothing but a place name until it was already
+                 chosen. It rides in the label now, so a screen reader hears
+                 the same facts a sighted player compares the cards on. */
+              aria-label={t.country.cardAria(editionDisplayName(edition, t), blurb)}
               onClick={() => onChoose(edition.id)}
             >
               <span className={styles.choiceName} aria-hidden="true">
-                {editionDisplayName(edition)}
+                {editionDisplayName(edition, t)}
               </span>
               <span className={styles.choiceHint} aria-hidden="true">
-                counts in {edition.currency.symbol}
+                {t.country.countsIn(edition.currency.symbol)}
               </span>
             </button>
           )
@@ -109,20 +116,17 @@ export function CountryStep({
           sideways — four columns of money on a phone is wider than a phone. */}
       <div className={styles.compareScroll}>
         <table className={styles.compareTable}>
-          <caption className="visually-hidden">
-            The country boards compared: what each starts you with, what its work pays, and whether it has
-            a researcher board
-          </caption>
+          <caption className="visually-hidden">{t.country.tableCaption}</caption>
           <thead>
             <tr>
-              <th scope="col">Country</th>
+              <th scope="col">{t.country.columnCountry}</th>
               <th scope="col" className={styles.compareFigure}>
-                Start with
+                {t.country.columnStart}
               </th>
               <th scope="col" className={styles.compareFigure}>
-                Salaries
+                {t.country.columnSalaries}
               </th>
-              <th scope="col">Researcher board</th>
+              <th scope="col">{t.country.columnResearcher}</th>
             </tr>
           </thead>
           <tbody>
@@ -133,13 +137,17 @@ export function CountryStep({
                   key={edition.id}
                   className={editionId === edition.id ? styles.compareRowOn : ''}
                 >
-                  <th scope="row">{editionDisplayName(edition)}</th>
+                  <th scope="row">{editionDisplayName(edition, t)}</th>
                   <td className={styles.compareFigure}>{facts.start}</td>
                   <td className={styles.compareFigure}>{facts.salaries ?? '—'}</td>
                   {/* "Not yet" rather than a dash: three of the five countries
                       simply have no researcher board written, and saying so is
                       the honest reason the next step will not appear for them. */}
-                  <td>{researcherEditionFor(edition.id) === undefined ? 'Not yet' : 'Yes'}</td>
+                  <td>
+                    {researcherEditionFor(edition.id) === undefined
+                      ? t.country.researcherNotYet
+                      : t.country.researcherYes}
+                  </td>
                 </tr>
               )
             })}

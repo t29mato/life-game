@@ -3,6 +3,8 @@ import type { GameRecord, GameRecordEntry } from '@application/ports/StatsReposi
 import { editionFor } from '@domain/edition/registry'
 import { editionDisplayName, formatMoney, formatOrdinal } from '../../format'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
+import { useUi } from '../../i18n/LocaleProvider'
+import type { UiText } from '../../i18n/en'
 import { UiIcon, type UiIconName } from '../../icons/ui'
 import styles from './RecordsScreen.module.css'
 
@@ -18,11 +20,21 @@ interface WinTally {
 
 const MEDALS: readonly UiIconName[] = ['medal-gold', 'medal-silver', 'medal-bronze']
 
-/** `1970-01-01T00:00:00.000Z` → `'Jan 1, 2026'`. Always English, regardless of the host locale. */
-function formatPlayedAt(playedAt: string): string {
+/**
+ * `1970-01-01T00:00:00.000Z` → `'Jan 1, 2026'`, or `'2026年1月1日'`.
+ *
+ * The tag comes from the catalogue rather than from the host, deliberately: a
+ * date printed beside a game is part of the game's own voice, so it follows
+ * the language the player chose and not whatever the browser is set to.
+ */
+function formatPlayedAt(playedAt: string, t: UiText): string {
   const date = new Date(playedAt)
-  if (Number.isNaN(date.getTime())) return 'an unknown date'
-  return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  if (Number.isNaN(date.getTime())) return t.format.unknownDate
+  return date.toLocaleString(t.format.dateLocale, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
 /** Newest first, defensively — `list()` already promises this ordering. */
@@ -52,6 +64,7 @@ function entryColorVars(color: GameRecordEntry['color']): CSSProperties {
 /** `phase === 'setup'`, opened from the title screen: the hall of records. */
 export function RecordsScreen({ records, onClose }: RecordsScreenProps): ReactElement {
   const headingRef = useRef<HTMLHeadingElement>(null)
+  const t = useUi()
   const sorted = useMemo(() => byPlayedAtDescending(records), [records])
   const leaders = useMemo(() => tallyWins(records), [records])
 
@@ -68,12 +81,12 @@ export function RecordsScreen({ records, onClose }: RecordsScreenProps): ReactEl
       <header className={styles.masthead}>
         <div className={styles.backRow}>
           <ChunkyButton variant="ghost" size="sm" icon="exit" onClick={onClose}>
-            Back to title
+            {t.common.backToTitle}
           </ChunkyButton>
         </div>
-        <span className={styles.eyebrow}>Every game this table has played</span>
-        <h1 className={styles.heading} data-text="Hall of Records" tabIndex={-1} ref={headingRef}>
-          Hall of Records
+        <span className={styles.eyebrow}>{t.records.eyebrow}</span>
+        <h1 className={styles.heading} data-text={t.records.heading} tabIndex={-1} ref={headingRef}>
+          {t.records.heading}
         </h1>
       </header>
 
@@ -82,17 +95,14 @@ export function RecordsScreen({ records, onClose }: RecordsScreenProps): ReactEl
           <span className={styles.emptyBadge} aria-hidden="true">
             <UiIcon name="ribbon" size={40} />
           </span>
-          <p className={styles.emptyTitle}>No games finished yet</p>
-          <p className={styles.emptyBody}>
-            Play a full game and the hall of records will remember every finish — who won, by how much,
-            and how long it took. Come back here once the first pawn crosses the retirement space.
-          </p>
+          <p className={styles.emptyTitle}>{t.records.emptyTitle}</p>
+          <p className={styles.emptyBody}>{t.records.emptyBody}</p>
         </div>
       ) : (
         <>
           {leaders.length > 0 ? (
-            <section className={styles.leaders} aria-label="Wins by player">
-              <span className={styles.sectionLabel}>Table leaders</span>
+            <section className={styles.leaders} aria-label={t.records.winsAria}>
+              <span className={styles.sectionLabel}>{t.records.tableLeaders}</span>
               <ol className={styles.leaderList}>
                 {leaders.map((leader, index) => (
                   <li key={leader.name} className={styles.leaderChip}>
@@ -100,16 +110,14 @@ export function RecordsScreen({ records, onClose }: RecordsScreenProps): ReactEl
                       {MEDALS[index] ? <UiIcon name={MEDALS[index] as UiIconName} size={18} /> : null}
                     </span>
                     <span className={styles.leaderName}>{leader.name}</span>
-                    <span className={styles.leaderWins}>
-                      {leader.wins} {leader.wins === 1 ? 'win' : 'wins'}
-                    </span>
+                    <span className={styles.leaderWins}>{t.records.wins(leader.wins)}</span>
                   </li>
                 ))}
               </ol>
             </section>
           ) : null}
 
-          <ul className={styles.history} aria-label="Game history">
+          <ul className={styles.history} aria-label={t.records.historyAria}>
             {sorted.map((record, index) => (
               <li key={`${record.playedAt}-${index}`} className={styles.card}>
                 <div className={styles.cardHeader}>
@@ -123,23 +131,23 @@ export function RecordsScreen({ records, onClose }: RecordsScreenProps): ReactEl
                         and the tag is what keeps neighbouring cards from
                         reading as one league table. */}
                     <span className={styles.cardEdition}>
-                      {editionDisplayName(editionFor(record.editionId))}
+                      {editionDisplayName(editionFor(record.editionId), t)}
                     </span>
-                    <span className={styles.cardTurns}>
-                      {record.turns} {record.turns === 1 ? 'turn' : 'turns'}
-                    </span>
-                    <span className={styles.cardDate}>{formatPlayedAt(record.playedAt)}</span>
+                    <span className={styles.cardTurns}>{t.records.turns(record.turns)}</span>
+                    <span className={styles.cardDate}>{formatPlayedAt(record.playedAt, t)}</span>
                   </span>
                 </div>
 
                 <ol className={styles.standings}>
                   {record.standings.map((entry) => (
                     <li key={entry.name} className={styles.standingRow} style={entryColorVars(entry.color)}>
-                      <span className={styles.standingRank}>{formatOrdinal(entry.rank)}</span>
+                      <span className={styles.standingRank}>{formatOrdinal(entry.rank, t)}</span>
                       <span className={styles.standingDot} aria-hidden="true" />
                       <span className={styles.standingName}>
                         {entry.name}
-                        {entry.isCpu ? <span className={styles.standingCpu}>CPU</span> : null}
+                        {entry.isCpu ? (
+                          <span className={styles.standingCpu}>{t.common.cpu}</span>
+                        ) : null}
                       </span>
                       <span className={`${styles.standingTotal} tabular-num`}>
                         {/* Each game is quoted in the money it was actually won

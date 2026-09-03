@@ -5,11 +5,14 @@ import type { CurrencySpec, Edition } from '@domain/edition/types'
 import { allEditions, DEFAULT_EDITION_ID } from '@domain/edition/registry'
 import { hiringPoolFor, ladderPositionOf } from '@domain/edition/lookup'
 import { editionDisplayName, formatSalary } from '../../format'
+import { useLocale, useUi } from '../../i18n/LocaleProvider'
+import type { UiText } from '../../i18n/en'
+import { editionTextFor, type EditionText } from '@domain/edition/i18n/text'
 import { BoardLegendList } from '../BoardLegend/BoardLegend'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { GameIcon } from '../../icons/GameIcon'
 import { CareerPlaque } from '../CareerPlaque/CareerPlaque'
-import { CAREER_FAMILY, FAMILY_PALETTE, isCareerIcon } from '../CareerPlaque/families'
+import { CAREER_FAMILY, FAMILY_PALETTE, familyLabel, isCareerIcon } from '../CareerPlaque/families'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import styles from './ManualScreen.module.css'
@@ -23,32 +26,22 @@ export interface ManualScreenProps {
  * the game teaches its details tile by tile, and a manual that re-explains
  * every one of them is a manual nobody reads past.
  */
-const TURN_STEPS: readonly { readonly title: string; readonly body: string }[] = [
-  {
+function turnSteps(t: UiText): readonly { readonly title: string; readonly body: string }[] {
+  return [
     /*
-     * This step used to read "A fork asks twice: pick the road first, then
+     * Step one used to read "A fork asks twice: pick the road first, then
      * roll again" — which stopped being true when forks went onto the die.
      * Nobody picks a road any more: the first roll picks it, 1-3 one way and
      * 4-6 the other, and the second roll is the distance. Verified against
      * `resolveForkBranch` and `spin` rather than taken on trust, because a
      * handbook that disagrees with the rules is worse than no handbook.
      */
-    title: 'Roll the die',
-    body: 'Every turn starts with one roll, 1 to 6. A fork takes two: the first picks the road for you — 1 to 3 one way, 4 to 6 the other — and the second is how far down it you drive.',
-  },
-  {
-    title: 'Drive the road',
-    body: 'Paydays and milestones you drive past still pay out — each one deals its own card on the way, before you reach where you stop.',
-  },
-  {
-    title: 'Resolve the landing',
-    body: 'The tile you stop on plays out: money moves, a die decides something, or a real decision is put in front of you.',
-  },
-  {
-    title: 'Pass the die',
-    body: 'Play moves around the table until every pawn has reached retirement — then the scores settle, houses, stocks and LIFE tiles included.',
-  },
-]
+    { title: t.manual.step1Title, body: t.manual.step1Body },
+    { title: t.manual.step2Title, body: t.manual.step2Body },
+    { title: t.manual.step3Title, body: t.manual.step3Body },
+    { title: t.manual.step4Title, body: t.manual.step4Body },
+  ]
+}
 
 /**
  * The board's tile kinds, written the way `SpaceKind`'s own contract writes
@@ -56,98 +49,71 @@ const TURN_STEPS: readonly { readonly title: string; readonly body: string }[] =
  * stop — because that distinction is the one thing about the board a new
  * player cannot see by looking at it.
  */
-const TILE_KINDS: readonly {
+function tileKinds(t: UiText): readonly {
   readonly name: string
   readonly rule: string
   readonly icon: IconName
   readonly tone: SpaceTone
-}[] = [
-  {
-    name: 'Payday',
-    rule: 'Collects your salary whether you land on it or drive straight past it.',
-    icon: 'space:payday',
-    tone: 'gold',
-  },
-  {
-    name: 'Milestone',
-    rule: 'Fires when passed or landed on, and never cuts a big roll short.',
-    icon: 'space:wedding-day',
-    tone: 'pink',
-  },
-  {
-    name: 'Ordinary tile',
-    rule: 'Only does something when your pawn actually stops on it.',
-    icon: 'space:lucky-find',
-    tone: 'blue',
-  },
-  {
-    name: 'Stop',
-    rule: 'Movement always halts here, steps to spare or not — a decision worth weighing is waiting.',
-    icon: 'space:house-hunting',
-    tone: 'purple',
-  },
-  {
-    name: 'Retirement',
-    rule: 'The end of the road. Reaching it retires your pawn; first in takes the biggest bonus.',
-    icon: 'space:retirement',
-    tone: 'slate',
-  },
-]
+}[] {
+  return [
+    { name: t.manual.kindPaydayName, rule: t.manual.kindPaydayRule, icon: 'space:payday', tone: 'gold' },
+    {
+      name: t.manual.kindMilestoneName,
+      rule: t.manual.kindMilestoneRule,
+      icon: 'space:wedding-day',
+      tone: 'pink',
+    },
+    {
+      name: t.manual.kindOrdinaryName,
+      rule: t.manual.kindOrdinaryRule,
+      icon: 'space:lucky-find',
+      tone: 'blue',
+    },
+    {
+      name: t.manual.kindStopName,
+      rule: t.manual.kindStopRule,
+      icon: 'space:house-hunting',
+      tone: 'purple',
+    },
+    {
+      name: t.manual.kindRetirementName,
+      rule: t.manual.kindRetirementRule,
+      icon: 'space:retirement',
+      tone: 'slate',
+    },
+  ]
+}
 
 /**
  * The words this game has coined, defined once each. Difficulty is absent on
  * purpose — the title screen already explains it at the moment of choosing,
  * which is the only moment the explanation is worth anything.
  */
-const GLOSSARY: readonly { readonly term: string; readonly meaning: string }[] = [
-  {
-    term: 'Ladder',
-    meaning:
-      'A trade written as rungs — apprentice, stylist, salon owner. A fair hires you onto the bottom rung; everything above it is climbed at reviews, and the top rungs need the bigger rolls.',
-  },
-  {
-    term: 'A calling',
-    meaning:
-      'Work with no ladder above it at all. It never climbs, a layoff can never take it, and every review pays a LIFE tile instead of a title.',
-  },
-  {
-    term: 'LIFE tiles',
-    meaning:
-      'Keepsakes picked up along the road — a marathon, a novel, a rescue dog. Every one is worth real money at the final scoring.',
-  },
-  {
-    term: 'Paid by the die',
-    meaning:
-      'Some work has good weeks and bad ones. A trade marked this way pays a rate times your roll at each payday instead of a fixed salary — the quoted wage is what it averages.',
-  },
-  {
-    term: 'A degree',
-    meaning:
-      'College Lane’s prize: tuition up front, and every job fair after graduation deals from the graduate ladders — a higher floor, in exchange for the bill.',
-  },
-  {
-    term: 'Seniority',
-    meaning:
-      'A layoff costs one rung, never the whole climb. The next fair re-hires you at the level you had earned, less one — even onto a different trade.',
-  },
-  {
-    term: 'The Number',
-    meaning:
-      'Hold enough cash at the right tile and you may stop working decades early — rolling for what drawing the fund that soon actually costs.',
-  },
-]
+function glossary(t: UiText): readonly { readonly term: string; readonly meaning: string }[] {
+  return [
+    { term: t.manual.glossaryLadderTerm, meaning: t.manual.glossaryLadderMeaning },
+    { term: t.manual.glossaryCallingTerm, meaning: t.manual.glossaryCallingMeaning },
+    { term: t.manual.glossaryTilesTerm, meaning: t.manual.glossaryTilesMeaning },
+    { term: t.manual.glossaryPerPipTerm, meaning: t.manual.glossaryPerPipMeaning },
+    { term: t.manual.glossaryDegreeTerm, meaning: t.manual.glossaryDegreeMeaning },
+    { term: t.manual.glossarySeniorityTerm, meaning: t.manual.glossarySeniorityMeaning },
+    { term: t.manual.glossaryNumberTerm, meaning: t.manual.glossaryNumberMeaning },
+  ]
+}
 
 /**
  * The booklet's table of contents: one entry per section, in page order.
  * The labels are shorter than the section headings on purpose — a tab of a
  * real booklet says "Careers", not "The careers of the world".
  */
-const CONTENTS: readonly { readonly id: string; readonly label: string }[] = [
-  { id: 'manual-turn', label: 'Turns' },
-  { id: 'manual-board', label: 'The board' },
-  { id: 'manual-careers', label: 'Careers' },
-  { id: 'manual-words', label: 'Glossary' },
-]
+function contents(t: UiText): readonly { readonly id: string; readonly label: string }[] {
+  return [
+    { id: 'manual-turn', label: t.manual.contentsTurns },
+    { id: 'manual-board', label: t.manual.contentsBoard },
+    { id: 'manual-careers', label: t.manual.contentsCareers },
+    { id: 'manual-words', label: t.manual.contentsGlossary },
+  ]
+}
 
 /**
  * The shelf, in the order the title screen's picker offers it: the classic
@@ -192,15 +158,22 @@ function CareerCard({
   rung,
   height,
   currency,
+  t,
+  text,
 }: {
   readonly career: Career
   readonly rung: number
   readonly height: number
   readonly currency: CurrencySpec
+  readonly t: UiText
+  readonly text: EditionText
 }): ReactElement {
-  const family = isCareerIcon(career.icon) ? FAMILY_PALETTE[CAREER_FAMILY[career.icon]] : null
+  const family = isCareerIcon(career.icon) ? CAREER_FAMILY[career.icon] : null
+  const palette = family ? FAMILY_PALETTE[family] : null
+  const title = text.career(career.id)?.title ?? career.title
+  const description = text.career(career.id)?.description ?? career.description
   return (
-    <article className={styles.careerCard} aria-label={career.title}>
+    <article className={styles.careerCard} aria-label={title}>
       <div className={styles.careerTop}>
         {isCareerIcon(career.icon) ? (
           <CareerPlaque icon={career.icon} size={62} />
@@ -208,26 +181,26 @@ function CareerCard({
           <GameIcon name={career.icon} size={48} />
         )}
         <div className={styles.careerHead}>
-          <span className={styles.careerTitle}>{career.title}</span>
-          <span className={`${styles.careerSalary} tabular-num`}>{formatSalary(career.salary, currency)}</span>
-          {family ? (
-            <span className={styles.familyTag} style={{ '--tag-ink': family.dark } as CSSProperties}>
-              {family.label}
+          <span className={styles.careerTitle}>{title}</span>
+          <span className={`${styles.careerSalary} tabular-num`}>
+            {formatSalary(career.salary, currency, t)}
+          </span>
+          {family && palette ? (
+            <span className={styles.familyTag} style={{ '--tag-ink': palette.dark } as CSSProperties}>
+              {familyLabel(family, t)}
             </span>
           ) : null}
         </div>
       </div>
-      <p className={styles.careerBlurb}>{career.description}</p>
+      <p className={styles.careerBlurb}>{description}</p>
       {career.isCalling || height > 1 || career.payPerPip ? (
         <div className={styles.careerTags}>
           {career.isCalling ? (
-            <span className={`${styles.tag} ${styles.tagCalling}`}>A calling</span>
+            <span className={`${styles.tag} ${styles.tagCalling}`}>{t.manual.tagCalling}</span>
           ) : height > 1 ? (
-            <span className={styles.tag}>
-              Rung {rung} of {height}
-            </span>
+            <span className={styles.tag}>{t.manual.tagRung(rung, height)}</span>
           ) : null}
-          {career.payPerPip ? <span className={styles.tag}>Paid by the die</span> : null}
+          {career.payPerPip ? <span className={styles.tag}>{t.manual.tagPaidByDie}</span> : null}
         </div>
       ) : null}
     </article>
@@ -238,9 +211,13 @@ function CareerCard({
 function Ladder({
   rungs,
   currency,
+  t,
+  text,
 }: {
   readonly rungs: readonly Career[]
   readonly currency: CurrencySpec
+  readonly t: UiText
+  readonly text: EditionText
 }): ReactElement {
   return (
     <div className={styles.ladder}>
@@ -250,11 +227,20 @@ function Ladder({
             <span className={styles.climb} aria-hidden="true">
               <span className={styles.climbArrow}>→</span>
               {rungs[index - 1]?.promotionSpin ? (
-                <span className={styles.climbNote}>on a {rungs[index - 1]!.promotionSpin}+</span>
+                <span className={styles.climbNote}>
+                  {t.manual.climbOn(rungs[index - 1]!.promotionSpin!)}
+                </span>
               ) : null}
             </span>
           ) : null}
-          <CareerCard career={career} rung={index + 1} height={rungs.length} currency={currency} />
+          <CareerCard
+            career={career}
+            rung={index + 1}
+            height={rungs.length}
+            currency={currency}
+            t={t}
+            text={text}
+          />
         </Fragment>
       ))}
     </div>
@@ -269,11 +255,15 @@ function Ladder({
  * country with no grad school on its board simply shows two pools, exactly as
  * this screen always did.
  */
-const POOLS = [
-  { tier: 'basic', label: 'Straight from the fair', hint: 'no degree needed' },
-  { tier: 'graduate', label: 'The graduate pool', hint: 'degree required' },
-  { tier: 'doctorate', label: 'The doctoral pool', hint: 'doctorate required' },
-] as const satisfies readonly { readonly tier: CareerTier; readonly label: string; readonly hint: string }[]
+function pools(
+  t: UiText,
+): readonly { readonly tier: CareerTier; readonly label: string; readonly hint: string }[] {
+  return [
+    { tier: 'basic', label: t.manual.poolBasicLabel, hint: t.manual.poolBasicHint },
+    { tier: 'graduate', label: t.manual.poolGraduateLabel, hint: t.manual.poolGraduateHint },
+    { tier: 'doctorate', label: t.manual.poolDoctorateLabel, hint: t.manual.poolDoctorateHint },
+  ]
+}
 
 /**
  * `phase === 'setup'`, opened from the title screen: the game's own
@@ -290,12 +280,18 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
   const sectionRefs = useRef<Record<string, HTMLHeadingElement | null>>({})
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
   const reduceMotion = usePrefersReducedMotion()
+  const { locale } = useLocale()
+  const t = useUi()
   const editions = editionShelf()
   // The catalogue shows one country at a time — five full catalogues stacked
   // was the wall of paper this screen used to be. The shelf's first edition
   // (the classic USA game) is the one a first-time reader means by default.
   const [shownEditionId, setShownEditionId] = useState<string>(editions[0]!.id)
   const shownEdition = editions.find((edition) => edition.id === shownEditionId) ?? editions[0]!
+  /* The open page's own catalogue. Resolved from the *shown* edition rather
+     than from the game being played: the handbook's whole shape is one
+     country at a time, and a tab is a different country. */
+  const shownText = editionTextFor(shownEdition, locale)
 
   useEffect(() => {
     headingRef.current?.focus()
@@ -351,19 +347,19 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
       <header className={styles.masthead}>
         <div className={styles.backRow}>
           <ChunkyButton variant="ghost" size="sm" icon="exit" onClick={onClose}>
-            Back to title
+            {t.common.backToTitle}
           </ChunkyButton>
         </div>
-        <span className={styles.eyebrow}>Everything in the box, explained</span>
-        <h1 className={styles.heading} data-text="The Handbook" tabIndex={-1} ref={headingRef}>
-          The Handbook
+        <span className={styles.eyebrow}>{t.manual.eyebrow}</span>
+        <h1 className={styles.heading} data-text={t.manual.heading} tabIndex={-1} ref={headingRef}>
+          {t.manual.heading}
         </h1>
       </header>
 
       {/* The booklet's thumb tabs: always in reach, one press from any page.
           Sticky so the reader deep in the catalogue can still get out of it. */}
-      <nav className={styles.contents} aria-label="Contents">
-        {CONTENTS.map((entry) => (
+      <nav className={styles.contents} aria-label={t.manual.contentsAria}>
+        {contents(t).map((entry) => (
           <button
             key={entry.id}
             type="button"
@@ -377,10 +373,10 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
 
       <section className={styles.section} aria-labelledby="manual-turn">
         <h2 className={styles.sectionHeading} id="manual-turn" tabIndex={-1} ref={registerSection('manual-turn')}>
-          How a turn works
+          {t.manual.turnHeading}
         </h2>
         <ol className={styles.steps}>
-          {TURN_STEPS.map((step, index) => (
+          {turnSteps(t).map((step, index) => (
             <li key={step.title} className={styles.step}>
               <span className={styles.stepNumber} aria-hidden="true">
                 {index + 1}
@@ -396,10 +392,10 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
 
       <section className={styles.section} aria-labelledby="manual-board">
         <h2 className={styles.sectionHeading} id="manual-board" tabIndex={-1} ref={registerSection('manual-board')}>
-          Reading the board
+          {t.manual.boardHeading}
         </h2>
         <ul className={styles.tileList}>
-          {TILE_KINDS.map((kind) => (
+          {tileKinds(t).map((kind) => (
             <li key={kind.name} className={styles.tileRow}>
               <span
                 className={styles.tileSwatch}
@@ -426,22 +422,19 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
             player is dealt once before their first roll, kept here for ever
             so "what does the red-and-white stripe mean?" has an answer
             inside the game rather than only in somebody's memory. */}
-        <h3 className={styles.subHeading}>What the marks mean</h3>
+        <h3 className={styles.subHeading}>{t.manual.marksHeading}</h3>
         <BoardLegendList />
       </section>
 
       <section className={styles.section} aria-labelledby="manual-careers">
         <h2 className={styles.sectionHeading} id="manual-careers" tabIndex={-1} ref={registerSection('manual-careers')}>
-          The careers of the world
+          {t.manual.careersHeading}
         </h2>
-        <p className={styles.sectionLede}>
-          Every trade on every board, ladder by ladder, one country at a time. A fair only ever hires
-          onto the leftmost rung — the rest is climbed.
-        </p>
+        <p className={styles.sectionLede}>{t.manual.careersLede}</p>
         <div
           className={styles.editionTabs}
           role="tablist"
-          aria-label="Pick a country"
+          aria-label={t.manual.pickCountry}
           onKeyDown={handleTabKeyDown}
         >
           {editions.map((edition, index) => {
@@ -461,7 +454,7 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
                 }}
                 onClick={() => setShownEditionId(edition.id)}
               >
-                {editionDisplayName(edition)}
+                {editionDisplayName(edition, t)}
               </button>
             )
           })}
@@ -472,19 +465,20 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
           role="tabpanel"
           tabIndex={0}
           className={styles.edition}
-          aria-label={`${editionDisplayName(shownEdition)} careers`}
+          aria-label={t.manual.editionCareers(editionDisplayName(shownEdition, t))}
         >
           <header className={styles.editionHeader}>
-            <h3 className={styles.editionName}>{editionDisplayName(shownEdition)}</h3>
+            <h3 className={styles.editionName}>{editionDisplayName(shownEdition, t)}</h3>
             <span className={styles.editionMeta}>
-              counts in {shownEdition.currency.symbol} ·{' '}
-              {shownEdition.careers.basic.length +
-                shownEdition.careers.graduate.length +
-                (shownEdition.careers.doctorate?.length ?? 0)}{' '}
-              trades
+              {t.manual.editionMeta(
+                shownEdition.currency.symbol,
+                shownEdition.careers.basic.length +
+                  shownEdition.careers.graduate.length +
+                  (shownEdition.careers.doctorate?.length ?? 0),
+              )}
             </span>
           </header>
-          {POOLS.map((pool) => {
+          {pools(t).map((pool) => {
             const ladders = laddersFor(shownEdition, pool.tier)
             if (ladders.length === 0) return null
             return (
@@ -494,7 +488,13 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
                   <span className={styles.poolHint}>{pool.hint}</span>
                 </div>
                 {ladders.map((rungs) => (
-                  <Ladder key={rungs[0]!.id} rungs={rungs} currency={shownEdition.currency} />
+                  <Ladder
+                    key={rungs[0]!.id}
+                    rungs={rungs}
+                    currency={shownEdition.currency}
+                    t={t}
+                    text={shownText}
+                  />
                 ))}
               </div>
             )
@@ -504,10 +504,10 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
 
       <section className={styles.section} aria-labelledby="manual-words">
         <h2 className={styles.sectionHeading} id="manual-words" tabIndex={-1} ref={registerSection('manual-words')}>
-          Words this game uses
+          {t.manual.wordsHeading}
         </h2>
         <dl className={styles.glossary}>
-          {GLOSSARY.map((entry) => (
+          {glossary(t).map((entry) => (
             <div key={entry.term} className={styles.glossaryRow}>
               <dt className={styles.glossaryTerm}>{entry.term}</dt>
               <dd className={styles.glossaryMeaning}>{entry.meaning}</dd>

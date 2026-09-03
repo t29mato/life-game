@@ -4,6 +4,7 @@ import {
   type CareerFamily,
   type CareerIconName,
 } from '@domain/rules/careerFamily'
+import { EN, type UiText } from '../../i18n/en'
 
 /**
  * The moulded colour each family of work is cast in.
@@ -28,6 +29,17 @@ import {
  */
 export { CAREER_FAMILY, isCareerIcon }
 export type { CareerFamily, CareerIconName }
+
+/**
+ * What a family is called, in the reader's language.
+ *
+ * The English name stays on the palette below as the fallback and as what the
+ * catalogue's own keys are named after; this is what anything printing one
+ * should call.
+ */
+export function familyLabel(family: CareerFamily, t: UiText = EN): string {
+  return t.families[family] ?? FAMILY_PALETTE[family].label
+}
 
 export interface FamilyPalette {
   /** Printed on a manual card so the grouping is legible, not just visible. */

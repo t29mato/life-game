@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactElement } from 'react'
 import type { GameLogEntry, LogTone } from '@domain/model/types'
+import { useUi } from '../../i18n/LocaleProvider'
 import { isUpsetEntry } from './upset'
 import styles from './GameLog.module.css'
 
@@ -34,6 +35,7 @@ const TONE_CLASS: Record<LogTone, string | undefined> = {
 
 /** Scrolling, colour-coded feed of `state.log`, newest entry on top. */
 export function GameLog({ entries, onClose }: GameLogProps): ReactElement {
+  const t = useUi()
   const listRef = useRef<HTMLUListElement>(null)
   const newestFirst = [...entries].reverse()
 
@@ -48,23 +50,23 @@ export function GameLog({ entries, onClose }: GameLogProps): ReactElement {
   }, [entries.length])
 
   return (
-    <section className={styles.panel} aria-label="Game log">
+    <section className={styles.panel} aria-label={t.log.panel}>
       {/* Close sits in the panel's own heading row, on the same rule as the
           title and the count. It used to float above the panel entirely,
           where it read as one more header control beside Quit rather than as
           this panel's own way out. */}
       <h2 className={styles.heading}>
-        <span className={styles.headingLabel}>Log</span>
+        <span className={styles.headingLabel}>{t.log.heading}</span>
         <span className={styles.headingRule} aria-hidden="true" />
         <span className={styles.headingCount}>{entries.length}</span>
         {onClose ? (
-          <button type="button" className={styles.close} onClick={onClose} aria-label="Close the log">
+          <button type="button" className={styles.close} onClick={onClose} aria-label={t.log.close}>
             <span aria-hidden="true">×</span>
           </button>
         ) : null}
       </h2>
       {newestFirst.length === 0 ? (
-        <p className={styles.empty}>Nothing has happened yet.</p>
+        <p className={styles.empty}>{t.log.empty}</p>
       ) : (
         <ul ref={listRef} className={styles.list} aria-live="polite">
           {newestFirst.map((entry, index) => {
@@ -81,7 +83,7 @@ export function GameLog({ entries, onClose }: GameLogProps): ReactElement {
                 </span>
                 <span className={styles.turn}>{entry.turn}</span>
                 <span className={styles.message}>
-                  {upset ? <span className={styles.upsetTag}>Upset</span> : null}
+                  {upset ? <span className={styles.upsetTag}>{t.log.upset}</span> : null}
                   {entry.message}
                 </span>
               </li>
