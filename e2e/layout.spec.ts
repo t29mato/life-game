@@ -38,7 +38,12 @@ async function startGame(page: Page): Promise<void> {
   await page.getByRole('button', { name: /start game/i }).click()
   const ready = page.getByRole('button', { name: /i'm ready/i })
   if (await ready.isVisible().catch(() => false)) await ready.click()
-  await expect(page.getByRole('button', { name: /^spin$/i })).toBeVisible()
+  // `/^roll/` rather than an exact name: the die's accessible name carries the
+  // previous result once there is one ("Roll — last roll 4"), and reads
+  // "Rolling…" mid-throw. It was `/^spin$/` until the vocabulary was unified on
+  // die/roll, which is what had this whole suite failing in CI — the one place
+  // that runs it — while every local run skipped it for want of a browser.
+  await expect(page.getByRole('button', { name: /^roll/i })).toBeVisible()
 }
 
 /** True if `a` and `b` share any pixels. Touching edges (area 0) do not count as an overlap. */
@@ -52,7 +57,7 @@ function rectsOverlap(
 }
 
 test.describe('board layout never overlaps the rest of the table', () => {
-  test('the board does not overlap the spin wheel or the player panels', async ({ page }) => {
+  test('the board does not overlap the player panels', async ({ page }) => {
     await startGame(page)
 
     // The rendered card (`.frame`, drawn by `Board`), not just the grid cell
@@ -62,7 +67,12 @@ test.describe('board layout never overlaps the rest of the table', () => {
     // caught v1.3.0's regression; the cell-containment test below explains why.
     const board = page.getByRole('region', { name: 'Game board' })
     const frame = board.locator(':scope > div').first()
-    const rail = page.getByRole('complementary', { name: 'Spinner and players' })
+    // Was a `complementary` landmark called "Spinner and players" holding both
+    // the wheel and the seats. The wheel became a die in a tray on the board's
+    // own card, and what is left beside the board is the seats — now a button
+    // that opens the full status. Same question as before, asked of what the
+    // layout actually has: the drawing must not reach into the panel.
+    const rail = page.getByRole('button', { name: 'Players — open full status' })
     await expect(frame).toBeVisible()
     await expect(rail).toBeVisible()
 
@@ -114,7 +124,7 @@ test.describe('board layout never overlaps the rest of the table', () => {
 
     const boardArea = page.getByRole('region', { name: 'Game board' })
     const frame = boardArea.locator(':scope > div').first()
-    const rail = page.getByRole('complementary', { name: 'Spinner and players' })
+    const rail = page.getByRole('button', { name: 'Players — open full status' })
     const zoomIn = page.getByRole('button', { name: 'Zoom in' })
     await expect(zoomIn).toBeVisible()
 
