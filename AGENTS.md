@@ -89,14 +89,45 @@ care about, run it explicitly too:
 npx vitest run src/test/gameBalance.test.ts
 ```
 
-**Transient failures under heavy machine/agent load are a known,
-recurring pattern here** — usually a `waitFor` timeout in a presentation
-test, occasionally a whole run reporting spurious failures when several
-sessions or a long-running dev server are active at once. Never treat a
-failure as a real regression without first rerunning the specific failed
-file in isolation (`npx vitest run <path>`). If it passes alone, it was
-load, not your change — but say so explicitly rather than silently moving
-on, and don't make this your first assumption either; confirm it.
+**"It's just load" was wrong, and cost this repo a lot of time.** For a
+long stretch the note here said transient `waitFor` timeouts in the
+presentation suites were a machine-load fact of life, to be confirmed by
+rerunning the file alone. Six parallel agent sessions each hit it, each
+independently stashed and re-ran against baseline to decide "flake or
+regression", and the result was that nobody could show a green full suite
+at all — the exact conditions a real regression hides in. Issue #45 went
+and measured it instead, and it was not load: it was two things the tests
+were doing to themselves, both now fixed.
+
+1. `waitFor` re-runs its callback on *every DOM mutation* as well as on
+   its interval, an animating frame is a DOM mutation, and Testing
+   Library's default `getElementError` pretty-prints the whole container
+   into an error message on every failed `getBy*`. This document is a
+   ~5,500-node SVG board, so one poll cost **635 ms** and the two worst
+   tests spent 12.7 s of a 15.4 s run building error text nobody reads.
+   `src/test/setup.ts` now suppresses the dump for polling errors only —
+   real failures still print the DOM.
+2. Every pacing beat ran at its authored, human length. `TEMPO`
+   (`src/presentation/tempo.ts`) now divides them by four under `vitest`,
+   and `paced()` does the same for `CPU_THINK_MS` at its call site. The
+   beats still happen asynchronously in the same order — which is what
+   the tests actually assert — they just cost a quarter of the frames.
+
+So: **a `waitFor` timeout is a bug until proven otherwise.** Rerunning in
+isolation is still the right first move, but if a presentation test is
+sitting anywhere near its budget, find out where the seconds are going
+before blaming the machine. `--reporter=verbose` prints a per-test
+duration; a presentation test over ~3 s on an idle machine is worth
+opening up. What load genuinely does is turn a thin margin red, so the
+answer is margin, not a bigger timeout.
+
+Two things to know before touching the pacing: `TEMPO` is built by
+mapping over `AUTHORED`, so a beat added to that table is scaled for free
+and one added anywhere else is not; and the test clock is deliberately a
+quarter rather than zero, because several tests press the die and assert
+in the next statement that the result is not on screen yet. Collapsing
+motion entirely — `prefers-reduced-motion`, `MotionGlobalConfig`, a scale
+of 0 — makes those assertions pass by no longer checking anything.
 
 ## 4. Measure, don't guess
 

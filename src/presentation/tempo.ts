@@ -32,8 +32,64 @@
  * handled at each call site rather than here: some of these are motion (which
  * collapses to nothing) and some are *dwell* (which must not, or the pop a
  * reduced-motion player is meant to read would flash past unread).
+ *
+ * Every number below is authored for a person at the table; `SCALE` divides
+ * the lot of them under the test runner. See the note on it for why.
  */
-export const TEMPO = {
+
+/**
+ * How fast the clock these beats are quoted on actually runs: one under a
+ * player, a quarter of that under `vitest`.
+ *
+ * This is *not* "turn the animations off in tests". Every beat still happens,
+ * in the same order, asynchronously, spread over many animation frames — and
+ * that ordering is the entire thing the presentation tests assert: the card
+ * is held back while the die is still in the air, the final standings are not
+ * readable over the throw that decided them, a computer seat's answer reaches
+ * the die by itself. Reduced motion, the other lever available here, *would*
+ * weaken those: it collapses a throw to a synchronous assignment, so a test
+ * that presses the die and then checks the results are not showing yet would
+ * be checking nothing. Dividing the clock keeps the shape and drops only the
+ * wall-clock cost.
+ *
+ * The cost was the bug (issue #45). A `waitFor` re-runs its callback on every
+ * DOM mutation, an animating frame is a DOM mutation, and each re-run is a
+ * whole-document query over this app's ~5,500-node board — so a wait spanning
+ * one 2-second die throw pays for a dozen of them, and pays more the busier
+ * the machine is. `App.test.tsx`'s two worst tests measured 11–13 s against
+ * `waitFor` budgets of 8–15 s on an idle machine and 16–20 s on a loaded one,
+ * which is why the file came up red at random. The polls are synchronous, so
+ * this compounds: a poll blocks the timers and frames of the very beat it is
+ * waiting for. Shortening the beats cuts the frames, the polls, and the
+ * blocking together.
+ *
+ * A quarter and no further on purpose. A handful of tests press the die and
+ * assert, in the very next statement, that the result is *not* on screen yet
+ * — so the beat has to outlast the gap between React committing the press
+ * (where `Dice`'s effect starts the throw) and the assertion running, which
+ * is a single `setTimeout(0)` inside `userEvent`. At a quarter the die still
+ * owes ~250 ms of throw and settle there. Cutting to zero, or reaching for
+ * `prefers-reduced-motion`, would not make those assertions fast — it would
+ * make them vacuous, since the result would already be on screen.
+ *
+ * `import.meta.env.MODE` and not a mutable setter because several components
+ * read a tempo at module scope (`Dice.tsx`'s `RETURN_DELAY`, and others), so
+ * the value has to be right at import time, before any test body runs. Vite
+ * replaces it statically, so a production bundle folds `SCALE` to 1 and keeps
+ * none of this.
+ */
+const SCALE = import.meta.env.MODE === 'test' ? 0.25 : 1
+
+/**
+ * The same division, for a pacing number that lives outside the table below.
+ * There is exactly one — `CPU_THINK_MS` (`decideCpuCommand.ts`), which cannot
+ * simply move in here: `estimatePlaytime` prices a *real* game off it for the
+ * title screen, and that estimate must not shrink just because a test is
+ * running. So the constant stays honest and the timer that reads it is paced.
+ */
+export const paced = (ms: number): number => ms * SCALE
+
+const AUTHORED = {
   /**
    * The die's flight, launch to flat on the table. Was 1.4s, which put the
    * settle's tail — see below — past 2.6s from press to number; measured, not
@@ -190,3 +246,15 @@ export const TEMPO = {
    */
   pathLightStepSeconds: 0.07,
 } as const
+
+/**
+ * The table as everything else reads it, on whichever clock is running.
+ *
+ * Mapped rather than written out with a `* SCALE` on each line so that a beat
+ * added later is paced by construction — a number that quietly stayed on the
+ * real clock would put exactly one four-second wait back into the suite and
+ * be very hard to find.
+ */
+export const TEMPO: { readonly [Beat in keyof typeof AUTHORED]: number } = Object.freeze(
+  Object.fromEntries(Object.entries(AUTHORED).map(([beat, value]) => [beat, value * SCALE])),
+) as { readonly [Beat in keyof typeof AUTHORED]: number }
