@@ -63,3 +63,36 @@ The other entry this file used to carry — tightening the board's row spacing
 than merely investigated; see the fix in `src/domain/board/createBoard.ts`
 (`LayoutState`, `freeRowY`, `freeBranchY`) and its regression coverage in
 `createBoard.test.ts`, closed via GitHub issue #5.
+
+## The zoom rail never holds still once the map is zoomed (2026-09-03)
+
+**Where:** `src/presentation/components/Board/ZoomControls.module.css` (`.rail`
+is `position: absolute` against `.frame`) and whatever keeps `.frame` moving.
+
+**What happens:** in CI's real Chromium, at both phone profiles, the first two
+presses of `Zoom in` land in two stability checks each. Every press after that
+times out — Playwright waits for the key's box to be unchanged across two
+animation frames, and gives up 79–81 checks later. The desktop profile does not
+fail, which may mean it does not happen there or only that it settles faster.
+
+**What it is not:** not the all-computer table. That was the first theory, and
+sitting human players down (so the board waits on a roll instead of playing
+itself) did not fix it — the same test failed the same way. Not a missing or
+covered control either: the key resolves, is visible and is enabled.
+
+**Why it matters beyond the test:** a control that never settles is a control a
+finger has to chase, and on a phone it is also a compositor kept awake. If it
+is a real spring that never converges, it is a battery bug as well as a
+flakiness one.
+
+**Current state:** the zoom test dispatches `click()` straight at the element
+(`e2e/layout.spec.ts`), which is honest for what that test measures — where the
+drawing ends up at maximum zoom — but it means nothing in the suite covers
+whether the rail is *pressable* while zoomed.
+
+**To diagnose** you need a browser this machine cannot run (`sudo apt` for
+Chromium's system libraries; the Playwright download itself is already in
+place). Then: zoom twice, and watch `.frame`'s box in the inspector. The prime
+suspects are a framer-motion spring on the zoom that converges asymptotically
+rather than snapping, and the die tray's idle bob (`dieIdleBobSeconds`) if it
+is laying out rather than transforming.
