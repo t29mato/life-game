@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import type { MotionValue } from 'framer-motion'
 import { UiIcon } from '../../icons/ui'
+import { useUi } from '../../i18n/LocaleProvider'
 import { USER_ZOOM_FIT, USER_ZOOM_MAX } from './camera'
 import styles from './ZoomControls.module.css'
 
@@ -52,6 +53,7 @@ export function ZoomControls({
   onRecentre,
   recentreLabel,
 }: ZoomControlsProps): ReactElement {
+  const t = useUi()
   const [level, setLevel] = useState(() => zoom.get())
   useEffect(() => zoom.on('change', setLevel), [zoom])
 
@@ -59,11 +61,11 @@ export function ZoomControls({
   const atLimit = level >= USER_ZOOM_MAX
 
   return (
-    <div className={styles.rail} role="group" aria-label="Map zoom">
+    <div className={styles.rail} role="group" aria-label={t.board.zoomGroup}>
       <button
         type="button"
         className={styles.key}
-        aria-label="Zoom in"
+        aria-label={t.board.zoomIn}
         disabled={atLimit}
         onClick={onZoomIn}
       >
@@ -72,7 +74,7 @@ export function ZoomControls({
       <button
         type="button"
         className={styles.key}
-        aria-label="Zoom out"
+        aria-label={t.board.zoomOut}
         disabled={atFit}
         onClick={onZoomOut}
       >
@@ -84,7 +86,7 @@ export function ZoomControls({
       <button
         type="button"
         className={styles.key}
-        aria-label="Reset zoom to fit"
+        aria-label={t.board.zoomReset}
         onClick={onReset}
       >
         <UiIcon name="zoom-fit" size={16} />

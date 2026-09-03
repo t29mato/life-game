@@ -14,6 +14,7 @@ import { INDIA_JA } from '../india/i18n/ja'
 import { INDIA_FR } from '../india/i18n/fr'
 import { BOLIVIA_JA } from '../bolivia/i18n/ja'
 import { BOLIVIA_FR } from '../bolivia/i18n/fr'
+import { RESEARCHER_JAPAN_JA } from '../japan-researcher/i18n/ja'
 
 /**
  * The compile-time check `types.ts` cannot do.
@@ -45,16 +46,35 @@ const OVERLAYS: readonly EditionTranslation[] = [
   INDIA_FR,
   BOLIVIA_JA,
   BOLIVIA_FR,
+  RESEARCHER_JAPAN_JA,
 ]
 
 /** Whether this effect carries a player-facing `reason` for the log and the card. */
 const hasReason = (effect: SpaceEffect): boolean => 'reason' in effect
 
-/** Both directions at once: nothing here that is not there, nothing there that is not here. */
-const compare = (label: string, expected: readonly string[], actual: readonly string[]): string[] => {
+/**
+ * Both directions at once: nothing here that is not there, nothing there that
+ * is not here.
+ *
+ * `optional` is the third case, and the doctoral career shelf is why it
+ * exists. That shelf rolled out one country at a time and most editions have
+ * not written one at all, so *requiring* it would fail every overlay written
+ * before it landed; but a translator who has done the work — the Researcher:
+ * Japan board's payoff shelf is 准教授 and 教授, which is the whole point of
+ * that board — must not be told the ids they translated do not exist. So an
+ * optional id is one this table may name and need not.
+ */
+const compare = (
+  label: string,
+  expected: readonly string[],
+  actual: readonly string[],
+  optional: readonly string[] = [],
+): string[] => {
   const problems: string[] = []
   for (const id of expected) if (!actual.includes(id)) problems.push(`${label} not translated: ${id}`)
-  for (const id of actual) if (!expected.includes(id)) problems.push(`${label} does not exist: ${id}`)
+  for (const id of actual) {
+    if (!expected.includes(id) && !optional.includes(id)) problems.push(`${label} does not exist: ${id}`)
+  }
   return problems
 }
 
@@ -79,7 +99,12 @@ describe('edition translation overlays', () => {
       it('names every id its edition defines, and no id it does not', () => {
         expect([
           ...compare('space', spaces.map((s) => s.id), Object.keys(overlay.spaces)),
-          ...compare('career', careers.map((c) => c.id), Object.keys(overlay.careers)),
+          ...compare(
+            'career',
+            careers.map((c) => c.id),
+            Object.keys(overlay.careers),
+            (edition.careers.doctorate ?? []).map((c) => c.id),
+          ),
           ...compare('house', edition.houses.map((h) => h.id), Object.keys(overlay.houses)),
           ...compare('stock', edition.stocks.map((s) => s.id), Object.keys(overlay.stocks)),
           ...compare('life tile', edition.lifeTiles.map((t) => t.id), Object.keys(overlay.lifeTiles)),

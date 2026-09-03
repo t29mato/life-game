@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import type { Edition } from '@domain/edition/types'
 import { editionDisplayName } from '../../format'
+import { useUi } from '../../i18n/LocaleProvider'
 import { StepFrame } from './StepFrame'
 import { editionSalarySentence } from './setupDraft'
 import styles from './TitleScreen.module.css'
@@ -57,23 +58,24 @@ export function LifeStep({
   backLabel,
   onNext,
 }: LifeStepProps): ReactElement {
-  const place = editionDisplayName(country)
+  const t = useUi()
+  const place = editionDisplayName(country, t)
 
   const options = [
     {
       key: 'classic',
       chosen: !researcher,
-      name: 'The classic life',
-      hint: `${place}, as written`,
-      detail: `School or work, a career, a house, a family. ${editionSalarySentence(country)}`,
+      name: t.life.classicName,
+      hint: t.life.classicHint(place),
+      detail: t.life.classicDetail(editionSalarySentence(country, t)),
       onClick: () => onChoose(false),
     },
     {
       key: 'researcher',
       chosen: researcher,
-      name: 'The researcher life',
-      hint: 'same country, different work',
-      detail: `A life in research on the same ${place} board: its own careers, its own forks, and a different road to gamble on. ${editionSalarySentence(researcherEdition)}`,
+      name: t.life.researcherName,
+      hint: t.life.researcherHint,
+      detail: t.life.researcherDetail(place, editionSalarySentence(researcherEdition, t)),
       onClick: () => onChoose(true),
     },
   ] as const
@@ -82,20 +84,20 @@ export function LifeStep({
     <StepFrame
       stepNumber={stepNumber}
       stepCount={stepCount}
-      heading={`Which life in ${place}?`}
-      lead={`Same country, same money — a different life on it. Both boards are the full game, and ${place} plays its own way in either.`}
+      heading={t.life.heading(place)}
+      lead={t.life.lead(place)}
       onBack={onBack}
       backLabel={backLabel}
-      primary={{ label: 'Next: the difficulty', onClick: onNext }}
+      primary={{ label: t.life.next, onClick: onNext }}
     >
-      <div className={styles.choiceGrid} role="group" aria-label="Life">
+      <div className={styles.choiceGrid} role="group" aria-label={t.life.groupLabel}>
         {options.map((option) => (
           <button
             key={option.key}
             type="button"
             className={`${styles.choiceCard} ${option.chosen ? styles.choiceSelected : ''}`}
             aria-pressed={option.chosen}
-            aria-label={`${option.name} in ${place}. ${option.detail}`}
+            aria-label={t.life.cardAria(option.name, place, option.detail)}
             onClick={option.onClick}
           >
             <span className={styles.choiceName} aria-hidden="true">

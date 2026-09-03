@@ -2,8 +2,10 @@ import { type ReactElement } from 'react'
 import { motion } from 'framer-motion'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { useUi } from '../../i18n/LocaleProvider'
 import { AudioToggle } from '../AudioToggle/AudioToggle'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
+import { LanguagePicker } from './LanguagePicker'
 import styles from './SettingsSheet.module.css'
 
 export interface SettingsSheetProps {
@@ -23,10 +25,17 @@ export interface SettingsSheetProps {
  * the game, so it should not feel like the game has stopped. Escape closes it
  * (there is always a valid way out of a settings screen), and the focus trap
  * keeps a keyboard inside it while it is up.
+ *
+ * The language lives here too, and this is the reason it can be changed
+ * mid-game at all: the gear is reachable from the title screen *and* from the
+ * board's own header, so there is no moment in a game where the setting is
+ * out of reach. It sits above the audio switches because it is the one
+ * setting in the drawer that changes what is on the screen behind it.
  */
 export function SettingsSheet({ onClose }: SettingsSheetProps): ReactElement {
   const containerRef = useModalFocusTrap<HTMLDivElement>(onClose)
   const reduceMotion = usePrefersReducedMotion()
+  const t = useUi()
 
   const entrance = reduceMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 }, transition: { duration: 0 } }
@@ -51,18 +60,19 @@ export function SettingsSheet({ onClose }: SettingsSheetProps): ReactElement {
       >
         <header className={styles.header}>
           <h2 id="settings-heading" className={styles.heading}>
-            Settings
+            {t.settings.heading}
           </h2>
           <ChunkyButton variant="secondary" size="sm" icon="exit" onClick={onClose}>
-            Close
+            {t.common.close}
           </ChunkyButton>
         </header>
 
         <div className={styles.body}>
+          <LanguagePicker />
           <AudioToggle />
         </div>
 
-        <p className={styles.hint}>Esc closes this.</p>
+        <p className={styles.hint}>{t.settings.escHint}</p>
       </motion.div>
     </div>
   )

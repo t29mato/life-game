@@ -26,6 +26,15 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'retain-on-failure',
+    /*
+     * Pinned, because the game now opens in the browser's own language when
+     * nobody has chosen one (see `detectLocale`). Every selector in this suite
+     * is an English accessible name, so a runner whose system language is not
+     * English would fail the whole file on a correct build. This is the layout
+     * suite: it is about boxes, not about words, and it should be measuring
+     * the same words every time it runs.
+     */
+    locale: 'en-US',
   },
   webServer: {
     command: 'npm run dev -- --port 5173 --strictPort',

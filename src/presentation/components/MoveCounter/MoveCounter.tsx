@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import { motion } from 'framer-motion'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { useUi } from '../../i18n/LocaleProvider'
 import styles from './MoveCounter.module.css'
 
 export interface MoveCounterProps {
@@ -23,6 +24,7 @@ export interface MoveCounterProps {
  */
 export function MoveCounter({ spacesLeft }: MoveCounterProps): ReactElement {
   const reduceMotion = usePrefersReducedMotion()
+  const t = useUi()
 
   return (
     // The tab pops up from the die below it the moment the roll lands, rather
@@ -31,7 +33,7 @@ export function MoveCounter({ spacesLeft }: MoveCounterProps): ReactElement {
     <motion.div
       className={styles.chip}
       role="status"
-      aria-label={`${spacesLeft} space${spacesLeft === 1 ? '' : 's'} to go`}
+      aria-label={t.moveCounter.aria(spacesLeft)}
       initial={reduceMotion ? false : { scale: 0.6, opacity: 0, y: 10 }}
       animate={{ scale: 1, opacity: 1, y: 0 }}
       transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 430, damping: 22 }}
@@ -50,7 +52,7 @@ export function MoveCounter({ spacesLeft }: MoveCounterProps): ReactElement {
         {spacesLeft}
       </motion.span>
       <span className={styles.label} aria-hidden="true">
-        to go
+        {t.moveCounter.toGo}
       </span>
     </motion.div>
   )

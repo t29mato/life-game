@@ -5,6 +5,7 @@ import { formatOrdinal } from '../../format'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { usePrimaryAction } from '../../hooks/usePrimaryAction'
+import { useUi } from '../../i18n/LocaleProvider'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import styles from './TurnHandoff.module.css'
 
@@ -43,6 +44,7 @@ export function TurnHandoff({
   // and dismisses a card hands the device on, too.
   const primaryRef = usePrimaryAction<HTMLButtonElement>(true)
   const reduceMotion = usePrefersReducedMotion()
+  const t = useUi()
 
   const colorVars = {
     '--player-base': `var(--player-${player.color})`,
@@ -70,7 +72,7 @@ export function TurnHandoff({
         animate={entrance.animate}
         transition={entrance.transition}
       >
-        <span className={styles.turnLabel}>Turn {turn}</span>
+        <span className={styles.turnLabel}>{t.common.turn(turn)}</span>
 
         <div className={styles.avatar} aria-hidden="true">
           <span className={styles.avatarInitial}>{player.name.charAt(0).toUpperCase()}</span>
@@ -89,11 +91,11 @@ export function TurnHandoff({
         {/* Just the place. The field size is on the strip behind this card,
             and a player counting themselves against it mid-handoff never was
             the point — where they stand is. */}
-        <p className={styles.rank}>{formatOrdinal(rank)} place</p>
+        <p className={styles.rank}>{t.format.ordinalPlace(formatOrdinal(rank, t))}</p>
 
         <div className={styles.action}>
           <ChunkyButton ref={primaryRef} variant="primary" size="lg" fullWidth onClick={onReady}>
-            I&rsquo;m ready
+            {t.turn.imReady}
           </ChunkyButton>
         </div>
 
@@ -112,7 +114,7 @@ export function TurnHandoff({
               checked={alwaysAsk ?? false}
               onChange={(event) => onAlwaysAskChange(event.currentTarget.checked)}
             />
-            <span>Show this every turn</span>
+            <span>{t.turn.showEveryTurn}</span>
           </label>
         ) : null}
       </motion.div>

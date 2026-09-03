@@ -8,8 +8,11 @@ import { expectedChildValue } from '@domain/rules/children'
 import { estimateNetWorth } from '@domain/rules/scoring'
 import { formatMoney, formatOrdinal, formatSalary } from '../../format'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
+import { useEditionText, useUi } from '../../i18n/LocaleProvider'
+import type { UiText } from '../../i18n/en'
+import type { EditionText } from '@domain/edition/i18n/text'
 import { GameIcon } from '../../icons/GameIcon'
-import { INSURANCE_ICON, INSURANCE_LABEL } from '../../icons/insurance'
+import { INSURANCE_ICON, insuranceLabel } from '../../icons/insurance'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { rankPlayers } from '@domain/rules/standing'
 import styles from './StatusModal.module.css'
@@ -46,15 +49,17 @@ function ledgerFor(
   player: Player,
   difficulty: Difficulty,
   editionId: EditionId | undefined,
+  t: UiText,
+  text: EditionText,
 ): readonly LedgerLine[] {
   const edition = editionFor(editionId)
   const { currency, economy } = edition
   const money = (amount: number): string => formatMoney(amount, currency)
-  const lines: LedgerLine[] = [{ label: 'Cash', value: money(player.money) }]
+  const lines: LedgerLine[] = [{ label: t.status.cash, value: money(player.money) }]
 
   if (player.house) {
     lines.push({
-      label: `House — ${player.house.name}`,
+      label: t.status.house(text.house(player.house.id)?.name ?? player.house.name),
       value: money(player.house.price),
       icon: player.house.icon,
     })
@@ -71,10 +76,14 @@ function ledgerFor(
       return [{ stock, holding, value: ((low + high) / 2) * holding.shares }]
     })
     const total = valued.reduce((sum, entry) => sum + entry.value, 0)
-    lines.push({ label: 'Shares — at the middle of what each pays out', value: money(total) })
+    lines.push({ label: t.status.sharesLine, value: money(total) })
     for (const { stock, holding, value } of valued) {
       lines.push({
-        label: `${stock.name} (${stock.ticker}) — ${holding.shares} share${holding.shares === 1 ? '' : 's'}`,
+        label: t.status.stockLine(
+          text.stock(stock.id)?.name ?? stock.name,
+          stock.ticker,
+          holding.shares,
+        ),
         value: money(value),
         icon: stock.icon,
         item: true,
@@ -84,16 +93,21 @@ function ledgerFor(
 
   if (player.lifeTiles.length > 0) {
     const total = player.lifeTiles.reduce((sum, tile) => sum + tile.value, 0)
-    lines.push({ label: `Life tiles — ${player.lifeTiles.length} earned`, value: money(total) })
+    lines.push({ label: t.status.lifeTilesLine(player.lifeTiles.length), value: money(total) })
     for (const tile of player.lifeTiles) {
-      lines.push({ label: tile.title, value: money(tile.value), icon: tile.icon, item: true })
+      lines.push({
+        label: text.lifeTile(tile.id)?.title ?? tile.title,
+        value: money(tile.value),
+        icon: tile.icon,
+        item: true,
+      })
     }
   }
 
   if (player.children > 0) {
     const perChild = expectedChildValue(player, economy)
     lines.push({
-      label: `Children — ${player.children}, on average at the final roll`,
+      label: t.status.childrenLine(player.children),
       value: money(perChild * player.children),
     })
   }
@@ -101,7 +115,7 @@ function ledgerFor(
   if (player.loans > 0) {
     const payoff = player.loans * loanRepaymentFor(difficulty, edition)
     lines.push({
-      label: `Loans — ${player.loans} outstanding, settled at retirement`,
+      label: t.status.loansLine(player.loans),
       value: `−${money(payoff)}`,
     })
   }
@@ -132,6 +146,8 @@ function shelfFor(
   player: Player,
   difficulty: Difficulty,
   editionId: EditionId | undefined,
+  t: UiText,
+  text: EditionText,
 ): readonly ShelfItem[] {
   const edition = editionFor(editionId)
   const { currency, economy } = edition
@@ -143,20 +159,25 @@ function shelfFor(
       ? {
           key: 'career',
           icon: player.career.icon,
-          label: player.career.title,
+          label: text.career(player.career.id)?.title ?? player.career.title,
           value:
             player.career.payPerPip === undefined
-              ? formatSalary(player.career.salary, currency)
-              : `${formatSalary(player.career.salary, currency)} on average`,
+              ? formatSalary(player.career.salary, currency, t)
+              : t.panel.onAverage(formatSalary(player.career.salary, currency, t)),
         }
-      : { key: 'career', icon: 'space:first-job-fair', label: 'Unemployed', value: 'Casual shifts' },
+      : {
+          key: 'career',
+          icon: 'space:first-job-fair',
+          label: t.status.unemployed,
+          value: t.status.casualShifts,
+        },
   )
 
   if (player.house) {
     items.push({
       key: 'house',
       icon: player.house.icon,
-      label: player.house.name,
+      label: text.house(player.house.id)?.name ?? player.house.name,
       value: money(player.house.price),
     })
   }
@@ -165,18 +186,18 @@ function shelfFor(
   items.push({
     key: 'marriage',
     icon: 'space:wedding-day',
-    label: player.isMarried ? 'Married' : 'Single',
+    label: player.isMarried ? t.status.married : t.status.single,
   })
   if (player.children > 0) {
     items.push({
       key: 'children',
       icon: 'space:new-baby',
-      label: `${player.children} child${player.children === 1 ? '' : 'ren'}`,
+      label: t.status.children(player.children),
       value: money(expectedChildValue(player, economy) * player.children),
     })
   }
   if (player.hasDegree) {
-    items.push({ key: 'degree', icon: 'space:cap-and-gown', label: 'Graduate' })
+    items.push({ key: 'degree', icon: 'space:cap-and-gown', label: t.status.graduate })
   }
 
   if (player.stocks.length > 0) {
@@ -190,7 +211,7 @@ function shelfFor(
     items.push({
       key: 'shares',
       icon: 'space:stock-tip',
-      label: `${shares} share${shares === 1 ? '' : 's'}`,
+      label: t.status.shares(shares),
       value: money(worth),
     })
   }
@@ -203,7 +224,7 @@ function shelfFor(
       // token, not the story on it — so any of them names the shelf's own
       // stack of them correctly.
       icon: 'tile:marathon',
-      label: `${player.lifeTiles.length} LIFE tile${player.lifeTiles.length === 1 ? '' : 's'}`,
+      label: t.status.lifeTiles(player.lifeTiles.length),
       value: money(worth),
     })
   }
@@ -212,7 +233,7 @@ function shelfFor(
     items.push({
       key: 'loans',
       icon: 'finance:bank-visit',
-      label: `${player.loans} loan${player.loans === 1 ? '' : 's'}`,
+      label: t.status.loans(player.loans),
       value: `−${money(player.loans * loanRepaymentFor(difficulty, edition))}`,
       debt: true,
     })
@@ -236,33 +257,39 @@ function PlayerStatus({
 }): ReactElement {
   const edition = editionFor(editionId)
   const { currency } = edition
+  const t = useUi()
+  const text = useEditionText(editionId)
   const money = (amount: number): string => formatMoney(amount, currency)
   const netWorth = estimateNetWorth(player, difficulty, edition)
-  const lines = ledgerFor(player, difficulty, editionId)
+  const lines = ledgerFor(player, difficulty, editionId, t, text)
 
   const colorVars = {
     '--player-base': `var(--player-${player.color})`,
     '--player-dark': `var(--player-${player.color}-dark)`,
   } as CSSProperties
 
-  const shelf = shelfFor(player, difficulty, editionId)
+  const shelf = shelfFor(player, difficulty, editionId, t, text)
 
   return (
-    <section className={styles.player} style={colorVars} aria-label={`${player.name}'s status`}>
+    <section className={styles.player} style={colorVars} aria-label={t.status.playerAria(player.name)}>
       <header className={styles.playerHeader}>
         <span className={styles.dot} aria-hidden="true" />
         <h3 className={styles.playerName}>{player.name}</h3>
-        {player.isCpu && <span className={styles.cpuTag}>Computer</span>}
+        {player.isCpu && <span className={styles.cpuTag}>{t.status.computer}</span>}
+        {/* The badge prints the ordinal alone; the full phrase is spoken.
+            Split rather than appended because a language whose ordinal
+            already *means* "first place" (Japanese's 1位) has nothing to
+            append, and would otherwise be read out twice. */}
         {rank !== undefined && (
           <span className={styles.rank}>
-            {formatOrdinal(rank)}
-            <span className="visually-hidden"> place</span>
+            <span aria-hidden="true">{formatOrdinal(rank, t)}</span>
+            <span className="visually-hidden">{t.format.ordinalPlace(formatOrdinal(rank, t))}</span>
           </span>
         )}
-        {isActive && <span className={styles.nowPlaying}>Now playing</span>}
+        {isActive && <span className={styles.nowPlaying}>{t.status.nowPlaying}</span>}
         {player.isRetired && (
           <span className={styles.retiredBadge}>
-            {player.retirementRank ? `Retired #${player.retirementRank}` : 'Retired'}
+            {player.retirementRank ? t.status.retiredRank(player.retirementRank) : t.status.retired}
           </span>
         )}
       </header>
@@ -272,9 +299,9 @@ function PlayerStatus({
           the total at the bottom, which is the shape of a spreadsheet: it
           answers "what are the line items" before "am I winning". */}
       <div className={styles.total}>
-        <span className={styles.totalLabel}>Net worth</span>
+        <span className={styles.totalLabel}>{t.status.netWorth}</span>
         <span className={styles.totalValue}>{money(netWorth)}</span>
-        <span className={styles.totalNote}>If the game ended now</span>
+        <span className={styles.totalNote}>{t.status.ifGameEndedNow}</span>
       </div>
 
       {/* The shelf: the same objects the board itself draws, at the size the
@@ -309,16 +336,14 @@ function PlayerStatus({
           — Tiny Cabin $60,000" as one run of prose with no header to hang the
           figures on, and no browser would let a player select the column. */}
       <details className={styles.breakdown}>
-        <summary className={styles.breakdownSummary}>Full breakdown</summary>
+        <summary className={styles.breakdownSummary}>{t.status.fullBreakdown}</summary>
         <table className={styles.ledger}>
-          <caption className="visually-hidden">
-            What {player.name}&apos;s net worth is made of
-          </caption>
+          <caption className="visually-hidden">{t.status.ledgerCaption(player.name)}</caption>
           <thead>
             <tr>
-              <th scope="col">Holding</th>
+              <th scope="col">{t.status.holdingColumn}</th>
               <th scope="col" className={styles.ledgerValue}>
-                Worth
+                {t.status.worthColumn}
               </th>
             </tr>
           </thead>
@@ -345,13 +370,13 @@ function PlayerStatus({
 
       {player.insurance.length > 0 && (
         <p className={styles.insurance}>
-          <span className={styles.insuranceLabel}>Insured</span>
+          <span className={styles.insuranceLabel}>{t.status.insured}</span>
           {player.insurance.map((kind) => (
             <span key={kind} className={styles.policy}>
               <span className={styles.factIcon} aria-hidden="true">
                 <GameIcon name={INSURANCE_ICON[kind]} size={14} />
               </span>
-              {INSURANCE_LABEL[kind]}
+              {insuranceLabel(kind, t)}
             </span>
           ))}
         </p>
@@ -375,6 +400,7 @@ export function StatusModal({
   onClose,
 }: StatusModalProps): ReactElement {
   const containerRef = useModalFocusTrap<HTMLDivElement>(onClose)
+  const t = useUi()
   // Priced in this game's own edition, so the standing shown here can never
   // disagree with the net worth printed two lines below it.
   const standings = rankPlayers(players, difficulty, editionId)
@@ -386,13 +412,13 @@ export function StatusModal({
         className={styles.modal}
         role="dialog"
         aria-modal="true"
-        aria-label="Player status"
+        aria-label={t.status.aria}
         onClick={(event) => event.stopPropagation()}
       >
         <header className={styles.header}>
-          <h2 className={styles.heading}>Player Status</h2>
+          <h2 className={styles.heading}>{t.status.heading}</h2>
           <ChunkyButton variant="secondary" size="sm" icon="exit" onClick={onClose}>
-            Close
+            {t.common.close}
           </ChunkyButton>
         </header>
         <div className={styles.grid}>

@@ -4,6 +4,7 @@ import type { Edition } from '@domain/edition/types'
 import { certainArrivals } from '@domain/rules/children'
 
 import { formatMoney, formatMoneyDelta } from './format'
+import { EN, type UiText } from './i18n/en'
 
 /**
  * What a tile actually does, in one line, read straight off its own effect.
@@ -13,26 +14,32 @@ import { formatMoney, formatMoneyDelta } from './format'
  * whether they wanted to land there. Flavour is the second line now; this is
  * the first.
  *
- * Every string below is derived from the effect's own numbers or from the
+ * Every figure below is derived from the effect's own numbers or from the
  * edition's economy — never hand-written per tile. That is the whole point:
  * a hand-written summary is a second copy of the rules, and second copies
  * drift. Change a tile's amount and this line changes with it; add a tile and
  * it gets a summary for free.
  *
+ * The *words* around those figures come from the chrome catalogue rather than
+ * from the tile, for exactly the same reason they are not written per tile:
+ * "money out" is the same sentence on ninety tiles in five countries, and it
+ * should be translated once. `t` defaults to English so a caller with no
+ * locale in hand — a test, a component rendered bare — still gets a sentence.
+ *
  * The voice: plain words, the cost stated as a number, no sentence where a
  * figure will do. `-$1,800`, not "you will have to pay a deposit".
  */
-export function describeEffect(effect: SpaceEffect, edition: Edition): string {
+export function describeEffect(effect: SpaceEffect, edition: Edition, t: UiText = EN): string {
   const { currency, economy } = edition
   const money = (amount: number): string => formatMoney(amount, currency)
   const delta = (amount: number): string => formatMoneyDelta(amount, currency)
   /** A die-decided sum, written as the band it can land in. */
   const band = (perPip: number): string =>
-    `${delta(perPip)} to ${delta(perPip * SPIN_FACES)}, on the die`
+    t.format.onTheDie(t.format.range(delta(perPip), delta(perPip * SPIN_FACES)))
 
   switch (effect.type) {
     case 'none':
-      return 'Nothing happens here.'
+      return t.effect.none
 
     // --- money, straight up or straight down -------------------------------
     case 'gainMoney':
@@ -40,37 +47,35 @@ export function describeEffect(effect: SpaceEffect, edition: Edition): string {
     case 'payMoney':
       return effect.hazard === undefined
         ? delta(-effect.amount)
-        : `${delta(-effect.amount)} — nothing, if you hold the policy`
+        : t.effect.insurable(delta(-effect.amount))
     case 'payEach':
-      return `${delta(-effect.amount)} to every other player`
+      return t.effect.payEach(delta(-effect.amount))
     case 'collectFromEach':
-      return `${delta(effect.amount)} from every other player`
+      return t.effect.collectFromEach(delta(effect.amount))
     case 'payPerChild':
-      return `${delta(-effect.amount)} for each child`
+      return t.effect.payPerChild(delta(-effect.amount))
     case 'collectPerChild':
-      return `${delta(effect.amount)} for each child`
+      return t.effect.collectPerChild(delta(effect.amount))
     case 'stockDividend':
-      return `${delta(effect.perShare)} for every share you hold`
+      return t.effect.stockDividend(delta(effect.perShare))
     case 'spinForMoney':
       return band(effect.perPip)
 
     // --- work --------------------------------------------------------------
     case 'payday':
-      return 'Your salary — collected landing here or driving past.'
+      return t.effect.payday
     case 'payRaise':
-      return 'Your salary goes up.'
+      return t.effect.payRaise
     case 'promotion':
-      return 'Roll for a promotion. Under the bar pays a raise instead.'
+      return t.effect.promotion
     case 'tradeYear':
-      return 'A year in your trade, on the die. The best pays what the worst costs.'
+      return t.effect.tradeYear
     case 'chooseCareer':
-      return 'A new job, and the die picks which.'
+      return t.effect.chooseCareer
     case 'careerChange':
-      return effect.compulsory === true
-        ? 'A new trade. This one you cannot turn down.'
-        : 'Two other trades, offered. Keeping your job is an answer.'
+      return effect.compulsory === true ? t.effect.careerChangeForced : t.effect.careerChangeOffered
     case 'loseCareer':
-      return 'You lose your job, and earn nothing until a fair re-hires you.'
+      return t.effect.loseCareer
 
     // --- school ------------------------------------------------------------
     case 'tuition': {
@@ -79,19 +84,19 @@ export function describeEffect(effect: SpaceEffect, edition: Edition): string {
       const cheapest = Math.min(...costs)
       const dearest = Math.max(...costs)
       // A full ride is a cost of nothing, and "-$0" reads as a bug.
-      const low = cheapest === 0 ? 'nothing' : delta(-cheapest)
-      return `${low} to ${delta(-dearest)}, on the die`
+      const low = cheapest === 0 ? t.effect.tuitionFree : delta(-cheapest)
+      return t.format.onTheDie(t.format.range(low, delta(-dearest)))
     }
     case 'graduate':
-      return 'You graduate. Every fair after this deals from the graduate ladders.'
+      return t.effect.graduate
     case 'doctorate':
-      return 'The doctorate, and the shelf of jobs it opens.'
+      return t.effect.doctorate
 
     // --- family ------------------------------------------------------------
     case 'getMarried':
-      return 'A proposal, settled on the die — and a gift from everyone if it lands.'
+      return t.effect.getMarried
     case 'household':
-      return 'The joint account, settled on the die. Married players only.'
+      return t.effect.household
     case 'haveChildren': {
       // A tile whose faces all agree names its outcome; one that actually
       // rolls names the whole spread, empty end included. Saying "+1 child"
@@ -100,41 +105,41 @@ export function describeEffect(effect: SpaceEffect, edition: Edition): string {
       const certain = certainArrivals(effect.arrivals)
       if (certain !== null) {
         const gift = money(certain * effect.celebrationPerChild)
-        return `${certain === 1 ? '+1 child' : `+${certain} children`}, and ${gift} in gifts`
+        return t.effect.haveChildren(t.effect.childCount(certain), gift)
       }
       const counts = effect.arrivals.map((arrival) => arrival.children)
       const most = Math.max(...counts)
       const least = Math.min(...counts)
       const top = money(most * effect.celebrationPerChild)
-      return `${least} to ${most} children on the die, and up to ${top} in gifts`
+      return t.effect.childrenOnTheDie(least, most, top)
     }
     case 'divorce':
-      return `A separation: ${delta(-economy.divorceSettlement)}, and the children go with them.`
+      return t.effect.divorce(delta(-economy.divorceSettlement))
 
     // --- what you own ------------------------------------------------------
     case 'buyHouse':
-      return 'Buy a house. Your turn stops here for it.'
+      return t.effect.buyHouse
     case 'upgradeHouse':
-      return 'Trade up to a better home, if you already own one.'
+      return t.effect.upgradeHouse
     case 'buyStock':
-      return 'Shares to buy, at the price the market is asking.'
+      return t.effect.buyStock
     case 'buyInsurance':
-      return 'Policies to buy, against the board’s worst tiles.'
+      return t.effect.buyInsurance
     case 'bank':
-      return `The bank: borrow ${money(economy.loanPrincipal)}, or pay a loan off.`
+      return t.effect.bank(money(economy.loanPrincipal))
 
     // --- LIFE tiles and the upsets ------------------------------------------
     case 'gainLifeTiles':
-      return effect.count === 1 ? 'LIFE tile +1' : `LIFE tiles +${effect.count}`
+      return t.effect.lifeTiles(effect.count)
     case 'stealLifeTile':
-      return 'Take one LIFE tile from whoever holds the most.'
+      return t.effect.stealLifeTile
     case 'swapMoneyWithLeader':
-      return 'Swap wallets with whoever is ahead.'
+      return t.effect.swapMoneyWithLeader
 
     // --- the end of the road -------------------------------------------------
     case 'retire':
-      return 'The end of the road. First one in takes the biggest bonus.'
+      return t.effect.retire
     case 'retireEarly':
-      return 'Stop working decades early — if you are holding the number.'
+      return t.effect.retireEarly
   }
 }

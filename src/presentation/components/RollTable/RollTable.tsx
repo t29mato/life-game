@@ -2,6 +2,7 @@ import { type ReactElement } from 'react'
 
 import type { RollOfferRow, RollTableRow } from '@domain/model/types'
 import { GameIcon } from '../../icons/GameIcon'
+import { useUi } from '../../i18n/LocaleProvider'
 import { CareerPlaque } from '../CareerPlaque/CareerPlaque'
 import { isCareerIcon } from '../CareerPlaque/families'
 import styles from './RollTable.module.css'
@@ -52,6 +53,7 @@ const DENSE_ABOVE_ROWS = 4
  * calling, a one-rung trade) rather than standing there full of dashes.
  */
 export function RollTable({ rows, compact = false }: RollTableProps): ReactElement {
+  const t = useUi()
   const offers = rows.filter(isOffer)
   const dealsJobs = offers.length > 0
   // Every offer in one table is quoted by the same period — it is the
@@ -85,25 +87,25 @@ export function RollTable({ rows, compact = false }: RollTableProps): ReactEleme
           first "1 … ¥750,000" already knowing it is listening to a die and
           not to a price list. Silent on screen: the card above has just said
           all of this in words. */}
-      <caption className="visually-hidden">What each roll of the die is worth</caption>
+      <caption className="visually-hidden">{t.rollTable.caption}</caption>
       <thead>
         {dealsJobs ? (
           <tr>
-            <th scope="col">Roll</th>
-            <th scope="col">Career</th>
+            <th scope="col">{t.rollTable.roll}</th>
+            <th scope="col">{t.rollTable.career}</th>
             <th scope="col" className={styles.pay}>
-              Per {period}
+              {t.rollTable.per(t.format.unit(period))}
             </th>
             {showRung ? (
               <th scope="col" className={styles.rung}>
-                Rung
+                {t.rollTable.rung}
               </th>
             ) : null}
           </tr>
         ) : (
           <tr>
-            <th scope="col">Roll</th>
-            <th scope="col">Outcome</th>
+            <th scope="col">{t.rollTable.roll}</th>
+            <th scope="col">{t.rollTable.outcome}</th>
           </tr>
         )}
       </thead>

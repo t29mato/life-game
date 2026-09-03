@@ -1,5 +1,6 @@
 import type { Difficulty } from '@domain/model/types'
 import { CPU_THINK_MS } from '@application/cpu/decideCpuCommand'
+import { EN, type UiText } from '../../i18n/en'
 
 /**
  * Mean rounds to finish a game, measured rather than guessed: 60 seeded
@@ -65,24 +66,31 @@ export function estimateMinutes(
 /** Nearest five minutes, floored at five — "about", never "27.4 minutes". */
 const roundMinutes = (minutes: number): number => Math.max(5, Math.round(minutes / 5) * 5)
 
-const seatPhrase = (count: number, kind: string): string =>
-  `${count} ${kind} seat${count === 1 ? '' : 's'}`
-
 /**
  * One honest line about how long this table will sit, for the title screen:
  * "About 10–20 min for 2 human seats." The two ends collapse to a single
  * figure when rounding brings them together — an all-CPU table has no human
  * range at all.
+ *
+ * The seat phrases and the join between them come from the catalogue rather
+ * than being assembled here, because "2 human seats and 1 CPU seat" is three
+ * separate pieces of English grammar — a plural, a word order, and a
+ * conjunction — and a language gets to disagree with all three.
  */
-export function estimatePlaytime(humans: number, cpus: number, difficulty: Difficulty): string {
+export function estimatePlaytime(
+  humans: number,
+  cpus: number,
+  difficulty: Difficulty,
+  t: UiText = EN,
+): string {
   const [low, high] = estimateMinutes(humans, cpus, difficulty)
   const [lowRounded, highRounded] = [roundMinutes(low), roundMinutes(high)]
   const span = lowRounded === highRounded ? `${lowRounded}` : `${lowRounded}–${highRounded}`
-  const seats = [
-    humans > 0 ? seatPhrase(humans, 'human') : null,
-    cpus > 0 ? seatPhrase(cpus, 'CPU') : null,
-  ]
-    .filter((part): part is string => part !== null)
-    .join(' and ')
-  return `About ${span} min for ${seats}.`
+  const seats = t.difficulty.seatJoin(
+    [
+      humans > 0 ? t.difficulty.humanSeats(humans) : null,
+      cpus > 0 ? t.difficulty.cpuSeats(cpus) : null,
+    ].filter((part): part is string => part !== null),
+  )
+  return t.difficulty.playtime(span, seats)
 }

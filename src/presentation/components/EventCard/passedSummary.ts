@@ -1,6 +1,7 @@
 import type { CurrencySpec } from '@domain/edition/types'
 import type { LandingEvent } from '@domain/model/types'
 import { formatMoneyDelta } from '../../format'
+import { EN, type UiText } from '../../i18n/en'
 
 /** One line of the receipt: a tile, how many times the car crossed it, and what it came to. */
 export interface PassedSummaryRow {
@@ -47,9 +48,17 @@ export interface PassedSummaryRow {
 export function summarizePassedEvents(
   events: readonly LandingEvent[],
   currency?: CurrencySpec,
+  t: UiText = EN,
+  /**
+   * The tile's name in the reader's language, when there is one. Grouping
+   * still happens on the English title — it is the stable key, and two tiles
+   * that translate to the same words are still two tiles — so this only
+   * decides what the finished line is *printed* with.
+   */
+  titleOf: (event: LandingEvent) => string = (event) => event.title,
 ): readonly PassedSummaryRow[] {
   const order: string[] = []
-  const groups = new Map<string, { count: number; money: number; anyMoney: boolean }>()
+  const groups = new Map<string, { count: number; money: number; anyMoney: boolean; shown: string }>()
 
   for (const event of events) {
     const existing = groups.get(event.title)
@@ -64,12 +73,13 @@ export function summarizePassedEvents(
       count: 1,
       money: event.moneyDelta,
       anyMoney: event.moneyDelta !== 0,
+      shown: titleOf(event),
     })
   }
 
   return order.map((title) => {
     const group = groups.get(title)!
-    const label = group.count > 1 ? `${title} ×${group.count}` : title
+    const label = t.card.passedLabel(group.shown, group.count)
     if (!group.anyMoney) return { label }
     return { label, amount: formatMoneyDelta(group.money, currency) }
   })
