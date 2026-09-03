@@ -15,6 +15,7 @@ export type UiIconName =
   | 'plus'
   | 'minus'
   | 'zoom-fit'
+  | 'recentre'
   | 'rocket'
   | 'folder'
   | 'wallet'
@@ -76,6 +77,18 @@ function Glyph({ name }: { readonly name: UiIconName }): ReactElement {
           strokeWidth="2.2"
           strokeLinecap="round"
         />
+      )
+    /* Back to my car: a reticle closing on a single filled dot. Deliberately
+       not the four brackets `zoom-fit` uses — that one frames *everything*,
+       this one picks one thing out of it, and two keys sitting next to each
+       other on the same rail must not say the same thing twice. */
+    case 'recentre':
+      return (
+        <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <circle cx="12" cy="12" r="6" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          <circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none" />
+        </g>
       )
     case 'rocket':
       return (

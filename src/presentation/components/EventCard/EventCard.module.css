@@ -15,7 +15,10 @@
   background: rgba(62, 48, 22, 0.5);
   backdrop-filter: blur(2px);
   z-index: var(--z-modal);
-  animation: backdropIn var(--duration-base, 0.28s) var(--ease-out, ease-out) both;
+  /* Delayed to match the card it dims for — the board's own dock leaves
+     first, and nothing of this card starts before it has (issue #24). */
+  animation: backdropIn var(--duration-base, 0.28s) var(--ease-out, ease-out)
+    var(--overlay-handover, 130ms) both;
 }
 
 @keyframes backdropIn {

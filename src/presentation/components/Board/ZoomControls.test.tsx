@@ -10,14 +10,22 @@ function renderControls(zoom = USER_ZOOM_FIT) {
   const onZoomIn = vi.fn()
   const onZoomOut = vi.fn()
   const onReset = vi.fn()
+  const onRecentre = vi.fn()
   render(
-    <ZoomControls zoom={value} onZoomIn={onZoomIn} onZoomOut={onZoomOut} onReset={onReset} />,
+    <ZoomControls
+      zoom={value}
+      onZoomIn={onZoomIn}
+      onZoomOut={onZoomOut}
+      onReset={onReset}
+      onRecentre={onRecentre}
+      recentreLabel="Back to Ada's car"
+    />,
   )
-  return { value, onZoomIn, onZoomOut, onReset }
+  return { value, onZoomIn, onZoomOut, onReset, onRecentre }
 }
 
 describe('ZoomControls', () => {
-  it('offers closer, further and back-to-fit, each by name', () => {
+  it('offers closer, further, back-to-fit and back-to-my-car, each by name', () => {
     renderControls()
 
     const rail = screen.getByRole('group', { name: 'Map zoom' })
@@ -25,6 +33,26 @@ describe('ZoomControls', () => {
     expect(screen.getByRole('button', { name: 'Zoom in' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Zoom out' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reset zoom to fit' })).toBeInTheDocument()
+    // Named after the car rather than after the camera: a player who has
+    // panned away is looking for themselves, not for a control.
+    expect(screen.getByRole('button', { name: "Back to Ada's car" })).toBeInTheDocument()
+  })
+
+  /**
+   * The reported way to get lost (issue #25): pan across the map to read a
+   * tile, and there was nothing that took you back to your own car — the
+   * camera only re-frames when the phase changes, and reset-to-fit goes back
+   * to the last shot the *camera* took, dropping the player's zoom on the way.
+   */
+  it('asks to be taken back to the active car, whatever the zoom is', async () => {
+    const user = userEvent.setup()
+    const { onRecentre } = renderControls(USER_ZOOM_MAX)
+
+    const key = screen.getByRole('button', { name: "Back to Ada's car" })
+    expect(key).toBeEnabled()
+    await user.click(key)
+
+    expect(onRecentre).toHaveBeenCalledTimes(1)
   })
 
   it('reports the level as a percentage of the framing the camera itself chose', () => {

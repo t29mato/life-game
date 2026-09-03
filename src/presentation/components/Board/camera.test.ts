@@ -20,7 +20,9 @@ import {
   FLYTHROUGH_ZOOM,
   FOLLOW_ZOOM,
   MILESTONE_ZOOM,
-  REST_DIE_CLEARANCE,
+  FOLLOW_SLACK,
+  framePosition,
+  framesPoint,
   REST_ZOOM,
   RESOLVE_ZOOM,
   USER_ZOOM_FIT,
@@ -445,106 +447,119 @@ describe('restPoint', () => {
 })
 
 describe('restShot', () => {
-  // A board with room on every side of the tile — below-middle on purpose,
-  // since the lifted aim reaches a frame's half-height *plus* the lift above
-  // the tile — so the pan is never clamped and the shot is the pure lifted
-  // framing.
+  // A board with room on every side of the tile, so the clamp never binds and
+  // the shot is the pure framing of the rest point.
   const roomy = board([space('mid', 15, 20, ['on']), space('on', 16, 20)], 30, 30)
   const roomyProjection = createProjection(roomy)
 
-  it('frames the rest point at REST_ZOOM, lifted so the car clears the die pinned to screen centre', () => {
+  it('frames the rest point at REST_ZOOM, with the slack that keeps a car near an edge in shot', () => {
     const at = roomy.spaces['mid'] as Space
     const point = restPoint(roomy, roomyProjection, at)
-    // At the default aspect nothing is cropped, so the visible height is
-    // exactly the height the shot's own rect covers.
-    const lift =
-      shotRect(roomyProjection, { cx: point.x, cy: point.y, zoom: REST_ZOOM }).height *
-      REST_DIE_CLEARANCE
+    // Room on every side and a frame wide enough that the lean costs far less
+    // than the band allows, so the shot is the leaned aim itself.
     expect(restShot(roomy, roomyProjection, at)).toEqual(
-      focusShot(roomyProjection, { x: point.x, y: point.y - lift }, REST_ZOOM),
+      focusShot(roomyProjection, point, REST_ZOOM, undefined, FOLLOW_SLACK),
     )
   })
 
-  it('seats the car below the frame centre, not underneath the die', () => {
+  it('gives back only as much of the lean as a narrow frame cannot afford', () => {
     const at = roomy.spaces['mid'] as Space
-    const shot = restShot(roomy, roomyProjection, at)
-    const unlifted = focusShot(roomyProjection, restPoint(roomy, roomyProjection, at), REST_ZOOM)
-    expect(shot.cy).toBeLessThan(unlifted.cy)
-  })
-
-  it('lifts by the same slice of *screen*, not of board, when a wide container crops vertically', () => {
-    const at = roomy.spaces['mid'] as Space
+    const car = roomyProjection.project(at.layout)
     const point = restPoint(roomy, roomyProjection, at)
-    const viewAspect = roomyProjection.viewWidth / roomyProjection.viewHeight
-    const wide = viewAspect * 2
-    // `slice` fills a doubled aspect's width and crops half the shot's rect
-    // off the top and bottom — the height actually on screen is the rect's
-    // own height over that same factor, and the lift follows the screen.
-    const rect = shotRect(roomyProjection, { cx: point.x, cy: point.y, zoom: REST_ZOOM }, wide)
-    const lift = (rect.height / 2) * REST_DIE_CLEARANCE
-    expect(restShot(roomy, roomyProjection, at, wide)).toEqual(
-      focusShot(roomyProjection, { x: point.x, y: point.y - lift }, REST_ZOOM, wide),
-    )
+    const narrow = (roomyProjection.viewWidth / roomyProjection.viewHeight) * 0.4
+    const shot = restShot(roomy, roomyProjection, at, narrow)
+    // Still leaning the way the road runs — the nudge is not abandoned…
+    expect(shot.cx).toBeGreaterThan(car.x)
+    // …but no longer all the way to an aim that would push the car out of band.
+    expect(shot.cx).toBeLessThan(point.x)
+    expect(framesPoint(roomyProjection, shot, car, narrow)).toBe(true)
   })
 
   /**
-   * The reported regression, in miniature: a tall board whose start corner a
-   * squarish window's REST_ZOOM frame pins against the edge of the card,
-   * where a robbed lift can leave the car under the die at the frame's
-   * centre. The contract, at *every* window shape: either the lifted pan was
-   * honoured — the car hangs exactly the clearance below the die — or the
-   * car is at least the clearance plus its own reach from the die in some
-   * direction, and the shot never spends zoom for it.
+   * The reported bug, in miniature (issue #25): a car parked on the outermost
+   * tile of the board used to be pinned against the very edge of the screen,
+   * because the frame was clamped flush to the card and could get no closer
+   * to the edge than its own half-width. `FOLLOW_SLACK` is priced to make the
+   * band achievable *everywhere on the card* — see its own note for the
+   * arithmetic — so this asserts it at the four corners, at every window
+   * shape, which is the whole claim rather than a sample of it.
    */
-  const tall = board([space('start', 4, 3, ['on']), space('on', 5, 3)], 8, 24)
+  const tall = board([space('start', 0, 0, ['on']), space('on', 1, 0), space('far', 7, 23)], 8, 24)
   const tallProjection = createProjection(tall)
   const tallAspect = tallProjection.viewWidth / tallProjection.viewHeight
 
-  it('keeps the car clear of the die at every window shape, at REST_ZOOM, on the board', () => {
-    const at = tall.spaces['start'] as Space
-    const point = restPoint(tall, tallProjection, at)
-    const car = tallProjection.project(at.layout)
-    let slid = false
+  it('holds the car inside the 40–60% band at every window shape, corners included', () => {
+    for (const id of ['start', 'on', 'far']) {
+      const at = tall.spaces[id] as Space
+      const car = tallProjection.project(at.layout)
+      for (const ratio of [0.5, 0.8, 1, 1.17, 1.4, 1.7, 2, 2.5, 3]) {
+        const aspect = tallAspect * ratio
+        const shot = restShot(tall, tallProjection, at, aspect)
+        // Never bought with zoom: the framing promise is about where the
+        // camera points, and a zoom spent on it would be a different shot.
+        expect(shot.zoom).toBe(REST_ZOOM)
+        expect(framesPoint(tallProjection, shot, car, aspect)).toBe(true)
+      }
+    }
+  })
 
-    for (const ratio of [0.5, 0.8, 1, 1.17, 1.4, 1.7, 2, 2.5, 3]) {
+  it('never reaches further past the board than the slack it declares', () => {
+    const at = tall.spaces['start'] as Space
+    for (const ratio of [0.5, 1, 2, 3]) {
       const aspect = tallAspect * ratio
       const shot = restShot(tall, tallProjection, at, aspect)
-      expect(shot.zoom).toBe(REST_ZOOM)
-
-      // What the viewer sees: the rect over the slice crop on the shorter
-      // axis. The clamp owes the *seen* band to the board, not the rect.
       const rect = shotRect(tallProjection, shot, aspect)
       const crop = Math.max(1, aspect / tallAspect)
       const spread = Math.max(1, tallAspect / aspect)
       const seenHeight = rect.height / crop
-      const seenTop = shot.cy - seenHeight / 2
-      expect(seenTop).toBeGreaterThanOrEqual(-1e-6)
-      expect(seenTop + seenHeight).toBeLessThanOrEqual(tallProjection.viewHeight + 1e-6)
       const seenWidth = rect.width / spread
-      expect(shot.cx - seenWidth / 2).toBeGreaterThanOrEqual(-1e-6)
-      expect(shot.cx + seenWidth / 2).toBeLessThanOrEqual(tallProjection.viewWidth + 1e-6)
-
-      const lift = seenHeight * REST_DIE_CLEARANCE
-      // Vertical honour is what matters — the car hanging the full lift (or,
-      // at the bottom edge, more) below the die — however the sides clamped.
-      const honoured = shot.cy <= point.y - lift + 1e-6
-      const distance = Math.hypot(car.x - shot.cx, car.y - shot.cy)
-      const required = lift + tallProjection.tileSize
-      // A slide that runs out of board concedes the shortfall: this fixture's
-      // board is deliberately narrow enough that some window shapes exhaust
-      // the sideways room, and the proof of best effort is the centre parked
-      // exactly at the seen band's own bound.
-      const exhausted = Math.abs(shot.cx - (tallProjection.viewWidth - seenWidth / 2)) < 1e-6
-      expect(honoured || exhausted || distance + 1e-6 >= required).toBe(true)
-
-      // A slide is recognisable by the die landing well down the road of the
-      // car, toward the middle of the route.
-      if (shot.cx - car.x > tallProjection.tileSize * 0.9) slid = true
+      // The overhang is bounded by construction — this is what stops the
+      // slack from being a licence to fly the camera off the map.
+      expect(shot.cy - seenHeight / 2).toBeGreaterThanOrEqual(-seenHeight * FOLLOW_SLACK - 1e-6)
+      expect(shot.cy + seenHeight / 2).toBeLessThanOrEqual(
+        tallProjection.viewHeight + seenHeight * FOLLOW_SLACK + 1e-6,
+      )
+      expect(shot.cx - seenWidth / 2).toBeGreaterThanOrEqual(-seenWidth * FOLLOW_SLACK - 1e-6)
+      expect(shot.cx + seenWidth / 2).toBeLessThanOrEqual(
+        tallProjection.viewWidth + seenWidth * FOLLOW_SLACK + 1e-6,
+      )
     }
+  })
+})
 
-    // The sweep must actually have crossed the pinned band the slide exists
-    // for — a sweep that never slid would be vacuously green.
-    expect(slid).toBe(true)
+/**
+ * Where a point lands in the frame, which is the only language the "keep the
+ * car on screen" promise can actually be stated in.
+ */
+describe('framePosition', () => {
+  it('reads dead centre as a half on both axes', () => {
+    const at = model.spaces['s4'] as Space
+    const point = projection.project(at.layout)
+    const shot = focusShot(projection, point, REST_ZOOM, undefined, FOLLOW_SLACK)
+    const where = framePosition(projection, shot, point)
+    expect(where.x).toBeCloseTo(0.5, 6)
+    expect(where.y).toBeCloseTo(0.5, 6)
+  })
+
+  it('reads the frame’s own edges as 0 and 1', () => {
+    const shot = { cx: projection.viewWidth / 2, cy: projection.viewHeight / 2, zoom: 1 }
+    const rect = shotRect(projection, shot)
+    expect(framePosition(projection, shot, { x: rect.x, y: rect.y }).x).toBeCloseTo(0, 6)
+    expect(framePosition(projection, shot, { x: rect.x + rect.width, y: rect.y }).x).toBeCloseTo(1, 6)
+  })
+
+  it('says a car the old flush clamp would have pinned to the edge is out of band', () => {
+    // The same corner tile, framed without the slack: this is the shot the
+    // camera used to take, and the reason the report says the pawn reaches
+    // the edge of the screen.
+    const edge = board([space('start', 0, 0, ['on']), space('on', 1, 0)], 8, 24)
+    const edgeProjection = createProjection(edge)
+    const at = edge.spaces['start'] as Space
+    const car = edgeProjection.project(at.layout)
+    const flush = focusShot(edgeProjection, car, REST_ZOOM)
+    expect(framesPoint(edgeProjection, flush, car)).toBe(false)
+    const slacked = focusShot(edgeProjection, car, REST_ZOOM, undefined, FOLLOW_SLACK)
+    expect(framesPoint(edgeProjection, slacked, car)).toBe(true)
   })
 })
 

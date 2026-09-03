@@ -116,4 +116,45 @@ export const TEMPO = {
    * all of it.
    */
   rollFlightSeconds: 0.62,
+
+  /**
+   * One breath of the idle die's bob, up and back down.
+   *
+   * Pure invitation, and the only thing on screen while the game is waiting
+   * for a press: a die that sits perfectly still reads as a picture of a die
+   * (which is exactly how the playtest read it — it also still had the
+   * *previous* player's number on it). Slow on purpose. A quick bob is a
+   * notification; this is an object idling, the way a Mario Party die hangs
+   * over the token whose turn it is.
+   */
+  dieIdleBobSeconds: 1.7,
+
+  /**
+   * The gap between the board's own furniture leaving and a card arriving
+   * over it.
+   *
+   * The playtest saw every card fade *through* the board's die and its "0 TO
+   * GO" badge, because both were crossfading at once: two frames of the game
+   * visible in the same pixels, which reads as a rendering fault rather than
+   * as a transition. So the order is made explicit — the dock fades out over
+   * this long, and the card's own entrance waits exactly this long before it
+   * starts. Old out, then new in, with a beat of clean board between them.
+   *
+   * Short enough that it costs the turn nothing a player can name: rule 1
+   * above allows 500ms between a result and the motion answering it, and
+   * this spends a quarter of that budget to delete a ghost.
+   */
+  overlayHandoverMs: 130,
+
+  /**
+   * How long each tile of the road ahead waits before it lights, once the
+   * roll has settled and the path is known.
+   *
+   * The lights run *ahead* of the car rather than under it — six tiles are
+   * all lit inside half a second, well before a 280ms-per-hop car has
+   * covered two of them — because the question they answer ("am I stopping
+   * here or driving through?") is one a player wants answered before the
+   * move, not narrated during it.
+   */
+  pathLightStepSeconds: 0.07,
 } as const

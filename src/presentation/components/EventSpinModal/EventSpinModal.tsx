@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import type { RollTableRow, SpinValue } from '@domain/model/types'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { TEMPO } from '../../tempo'
 import { Dice } from '../Dice/Dice'
 import { RollTable } from '../RollTable/RollTable'
 import styles from './EventSpinModal.module.css'
@@ -84,12 +85,26 @@ export function EventSpinModal({
     if (unattended) setSelfToken(1)
   }, [unattended])
 
+  /*
+   * The card pops in *after* the board's own dock has faded out, rather than
+   * crossfading through it — see `TEMPO.overlayHandoverMs`. The delay is on
+   * the reduced-motion branch too: the ordering is not motion, it is which
+   * one thing the screen is showing, and a reduced-motion player is owed
+   * that answer just as clearly.
+   */
+  const handover = TEMPO.overlayHandoverMs / 1000
   const entrance = reduceMotion
-    ? { initial: { opacity: 1 }, animate: { opacity: 1 }, transition: { duration: 0 } }
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0, delay: handover } }
     : {
         initial: { opacity: 0, scale: 0.86, y: 34 },
         animate: { opacity: 1, scale: 1, y: 0 },
-        transition: { type: 'spring' as const, stiffness: 380, damping: 26, mass: 0.9 },
+        transition: {
+          type: 'spring' as const,
+          stiffness: 380,
+          damping: 26,
+          mass: 0.9,
+          delay: handover,
+        },
       }
 
   return (
@@ -109,38 +124,45 @@ export function EventSpinModal({
         animate={entrance.animate}
         transition={entrance.transition}
       >
-        <header className={styles.header}>
-          {/* Named for what it is: a tile driven over is not a tile stopped
-              at, and a player who never chose to stop here should be told
-              why a die is turning for them — whether they are the one
-              throwing it or, on a computer seat, only watching it land. */}
-          <span className={styles.kind}>{passedThrough ? 'Passing through' : 'The die'}</span>
-          <h2 id="event-spin-prompt" className={styles.prompt}>
-            {prompt}
-          </h2>
-          <p className={styles.stakes}>{stakes}</p>
-        </header>
+        {/* The reading half, and the only half that scrolls — see `.reading`.
+            The die below is deliberately outside it, because a thrown die
+            leaves its own box and a scroll container would crop it. */}
+        <div className={styles.reading}>
+          <header className={styles.header}>
+            {/* Named for what it is: a tile driven over is not a tile stopped
+                at, and a player who never chose to stop here should be told
+                why a die is turning for them — whether they are the one
+                throwing it or, on a computer seat, only watching it land. */}
+            <span className={styles.kind}>{passedThrough ? 'Passing through' : 'The die'}</span>
+            <h2 id="event-spin-prompt" className={styles.prompt}>
+              {prompt}
+            </h2>
+            <p className={styles.stakes}>{stakes}</p>
+          </header>
 
-        {/* What each face is actually worth, as rows — a player scans this
-            once and knows exactly what to hope for, instead of parsing it
-            back out of a sentence the way `stakes` alone used to ask them
-            to. Only ever present alongside a real breakdown; most rolls
-            (a single threshold, a flat rate) have nothing to tabulate. */}
-        {table && table.length > 0 ? <RollTable rows={table} /> : null}
+          {/* What each face is actually worth, as rows — a player scans this
+              once and knows exactly what to hope for, instead of parsing it
+              back out of a sentence the way `stakes` alone used to ask them
+              to. Only ever present alongside a real breakdown; most rolls
+              (a single threshold, a flat rate) have nothing to tabulate. */}
+          {table && table.length > 0 ? <RollTable rows={table} /> : null}
+        </div>
 
         {/* The die is the whole point of this card, so it is also its A
             button: focus lands on it as the card opens and Space or Enter
             throws it, without the player first having to find it with the
             mouse. Nobody is pressing an unattended throw, so it claims
             neither focus nor the keys. */}
-        <Dice
-          result={result}
-          disabled={false}
-          onRoll={onSpin}
-          onRollComplete={onSpinComplete}
-          autoRollToken={unattended ? selfToken : autoSpinToken}
-          primary={!unattended}
-        />
+        <div className={styles.dieBay}>
+          <Dice
+            result={result}
+            disabled={false}
+            onRoll={onSpin}
+            onRollComplete={onSpinComplete}
+            autoRollToken={unattended ? selfToken : autoSpinToken}
+            primary={!unattended}
+          />
+        </div>
       </motion.div>
     </div>
   )

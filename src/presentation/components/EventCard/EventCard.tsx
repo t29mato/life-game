@@ -8,6 +8,7 @@ import { useAudio } from '../../hooks/useAudio'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { usePrimaryAction } from '../../hooks/usePrimaryAction'
+import { TEMPO } from '../../tempo'
 import { ChunkyButton } from '../ChunkyButton/ChunkyButton'
 import { RollingNumber } from '../RollingNumber/RollingNumber'
 import { Confetti } from '../Confetti/Confetti'
@@ -207,29 +208,42 @@ export function EventCard({
     '--card-tone-edge': `var(--tone-${event.tone}-edge)`,
   } as CSSProperties
 
+  /*
+   * Every entrance below waits a beat before it starts, and the beat is the
+   * whole fix for a ghost the playtest saw on every single card: the board's
+   * die and its "0 TO GO" badge used to still be on screen, fading, while
+   * this card faded in over them — two frames of the game in the same pixels
+   * (issue #24). The dock now fades out over exactly `overlayHandoverMs`,
+   * and this waits exactly that long. Old out, then new in.
+   *
+   * Reduced motion keeps the delay and nothing else: which one thing the
+   * screen is showing is not a motion preference.
+   */
+  const handover = TEMPO.overlayHandoverMs / 1000
+
   // A dealt card lands off-axis and settles — fast, because it is seen dozens
   // of times per game. `big`/`milestone` slam in harder: a longer throw, more
   // rotation, and a stiffer, less damped spring so it visibly overshoots.
   const entrance = reduceMotion
-    ? { initial: { opacity: 1, scale: 1, y: 0, rotate: 0 }, animate: { opacity: 1, scale: 1, y: 0, rotate: 0 }, transition: { duration: 0 } }
+    ? { initial: { opacity: 0, scale: 1, y: 0, rotate: 0 }, animate: { opacity: 1, scale: 1, y: 0, rotate: 0 }, transition: { duration: 0, delay: handover } }
     : isPassing
       ? // Slid up from below, square on, no throw: a tile you drove over is
         // not a card somebody dealt you, and it should not land like one.
         {
           initial: { opacity: 0, scale: 0.97, y: 96, rotate: 0 },
           animate: { opacity: 1, scale: 1, y: 0, rotate: 0 },
-          transition: { type: 'spring' as const, stiffness: 460, damping: 34, mass: 0.7 },
+          transition: { type: 'spring' as const, stiffness: 460, damping: 34, mass: 0.7, delay: handover },
         }
       : isCutIn
       ? {
           initial: { opacity: 0, scale: 0.62, y: 72, rotate: -8 },
           animate: { opacity: 1, scale: 1, y: 0, rotate: 0 },
-          transition: { type: 'spring' as const, stiffness: 520, damping: 20, mass: 0.85 },
+          transition: { type: 'spring' as const, stiffness: 520, damping: 20, mass: 0.85, delay: handover },
         }
       : {
           initial: { opacity: 0, scale: 0.82, y: 44, rotate: -4.5 },
           animate: { opacity: 1, scale: 1, y: 0, rotate: 0 },
-          transition: { type: 'spring' as const, stiffness: 420, damping: 26, mass: 0.85 },
+          transition: { type: 'spring' as const, stiffness: 420, damping: 26, mass: 0.85, delay: handover },
         }
 
   return (

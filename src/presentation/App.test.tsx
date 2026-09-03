@@ -1598,19 +1598,27 @@ describe('the player strip', () => {
   })
 })
 
-describe('the die stepping aside for the driving car', () => {
+describe('the die getting out of a card’s way', () => {
   /*
-   * The die sits at the centre of the screen, which is exactly where the
-   * camera holds the driving car, so mid-move the dock has to step aside —
-   * `.dieAside` fades it out and drops its pointer events. The window is
-   * sub-second in a real game, which is why it is pinned here rather than
-   * screenshotted.
+   * This used to be a test about the die stepping aside for the *car*: the
+   * die sat dead centre, which is exactly where the camera holds the driving
+   * car, so mid-move the dock faded out. The die has its own corner tray now
+   * (issue #23) and the two no longer share that inch of screen, so that
+   * particular fade is gone along with the collision that caused it.
+   *
+   * What replaces it is the collision that was actually reported: every
+   * transition to a result card crossfaded straight through the board's die
+   * and its "0 TO GO" badge, leaving a ghost of the previous frame hanging
+   * over the new one (issue #24). So the dock has to be gone before a card
+   * is up — and present when one is not, or a player is handed a board with
+   * no die on it.
    */
-  it('steps the die aside while the car is actually driving', () => {
+  const trayOf = (): HTMLElement =>
+    screen.getByRole('button', { name: /^roll/i }).closest('[class*="dieTray"]') as HTMLElement
+
+  it('leaves the board clear while a card owns the screen', () => {
     const store = startedGame()
     const base = store.getState()
-    const dieDockOf = (): HTMLElement =>
-      screen.getByRole('button', { name: /^roll/i }).closest('[class*="dieDock"]') as HTMLElement
 
     const { unmount } = render(
       <App
@@ -1619,15 +1627,31 @@ describe('the die stepping aside for the driving car', () => {
         profiles={createInMemoryProfileRepository()}
       />,
     )
-    expect(dieDockOf().className).not.toMatch(/dieAside/)
+    expect(trayOf().className).not.toMatch(/dockAway/)
     unmount()
 
-    // Real steps for the board to animate, so nothing settles from under us.
-    const moving = { ...base, phase: 'moving' as const, movementPath: [base.players[0]!.spaceId] }
     render(
-      <App store={createStubStore(moving)} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />,
+      <App
+        store={createStubStore({
+          ...base,
+          phase: 'resolved',
+          lastEvent: {
+            spaceId: base.players[0]!.spaceId,
+            title: 'Payday',
+            description: 'Wages in.',
+            icon: 'space:payday',
+            tone: 'green',
+            moneyDelta: 4000,
+            lifeTilesGained: [],
+            notes: [],
+            emphasis: 'normal',
+          },
+        })}
+        audio={createFakeAudioPort()}
+        profiles={createInMemoryProfileRepository()}
+      />,
     )
-    expect(dieDockOf().className).toMatch(/dieAside/)
+    expect(trayOf().className).toMatch(/dockAway/)
   })
 })
 

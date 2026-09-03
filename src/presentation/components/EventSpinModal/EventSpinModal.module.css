@@ -14,7 +14,11 @@
   background: rgba(62, 48, 22, 0.5);
   backdrop-filter: blur(2px);
   z-index: var(--z-modal);
-  animation: backdropIn var(--duration-base, 0.28s) var(--ease-out, ease-out) both;
+  /* Held back a beat so the board's own dock is gone before this starts —
+     the "old out, then new in" order (issue #24). `both` is what keeps the
+     backdrop at zero through the delay rather than flashing in first. */
+  animation: backdropIn var(--duration-base, 0.28s) var(--ease-out, ease-out)
+    var(--overlay-handover, 130ms) both;
 }
 
 @keyframes backdropIn {
@@ -26,11 +30,23 @@
   }
 }
 
+/* The card used to be the scroll container itself (`overflow: hidden auto`),
+   and that is what clipped the die: a thrown cube leaves its own box on
+   purpose — up and out, by most of its own width — and a scroll container
+   crops everything that leaves it. On a card long enough to scroll (a roll
+   with a full outcome table) the die at the bottom was cut off mid-throw,
+   and the shadow of the clipped copy against the card's edge read as a
+   second die overlapping the first. Reported as both (issue #24).
+
+   So the scrolling moved *inside*, to the prose that actually needs it, and
+   the card itself clips nothing. The card's own height is still bounded, so
+   nothing about the containment this file already promised has changed —
+   only the die is now free to fly out over the room. */
 .card {
   position: relative;
   width: min(26rem, 100%);
   max-height: min(90vh, 40rem);
-  overflow: hidden auto;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -39,6 +55,33 @@
   background: var(--surface-grad);
   border-radius: var(--radius-xl);
   box-shadow: var(--elev-3);
+}
+
+/* Everything above the die: the prompt, the stakes, the outcome table. This
+   is the part that can outgrow the screen, so this is the part that scrolls
+   — and it is a separate box from the die's own bay, so a scrollbar here
+   can never crop a throw down there. */
+.reading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.3rem;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden auto;
+}
+
+/* The die's own layer, and the reason it is one: `overflow: visible` on an
+   ancestor is not enough on its own when the flying cube has to pass over
+   the card's own edge — it has to be painted after the card's background,
+   in a box that nothing crops. */
+.dieBay {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: flex;
+  justify-content: center;
+  overflow: visible;
 }
 
 .header {
