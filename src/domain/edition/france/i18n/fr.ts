@@ -71,7 +71,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'fr-grad-forum': {
       title: 'Le forum des métiers',
-      description: 'Les anciens de votre école remplissent le grand amphi une journée durant, avec des poignées de main fermes et des chiffres de salaire plus fermes encore. Deux postes sont ouverts. Choisissez.',
+      description: 'Les anciens de votre école remplissent le grand amphi une journée durant, avec des poignées de main fermes et des chiffres de salaire plus fermes encore. Deux postes sont ouverts.',
     },
     'fr-apprenticeship-day': {
       title: 'Entrée en apprentissage',
@@ -121,7 +121,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'fr-main-trial-period': {
       title: 'Fin de période d’essai',
-      description: 'Votre période d’essai s’achève aujourd’hui. Quelqu’un s’assoit en face de vous avec un formulaire. Lancez le dé pour savoir ce qu’on vous dit.',
+      description: 'Votre période d’essai s’achève aujourd’hui. Quelqu’un s’assoit en face de vous avec un formulaire.',
       reason: 'La fin de la période d’essai',
     },
     'fr-main-bank': {
@@ -165,7 +165,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'fr-loyal-grid': {
       title: 'La grille d’ancienneté',
-      description: 'Votre salaire monte d’un échelon chaque année, mais le poste au-dessus ne se libère que quand quelqu’un part à la retraite. Lancez le dé pour savoir si c’est cette année.',
+      description: 'Votre salaire monte d’un échelon chaque année, mais le poste au-dessus ne se libère que quand quelqu’un part à la retraite.',
       reason: 'Le poste au-dessus s’est libéré',
     },
     'fr-hopper-lookout': {
@@ -183,7 +183,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'fr-main-annual-review': {
       title: 'L’entretien annuel',
-      description: 'Une petite salle de réunion, deux managers, votre dossier ouvert sur la table. Une seule question : êtes-vous prêt pour le poste au-dessus ? Lancez le dé pour connaître leur décision.',
+      description: 'Une petite salle de réunion, deux managers, votre dossier ouvert sur la table. Une seule question : êtes-vous prêt pour le poste au-dessus ?',
       reason: 'Votre entretien annuel est arrivé',
     },
     'fr-main-tax-audit': {
@@ -203,7 +203,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'fr-main-employment-office': {
       title: 'L’agence pour l’emploi',
-      description: 'Un conseiller reprend votre dossier et trouve deux postes qui vous vont. Choisissez.',
+      description: 'Un conseiller reprend votre dossier et trouve deux postes qui vous vont.',
       reason: 'Un nouveau départ à l’agence pour l’emploi',
     },
     'fr-main-gifts': {
@@ -318,7 +318,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'fr-risky-startup': {
       title: 'Pari sur une start-up',
-      description: 'Vous placez vos économies dans la start-up d’un ami, dans un grand accélérateur parisien. Lancez le dé pour voir ce qui revient.',
+      description: 'Vous placez vos économies dans la start-up d’un ami, dans un grand accélérateur parisien.',
       reason: 'Retour sur investissement',
     },
     'fr-risky-bad-tip': {
@@ -343,7 +343,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'fr-risky-lottery': {
       title: 'Le billet de loto',
-      description: 'Vous achetez un billet de loto au bureau de tabac que tout le monde dit chanceux. Lancez le dé pour voir si la chance était réelle.',
+      description: 'Vous achetez un billet de loto au bureau de tabac que tout le monde dit chanceux.',
       reason: 'Le tirage national',
     },
     'fr-risky-payday': {
@@ -437,7 +437,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'fr-sunset-last-title': {
       title: 'Un dernier titre',
-      description: 'Une promotion de plus avant la retraite, si vous savez la décrocher. Lancez le dé et laissez ce dernier entretien trancher.',
+      description: 'Une promotion de plus avant la retraite, si vous savez la décrocher.',
       reason: 'Le dernier entretien de votre vie',
     },
     'fr-sunset-payday-2': {

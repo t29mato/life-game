@@ -249,13 +249,46 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
     null,
   )
 
+  /*
+   * --- letting the number be read ----------------------------------------
+   *
+   * The board's die is docked beside the map and nothing ever takes it away,
+   * so it has always had `TEMPO.dieReturnDelaySeconds` of sitting on the
+   * number it rolled before it glides home. A die inside `EventSpinModal`
+   * never got that: `Dice` paints the settled face and calls back in the same
+   * commit, this callback cleared `activeSpin`, and the modal — die, number
+   * and payout table together — was unmounted on the very next one. The
+   * settled face was on screen for somewhere between zero and one frame.
+   *
+   * A player found the one card where that costs something real. On a
+   * pay-per-pip payday the face *is* the wage, and they reported being unable
+   * to tell either what they had rolled or what it had paid them. Both halves
+   * of that are this.
+   *
+   * So a die that lives inside a card — an event roll, or one of the closing
+   * settlement's — keeps its number for `TEMPO.eventDieHoldMs` before the
+   * shell moves on. Everything downstream still waits on `dieSettled`
+   * exactly as it did, which is the point: the HUD stays frozen, the board
+   * stays put, and nothing spoils the figure the card behind is about to
+   * count up to. The movement die keeps the timing it has, because it never
+   * had the bug — nothing unmounts it.
+   */
+  const dieHoldTimer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(dieHoldTimer.current), [])
+
   const handleSpinComplete = useCallback(() => {
     if (activeSpinRef.current === 'movement') {
       const value = store.getState().lastSpin
       if (value !== null) setRollFlight((prev) => ({ value, token: (prev?.token ?? 0) + 1 }))
+      setDieSettled(true)
+      setActiveSpin(null)
+      return
     }
-    setDieSettled(true)
-    setActiveSpin(null)
+    window.clearTimeout(dieHoldTimer.current)
+    dieHoldTimer.current = window.setTimeout(() => {
+      setDieSettled(true)
+      setActiveSpin(null)
+    }, TEMPO.eventDieHoldMs)
   }, [store])
 
   useEffect(() => {
@@ -300,7 +333,18 @@ export function App({ store, audio, profiles }: AppProps): ReactElement {
    */
   const passedEventRef = useRef(passedEvent)
   passedEventRef.current = passedEvent
-  const handlePassedSpinComplete = useCallback(() => setWatchedPassedEvent(passedEventRef.current), [])
+  // Held on its number for the same beat a landed tile's die is — see
+  // `handleSpinComplete`. This die is the *only* place a swept-past tile's
+  // roll is ever shown, so it is the one that can least afford to blink out
+  // the frame it lands. Two dice are never in the air at once, so the one
+  // timer serves both.
+  const handlePassedSpinComplete = useCallback(() => {
+    window.clearTimeout(dieHoldTimer.current)
+    dieHoldTimer.current = window.setTimeout(
+      () => setWatchedPassedEvent(passedEventRef.current),
+      TEMPO.eventDieHoldMs,
+    )
+  }, [])
 
   /*
    * How far the active car still has to travel, reported by the board as

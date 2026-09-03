@@ -159,7 +159,10 @@ export function describeScoreRoll(state: GameState, roll: ScoreRoll): ScoreRollP
       playerId: player.id,
       isCpu: player.isCpu,
       prompt: `${player.name}'s house`,
-      stakes: `${player.house?.name ?? 'The house'} goes on the market. Whatever the die says is what the buyer pays.`,
+      // The six prices the buyer might pay are tabled directly beneath this
+      // and the die is under those, so the stakes line says only what neither
+      // can: whose house, and that it is being sold at all.
+      stakes: `${player.house?.name ?? 'The house'} goes on the market.`,
       table,
     }
   }
@@ -169,9 +172,9 @@ export function describeScoreRoll(state: GameState, roll: ScoreRoll): ScoreRollP
       playerId: player.id,
       isCpu: player.isCpu,
       prompt: `${player.name}'s life policy`,
-      stakes:
-        `The policy matures. What it paid for over a lifetime is what the fund made, ` +
-        `and the die is the fund.`,
+      // Same shape as the house above: the ladder is tabled below, so "and
+      // the die is the fund" was narrating the object on screen.
+      stakes: 'The policy matures. What it paid for over a lifetime is what the fund made.',
       table,
     }
   }

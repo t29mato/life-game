@@ -137,7 +137,12 @@ export function EventSpinModal({
             <h2 id="event-spin-prompt" className={styles.prompt}>
               {prompt}
             </h2>
-            <p className={styles.stakes}>{stakes}</p>
+            {/* Empty on a roll where the prompt above and the table below
+                between them already say everything — a hiring tile, a tuition
+                bill. The sentence that used to sit here on those told the
+                player to roll the die that is on screen under it, which is
+                the one thing the screen was never going to leave unsaid. */}
+            {stakes ? <p className={styles.stakes}>{stakes}</p> : null}
           </header>
 
           {/* What each face is actually worth, as rows — a player scans this

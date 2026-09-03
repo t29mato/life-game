@@ -88,7 +88,12 @@ describe('EventCard', () => {
           />
         </AudioProvider>,
       )
-      expect(screen.getByText('Passed Payday ×3 · +$111,000')).toBeInTheDocument()
+      // A real table now: the tile name is a row header and the sum is a
+      // cell in a column headed "Amount", so three paydays and their total
+      // line up under one heading instead of being typed out three times.
+      expect(screen.getByRole('columnheader', { name: 'Passed' })).toBeInTheDocument()
+      expect(screen.getByRole('rowheader', { name: 'Payday ×3' })).toBeInTheDocument()
+      expect(screen.getByRole('cell', { name: '+$111,000' })).toBeInTheDocument()
     })
 
     it('says nothing at all when nothing was passed', () => {
@@ -98,7 +103,7 @@ describe('EventCard', () => {
           <EventCard event={makeEvent()} passedThrough={[]} onDismiss={() => {}} />
         </AudioProvider>,
       )
-      expect(screen.queryByLabelText(/passed on the way/i)).not.toBeInTheDocument()
+      expect(screen.queryByRole('table', { name: /passed on the way/i })).not.toBeInTheDocument()
     })
   })
 
@@ -114,13 +119,16 @@ describe('EventCard', () => {
   })
 
   /*
-   * D3: a playtest card carried a quote, a badge and three bullet lines, two
-   * of which ("no promotion", "raised to $76,000") read as contradicting each
-   * other at a glance. A card is a headline, one figure, and one footnote —
-   * whatever a handler hands it, only the first line is on screen.
+   * D3 folded everything past the first note behind a "2 more" press, on the
+   * theory that a card arriving with three bullets was three messages. The
+   * owner played it and disagreed, and they are right about what is actually
+   * in `notes`: the rate a week is paid at, what a loan costs to settle, what
+   * a rank buys. That is the small print of the deal, and a press to reveal
+   * the terms of the deal is a press nobody makes. The hierarchy the fold
+   * came with — one leading line, the rest quieter beneath it — survives.
    */
-  describe('one card, one message', () => {
-    it('shows only the first note, and says how many are folded away', () => {
+  describe('the notes are read, not offered', () => {
+    it('shows every note at once, with the first one leading', () => {
       mockReducedMotion(true)
       const event = makeEvent({ notes: ['A raise anyway: $76,000', 'Cleared the bar of 4.', 'Third thing'] })
       render(
@@ -130,27 +138,23 @@ describe('EventCard', () => {
       )
 
       expect(screen.getByText('A raise anyway: $76,000')).toBeInTheDocument()
-      expect(screen.queryByText('Cleared the bar of 4.')).not.toBeInTheDocument()
-      expect(screen.getByRole('button', { name: '2 more' })).toBeInTheDocument()
+      expect(screen.getByText('Cleared the bar of 4.')).toBeInTheDocument()
+      expect(screen.getByText('Third thing')).toBeInTheDocument()
     })
 
-    it('unfolds the rest on a press, and folds them back', async () => {
+    it('asks for no press to see them', () => {
       mockReducedMotion(true)
-      const user = userEvent.setup()
       render(
         <AudioProvider audio={createFakeAudioPort()}>
           <EventCard event={makeEvent({ notes: ['First', 'Second'] })} onDismiss={() => {}} />
         </AudioProvider>,
       )
 
-      await user.click(screen.getByRole('button', { name: '1 more' }))
       expect(screen.getByText('Second')).toBeInTheDocument()
-
-      await user.click(screen.getByRole('button', { name: 'Less' }))
-      expect(screen.queryByText('Second')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /more|less/i })).not.toBeInTheDocument()
     })
 
-    it('offers nothing to unfold when there is only one line', () => {
+    it('says nothing extra when there is only one line', () => {
       mockReducedMotion(true)
       render(
         <AudioProvider audio={createFakeAudioPort()}>

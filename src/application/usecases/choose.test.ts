@@ -445,12 +445,17 @@ describe('choose', () => {
 
       expect(random.calls.spins).toBe(1)
       expect(next.players[0]!.money).toBe(1_000 + CASUAL_WAGE_PER_PIP * 4)
-      // The roll travels on the event, not in a note; what the note carries
-      // is the standing fact that this player is paid by the die at all.
+      // The roll travels on the event, the total is on the delta plate, and
+      // the note carries the third number — the rate, which is the only one
+      // of the three the card cannot otherwise show, and the one that makes
+      // the other two check out.
       expect(next.lastEvent!.rolled).toBe(4)
       expect(next.lastEvent!.notes.join(' ')).not.toContain('Rolled')
-      expect(next.lastEvent!.notes).toEqual(['Between jobs, so you pick up shifts.'])
-      expect(next.lastEvent!.narration).toContain(formatMoney(CASUAL_WAGE_PER_PIP * 4))
+      expect(next.lastEvent!.notes).toEqual([
+        `Between jobs — shifts pay ${formatMoney(CASUAL_WAGE_PER_PIP)} for every pip you roll.`,
+      ])
+      // And the narration no longer prints the total a second time.
+      expect(next.lastEvent!.narration).not.toContain(formatMoney(CASUAL_WAGE_PER_PIP * 4))
       // Nobody to draw a portrait of — a casual player between jobs has no
       // trade for the card to name.
       expect(next.lastEvent!.careerIcon).toBeUndefined()
@@ -744,10 +749,10 @@ describe('choose', () => {
         expect(next.players[0]!.money).toBe(3_000)
         expect(next.lastEvent!.moneyDelta).toBe(3_000)
         // The roll is on the event and the total is on the delta plate, so
-        // the note that said both of them over again is gone.
+        // neither the note nor the narration says either of them again.
         expect(next.lastEvent!.rolled).toBe(6)
         expect(next.lastEvent!.notes).toEqual([])
-        expect(next.lastEvent!.narration).toContain(formatMoney(3_000))
+        expect(next.lastEvent!.narration).not.toContain(formatMoney(3_000))
       })
     })
 
@@ -1073,7 +1078,9 @@ describe('a fork is chosen before the wheel is spun', () => {
     const board = fixtureMovementBoard()
     const decision = branchDecision(board, 'fork', null, fixturePlayer())
     expect(decision.prompt).not.toMatch(/\d+\s+space/)
-    expect(decision.prompt).toContain('then roll')
+    // And it does not tell the player to roll: the two roads are on screen as
+    // pickable cards and the die follows on its own once one is taken.
+    expect(decision.prompt).toBe('Which way do you go?')
   })
 
   it('still resolves a fork reached mid-move, where the distance is known', () => {

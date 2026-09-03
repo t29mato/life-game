@@ -169,7 +169,7 @@ export function branchDecision(
 
   const prompt =
     steps === null
-      ? 'Which way do you go? Choose your road, then roll.'
+      ? 'Which way do you go?'
       : steps > 0
         ? `Which way do you go? You'll travel ${steps} space${steps === 1 ? '' : 's'} down it.`
         : 'Which way do you go?'

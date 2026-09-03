@@ -402,7 +402,7 @@ const MAIN_STREET_EARLY: readonly SpaceContent[] = [
    */
   {
     id: 'main-early-review', kind: 'normal', title: 'Probation Review',
-    description: 'Six months in, somebody sits down with a form and asks how you think it is going. Roll.',
+    description: 'Six months in, somebody sits down with a form and asks how you think it is going.',
     effect: { type: 'promotion', reason: 'The end of probation' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -493,7 +493,7 @@ const MID_CAREER_FORK: SpaceContent = {
 const COMPANY_ROAD: readonly SpaceContent[] = [
   {
     id: 'ladder-raise', kind: 'normal', title: 'Long Service',
-    description: 'Nobody has left this department in a decade, so the job above yours only comes free when somebody finally does. Roll to see whether this was the year.',
+    description: 'Nobody has left this department in a decade, so the job above yours only comes free when somebody finally does.',
     effect: { type: 'promotion', reason: 'The job above yours came free' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -581,7 +581,7 @@ const MAIN_STREET_LATE: readonly SpaceContent[] = [
      * price of the mechanic and was measured rather than assumed.
      */
     id: 'main-review', kind: 'event', title: 'The Review',
-    description: 'A small room, two people with your file open in front of them, and one question: are you ready for the job above yours? Roll, and hear what they say.',
+    description: 'A small room, two people with your file open in front of them, and one question: are you ready for the job above yours?',
     effect: { type: 'promotion', reason: 'Your review came round' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -676,7 +676,7 @@ const MAIN_STREET_AFTER_GRAD: readonly SpaceContent[] = [
     // space it could be stepped over, and an unlucky player would spend the
     // rest of the game on casual shifts, which keep you fed and nothing more.
     id: 'main-career-fair', kind: 'stop', title: 'Career Fair',
-    description: 'A hall full of booths, free pens, and two offers you have to pick between.',
+    description: 'A hall full of booths, free pens, and two offers with your name on them.',
     effect: { type: 'careerChange', reason: 'A fresh start at the career fair' },
     tone: 'orange', icon: 'space:career-fair-return',
   },
@@ -921,7 +921,7 @@ const HOME_BUYING: SpaceContent = {
 const RISKY_ROAD: readonly SpaceContent[] = [
   {
     id: 'risky-1', kind: 'normal', title: 'Startup Bet',
-    description: "You pour savings into a friend's startup and roll to see what comes back.",
+    description: "You pour savings into a friend's startup.",
     effect: { type: 'spinForMoney', perPip: 3_100, reason: 'Startup investment payout' },
     tone: 'pink', icon: 'space:startup-bet',
   },
@@ -951,7 +951,7 @@ const RISKY_ROAD: readonly SpaceContent[] = [
     'pink', 'space:market-crash'),
   {
     id: 'risky-6', kind: 'normal', title: 'Lottery Ticket',
-    description: 'A dollar ticket, a lucky scratch, and a roll for the payout.',
+    description: 'A dollar ticket and a lucky scratch.',
     effect: { type: 'spinForMoney', perPip: 5_500, reason: 'Lottery scratch-off' },
     tone: 'pink', icon: 'space:lottery-ticket',
   },
@@ -1071,7 +1071,7 @@ const SUNSET_STRIP: readonly SpaceContent[] = [
   },
   {
     id: 'sunset-handshake', kind: 'normal', title: 'Final Promotion',
-    description: 'One last title before the door, if they can be persuaded. Roll, and let the last review of your life decide it.',
+    description: 'One last title before the door, if they can be persuaded.',
     effect: { type: 'promotion', reason: 'The last review of your life' },
     tone: 'slate', icon: 'space:big-promotion',
   },

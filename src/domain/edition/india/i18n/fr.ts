@@ -71,7 +71,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'in-campus-placement': {
       title: 'Recrutement sur le campus',
-      description: 'Une semaine de tests d’aptitude, d’entretiens de groupe, et d’un panneau d’affichage devant lequel toute la promotion repasse sans cesse. Deux lettres d’embauche portent votre nom ; choisissez.',
+      description: 'Une semaine de tests d’aptitude, d’entretiens de groupe, et d’un panneau d’affichage devant lequel toute la promotion repasse sans cesse. Deux lettres d’embauche portent votre nom.',
     },
     'in-joining-day': {
       title: 'Jour d’embauche',
@@ -121,7 +121,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'in-main-probation': {
       title: 'Bilan d’essai',
-      description: 'Six mois plus tard, quelqu’un s’assoit en face de vous avec un formulaire en trois exemplaires et vous demande comment ça se passe, selon vous. Lancez le dé.',
+      description: 'Six mois plus tard, quelqu’un s’assoit en face de vous avec un formulaire en trois exemplaires et vous demande comment ça se passe, selon vous.',
       reason: 'La fin de la période d’essai',
     },
     'in-main-bank': {
@@ -165,7 +165,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'in-loyal-seniority': {
       title: 'Le tableau d’ancienneté',
-      description: 'Personne n’a quitté ce service depuis dix ans, alors le poste au-dessus ne se libère que le jour où quelqu’un part enfin à la retraite. Lancez le dé pour savoir si c’était cette année.',
+      description: 'Personne n’a quitté ce service depuis dix ans, alors le poste au-dessus ne se libère que le jour où quelqu’un part enfin à la retraite.',
       reason: 'Le poste au-dessus s’est libéré',
     },
     'in-switch-lookout': {
@@ -183,7 +183,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'in-main-appraisal': {
       title: 'L’évaluation annuelle',
-      description: 'Une petite salle de réunion, deux managers avec votre auto-évaluation ouverte entre eux, et une note qui vous classe par rapport à toute l’équipe. Lancez le dé, et voyez où vous atterrissez.',
+      description: 'Une petite salle de réunion, deux managers avec votre auto-évaluation ouverte entre eux, et une note qui vous classe par rapport à toute l’équipe.',
       reason: 'Votre évaluation est arrivée',
     },
     'in-main-tax-notice': {
@@ -203,7 +203,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'in-main-job-portal': {
       title: 'Le site d’emploi',
-      description: 'Vous passez le profil en « en recherche active » à minuit, et au petit-déjeuner deux entreprises ont aimé votre CV. Choisissez.',
+      description: 'Vous passez le profil en « en recherche active » à minuit, et au petit-déjeuner deux entreprises ont aimé votre CV.',
       reason: 'Un nouveau départ via le site d’emploi',
     },
     'in-main-diwali-hampers': {
@@ -318,7 +318,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'in-risky-startup': {
       title: 'Pari sur une start-up',
-      description: 'Vous versez vos économies dans la start-up d’un ami à Bengaluru et lancez le dé pour voir ce qui revient.',
+      description: 'Vous versez vos économies dans la start-up d’un ami à Bengaluru.',
       reason: 'Retour sur investissement',
     },
     'in-risky-bad-tip': {
@@ -343,7 +343,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'in-risky-lottery': {
       title: 'Le tirage exceptionnel',
-      description: 'Vous faites quarante minutes de queue au guichet réputé chanceux, parce que le guichet réputé chanceux est réputé chanceux. Lancez le dé pour savoir ce que valait la queue.',
+      description: 'Vous faites quarante minutes de queue au guichet réputé chanceux, parce que le guichet réputé chanceux est réputé chanceux.',
       reason: 'Le tirage exceptionnel de la fête',
     },
     'in-risky-payday': {
@@ -437,7 +437,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'in-sunset-last-title': {
       title: 'Un dernier titre',
-      description: 'Une désignation de plus avant la porte, si on se laisse convaincre. Lancez le dé et laissez la dernière évaluation de votre vie trancher.',
+      description: 'Une désignation de plus avant la porte, si on se laisse convaincre.',
       reason: 'La dernière évaluation de votre vie',
     },
     'in-sunset-payday-2': {

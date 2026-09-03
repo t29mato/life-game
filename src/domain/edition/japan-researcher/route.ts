@@ -140,7 +140,7 @@ const DOCTORAL_COURSE: readonly SpaceContent[] = [
 
 const ACADEMIC_FAIR: SpaceContent = {
   id: 'jpr-doc-first-post', kind: 'event', title: 'The First Position',
-  description: 'The board lists posts all over the country, each with a start date, an end date and a research topic already chosen. Two of them would have you; pick one.',
+  description: 'The board lists posts all over the country, each with a start date, an end date and a research topic already chosen. Two of them would have you.',
   effect: { type: 'chooseCareer', pool: 'graduate' },
   tone: 'gold', icon: 'space:grad-job-fair',
 }
@@ -222,7 +222,7 @@ const MASTERS_EXIT: readonly SpaceContent[] = [
 const CORRIDOR_EARLY: readonly SpaceContent[] = [
   {
     id: 'jpr-corridor-first-review', kind: 'normal', title: 'The First Review',
-    description: 'Six months in, somebody sits down opposite you with a form in three copies and asks how you think it is going. Roll.',
+    description: 'Six months in, somebody sits down opposite you with a form in three copies and asks how you think it is going.',
     effect: { type: 'promotion', reason: 'The end of your first six months' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -296,7 +296,7 @@ const MID_CAREER_FORK: SpaceContent = {
 const STAY_AT_THE_BENCH: readonly SpaceContent[] = [
   {
     id: 'jpr-bench-renewal', kind: 'normal', title: 'The Renewal',
-    description: 'Nobody has left this group in a decade, so the post above yours only comes free when somebody finally retires. Roll to see whether this was the year.',
+    description: 'Nobody has left this group in a decade, so the post above yours only comes free when somebody finally retires.',
     effect: { type: 'promotion', reason: 'The post above yours came free' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -358,7 +358,7 @@ const LEAVE_FOR_INDUSTRY: readonly SpaceContent[] = [
 const CORRIDOR_LATE: readonly SpaceContent[] = [
   {
     id: 'jpr-corridor-review', kind: 'event', title: 'The Review',
-    description: 'A small room, two people with your file open between them, and one question: are you ready for the post above yours? Roll, and hear what they say.',
+    description: 'A small room, two people with your file open between them, and one question: are you ready for the post above yours?',
     effect: { type: 'promotion', reason: 'Your review came round' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -461,7 +461,7 @@ const FIXED_TERM_LADDER: readonly SpaceContent[] = [
      * of the road is the one that ends careers.
      */
     id: 'jpr-ladder-open-call', kind: 'event', title: 'The Open Call',
-    description: 'A post is advertised nationally. Thirty-one people apply, four are interviewed, one is appointed, and everybody involved has met everybody else at a conference. Roll.',
+    description: 'A post is advertised nationally. Thirty-one people apply, four are interviewed, one is appointed, and everybody involved has met everybody else at a conference.',
     effect: { type: 'promotion', reason: 'A post was advertised' },
     tone: 'blue', icon: 'space:big-promotion',
   },
@@ -485,7 +485,7 @@ const FIXED_TERM_LADDER: readonly SpaceContent[] = [
      * decision, it is a refund.
      */
     id: 'jpr-ladder-cliff', kind: 'event', title: 'The Ten-Year Cliff',
-    description: 'The tenth year. Everybody who has counted knows what the tenth year means, and the letter, when it comes, has no end date on it anywhere. Two departments want you; pick one.',
+    description: 'The tenth year. Everybody who has counted knows what the tenth year means, and the letter, when it comes, has no end date on it anywhere. Two departments want you.',
     effect: { type: 'careerChange', reason: 'Ten years, and a post with no end date', compulsory: true },
     tone: 'gold', icon: 'space:grad-job-fair',
   },
@@ -554,7 +554,7 @@ const CORRIDOR_AFTER_THE_GATE: readonly SpaceContent[] = [
      * and the option card says so out loud before they roll.
      */
     id: 'jpr-after-fair', kind: 'stop', title: 'The Career-Change Fair',
-    description: 'A hall of booths for people who did everything right in a system that ran out of posts. Nobody here reads a publication list. Two divisions like the two pages; pick one.',
+    description: 'A hall of booths for people who did everything right in a system that ran out of posts. Nobody here reads a publication list. Two divisions like the two pages.',
     effect: {
       type: 'careerChange',
       reason: 'A fresh start, at the grade they start people at',
@@ -719,7 +719,7 @@ const HOME_BUYING: SpaceContent = {
 const THE_SPINOUT: readonly SpaceContent[] = [
   {
     id: 'jpr-spinout-seed', kind: 'normal', title: 'The Seed Round',
-    description: 'You put your savings into the company built on your own patent, sign eleven documents, and roll to see what the round comes back as.',
+    description: 'You put your savings into the company built on your own patent and sign eleven documents.',
     effect: { type: 'spinForMoney', perPip: 310_000, reason: 'The seed round' },
     tone: 'pink', icon: 'space:startup-bet',
   },
@@ -747,7 +747,7 @@ const THE_SPINOUT: readonly SpaceContent[] = [
     'pink', 'space:market-crash'),
   {
     id: 'jpr-spinout-acquisition-talk', kind: 'normal', title: 'The Acquisition Talk',
-    description: 'A very large company has been reading your patents for two years, and would like a conversation. Roll for what the conversation was worth.',
+    description: 'A very large company has been reading your patents for two years, and would like a conversation.',
     effect: { type: 'spinForMoney', perPip: 550_000, reason: 'The acquisition talk' },
     tone: 'pink', icon: 'space:lottery-ticket',
   },
@@ -857,7 +857,7 @@ const EMERITUS_ROW: readonly SpaceContent[] = [
   },
   {
     id: 'jpr-emeritus-named-chair', kind: 'normal', title: 'The Named Chair',
-    description: 'One more title before the door, if the faculty meeting can be persuaded. Roll, and let the last review of an academic life decide it.',
+    description: 'One more title before the door, if the faculty meeting can be persuaded.',
     effect: { type: 'promotion', reason: 'The last review of your life' },
     tone: 'slate', icon: 'space:big-promotion',
   },

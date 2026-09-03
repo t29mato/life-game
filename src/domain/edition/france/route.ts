@@ -90,7 +90,7 @@ const GRANDE_ECOLE_LANE: readonly SpaceContent[] = [
 
 const GRAD_FAIR: SpaceContent = {
   id: 'fr-grad-forum', kind: 'event', title: 'The Careers Forum',
-  description: 'Former students of your school fill the great hall for one day, offering firm handshakes and firmer salary numbers. Two jobs are open. Pick one.',
+  description: 'Former students of your school fill the great hall for one day, offering firm handshakes and firmer salary numbers. Two jobs are open.',
   effect: { type: 'chooseCareer', pool: 'graduate' },
   tone: 'gold', icon: 'space:grad-job-fair',
 }
@@ -162,7 +162,7 @@ const WORK_LANE: readonly SpaceContent[] = [
 const BOULEVARD_EARLY: readonly SpaceContent[] = [
   {
     id: 'fr-main-trial-period', kind: 'normal', title: 'Trial Period Ends',
-    description: 'Your trial period ends today. Someone sits across from you with a form. Roll to find out what they say.',
+    description: 'Your trial period ends today. Someone sits across from you with a form.',
     effect: { type: 'promotion', reason: 'The end of the trial period' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -231,7 +231,7 @@ const MID_CAREER_FORK: SpaceContent = {
 const PERMANENT_CONTRACT_ROAD: readonly SpaceContent[] = [
   {
     id: 'fr-loyal-grid', kind: 'normal', title: 'The Seniority Grid',
-    description: 'Your pay rises by one step every year, but the job above you only opens up when someone retires. Roll to find out if this is that year.',
+    description: 'Your pay rises by one step every year, but the job above you only opens up when someone retires.',
     effect: { type: 'promotion', reason: 'The job above yours came free' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -268,7 +268,7 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
 const BOULEVARD_LATE: readonly SpaceContent[] = [
   {
     id: 'fr-main-annual-review', kind: 'event', title: 'The Annual Review',
-    description: 'A small meeting room, two managers, your file open on the table. One question: are you ready for the next job up? Roll to find out what they decide.',
+    description: 'A small meeting room, two managers, your file open on the table. One question: are you ready for the next job up?',
     effect: { type: 'promotion', reason: 'Your annual review came round' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -293,7 +293,7 @@ const BOULEVARD_LATE: readonly SpaceContent[] = [
   },
   {
     id: 'fr-main-employment-office', kind: 'stop', title: 'The Employment Office',
-    description: 'A caseworker at the unemployment office reviews your file and finds two jobs that fit. Pick one.',
+    description: 'A caseworker at the unemployment office reviews your file and finds two jobs that fit.',
     effect: { type: 'careerChange', reason: 'A fresh start from the employment office' },
     tone: 'orange', icon: 'space:career-fair-return',
   },
@@ -457,7 +457,7 @@ const HOME_BUYING: SpaceContent = {
 const SPECULATION_STREET: readonly SpaceContent[] = [
   {
     id: 'fr-risky-startup', kind: 'normal', title: 'Startup Bet',
-    description: 'You put your savings into a friend\'s startup at a big Paris accelerator. Roll to see what comes back.',
+    description: 'You put your savings into a friend\'s startup at a big Paris accelerator.',
     effect: { type: 'spinForMoney', perPip: 3_100, reason: 'Startup investment payout' },
     tone: 'pink', icon: 'space:startup-bet',
   },
@@ -485,7 +485,7 @@ const SPECULATION_STREET: readonly SpaceContent[] = [
     'pink', 'space:market-crash'),
   {
     id: 'fr-risky-lottery', kind: 'normal', title: 'The Lottery Ticket',
-    description: 'You buy a national lottery ticket from the newsstand everyone calls lucky. Roll to see if the luck was real.',
+    description: 'You buy a national lottery ticket from the newsstand everyone calls lucky.',
     effect: { type: 'spinForMoney', perPip: 5_500, reason: 'The national draw' },
     tone: 'pink', icon: 'space:lottery-ticket',
   },
@@ -589,7 +589,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   },
   {
     id: 'fr-sunset-last-title', kind: 'normal', title: 'One Last Title',
-    description: 'One more promotion before you retire, if you can get it. Roll, and let this last review decide.',
+    description: 'One more promotion before you retire, if you can get it.',
     effect: { type: 'promotion', reason: 'The last review of your life' },
     tone: 'slate', icon: 'space:big-promotion',
   },

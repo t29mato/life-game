@@ -88,7 +88,7 @@ const UNIVERSITY_LANE: readonly SpaceContent[] = [
 
 const GRAD_FAIR: SpaceContent = {
   id: 'jp-job-hunt', kind: 'event', title: 'The Job Hunt',
-  description: 'Forty thousand of you buy the same black suit in the same week and take the same aptitude test. Two doors open; pick one.',
+  description: 'Forty thousand of you buy the same black suit in the same week and take the same aptitude test. Two doors open.',
   effect: { type: 'chooseCareer', pool: 'graduate' },
   tone: 'gold', icon: 'space:grad-job-fair',
 }
@@ -159,7 +159,7 @@ const WORK_LANE: readonly SpaceContent[] = [
 const SALARYMAN_STREET_EARLY: readonly SpaceContent[] = [
   {
     id: 'jp-main-probation', kind: 'normal', title: 'Probation Review',
-    description: 'Six months in, somebody sits down opposite you with a form to fill out in three copies and asks how you think it is going. Roll.',
+    description: 'Six months in, somebody sits down opposite you with a form to fill out in three copies and asks how you think it is going.',
     effect: { type: 'promotion', reason: 'The end of probation' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -228,7 +228,7 @@ const MID_CAREER_FORK: SpaceContent = {
 const COMPANY_LOYALTY_ROAD: readonly SpaceContent[] = [
   {
     id: 'jp-loyal-seniority', kind: 'normal', title: 'The Seniority Ladder',
-    description: 'Nobody has left this department in a decade, so the job above yours only comes free when somebody finally retires. Roll to see whether this was the year.',
+    description: 'Nobody has left this department in a decade, so the job above yours only comes free when somebody finally retires.',
     effect: { type: 'promotion', reason: 'The job above yours came free' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -265,7 +265,7 @@ const JOB_HOPPER_ALLEY: readonly SpaceContent[] = [
 const SALARYMAN_STREET_LATE: readonly SpaceContent[] = [
   {
     id: 'jp-main-review', kind: 'event', title: 'The Review',
-    description: 'A small meeting room, two managers with your file open between them, and one question: are you ready for the desk above yours? Roll, and hear what they say.',
+    description: 'A small meeting room, two managers with your file open between them, and one question: are you ready for the desk above yours?',
     effect: { type: 'promotion', reason: 'Your review came round' },
     tone: 'orange', icon: 'space:pay-raise-talk',
   },
@@ -290,7 +290,7 @@ const SALARYMAN_STREET_LATE: readonly SpaceContent[] = [
   },
   {
     id: 'jp-main-midcareer-fair', kind: 'stop', title: 'Mid-Career Fair',
-    description: 'A hall of booths for people who did everything right at a company that did not. Two firms like your CV; pick one.',
+    description: 'A hall of booths for people who did everything right at a company that did not. Two firms like your CV.',
     effect: { type: 'careerChange', reason: 'A fresh start at the mid-career fair' },
     tone: 'orange', icon: 'space:career-fair-return',
   },
@@ -453,7 +453,7 @@ const HOME_BUYING: SpaceContent = {
 const SPECULATION_STREET: readonly SpaceContent[] = [
   {
     id: 'jp-risky-startup', kind: 'normal', title: 'Startup Bet',
-    description: 'You pour savings into a friend\'s Shibuya startup and roll to see what comes back.',
+    description: 'You pour savings into a friend\'s Shibuya startup.',
     effect: { type: 'spinForMoney', perPip: 310_000, reason: 'Startup investment payout' },
     tone: 'pink', icon: 'space:startup-bet',
   },
@@ -481,7 +481,7 @@ const SPECULATION_STREET: readonly SpaceContent[] = [
     'pink', 'space:market-crash'),
   {
     id: 'jp-risky-jumbo', kind: 'normal', title: 'The Jumbo',
-    description: 'You queue forty minutes at the famously lucky lottery booth, because the famously lucky booth is famously lucky. Roll for what the queue was worth.',
+    description: 'You queue forty minutes at the famously lucky lottery booth, because the famously lucky booth is famously lucky.',
     effect: { type: 'spinForMoney', perPip: 550_000, reason: 'Year-end Jumbo' },
     tone: 'pink', icon: 'space:lottery-ticket',
   },
@@ -585,7 +585,7 @@ const SUNSET_YEARS: readonly SpaceContent[] = [
   },
   {
     id: 'jp-sunset-last-title', kind: 'normal', title: 'One Last Title',
-    description: 'One more title before the door, if they can be persuaded. Roll, and let the last review of your life decide it.',
+    description: 'One more title before the door, if they can be persuaded.',
     effect: { type: 'promotion', reason: 'The last review of your life' },
     tone: 'slate', icon: 'space:big-promotion',
   },

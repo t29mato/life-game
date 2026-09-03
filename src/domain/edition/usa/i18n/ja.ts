@@ -120,7 +120,7 @@ export const USA_JA: EditionTranslation = {
     },
     'main-early-review': {
       title: '試用期間の面談',
-      description: '入社から半年、上司が用紙を手に向かいに座り、調子はどうかと尋ねる。振ろう。',
+      description: '入社から半年、上司が用紙を手に向かいに座り、調子はどうかと尋ねる。',
       reason: '試用期間の終わり',
     },
     'grad-1': {
@@ -209,7 +209,7 @@ export const USA_JA: EditionTranslation = {
     },
     'ladder-raise': {
       title: '勤続の長さ',
-      description: 'この部署はここ十年、誰も辞めていない。上のポストは誰かが辞めて初めて空く。今年がその年かどうか、振ってみよう。',
+      description: 'この部署はここ十年、誰も辞めていない。上のポストは誰かが辞めて初めて空く。',
       reason: '上のポストが空いた',
     },
     'hopper-lookout': {
@@ -227,7 +227,7 @@ export const USA_JA: EditionTranslation = {
     },
     'main-review': {
       title: '人事考課',
-      description: '小さな会議室、こちらの資料を開いた二人、そして質問はひとつ。上のポストを任せて大丈夫か。振って、返事を聞こう。',
+      description: '小さな会議室、こちらの資料を開いた二人、そして質問はひとつ。上のポストを任せて大丈夫か。',
       reason: '考課の順番が回ってきた',
     },
     'main-tax-audit': {
@@ -247,7 +247,7 @@ export const USA_JA: EditionTranslation = {
     },
     'main-career-fair': {
       title: '転職フェア',
-      description: 'ブースだらけの会場、配られるボールペン、そして二つのうちどちらかを選ばなければならない。',
+      description: 'ブースだらけの会場、配られるボールペン、そして自分の名前が入った内定が二つ。',
       reason: '転職フェアで仕切り直し',
     },
     'main-gifts': {
@@ -362,7 +362,7 @@ export const USA_JA: EditionTranslation = {
     },
     'risky-1': {
       title: 'スタートアップに出資',
-      description: '友人の会社に貯金をつぎ込む。いくら返ってくるかはサイコロ次第。',
+      description: '友人の会社に貯金をつぎ込む。',
       reason: '出資の払い戻し',
     },
     'risky-2': {
@@ -387,7 +387,7 @@ export const USA_JA: EditionTranslation = {
     },
     'risky-6': {
       title: '宝くじ',
-      description: '一ドルのくじ、運のいい削り方、そして当選額はサイコロで決まる。',
+      description: '一ドルのくじと、運のいい削り方。',
       reason: '宝くじの当選金',
     },
     'risky-payday': {
@@ -481,7 +481,7 @@ export const USA_JA: EditionTranslation = {
     },
     'sunset-handshake': {
       title: '最後の昇進',
-      description: '説得できれば、退職前にもうひとつだけ肩書きがつく。振って、人生最後の考課に決めてもらおう。',
+      description: '説得できれば、退職前にもうひとつだけ肩書きがつく。',
       reason: '人生最後の考課',
     },
     'sunset-payday-2': {

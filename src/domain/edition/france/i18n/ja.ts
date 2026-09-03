@@ -68,7 +68,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'fr-grad-forum': {
       title: '卒業生の就職フォーラム',
-      description: '母校の卒業生たちが一日だけ大講堂を埋め尽くす。握手は力強く、提示する年収の数字はもっと力強い。空きは二つ。どちらかを選ぶ。',
+      description: '母校の卒業生たちが一日だけ大講堂を埋め尽くす。握手は力強く、提示する年収の数字はもっと力強い。空きは二つ。',
     },
     'fr-apprenticeship-day': {
       title: '見習い就職',
@@ -118,7 +118,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'fr-main-trial-period': {
       title: '試用期間の終わり',
-      description: '今日で試用期間が終わる。用紙を持った人が向かいに座る。何を言われるかは、振って決める。',
+      description: '今日で試用期間が終わる。用紙を持った人が向かいに座る。',
       reason: '試用期間の終わり',
     },
     'fr-main-bank': {
@@ -162,7 +162,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'fr-loyal-grid': {
       title: '年功の号俸表',
-      description: '給料は毎年一号俸ずつ上がるが、上のポストは誰かが定年で抜けたときにしか空かない。今年がその年かどうか、振ってみよう。',
+      description: '給料は毎年一号俸ずつ上がるが、上のポストは誰かが定年で抜けたときにしか空かない。',
       reason: '上のポストが空いた',
     },
     'fr-hopper-lookout': {
@@ -180,7 +180,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'fr-main-annual-review': {
       title: '年次の人事面談',
-      description: '小さな会議室、管理職が二人、机の上には自分の資料。質問はひとつ。上のポストを任せて大丈夫か。振って、決定を聞こう。',
+      description: '小さな会議室、管理職が二人、机の上には自分の資料。質問はひとつ。上のポストを任せて大丈夫か。',
       reason: '年次面談の順番が回ってきた',
     },
     'fr-main-tax-audit': {
@@ -200,7 +200,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'fr-main-employment-office': {
       title: '公共職業安定所',
-      description: '相談員が書類を確かめ、条件に合う仕事を二つ見つけてくる。どちらかを選ぶ。',
+      description: '相談員が書類を確かめ、条件に合う仕事を二つ見つけてくる。',
       reason: '職業安定所で仕切り直し',
     },
     'fr-main-gifts': {
@@ -315,7 +315,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'fr-risky-startup': {
       title: 'スタートアップに出資',
-      description: 'パリの大きなインキュベーターに入った友人の会社へ貯金をつぎ込む。いくら返ってくるかはサイコロ次第。',
+      description: 'パリの大きなインキュベーターに入った友人の会社へ貯金をつぎ込む。',
       reason: '出資の払い戻し',
     },
     'fr-risky-bad-tip': {
@@ -340,7 +340,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'fr-risky-lottery': {
       title: '宝くじ',
-      description: 'よく当たると評判のタバコ屋で国営宝くじを買う。評判が本物だったかどうかは、振って決める。',
+      description: 'よく当たると評判のタバコ屋で国営宝くじを買う。',
       reason: '全国抽選の当選金',
     },
     'fr-risky-payday': {
@@ -434,7 +434,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'fr-sunset-last-title': {
       title: '最後の昇進',
-      description: '引退前にもうひとつだけ昇進を取れるかどうか。振って、この最後の面談に決めてもらおう。',
+      description: '引退前にもうひとつだけ昇進を取れるかどうか。',
       reason: '人生最後の考課',
     },
     'fr-sunset-payday-2': {

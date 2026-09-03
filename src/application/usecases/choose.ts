@@ -389,8 +389,11 @@ function resolveStock(state: GameState, optionId: string): GameState {
   const delta = updated.money - player.money
   const shareLabel = SHARES_PER_PURCHASE === 1 ? 'share' : 'shares'
 
+  // What the purchase cost is on the plate and the company is in the
+  // narration; the count of shares and what one is worth at the end are the
+  // two facts neither of those carries.
   const notes = [
-    `Bought ${SHARES_PER_PURCHASE} ${shareLabel} of ${stock.name} (${stock.ticker}).`,
+    `${SHARES_PER_PURCHASE} ${shareLabel} bought.`,
     `Each share cashes out between ${money(stock.payoutRange[0])} and ${money(stock.payoutRange[1])} at retirement.`,
   ]
 
@@ -440,7 +443,9 @@ function resolveInsurance(state: GameState, optionId: string): GameState {
   const updated = addInsurance(player, kind, economy)
   const delta = updated.money - player.money
 
-  const notes = [`Took out a ${kind} policy for ${money(economy.insurancePremium[kind])}.`]
+  // Not what it cost — the delta plate is showing exactly that, signed, one
+  // line up. What a policy is *for* is the note nobody else prints.
+  const notes: string[] = []
   if (kind === 'life') notes.push('It matures at retirement and pays straight into the final total.')
   else notes.push(`A ${kind === 'home' ? 'house fire' : 'road accident'} now costs you nothing.`)
 
@@ -518,12 +523,11 @@ function resolveBank(state: GameState, optionId: string): GameState {
       delta,
       // "Debt free!" is the narration's line when the pile clears; the note
       // only speaks when there is a pile left to count.
+      // What the settlement cost is the plate's figure, signed; the note is
+      // only for what is left on the pile behind it.
       updated.loans === 0
-        ? [`Repaid one loan for ${money(earlySettlement)}.`]
-        : [
-            `Repaid one loan for ${money(earlySettlement)}.`,
-            `${updated.loans} loan${updated.loans > 1 ? 's' : ''} still outstanding.`,
-          ],
+        ? []
+        : [`${updated.loans} loan${updated.loans > 1 ? 's' : ''} still outstanding.`],
       emphasisForMoney(delta, economy),
       updated.loans === 0
         ? `Debt free! ${player.name} clears the last loan and walks out of that bank standing tall.`
@@ -977,7 +981,8 @@ function spinOutcome(
       delta,
       [space.effect.reason],
       emphasisForMoney(delta, economy),
-      `And that is worth ${money(gain)} to ${player.name}!`,
+      // The plate says how much. What the host is for is that it is done.
+      `The die has spoken, and ${player.name} banks it.`,
     )
     return resolved(
       state,
@@ -1019,7 +1024,7 @@ function spinOutcome(
       delta,
       [],
       emphasisForMoney(delta, economy),
-      `The gift envelopes add up to ${money(gain)} for ${player.name}!`,
+      `The envelopes are opened one by one, and ${player.name} keeps the lot.`,
     )
     return resolved(
       state,
@@ -1036,16 +1041,38 @@ function spinOutcome(
   const updated = payPlayerSalary(player, spinValue, economy)
   const delta = updated.money - player.money
   const kind = paydayKindOf(player)
-  // The note says how this player is paid at all — the standing fact, true
-  // every week. The narration says what *this* week came to, once.
+  /*
+   * The note is the rate — the standing fact, true every week, and the only
+   * one of the three numbers on this card that the card cannot otherwise
+   * show. It used to be a sentence the player had already read verbatim as
+   * the stakes line over the die they just threw ("no two weeks pay the
+   * same"), which is a card spending its one note repeating the screen
+   * before it.
+   *
+   * The rate is what makes the rest of the card check out. A player is
+   * looking at a face and a figure — "Rolled 4", "+¥5,600,000" — and without
+   * the rate between them those are two unrelated numbers. With it they are
+   * one piece of arithmetic they can do in their head, which is the whole
+   * bargain an unsteady wage offers.
+   */
+  const perPip = player.career?.payPerPip ?? economy.casualWagePerPip
   const notes =
     kind === 'casual'
-      ? ['Between jobs, so you pick up shifts.']
-      : [`${player.career?.title ?? 'Your trade'} — no two weeks pay the same.`]
+      ? [`Between jobs — shifts pay ${money(perPip)} for every pip you roll.`]
+      : [`${player.career?.title ?? 'Your trade'} — ${money(perPip)} for every pip you roll.`]
+  /*
+   * And the narration no longer says the total. It said it in full — "That
+   * is what the week was worth: ¥2,800,000 for Mato." — directly above a
+   * plate that prints the same ¥2,800,000 in a signed chip and counts the
+   * balance up to it. The owner read one card and found the figure twice.
+   * The plate is where a sum belongs; what the host is for is the part no
+   * plate can print, which on this card is that the number would have been a
+   * different one on any other week.
+   */
   const narration =
     kind === 'casual'
-      ? `No wasted week either — ${player.name} picks up shifts worth ${money(amount)}.`
-      : `That is what the week was worth: ${money(amount)} for ${player.name}.`
+      ? `No wasted week either — ${player.name} picks up every shift going.`
+      : `That is what the week was worth to ${player.name}. The next one will be worth something else.`
   const logMessage =
     kind === 'casual'
       ? `${player.name} picks up casual shifts, rolling ${spinValue}: ${money(amount)}.`
