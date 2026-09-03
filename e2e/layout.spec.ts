@@ -29,9 +29,23 @@ import { expect, test, type Page } from '@playwright/test'
 async function startGame(page: Page): Promise<void> {
   await page.goto('/')
   await page.getByRole('button', { name: 'New Game' }).click()
-  const cpuToggles = page.getByRole('button', { name: 'CPU', exact: true })
-  const count = await cpuToggles.count()
-  for (let i = 0; i < count; i += 1) await cpuToggles.nth(i).click()
+  /*
+   * The seats stay human, and that is load-bearing.
+   *
+   * This helper used to sit every seat down as a computer, which meant the
+   * table played itself for as long as the test watched: a car always
+   * mid-hop, the camera always easing after it, a card always arriving over
+   * the board. Measuring boxes survives that. Pressing anything does not —
+   * Playwright waits for a control to hold still between two frames before it
+   * clicks, and that stillness never came, so the zoom test hung 54 checks
+   * deep on a button it could see. Forcing the click only moved the problem:
+   * a forced press lands on whatever covers the pixel, which by then was a
+   * card's backdrop, and the zoom never changed.
+   *
+   * A human table waits. The board settles on "your roll", nothing overlays
+   * it, and a click is an ordinary click that has to prove the control was
+   * really there to be pressed — which is the thing worth asserting anyway.
+   */
   await page.getByRole('button', { name: /next: the country/i }).click()
   await page.getByRole('button', { name: /^Japan edition\./i }).click()
   await page.getByRole('button', { name: /next: the difficulty/i }).click()
@@ -130,18 +144,8 @@ test.describe('board layout never overlaps the rest of the table', () => {
 
     // Pressed until the key itself says there is nothing further in — the
     // range is bounded (see `USER_ZOOM_MAX`), so this terminates.
-    //
-    // `force` because `startGame` sits every seat down as a computer, so the
-    // table plays itself and never stops: a car is always mid-hop, the camera
-    // is always easing after it, and the key rides the board's own card. An
-    // ordinary click waits for the element to hold still between two frames,
-    // which in a game that is always animating is a condition that can never
-    // arrive — this test timed out 54 stability checks deep on every phone
-    // profile until it was written this way. Visibility and enabled-ness are
-    // still asserted, on the line above and the line below; what is skipped is
-    // only the wait for a stillness this screen does not have.
     for (let press = 0; press < 12 && (await zoomIn.isEnabled()); press += 1) {
-      await zoomIn.click({ force: true })
+      await zoomIn.click()
     }
     await expect(zoomIn).toBeDisabled()
 
@@ -169,7 +173,7 @@ test.describe('board layout never overlaps the rest of the table', () => {
 
     // Back to fit, and the page is exactly the page it was — the reset key
     // is the promise that zoom is opt-in and reversible.
-    await page.getByRole('button', { name: 'Reset zoom to fit' }).click({ force: true })
+    await page.getByRole('button', { name: 'Reset zoom to fit' }).click()
     const resetBox = await frame.boundingBox()
     expect(resetBox!.width).toBeCloseTo(frameBox!.width, 0)
     expect(resetBox!.height).toBeCloseTo(frameBox!.height, 0)
