@@ -530,7 +530,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'career-in-chaat-cart-owner': {
       title: 'Patron de charrette à snacks',
-      description: 'Gare la charrette près du marché à cinq heures et transforme la foule du soir en petite fête. La file d’attente est le dé.',
+      description: 'Gare la charrette près du marché à cinq heures et transforme la foule du soir en petite fête. La file d’attente est la roue.',
     },
     'career-in-dhaba-owner': {
       title: 'Patron de relais routier',
@@ -550,7 +550,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'career-in-delivery-rider': {
       title: 'Livreur à scooter',
-      description: 'Faufile un scooter dans un trafic que l’appli qualifie de « modéré », et sait quel immeuble a un ascenseur en panne avant le client. Les heures de pointe sont le dé.',
+      description: 'Faufile un scooter dans un trafic que l’appli qualifie de « modéré », et sait quel immeuble a un ascenseur en panne avant le client. Les heures de pointe sont la roue.',
     },
     'career-in-hub-dispatcher': {
       title: 'Régulateur du hub',
@@ -578,7 +578,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'career-in-wedding-band-leader': {
       title: 'Chef de fanfare de mariage',
-      description: 'Mène les cuivres au milieu de la chaussée en uniforme blanc et or, et les réservations de la saison sont le dé.',
+      description: 'Mène les cuivres au milieu de la chaussée en uniforme blanc et or, et les réservations de la saison sont la roue.',
     },
     'career-in-music-director': {
       title: 'Directeur musical',
@@ -602,7 +602,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'career-in-wedding-photographer': {
       title: 'Photographe de mariage',
-      description: 'De novembre à février, tout est pris deux ans à l’avance, et juillet est un silence — l’agenda est le dé, et la saison des mariages décide de l’année.',
+      description: 'De novembre à février, tout est pris deux ans à l’avance, et juillet est un silence — l’agenda est la roue, et la saison des mariages décide de l’année.',
     },
     'career-in-rental-broker': {
       title: 'Courtier en location',
@@ -718,7 +718,7 @@ export const INDIA_FR: EditionTranslation = {
     },
     'career-in-tv-serial-writer': {
       title: 'Scénariste de feuilleton',
-      description: 'Enfin au générique. La paie est un dé, l’audience du jeudi peut annuler toute la série sans prévenir, et l’épisode du mariage revient chaque année, à vie.',
+      description: 'Enfin au générique. La paie est une roue, l’audience du jeudi peut annuler toute la série sans prévenir, et l’épisode du mariage revient chaque année, à vie.',
     },
     'career-in-veterinarian': {
       title: 'Vétérinaire',

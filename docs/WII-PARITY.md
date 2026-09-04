@@ -181,13 +181,13 @@ Board({ board, players, currentPlayerIndex, phase, movementPath, onMovementCompl
   `hazard: 'fire'`; `auto` waives `'accident'`. A space stocks only the kinds
   its stretch of road can still bill for, so the second office sells no auto
   cover. `life` is not cover at all but an endowment: it matures at the final
-  scoring on its own closing die, read off `LIFE_INSURANCE_MATURITY` by the
+  scoring on its own closing spin, read off `LIFE_INSURANCE_MATURITY` by the
   same six-rung ladder a house resale uses. Already-held kinds are never
   re-offered.
 - **Stocks.** A `buyStock` space offers three random stocks plus a decline
   option; buying debits `price × SHARES_PER_PURCHASE`. `stockDividend` pays
   `perShare × totalShares(player)` — nothing to a player holding none. At
-  retirement each share cashes out at a value rolled inside its `payoutRange`.
+  retirement each share cashes out at a value spun inside its `payoutRange`.
 - **Bank.** A `bank` space offers: take one loan (`+LOAN_PRINCIPAL`, `loans+1`),
   repay one loan (`-EARLY_LOAN_REPAYMENT`, `loans-1`, only offered when
   `loans > 0` and affordable without new borrowing), or walk on.

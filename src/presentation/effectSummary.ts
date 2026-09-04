@@ -35,7 +35,7 @@ export function describeEffect(effect: SpaceEffect, edition: Edition, t: UiText 
   const delta = (amount: number): string => formatMoneyDelta(amount, currency)
   /** A die-decided sum, written as the band it can land in. */
   const band = (perPip: number): string =>
-    t.format.onTheDie(t.format.range(delta(perPip), delta(perPip * SPIN_FACES)))
+    t.format.onTheWheel(t.format.range(delta(perPip), delta(perPip * SPIN_FACES)))
 
   switch (effect.type) {
     case 'none':
@@ -85,7 +85,7 @@ export function describeEffect(effect: SpaceEffect, edition: Edition, t: UiText 
       const dearest = Math.max(...costs)
       // A full ride is a cost of nothing, and "-$0" reads as a bug.
       const low = cheapest === 0 ? t.effect.tuitionFree : delta(-cheapest)
-      return t.format.onTheDie(t.format.range(low, delta(-dearest)))
+      return t.format.onTheWheel(t.format.range(low, delta(-dearest)))
     }
     case 'graduate':
       return t.effect.graduate
@@ -111,7 +111,7 @@ export function describeEffect(effect: SpaceEffect, edition: Edition, t: UiText 
       const most = Math.max(...counts)
       const least = Math.min(...counts)
       const top = money(most * effect.celebrationPerChild)
-      return t.effect.childrenOnTheDie(least, most, top)
+      return t.effect.childrenOnTheWheel(least, most, top)
     }
     case 'divorce':
       return t.effect.divorce(delta(-economy.divorceSettlement))

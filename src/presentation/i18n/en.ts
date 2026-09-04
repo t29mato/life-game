@@ -80,9 +80,9 @@ export const EN = {
     unit: (raw: string): string => raw,
     /** `$65,000` + `payday` → `$65,000 / payday`. */
     salary: (money: string, period: string): string => `${money} / ${period}`,
-    /** Where a spread of money is quoted: `-$40,000 to -$10,000, on the die`. */
+    /** Where a spread of money is quoted: `-$40,000 to -$10,000, on the wheel`. */
     range: (low: string, high: string): string => `${low} to ${high}`,
-    onTheDie: (range: string): string => `${range}, on the die`,
+    onTheWheel: (range: string): string => `${range}, on the wheel`,
     dateLocale: 'en-US',
     unknownTime: 'unknown time',
     unknownDate: 'an unknown date',
@@ -110,7 +110,7 @@ export const EN = {
   /** The box lid. */
   title: {
     eyebrow: 'A board game of chance & ambition',
-    tagline: 'Roll, hop, and build a life worth bragging about.',
+    tagline: 'Spin, hop, and build a life worth bragging about.',
     continue: 'Continue',
     newGame: 'New Game',
     handbook: 'The Handbook',
@@ -387,29 +387,29 @@ export const EN = {
     insurable: (amount: string): string => `${amount} — nothing, if you hold the policy`,
     payday: 'Your salary — collected landing here or driving past.',
     payRaise: 'Your salary goes up.',
-    promotion: 'Roll for a promotion. Under the bar pays a raise instead.',
-    tradeYear: 'A year in your trade, on the die. The best pays what the worst costs.',
-    chooseCareer: 'A new job, and the die picks which.',
+    promotion: 'Spin for a promotion. Under the bar pays a raise instead.',
+    tradeYear: 'A year in your trade, on the wheel. The best pays what the worst costs.',
+    chooseCareer: 'A new job, and the wheel picks which.',
     careerChangeForced: 'A new trade. This one you cannot turn down.',
     careerChangeOffered: 'Two other trades, offered. Keeping your job is an answer.',
     loseCareer: 'You lose your job, and earn nothing until a fair re-hires you.',
     tuitionFree: 'nothing',
     graduate: 'You graduate. Every fair after this deals from the graduate ladders.',
     doctorate: 'The doctorate, and the shelf of jobs it opens.',
-    getMarried: 'A proposal, settled on the die — and a gift from everyone if it lands.',
-    household: 'The joint account, settled on the die. Married players only.',
+    getMarried: 'A proposal, settled on the wheel — and a gift from everyone if it lands.',
+    household: 'The joint account, settled on the wheel. Married players only.',
     haveChildren: (children: string, gifts: string): string => `${children}, and ${gifts} in gifts`,
     childCount: (n: number): string => (n === 1 ? '+1 child' : `+${n} children`),
     /**
-     * The New Baby tile whose die actually decides, spread and all.
+     * The New Baby tile whose wheel actually decides, spread and all.
      *
      * A tile whose faces all agree names its outcome through `haveChildren`;
      * one that can land on an empty face has to say so here, because "+1
-     * child" about a die that arrives at none two faces in six is the summary
-     * promising what the tile cannot deliver.
+     * child" about a wheel that arrives at none two faces in six is the
+     * summary promising what the tile cannot deliver.
      */
-    childrenOnTheDie: (least: number, most: number, gifts: string): string =>
-      `${least} to ${most} children on the die, and up to ${gifts} in gifts`,
+    childrenOnTheWheel: (least: number, most: number, gifts: string): string =>
+      `${least} to ${most} children on the wheel, and up to ${gifts} in gifts`,
     divorce: (amount: string): string => `A separation: ${amount}, and the children go with them.`,
     buyHouse: 'Buy a house. Your turn stops here for it.',
     upgradeHouse: 'Trade up to a better home, if you already own one.',
@@ -427,7 +427,13 @@ export const EN = {
   card: {
     milestone: 'Life Milestone',
     passing: 'Passing through',
-    rolled: 'Rolled',
+    /*
+     * Keyed `rolled` and reading "Spun" on purpose. The key mirrors
+     * `LandingEvent.rolled`, which `docs/SPEC.md` freezes; the value is the
+     * word on the card, and the word on the card is the wheel's. Identifiers
+     * lag the vocabulary here deliberately — see `AGENTS.md` §5.
+     */
+    rolled: 'Spun',
     paid: 'Paid',
     borrowed: 'Borrowed',
     loanTerms: (loans: number, amount: string): string =>
@@ -447,7 +453,7 @@ export const EN = {
     passedLabel: (title: string, times: number): string => `${title}${times > 1 ? ` ×${times}` : ''}`,
   },
 
-  /** The question put to the player, and the die that answers some of them. */
+  /** The question put to the player, and the wheel that answers some of them. */
   decision: {
     kindBranch: 'Fork in the road',
     kindHouse: 'House hunting',
@@ -455,7 +461,7 @@ export const EN = {
     kindInsurance: 'Insurance office',
     kindBank: 'The bank',
     kindRetire: 'The number',
-    kindValueSpin: 'The die',
+    kindValueSpin: 'The wheel',
     theComputer: 'The computer',
     isChoosing: (name: string): string => `${name} is choosing…`,
     thinking: 'Thinking it over — no input needed.',
@@ -476,10 +482,10 @@ export const EN = {
     theDie: 'The die',
   },
 
-  /** What each face of the die is worth, as rows. */
+  /** What each face of the wheel is worth, as rows. Group named for its component, `RollTable`. */
   rollTable: {
-    caption: 'What each roll of the die is worth',
-    roll: 'Roll',
+    caption: 'What each spin of the wheel is worth',
+    roll: 'Spin',
     career: 'Career',
     per: (period: string): string => `Per ${period}`,
     rung: 'Rung',
@@ -525,9 +531,9 @@ export const EN = {
     onAverage: (salary: string): string => `${salary} on average`,
     fixedPayNote: (title: string): string => `${title}: the same packet every payday.`,
     variablePayNote: (title: string, perPip: string): string =>
-      `${title}: every payday pays ${perPip} for each pip you roll.`,
+      `${title}: every payday pays ${perPip} for each pip you spin.`,
     casualNote: (perPip: string): string =>
-      `Between jobs: every payday pays ${perPip} for each pip you roll.`,
+      `Between jobs: every payday pays ${perPip} for each pip you spin.`,
     casualShifts: (perPip: string): string => `Casual shifts: ${perPip} a pip`,
     graduate: 'Graduate',
     married: 'Married',
@@ -565,7 +571,7 @@ export const EN = {
     stockLine: (name: string, ticker: string, shares: number): string =>
       `${name} (${ticker}) — ${shares} share${shares === 1 ? '' : 's'}`,
     lifeTilesLine: (n: number): string => `Life tiles — ${n} earned`,
-    childrenLine: (n: number): string => `Children — ${n}, on average at the final roll`,
+    childrenLine: (n: number): string => `Children — ${n}, on average at the final spin`,
     loansLine: (n: number): string => `Loans — ${n} outstanding, settled at retirement`,
     unemployed: 'Unemployed',
     casualShifts: 'Casual shifts',
@@ -644,23 +650,23 @@ export const EN = {
     editionMeta: (symbol: string, trades: number): string => `counts in ${symbol} · ${trades} trades`,
     wordsHeading: 'Words this game uses',
 
-    step1Title: 'Roll the die',
+    step1Title: 'Spin the wheel',
     step1Body:
-      'Every turn starts with one roll, 1 to 6. A fork takes two: the first picks the road for you — 1 to 3 one way, 4 to 6 the other — and the second is how far down it you drive.',
+      'Every turn starts with one spin, 1 to 6. A fork takes two: the first picks the road for you — 1 to 3 one way, 4 to 6 the other — and the second is how far down it you drive.',
     step2Title: 'Drive the road',
     step2Body:
       'Paydays and milestones you drive past still pay out — each one deals its own card on the way, before you reach where you stop.',
     step3Title: 'Resolve the landing',
     step3Body:
-      'The tile you stop on plays out: money moves, a die decides something, or a real decision is put in front of you.',
-    step4Title: 'Pass the die',
+      'The tile you stop on plays out: money moves, the wheel decides something, or a real decision is put in front of you.',
+    step4Title: 'Pass the wheel',
     step4Body:
       'Play moves around the table until every pawn has reached retirement — then the scores settle, houses, stocks and LIFE tiles included.',
 
     kindPaydayName: 'Payday',
     kindPaydayRule: 'Collects your salary whether you land on it or drive straight past it.',
     kindMilestoneName: 'Milestone',
-    kindMilestoneRule: 'Fires when passed or landed on, and never cuts a big roll short.',
+    kindMilestoneRule: 'Fires when passed or landed on, and never cuts a big spin short.',
     kindOrdinaryName: 'Ordinary tile',
     kindOrdinaryRule: 'Only does something when your pawn actually stops on it.',
     kindStopName: 'Stop',
@@ -679,21 +685,21 @@ export const EN = {
 
     tagCalling: 'A calling',
     tagRung: (rung: number, height: number): string => `Rung ${rung} of ${height}`,
-    tagPaidByDie: 'Paid by the die',
+    tagPaidByWheel: 'Paid by the wheel',
     climbOn: (spin: number): string => `on a ${spin}+`,
 
     glossaryLadderTerm: 'Ladder',
     glossaryLadderMeaning:
-      'A trade written as rungs — apprentice, stylist, salon owner. A fair hires you onto the bottom rung; everything above it is climbed at reviews, and the top rungs need the bigger rolls.',
+      'A trade written as rungs — apprentice, stylist, salon owner. A fair hires you onto the bottom rung; everything above it is climbed at reviews, and the top rungs need the bigger spins.',
     glossaryCallingTerm: 'A calling',
     glossaryCallingMeaning:
       'Work with no ladder above it at all. It never climbs, a layoff can never take it, and every review pays a LIFE tile instead of a title.',
     glossaryTilesTerm: 'LIFE tiles',
     glossaryTilesMeaning:
       'Keepsakes picked up along the road — a marathon, a novel, a rescue dog. Every one is worth real money at the final scoring.',
-    glossaryPerPipTerm: 'Paid by the die',
+    glossaryPerPipTerm: 'Paid by the wheel',
     glossaryPerPipMeaning:
-      'Some work has good weeks and bad ones. A trade marked this way pays a rate times your roll at each payday instead of a fixed salary — the quoted wage is what it averages.',
+      'Some work has good weeks and bad ones. A trade marked this way pays a rate times your spin at each payday instead of a fixed salary — the quoted wage is what it averages.',
     glossaryDegreeTerm: 'A degree',
     glossaryDegreeMeaning:
       'College Lane’s prize: tuition up front, and every job fair after graduation deals from the graduate ladders — a higher floor, in exchange for the bill.',
@@ -702,7 +708,7 @@ export const EN = {
       'A layoff costs one rung, never the whole climb. The next fair re-hires you at the level you had earned, less one — even onto a different trade.',
     glossaryNumberTerm: 'The Number',
     glossaryNumberMeaning:
-      'Hold enough cash at the right tile and you may stop working decades early — rolling for what drawing the fund that soon actually costs.',
+      'Hold enough cash at the right tile and you may stop working decades early — spinning for what drawing the fund that soon actually costs.',
   },
 
   /**

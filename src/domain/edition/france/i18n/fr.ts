@@ -530,7 +530,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'career-fr-crepe-stand-owner': {
       title: 'Patron de crêperie ambulante',
-      description: 'Installe la crêpière à l’entrée du marché et transforme le samedi matin en petite fête. La file d’attente est le dé.',
+      description: 'Installe la crêpière à l’entrée du marché et transforme le samedi matin en petite fête. La file d’attente est la roue.',
     },
     'career-fr-bistro-owner': {
       title: 'Patron de bistrot',
@@ -550,7 +550,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'career-fr-delivery-courier': {
       title: 'Coursier livreur',
-      description: 'Se faufile entre les pavés et les couloirs de bus pour nourrir et livrer tout le quartier. Décembre est le dé.',
+      description: 'Se faufile entre les pavés et les couloirs de bus pour nourrir et livrer tout le quartier. Décembre est la roue.',
     },
     'career-fr-depot-dispatcher': {
       title: 'Régulateur de dépôt',
@@ -602,7 +602,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'career-fr-wedding-photographer': {
       title: 'Photographe de mariage',
-      description: 'Juin est pris deux ans à l’avance et janvier est un silence — l’agenda est le dé, et la saison des châteaux décide de l’année.',
+      description: 'Juin est pris deux ans à l’avance et janvier est un silence — l’agenda est la roue, et la saison des châteaux décide de l’année.',
     },
     'career-fr-lettings-negotiator': {
       title: 'Négociateur en location',
@@ -718,7 +718,7 @@ export const FRANCE_FR: EditionTranslation = {
     },
     'career-fr-novelist': {
       title: 'Romancier',
-      description: 'Publié enfin, en même temps que six cents autres nouveautés du même automne. Les droits d’auteur tiennent du dé, et le fait qu’on vous remarque, à peu près aussi.',
+      description: 'Publié enfin, en même temps que six cents autres nouveautés du même automne. Les droits d’auteur tiennent de la roue, et le fait qu’on vous remarque, à peu près aussi.',
     },
     'career-fr-veterinarian': {
       title: 'Vétérinaire',

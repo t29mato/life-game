@@ -181,7 +181,7 @@ describe('applyEffect', () => {
      * It now prints them. The sentence keeps the one thing a table cannot
      * say: whose week this is.
      */
-    it('says the shifts are up for grabs, and prints what every face of the die pays', () => {
+    it('says the shifts are up for grabs, and prints what every number on the wheel pays', () => {
       const player = fixturePlayer({ money: 0, career: null })
       const state = fixtureState({ players: [player] })
       const space = fixtureSpace({ effect: { type: 'payday' } })
@@ -196,7 +196,7 @@ describe('applyEffect', () => {
           amount: formatMoney(CASUAL_WAGE_PER_PIP * face),
         })),
       )
-      expect(next.log[0]!.message).toContain('payday roll')
+      expect(next.log[0]!.message).toContain('payday spin')
     })
 
     /*

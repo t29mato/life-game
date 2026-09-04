@@ -74,7 +74,7 @@ export default defineConfig({
         name: 'LIFE JOURNEY',
         short_name: 'Life Journey',
         description:
-          'Roll the die, pick a career, and build a life worth bragging about in this offline board game for one to four players.',
+          'Spin the wheel, pick a career, and build a life worth bragging about in this offline board game for one to four players.',
         theme_color: '#f4e5c8',
         background_color: '#f4e5c8',
         display: 'standalone',

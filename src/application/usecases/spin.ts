@@ -39,7 +39,7 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
     const branchTaken = resolveForkBranch(state.board, player.spaceId, spinValue, player)
     if (branchTaken !== undefined) {
       const label = roadName(state.board, branchTaken)
-      const forkLog = `${player.name} rolls a ${spinValue} — the fork sends them onto ${label}.`
+      const forkLog = `${player.name} spins a ${spinValue} — the fork sends them onto ${label}.`
       return {
         ...state,
         chosenExit: branchTaken,
@@ -55,7 +55,7 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
     : planMovement(state.board, player.spaceId, spinValue)
 
   const movedPlayer = movePlayerTo(player, plan.destinationId)
-  const log = appendLog(state, player.id, `${player.name} rolls a ${spinValue}.`, 'info')
+  const log = appendLog(state, player.id, `${player.name} spins a ${spinValue}.`, 'info')
   const players = state.players.map((candidate) => (candidate.id === movedPlayer.id ? movedPlayer : candidate))
 
   /*

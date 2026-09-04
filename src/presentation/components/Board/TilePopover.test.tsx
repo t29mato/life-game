@@ -86,7 +86,7 @@ describe('TilePopover', () => {
       expect(card).toHaveTextContent('worth remembering')
     })
 
-    it('prints a die-decided sum as the band it can land in', () => {
+    it('prints a wheel-decided sum as the band it can land in', () => {
       render(
         <TilePopover
           space={makeSpace({
@@ -98,7 +98,7 @@ describe('TilePopover', () => {
         />,
       )
 
-      expect(screen.getByRole('dialog')).toHaveTextContent('+$500 to +$3,000, on the die')
+      expect(screen.getByRole('dialog')).toHaveTextContent('+$500 to +$3,000, on the wheel')
     })
 
     it('says so plainly when nothing happens at all', () => {

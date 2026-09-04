@@ -85,7 +85,7 @@ export function arrivalCopy(
   gift: Money,
   money: (amount: Money) => string,
 ): ArrivalCopy {
-  const lead = face === null ? playerName : `${playerName} rolls a ${face} and`
+  const lead = face === null ? playerName : `${playerName} spins a ${face} and`
   if (children === 0) {
     return {
       // No note. A chip reading "no child" would be the card underlining the

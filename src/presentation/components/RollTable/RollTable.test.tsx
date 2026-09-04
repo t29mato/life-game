@@ -158,7 +158,7 @@ describe('RollTable', () => {
   it('names itself to a screen reader without printing the name', () => {
     const { container } = render(<RollTable rows={MONEY_ROWS} />)
     const caption = container.querySelector('caption')
-    expect(caption?.textContent).toBe('What each roll of the die is worth')
+    expect(caption?.textContent).toBe('What each spin of the wheel is worth')
     expect(caption?.className).toBe('visually-hidden')
   })
 

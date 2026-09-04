@@ -29,7 +29,7 @@ Three material families, used consistently:
 | Family | Where | Reads as |
 | --- | --- | --- |
 | **Board stock** | the play surface, tiles | thick printed card with an embossed lip |
-| **Moulded plastic** | pawns, the die, buttons | glossy, domed, with a specular highlight and a darker lip beneath |
+| **Moulded plastic** | pawns, the wheel, buttons | glossy, domed, with a specular highlight and a darker lip beneath |
 | **Paper** | panels, log, modals | matte card stock, softly shadowed, slightly warm |
 
 ## 2. Depth is mandatory
@@ -112,7 +112,7 @@ already in `--font-rounded`.
   `exactOptionalPropertyTypes`.
 - Keyboard operable with a visible focus ring; `aria-live` regions preserved.
 - **Every screen names one primary action** and puts focus on it, and Space
-  *and* Enter both press it from anywhere on the page — the die, Continue,
+  *and* Enter both press it from anywhere on the page — the wheel, Continue,
   the choice under the cursor. `usePrimaryAction` is the whole of that
   contract; nothing should grow a second keyboard path to the same button.
   The focus ring is 4px of sea blue with a 3px stand-off (`:focus-visible`

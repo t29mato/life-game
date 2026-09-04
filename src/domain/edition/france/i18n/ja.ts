@@ -527,7 +527,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'career-fr-crepe-stand-owner': {
       title: 'クレープ屋台の店主',
-      description: '市場の入口に鉄板を据え、土曜の朝をちょっとした祭りに変える。行列そのものがサイコロだ。',
+      description: '市場の入口に鉄板を据え、土曜の朝をちょっとした祭りに変える。行列そのものがルーレットだ。',
     },
     'career-fr-bistro-owner': {
       title: 'ビストロの店主',
@@ -547,7 +547,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'career-fr-delivery-courier': {
       title: '配達員',
-      description: '石畳とバス専用レーンの間をすり抜け、地区じゅうの食事と荷物を届け続ける。十二月がサイコロだ。',
+      description: '石畳とバス専用レーンの間をすり抜け、地区じゅうの食事と荷物を届け続ける。十二月がルーレットだ。',
     },
     'career-fr-depot-dispatcher': {
       title: '配車担当',
@@ -599,7 +599,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'career-fr-wedding-photographer': {
       title: 'ブライダルカメラマン',
-      description: '六月は二年先まで埋まり、一月は無音。予約表がサイコロで、シャトーの季節が一年を決める。',
+      description: '六月は二年先まで埋まり、一月は無音。予約表がルーレットで、シャトーの季節が一年を決める。',
     },
     'career-fr-lettings-negotiator': {
       title: '賃貸仲介',
@@ -715,7 +715,7 @@ export const FRANCE_JA: EditionTranslation = {
     },
     'career-fr-novelist': {
       title: '小説家',
-      description: 'ついに出版。ただし同じ秋に出る六百冊の新刊と一緒に。印税はサイコロ次第で、そもそも気づいてもらえるかどうかも、だいたいサイコロ次第だ。',
+      description: 'ついに出版。ただし同じ秋に出る六百冊の新刊と一緒に。印税はルーレット次第で、そもそも気づいてもらえるかどうかも、だいたいルーレット次第だ。',
     },
     'career-fr-veterinarian': {
       title: '獣医',

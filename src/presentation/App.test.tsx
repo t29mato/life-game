@@ -1104,7 +1104,7 @@ describe('a decision card answered by turning the die', () => {
     render(<App store={store} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
     const user = userEvent.setup()
-    await user.click(screen.getByRole('option', { name: /^roll/i }))
+    await user.click(screen.getByRole('option', { name: /^spin/i }))
 
     // The die, not the answer. Before the fix the outcome card was already
     // here, "Rolled 6" and a new job printed on it, one tick after the press.
@@ -1116,7 +1116,7 @@ describe('a decision card answered by turning the die', () => {
       { timeout: 8000 },
     )
     expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
-    expect(screen.queryByText(/^Rolled$/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Spun$/)).not.toBeInTheDocument()
 
     // Nothing happens on its own: it is a person's roll, so it waits on them.
     await new Promise((resolve) => setTimeout(resolve, 300))
@@ -1127,7 +1127,7 @@ describe('a decision card answered by turning the die', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), {
       timeout: 8000,
     })
-    expect(screen.getByText(/^Rolled$/)).toBeInTheDocument()
+    expect(screen.getByText(/^Spun$/)).toBeInTheDocument()
   })
 
   it('throws a die the player can watch before The Number pays their fund out', async () => {
@@ -1150,7 +1150,7 @@ describe('a decision card answered by turning the die', () => {
       { timeout: 8000 },
     )
     expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
-    expect(screen.queryByText(/^Rolled$/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Spun$/)).not.toBeInTheDocument()
 
     await new Promise((resolve) => setTimeout(resolve, 300))
     expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
@@ -1159,7 +1159,7 @@ describe('a decision card answered by turning the die', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), {
       timeout: 8000,
     })
-    expect(screen.getByText(/^Rolled$/)).toBeInTheDocument()
+    expect(screen.getByText(/^Spun$/)).toBeInTheDocument()
   })
 
   /*
@@ -1176,7 +1176,7 @@ describe('a decision card answered by turning the die', () => {
 
     // It picks, the die throws itself, the card arrives — a seat that parked
     // its answer and never got to the die would simply hang here for good.
-    await waitFor(() => expect(screen.getByText(/^Rolled$/)).toBeInTheDocument(), { timeout: 15000 })
+    await waitFor(() => expect(screen.getByText(/^Spun$/)).toBeInTheDocument(), { timeout: 15000 })
     expect(store.getState().players[0]!.isRetired).toBe(true)
   })
 
@@ -1193,7 +1193,7 @@ describe('a decision card answered by turning the die', () => {
     // Staying put decides nothing a die could have decided, so there is
     // nothing to watch and the card is readable straight away.
     await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument())
-    expect(screen.queryByText(/^Rolled$/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Spun$/)).not.toBeInTheDocument()
   })
 })
 

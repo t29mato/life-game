@@ -255,7 +255,7 @@ function resolveCareerSpin(
       state,
       state.players,
       event,
-      `${player.name} rolls a ${spinValue} and is not appointed.`,
+      `${player.name} spins a ${spinValue} and is not appointed.`,
       'info',
     )
   }
@@ -298,7 +298,7 @@ function resolveCareerSpin(
     state,
     replacePlayer(state.players, updated),
     event,
-    `${player.name} rolls a ${spinValue} and becomes a ${taken.title}.`,
+    `${player.name} spins a ${spinValue} and becomes a ${taken.title}.`,
     'milestone',
   )
 }
@@ -597,7 +597,7 @@ function resolveTuitionSpin(
     state,
     replacePlayer(state.players, updated),
     event,
-    `${player.name} rolls a ${spinValue} for tuition: ${
+    `${player.name} spins a ${spinValue} for tuition: ${
       band.cost > 0 ? money(band.cost) : band.cost < 0 ? `${money(-band.cost)} paid to them` : 'a full ride'
     }.`,
     band.cost > 0 ? 'money-out' : band.cost < 0 ? 'money-in' : 'event',
@@ -651,7 +651,7 @@ function resolvePromotionSpin(
       state,
       replacePlayer(state.players, raised),
       event,
-      `${player.name} rolls a ${spinValue} and is passed over for ${next.title}, taking a rise to ${money(salaryRate(newSalary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
+      `${player.name} spins a ${spinValue} and is passed over for ${next.title}, taking a rise to ${money(salaryRate(newSalary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
       'event',
     )
   }
@@ -673,14 +673,14 @@ function resolvePromotionSpin(
     notes,
     'milestone',
     twoAtOnce
-      ? `The top of the die! They skip a whole rung: ${player.name} is a ${arrived.title}, and the room is not sure what just happened.`
+      ? `The top of the wheel! They skip a whole rung: ${player.name} is a ${arrived.title}, and the room is not sure what just happened.`
       : `Promoted! ${player.name} is a ${arrived.title} now.`,
   )
   return resolved(
     state,
     replacePlayer(state.players, promoted),
     event,
-    `${player.name} rolls a ${spinValue} and is promoted to ${arrived.title}: ${money(salaryRate(arrived.salary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
+    `${player.name} spins a ${spinValue} and is promoted to ${arrived.title}: ${money(salaryRate(arrived.salary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
     'milestone',
   )
 }
@@ -713,7 +713,7 @@ function resolveMarriageSpin(
         // The tiles are already dealt as their own chips above the notes,
         // so listing their titles here said them twice on one card.
         [
-          `Asked again, rolled a ${askedAgain} — not this year, and not next year either.`,
+          `Asked again, spun a ${askedAgain} — not this year, and not next year either.`,
           'Single, and the road ahead is entirely yours: children, Family Lane and every bonus on it are still open.',
         ],
         'milestone',
@@ -725,7 +725,7 @@ function resolveMarriageSpin(
       state,
       replacePlayer(state.players, updated),
       event,
-      `${player.name} rolls a ${asked} and a ${askedAgain}: no wedding, but a LIFE tile out of the year.`,
+      `${player.name} spins a ${asked} and a ${askedAgain}: no wedding, but a LIFE tile out of the year.`,
       'event',
     )
   }
@@ -743,9 +743,9 @@ function resolveMarriageSpin(
   let players = state.players
   let mover = marryPlayer(player)
   // The first ask is printed on the card; a second one is a fact of its own
-  // and the only roll the card cannot show.
+  // and the only spin the card cannot show.
   const notes: string[] = askedAgain !== null
-    ? [`Asked again, rolled a ${askedAgain} — and this time, yes.`, outcome.note]
+    ? [`Asked again, spun a ${askedAgain} — and this time, yes.`, outcome.note]
     : [outcome.note]
 
   for (const payer of payers) {
@@ -819,8 +819,8 @@ function resolveHouseholdSpin(
     replacePlayer(state.players, updated),
     event,
     amount < 0
-      ? `${player.name}'s joint account takes a hit, rolling a ${spinValue}: ${money(delta)}.`
-      : `${player.name}'s household comes out ahead, rolling a ${spinValue}: ${money(delta)}.`,
+      ? `${player.name}'s joint account takes a hit, spinning a ${spinValue}: ${money(delta)}.`
+      : `${player.name}'s household comes out ahead, spinning a ${spinValue}: ${money(delta)}.`,
     amount < 0 ? 'money-out' : 'money-in',
   )
 }
@@ -884,8 +884,8 @@ function resolveTradeYearSpin(
     replacePlayer(state.players, updated),
     event,
     year.swing >= 0
-      ? `${player.name} has a good year as a ${career.title}, rolling a ${spinValue}: ${money(delta)}.`
-      : `${player.name} has a bad year as a ${career.title}, rolling a ${spinValue}: ${money(delta)}.`,
+      ? `${player.name} has a good year as a ${career.title}, spinning a ${spinValue}: ${money(delta)}.`
+      : `${player.name} has a bad year as a ${career.title}, spinning a ${spinValue}: ${money(delta)}.`,
     year.swing >= 0 ? 'money-in' : 'money-out',
   )
 }
@@ -980,18 +980,18 @@ function spinOutcome(
     const event = outcomeEvent(
       space,
       player,
-      'Roll',
+      'Spin',
       delta,
       [space.effect.reason],
       emphasisForMoney(delta, economy),
       // The plate says how much. What the host is for is that it is done.
-      `The die has spoken, and ${player.name} banks it.`,
+      `The wheel has spoken, and ${player.name} banks it.`,
     )
     return resolved(
       state,
       replacePlayer(state.players, updated),
       event,
-      `${space.effect.reason} ${player.name} rolls a ${spinValue}: ${money(gain)}.`,
+      `${space.effect.reason} ${player.name} spins a ${spinValue}: ${money(gain)}.`,
       gain >= 0 ? 'money-in' : 'money-out',
     )
   }
@@ -1059,7 +1059,7 @@ function spinOutcome(
    * before it.
    *
    * The rate is what makes the rest of the card check out. A player is
-   * looking at a face and a figure — "Rolled 4", "+¥5,600,000" — and without
+   * looking at a face and a figure — "Spun 4", "+¥5,600,000" — and without
    * the rate between them those are two unrelated numbers. With it they are
    * one piece of arithmetic they can do in their head, which is the whole
    * bargain an unsteady wage offers.
@@ -1067,8 +1067,8 @@ function spinOutcome(
   const perPip = player.career?.payPerPip ?? economy.casualWagePerPip
   const notes =
     kind === 'casual'
-      ? [`Between jobs — shifts pay ${money(perPip)} for every pip you roll.`]
-      : [`${player.career?.title ?? 'Your trade'} — ${money(perPip)} for every pip you roll.`]
+      ? [`Between jobs — shifts pay ${money(perPip)} for every pip you spin.`]
+      : [`${player.career?.title ?? 'Your trade'} — ${money(perPip)} for every pip you spin.`]
   /*
    * And the narration no longer says the total. It said it in full — "That
    * is what the week was worth: ¥2,800,000 for Mato." — directly above a
@@ -1084,8 +1084,8 @@ function spinOutcome(
       : `That is what the week was worth to ${player.name}. The next one will be worth something else.`
   const logMessage =
     kind === 'casual'
-      ? `${player.name} picks up casual shifts, rolling ${spinValue}: ${money(amount)}.`
-      : `${player.name} collects payday, rolling ${spinValue}: ${money(amount)}.`
+      ? `${player.name} picks up casual shifts, spinning ${spinValue}: ${money(amount)}.`
+      : `${player.name} collects payday, spinning ${spinValue}: ${money(amount)}.`
   const event = {
     ...outcomeEvent(space, player, 'Payday', delta, notes, emphasisForMoney(delta, economy), narration),
     // The trade this week's shifts were worked at — absent for a casual
@@ -1179,10 +1179,10 @@ function resolveRetireEarly(state: GameState, optionId: string, deps: UseCaseDep
       state,
       replacePlayer(state.players, updated),
       event,
-      `${player.name} retires early: ${money(economy.fireNumber)} into the fund, a roll of ${spin}, ${money(payout)} back.`,
+      `${player.name} retires early: ${money(economy.fireNumber)} into the fund, a spin of ${spin}, ${money(payout)} back.`,
       'milestone',
     ),
-    // …and so does the number the die on screen has to land on. `rolled` is
+    // …and so does the number the wheel on screen has to land on. `rolled` is
     // what the finished card prints; `lastSpin` is what the die animates to,
     // and a roll that publishes one without the other leaves a die with
     // nothing to settle on — it simply never turns, and the turn hangs behind

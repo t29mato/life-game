@@ -73,7 +73,7 @@ The skeleton stays (that is where two years of measured balance lives, and it ke
 ### The opening fork: The Program vs The Offer
 
 **The Program** (College Lane's slot): move-in is the first lab meeting; the tuition stop
-becomes **The Stipend Years** — the same die-decided bill, re-told as five years of
+becomes **The Stipend Years** — the same wheel-decided bill, re-told as five years of
 opportunity cost ("funded, but you do the math on what your classmates are earning"). The
 lane's events: quals week, the advisor draw, a first-author paper (the Scholarship Win
 slot), and **The Defence** at the end. Its job fair deals from the **academia pool** —
@@ -104,8 +104,8 @@ The existing Grad School lane is the best-shaped thing in the codebase for this 
 six tiles, a bill, no paydays, a compulsory appointment — and it becomes **The Tenure
 Clock** almost line for line:
 
-1. **The Startup Package** — the bill (die-decided, like `doctorateTuition`): the lab you
-   have to build before the first grant lands. Bad roll: *"The renovation runs over and
+1. **The Startup Package** — the bill (wheel-decided, like `doctorateTuition`): the lab you
+   have to build before the first grant lands. Bad spin: *"The renovation runs over and
    the dean's matching funds turn out to match rather less than promised."*
 2. **The First Rejection** — flavour, hard-mode cost: resubmission season.
 3. **Bridge Funding** — the Teaching Stipend slot: a small cheque, deliberately not a payday.
@@ -176,7 +176,7 @@ keeps plaques, gear, and trade-year stories working unmodified:
 **Tenured shelf (2 rungs, highest floor):**
 
 - *Associate Professor → Professor* — and the Sunset Strip's Final Promotion tile becomes
-  **The Named Chair**, the last roll of an academic life.
+  **The Named Chair**, the last spin of an academic life.
 
 **Callings** (work paid in something other than money):
 
@@ -188,7 +188,7 @@ keeps plaques, gear, and trade-year stories working unmodified:
 
 ---
 
-## 4. Trade years: the grant cycle as a die
+## 4. Trade years: the grant cycle as a wheel
 
 `tradeYear` is the mechanic this edition was born for — a zero-mean, salary-proportional
 good-or-bad year at the job you already hold. One catch: `TRADE_YEAR_STORIES` is
@@ -241,7 +241,7 @@ anything in this document.
 
 ### New, and worth it: the Tenure Vote
 
-One new `SpaceEffect` variant — `tenureReview` — a promotion roll where **failure is
+One new `SpaceEffect` variant — `tenureReview` — a promotion spin where **failure is
 `loseCareer`**, not "try again next time." That asymmetry is the entire truth of tenure:
 every other review in the game fails soft; this one ends the job. Threshold at the
 first-step rate (4-in-6) — most people on the track make it, which is real, and which
@@ -264,7 +264,7 @@ board geometry that already exists.
   Zero plumbing.
 - **Grants are NOT a second currency.** A distinct grant resource means new `Player`
   fields, new scoring, new UI, new CPU logic — and a 15-minute game does not have room
-  for a second economy. The grant cycle is already told three ways: the trade-year die,
+  for a second economy. The grant cycle is already told three ways: the trade-year wheel,
   `payPerPip` soft-money rungs, and the Tenure Clock's bill. Adding a resource would
   flatten the thing it claims to honour.
 - **No h-index counter.** Life tiles are the publication record; a number would make it
@@ -408,7 +408,7 @@ out), and then near-absolute safety at a low number, forever. After the gate, *a
 is the safe road and industry the volatile one* — the exact opposite of the American
 mid-game. Bonus, distinctly French, cheap to express: **CIFRE** — the doctorate done
 *inside a company*, salaried, on an employment contract. A stipend-years tile where one
-die face *pays you* is an honest French mechanic with no equivalent on the US board.
+wheel face *pays you* is an honest French mechanic with no equivalent on the US board.
 
 **India — a pay choice, not a risk choice.** *(Confidence: medium — broad strokes solid,
 fine texture less so.)* Faculty posts at IITs/IISc and scientist posts at CSIR labs,
@@ -483,7 +483,7 @@ what they read.
   opening fork survives intact, even amplified.
 - **The gated lane is 任期の階段 (the Fixed-Term Ladder), and its end tile is the
   Ten-Year Cliff, not a Tenure Vote.** Same board slot as §2's Tenure Clock, different
-  truth: no dossier, no committee — a roll where failure means the contract is simply
+  truth: no dossier, no committee — a spin where failure means the contract is simply
   not renewed one year before permanence would vest. Success = a 無期 post: **the
   safest shelf in the entire game**, safer than the US tenured shelf — the Layoff
   Notice tile explicitly cannot touch it.
@@ -493,8 +493,8 @@ what they read.
   same redraw deals *at* your rung — that one line is the fluidity difference between
   the two labor markets, expressed in the career-fair rule.)
 - **Promotion is 公募, a lottery, fail-soft.** Dozens of applicants per open post: a
-  low-probability, repeatable roll. Japan's catastrophic roll is the cliff; its
-  promotion roll is merely long odds. The US board has it the other way around.
+  low-probability, repeatable spin. Japan's catastrophic spin is the cliff; its
+  promotion spin is merely long odds. The US board has it the other way around.
 
 **Researcher: France**
 
@@ -502,11 +502,11 @@ what they read.
   university science entirely — prépa, engineering school, industry cadre, salaried from
   the start. The university/doctorate lane is the underdog road. ("Don't get a PhD" is
   not a choice here; it is the default the elite never questioned.)
-- **The doctorate can pay.** One face of the stipend-years die is **CIFRE** — the PhD
+- **The doctorate can pay.** One face of the stipend-years wheel is **CIFRE** — the PhD
   done inside a company, on salary. The only board where the tuition-stop tile can put
   money *in* your pocket.
 - **The gated lane is Le Concours: one entry gate, attempt-limited.** One or two
-  postdoc tiles, then the roll. Failure is fail-soft *but the lane only allows two or
+  postdoc tiles, then the spin. Failure is fail-soft *but the lane only allows two or
   three attempts* — miss them all and you age out, forcibly exiting to the industry
   redraw. All the volatility of an academic life, compressed into one gate in your
   early thirties.
@@ -519,7 +519,7 @@ what they read.
 ### 10.4 One mechanic, three national meanings
 
 §5 proposed `tenureReview` as a one-off SpaceEffect. The cross reframes it better: one
-new variant — call it a **gate review**: a roll at a lane's end whose failure consequence
+new variant — call it a **gate review**: a spin at a lane's end whose failure consequence
 is configurable — serves all three launch-adjacent boards:
 
 - USA: mid-lane gate, failure = `loseCareer`, board geometry catches you (the §5 design).

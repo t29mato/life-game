@@ -15,7 +15,7 @@ already documented elsewhere; read that first:
 | `docs/JAPAN-EDITION.md`, `docs/REMOTE-PLAY.md` | Edition- and feature-specific design notes |
 
 `docs/SPEC.md`'s final-scoring section still describes a flat
-`LIFE_INSURANCE_PAYOUT` — the life policy now matures on a die
+`LIFE_INSURANCE_PAYOUT` — the life policy now matures on a spin
 (`lifeInsuranceMaturity`, `src/domain/rules/scoring.ts`). Worth a fix next time
 someone is in that doc; flagged here rather than silently patched so it isn't
 lost.
@@ -124,7 +124,7 @@ answer is margin, not a bigger timeout.
 Two things to know before touching the pacing: `TEMPO` is built by
 mapping over `AUTHORED`, so a beat added to that table is scaled for free
 and one added anywhere else is not; and the test clock is deliberately a
-quarter rather than zero, because several tests press the die and assert
+quarter rather than zero, because several tests press the wheel and assert
 in the next statement that the result is not on screen yet. Collapsing
 motion entirely — `prefers-reduced-motion`, `MotionGlobalConfig`, a scale
 of 0 — makes those assertions pass by no longer checking anything.
@@ -156,21 +156,40 @@ were completely fictional. If a measurement moves in a direction you can't
 explain mechanically from the change you made, suspect the fakes before you
 suspect the economy.
 
-## 5. The die-arming contract
+## 5. The randomiser is called *the wheel*, and identifiers lag it
 
-Any roll a human is meant to watch must show the die *before* the result is
+One name per thing, for the player: the noun is **the wheel**, the verb is
+**spin**, the button reads **Spin**, and in Japanese it is **ルーレット** /
+**まわす**. Nothing a player can read says die, dice, roll or rolled about the
+object they press. That rule has now been swept in both directions — the UI
+was made die-native once, deliberately, and then reversed when the object
+itself went back to being a spinner — so the reasoning lives in one place,
+`src/presentation/components/ReleaseNotes/releaseNotes.ts`'s header, and
+`releaseNotes.test.ts` holds the notes to it. **If the object changes again,
+sweep in one pass and rewrite that header** rather than leaving two commits
+arguing.
+
+Code identifiers are deliberately *not* held to this. `SpinValue`,
+`SPIN_FACES` and `spinForMoney` were spin-native from the first commit and
+never moved; `LandingEvent.rolled` is in `docs/SPEC.md`'s frozen list;
+`dieSettled` and `turnsTheDie` below are die-named and still current. Renaming
+them is churn against a contract, not vocabulary work.
+
+### The die-arming contract
+
+Any spin a human is meant to watch must show the wheel *before* the result is
 known — `dieSettled=false` / `activeSpin='event'` armed before dispatch, so
 `EventSpinModal`/`Dice` mounts and animates before the card reveals what it
-rolled. This has been a real, twice-reported bug class: a decision with a
+landed on. This has been a real, twice-reported bug class: a decision with a
 second option (not just "press to spin") can bypass this arming entirely if
 its `onChoose` dispatches straight through. The current answer is
 `DecisionOption.turnsTheDie?: boolean` — every option that reaches for
 `random.spin()` or `random.int()` must be marked, and the calling UI must
-park the choice (not dispatch it) until the die itself has been pressed.
+park the choice (not dispatch it) until the wheel itself has been pressed.
 Grep for `turnsTheDie` before adding a new decision kind that involves any
 randomness, and check both halves: the option is marked, *and* whatever
-resolves it stamps both `lastEvent.rolled` and `lastSpin` (a roll with the
-first but not the second hangs the die with nothing to land on — the other
+resolves it stamps both `lastEvent.rolled` and `lastSpin` (a spin with the
+first but not the second hangs the wheel with nothing to land on — the other
 half of the same bug class, found in `resolveRetireEarly`).
 
 ## 6. Visual verification in a real browser

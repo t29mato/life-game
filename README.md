@@ -156,7 +156,7 @@ npm test
 
 ## The game
 
-Spin 1–10 and move. First decision of the game: **College Lane** costs tuition and
+Spin 1–6 and move. First decision of the game: **College Lane** costs tuition and
 delays you, but unlocks the graduate careers; **Straight to Work** gets you
 earning immediately.
 

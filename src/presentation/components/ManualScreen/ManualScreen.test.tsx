@@ -34,11 +34,11 @@ afterEach(async () => {
 describe('the Handbook agrees with the rules', () => {
   /*
    * D4: the booklet still said "A fork asks twice: pick the road first, then
-   * roll again" long after roads went onto the die. `resolveForkBranch` splits
-   * the six faces in half and nobody picks anything, so the booklet says that
-   * instead — and this test is what stops it drifting back.
+   * spin again" long after roads went onto the wheel. `resolveForkBranch`
+   * splits the six faces in half and nobody picks anything, so the booklet
+   * says that instead — and this test is what stops it drifting back.
    */
-  it('says the die picks the road, not the player', () => {
+  it('says the wheel picks the road, not the player', () => {
     renderManual()
 
     const steps = screen.getByText('How a turn works').closest('section') as HTMLElement
@@ -156,13 +156,13 @@ describe('ManualScreen', () => {
     )
   })
 
-  it('marks the ladder facts a player weighs a job by: rungs, callings, and die-paid work', () => {
+  it('marks the ladder facts a player weighs a job by: rungs, callings, and wheel-paid work', () => {
     renderManual()
     // The default page (the USA catalogue) carries every kind of marker on
     // its own — what matters is that the vocabulary is on the cards at all.
     expect(screen.getAllByText(/^Rung 1 of \d$/).length).toBeGreaterThan(0)
     expect(screen.getAllByText('A calling').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Paid by the die').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Paid by the wheel').length).toBeGreaterThan(0)
   })
 
   it('quotes each salary in its own edition’s money', async () => {

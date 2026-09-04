@@ -105,11 +105,11 @@ describe('scoreRoll', () => {
     expect(next.scoreRolls[1]).toBe(opened.scoreRolls[1])
   })
 
-  it('writes what the die was worth into the log', () => {
+  it('writes what the wheel was worth into the log', () => {
     const opened = retiredTable({ house: HOUSE })
     const next = scoreRoll(opened, { random: createFakeRandom({ spins: [6] }) })
     const line = next.log[next.log.length - 2]!.message
-    expect(line).toContain('Rolled a 6')
+    expect(line).toContain('Spun a 6')
     expect(line).toContain(HOUSE.resaleRange[1].toLocaleString('en-US'))
   })
 

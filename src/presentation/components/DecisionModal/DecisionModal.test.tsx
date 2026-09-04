@@ -571,7 +571,7 @@ describe('DecisionModal', () => {
         <DecisionModal decision={decision} board={makeBoard()} onChoose={onChoose} />
       </AudioProvider>,
     )
-    expect(screen.getByText('The die')).toBeInTheDocument()
+    expect(screen.getByText('The wheel')).toBeInTheDocument()
     expect(screen.getByText('The Crêpe Van Bet')).toBeInTheDocument()
     expect(screen.getByText(/higher is always better/)).toBeInTheDocument()
     await user.click(screen.getByRole('option', { name: /roll/i }))

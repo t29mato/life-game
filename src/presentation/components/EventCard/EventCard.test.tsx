@@ -347,7 +347,7 @@ describe('EventCard', () => {
         <EventCard event={makeEvent({ rolled: 4 })} onDismiss={() => {}} />
       </AudioProvider>,
     )
-    expect(screen.getByText('Rolled')).toBeInTheDocument()
+    expect(screen.getByText('Spun')).toBeInTheDocument()
     expect(screen.getByText('4')).toBeInTheDocument()
   })
 
@@ -358,7 +358,7 @@ describe('EventCard', () => {
         <EventCard event={makeEvent()} onDismiss={() => {}} />
       </AudioProvider>,
     )
-    expect(screen.queryByText('Rolled')).not.toBeInTheDocument()
+    expect(screen.queryByText('Spun')).not.toBeInTheDocument()
   })
 
   /*

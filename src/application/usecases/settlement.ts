@@ -200,11 +200,11 @@ export function scoreRollLogLine(state: GameState, roll: ScoreRoll, face: SpinVa
   const amount = player ? formatMoney(scoreRollValue(state, player, roll.kind, face, edition), edition.currency) : '?'
   switch (roll.kind) {
     case 'house':
-      return `Rolled a ${face} — ${name}'s house sold for ${amount}.`
+      return `Spun a ${face} — ${name}'s house sold for ${amount}.`
     case 'market':
-      return `Rolled a ${face} — ${name}'s shares cashed out at ${amount}.`
+      return `Spun a ${face} — ${name}'s shares cashed out at ${amount}.`
     case 'policy':
-      return `Rolled a ${face} — ${name}'s life policy matured at ${amount}.`
+      return `Spun a ${face} — ${name}'s life policy matured at ${amount}.`
   }
 }
 

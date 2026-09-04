@@ -531,7 +531,7 @@ export const JAPAN_JA: EditionTranslation = {
     },
     'career-jp-ramen-stall-owner': {
       title: '屋台の主',
-      description: '夕暮れに駅前へ屋台を出し、終電前の人波をちょっとした祭りに変える。行列そのものがサイコロだ。',
+      description: '夕暮れに駅前へ屋台を出し、終電前の人波をちょっとした祭りに変える。行列そのものがルーレットだ。',
     },
     'career-jp-ramen-shop-owner': {
       title: 'ラーメン店主',
@@ -603,7 +603,7 @@ export const JAPAN_JA: EditionTranslation = {
     },
     'career-jp-wedding-photographer': {
       title: 'ブライダルカメラマン',
-      description: '六月の週末は二年先まで埋まり、二月は無音。予約表がサイコロで、大安と仏滅が一年を決める。',
+      description: '六月の週末は二年先まで埋まり、二月は無音。予約表がルーレットで、大安と仏滅が一年を決める。',
     },
     'career-jp-rental-agent': {
       title: '賃貸の営業',
@@ -719,7 +719,7 @@ export const JAPAN_JA: EditionTranslation = {
     },
     'career-jp-manga-artist': {
       title: '漫画家',
-      description: 'ついに連載。印税はサイコロ、読者アンケートはギロチン、そして締切は永遠に毎週来る。',
+      description: 'ついに連載。印税はルーレット、読者アンケートはギロチン、そして締切は永遠に毎週来る。',
     },
     'career-jp-veterinarian': {
       title: '獣医',

@@ -434,7 +434,7 @@ describe('choose', () => {
       expect(next.lastEvent!.notes).toEqual(['Lucky roll'])
     })
 
-    it('spins for a casual payday, paying by the roll rather than nothing', () => {
+    it('spins for a casual payday, paying by the spin rather than nothing', () => {
       const player = fixturePlayer({ spaceId: 'payday1', money: 1_000, career: null })
       const state = decisionState({
         players: [player],
@@ -446,14 +446,14 @@ describe('choose', () => {
 
       expect(random.calls.spins).toBe(1)
       expect(next.players[0]!.money).toBe(1_000 + CASUAL_WAGE_PER_PIP * 4)
-      // The roll travels on the event, the total is on the delta plate, and
+      // The spin travels on the event, the total is on the delta plate, and
       // the note carries the third number — the rate, which is the only one
       // of the three the card cannot otherwise show, and the one that makes
       // the other two check out.
       expect(next.lastEvent!.rolled).toBe(4)
       expect(next.lastEvent!.notes.join(' ')).not.toContain('Rolled')
       expect(next.lastEvent!.notes).toEqual([
-        `Between jobs — shifts pay ${formatMoney(CASUAL_WAGE_PER_PIP)} for every pip you roll.`,
+        `Between jobs — shifts pay ${formatMoney(CASUAL_WAGE_PER_PIP)} for every pip you spin.`,
       ])
       // And the narration no longer prints the total a second time.
       expect(next.lastEvent!.narration).not.toContain(formatMoney(CASUAL_WAGE_PER_PIP * 4))

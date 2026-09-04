@@ -531,7 +531,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'career-bo-anticucho-cart': {
       title: '串焼き屋台の店主',
-      description: '夕暮れに同じ角へ炭火の屋台を押していき、牛ハツの串とピーナッツソースを毎晩のちょっとした祭りに変える。行列そのものがサイコロだ。',
+      description: '夕暮れに同じ角へ炭火の屋台を押していき、牛ハツの串とピーナッツソースを毎晩のちょっとした祭りに変える。行列そのものがルーレットだ。',
     },
     'career-bo-lunch-house-owner': {
       title: '定食屋の主',
@@ -575,7 +575,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'career-bo-band-trumpeter': {
       title: 'ブラスバンドのトランペット',
-      description: '結婚式、聖人の祝日、卒業式を、全開の音量と全開の標高で吹く。仕事の合間は電話を待つ。祭りの季節がサイコロだ。',
+      description: '結婚式、聖人の祝日、卒業式を、全開の音量と全開の標高で吹く。仕事の合間は電話を待つ。祭りの季節がルーレットだ。',
     },
     'career-bo-touring-band': {
       title: 'ツアーの奏者',
@@ -603,7 +603,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'career-bo-fiesta-photographer': {
       title: '祭りのカメラマン',
-      description: '八月は二年先まで満杯で、四旬節にはまったく仕事がない。祭りの暦がサイコロで、後見人たちが一年を決める。',
+      description: '八月は二年先まで満杯で、四旬節にはまったく仕事がない。祭りの暦がルーレットで、後見人たちが一年を決める。',
     },
     'career-bo-import-stall-trader': {
       title: '輸入品の露店商',
@@ -719,7 +719,7 @@ export const BOLIVIA_JA: EditionTranslation = {
     },
     'career-bo-foreign-correspondent': {
       title: '特派員',
-      description: '三つの外国の編集部にアンデスを同時に説明する。どこも原稿ごとの支払いで、締切はどれも別。安定しているのは署名だけで、収入はサイコロだ。',
+      description: '三つの外国の編集部にアンデスを同時に説明する。どこも原稿ごとの支払いで、締切はどれも別。安定しているのは署名だけで、収入はルーレットだ。',
     },
     'career-bo-veterinarian': {
       title: '獣医',

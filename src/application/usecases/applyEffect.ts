@@ -216,7 +216,7 @@ function insuranceDescriptions(
     // off this board at this difficulty anyway.
     home: cover('fire', 'a house fire', 'Few lives ever have one'),
     auto: cover('accident', 'a crash', 'Plenty of lives have one'),
-    life: `Not cover — a fund. It matures on a die at the end, anywhere from ${formatMoney(floor, currency)} to ${formatMoney(ceiling, currency)}.`,
+    life: `Not cover — a fund. It matures on the wheel at the end, anywhere from ${formatMoney(floor, currency)} to ${formatMoney(ceiling, currency)}.`,
   }
 }
 
@@ -691,15 +691,15 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Roll',
+            label: 'Spin',
             description,
             icon: 'space:payday',
             table: paydayBands(player, economy, currency),
           },
         ],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up to roll for the week's pay.`)
-      const log = appendLog(state, player.id, `${player.name} is up for a payday roll.`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up to spin for the week's pay.`)
+      const log = appendLog(state, player.id, `${player.name} is up for a payday spin.`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -751,11 +751,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Roll',
+            label: 'Spin',
             // The title and the narration above this have already said what
             // tile this is; the table below says exactly what each face is
             // worth. Nothing here needs to repeat either — including the
-            // instruction to roll, which was aimed at a die already on screen,
+            // instruction to spin, which was aimed at a wheel already on screen,
             // already focused, and already answering the space bar.
             description: '',
             icon: 'space:tuition-bill',
@@ -764,7 +764,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         ],
       }
       const event = baseEvent(space, 0, [], 'normal', `${player.name} opens the tuition bill.`)
-      const log = appendLog(state, player.id, `${player.name} is up for the roll: what does tuition come to?`, 'event')
+      const log = appendLog(state, player.id, `${player.name} is up for the spin: what does tuition come to?`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -860,7 +860,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Roll',
+            label: 'Spin',
             description: `${effect.reason} You need a ${needed} or higher (out of ${SPIN_FACES}) to move up to ${next.title}. Miss it and you still take a raise.`,
             icon: 'space:pay-raise-talk',
           },
@@ -920,10 +920,10 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Roll',
+            label: 'Spin',
             // The owner's own example of the class. A player looking at a
-            // hiring tile, with the two offers tabled beneath and the die
-            // under those, does not need a sentence telling them to roll it.
+            // hiring tile, with the two offers tabled beneath and the wheel
+            // under those, does not need a sentence telling them to spin it.
             description: '',
             icon: space.icon,
             table: careerOfferTable(first, second, currency, edition),
@@ -931,8 +931,8 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         ],
         offeredCareerIds: [first.id, second.id],
       }
-      const event = baseEvent(space, 0, [], 'normal', `Two offers on the table — roll to see which one is yours, ${player.name}!`)
-      const log = appendLog(state, player.id, `${player.name} rolls for a career.`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', `Two offers on the table — spin to see which one is yours, ${player.name}!`)
+      const log = appendLog(state, player.id, `${player.name} spins for a career.`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -991,16 +991,16 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Roll',
+            label: 'Spin',
             // No table on this one, so the bar genuinely has to be said —
-            // but only the bar. The leading "Roll —" was the scaffolding.
+            // but only the bar. The leading "Spin —" was the scaffolding.
             description: `A ${marriage.proposalSpin} or higher (out of ${SPIN_FACES}) and it's a yes outright. Lower gets a kinder second ask before it's a no.`,
             icon: 'space:wedding-day',
           },
         ],
       }
       const event = baseEvent(space, 0, [], 'normal', `${player.name} takes a knee.`)
-      const log = appendLog(state, player.id, `${player.name} is up for the roll: will they marry?`, 'event')
+      const log = appendLog(state, player.id, `${player.name} is up for the spin: will they marry?`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1041,8 +1041,8 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Roll',
-            // The mechanism, and not the die that resolves it: `swingBands`
+            label: 'Spin',
+            // The mechanism, and not the wheel that resolves it: `swingBands`
             // below prints all six outcomes, signed.
             description: `${effect.reason} — the spending against the two incomes.`,
             icon: 'finance:bank-visit',
@@ -1051,7 +1051,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         ],
       }
       const event = baseEvent(space, 0, [], 'normal', `${player.name} opens the joint statement.`)
-      const log = appendLog(state, player.id, `${player.name} is up for the roll: how did the joint account do?`, 'event')
+      const log = appendLog(state, player.id, `${player.name} is up for the spin: how did the joint account do?`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1097,7 +1097,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Roll',
+            label: 'Spin',
             description: `${effect.reason} Nobody is offering you a different job — only this one, for another year as a ${career.title}.`,
             icon: career.icon,
             table: swingBands(currency, (face) =>
@@ -1107,7 +1107,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         ],
       }
       const event = baseEvent(space, 0, [], 'normal', `${player.name} looks back on the year in the trade.`)
-      const log = appendLog(state, player.id, `${player.name} is up for the roll: what kind of year was it?`, 'event')
+      const log = appendLog(state, player.id, `${player.name} is up for the spin: what kind of year was it?`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1145,11 +1145,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Roll',
+            label: 'Spin',
             // Both halves of the news are in the table below, band by band, so
             // the sentence says what is at stake rather than what the money is
-            // — the roll stopped being about the envelopes when a face started
-            // meaning no child at all. It does not say "roll", either: the die
+            // — the spin stopped being about the envelopes when a face started
+            // meaning no child at all. It does not say "spin", either: the wheel
             // is on screen and the button under it says so. Echoes the empty
             // face's own line, which answers this sentence with "the house
             // stays the size it is".
@@ -1159,8 +1159,8 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           },
         ],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} is up for the roll: who is in the house next year?`)
-      const log = appendLog(state, player.id, `${player.name} rolls for a new arrival.`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} is up for the spin: who is in the house next year?`)
+      const log = appendLog(state, player.id, `${player.name} spins for a new arrival.`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1265,7 +1265,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Roll',
+            label: 'Spin',
             // `perPipBands` below says how much, six times over.
             description: effect.reason,
             icon: 'space:payday',
@@ -1273,8 +1273,8 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           },
         ],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up for the roll.`)
-      const log = appendLog(state, player.id, `${player.name} is up for a roll: ${effect.reason.toLowerCase()}`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up for the spin.`)
+      const log = appendLog(state, player.id, `${player.name} is up for a spin: ${effect.reason.toLowerCase()}`, 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1337,7 +1337,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         space,
         0,
         affordable
-          ? ['The fund buys the rest of your life back, or it does not. One roll.']
+          ? ['The fund buys the rest of your life back, or it does not. One spin.']
           : [`You need ${money(fireNumber)} in hand to buy your way out here.`],
         'normal',
         affordable
@@ -1433,12 +1433,12 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         {
           id: VALUE_SPIN_OPTION_ID,
           turnsTheDie: true,
-          label: 'Roll',
+          label: 'Spin',
           // The worst of the family before it was cut: this option renders
-          // in `DecisionModal`, so "Roll to see which one you take" sat
-          // directly under a button whose label is the word Roll, over the
+          // in `DecisionModal`, so "Spin to see which one you take" sat
+          // directly under a button whose label is the word Spin, over the
           // two-row offer table, and then again as the stakes line over the
-          // die. Three times, for one instruction nobody needed once. The
+          // wheel. Three times, for one instruction nobody needed once. The
           // gated variant keeps the half a table cannot say.
           description: gate === undefined ? '' : 'Most people do not get one.',
           icon: space.icon,

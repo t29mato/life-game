@@ -533,7 +533,7 @@ export const INDIA_JA: EditionTranslation = {
     },
     'career-in-chaat-cart-owner': {
       title: '軽食屋台の店主',
-      description: '五時に市場のわきへ屋台を出し、夕方の人波をちょっとした祭りに変える。行列そのものがサイコロだ。',
+      description: '五時に市場のわきへ屋台を出し、夕方の人波をちょっとした祭りに変える。行列そのものがルーレットだ。',
     },
     'career-in-dhaba-owner': {
       title: '街道食堂の主',
@@ -553,7 +553,7 @@ export const INDIA_JA: EditionTranslation = {
     },
     'career-in-delivery-rider': {
       title: '配達員',
-      description: 'アプリが「やや混雑」と呼ぶ渋滞をスクーターで縫い、どの建物のエレベーターが止まっているかを客より先に知っている。割増時間帯がサイコロだ。',
+      description: 'アプリが「やや混雑」と呼ぶ渋滞をスクーターで縫い、どの建物のエレベーターが止まっているかを客より先に知っている。割増時間帯がルーレットだ。',
     },
     'career-in-hub-dispatcher': {
       title: '配送拠点の配車担当',
@@ -581,7 +581,7 @@ export const INDIA_JA: EditionTranslation = {
     },
     'career-in-wedding-band-leader': {
       title: '婚礼バンドのリーダー',
-      description: '白と金の制服で金管隊を率い、道の真ん中を進んでいく。その季節の予約数がサイコロだ。',
+      description: '白と金の制服で金管隊を率い、道の真ん中を進んでいく。その季節の予約数がルーレットだ。',
     },
     'career-in-music-director': {
       title: '音楽監督',
@@ -605,7 +605,7 @@ export const INDIA_JA: EditionTranslation = {
     },
     'career-in-wedding-photographer': {
       title: 'ブライダルカメラマン',
-      description: '十一月から二月は二年先まで埋まり、七月は無音。予約表がサイコロで、婚礼シーズンが一年を決める。',
+      description: '十一月から二月は二年先まで埋まり、七月は無音。予約表がルーレットで、婚礼シーズンが一年を決める。',
     },
     'career-in-rental-broker': {
       title: '賃貸仲介',
@@ -721,7 +721,7 @@ export const INDIA_JA: EditionTranslation = {
     },
     'career-in-tv-serial-writer': {
       title: '連続ドラマの脚本家',
-      description: 'ついに連載枠を持つ。報酬はサイコロ、木曜の視聴率は予告なく番組ごと打ち切りにでき、そして結婚式の回は毎年必ず来る。',
+      description: 'ついに連載枠を持つ。報酬はルーレット、木曜の視聴率は予告なく番組ごと打ち切りにでき、そして結婚式の回は毎年必ず来る。',
     },
     'career-in-veterinarian': {
       title: '獣医',

@@ -136,7 +136,7 @@ describe('EventSpinModal', () => {
       expect(screen.getByText(/Year-end Jumbo/)).toBeInTheDocument()
       // …and the arithmetic it used to carry is gone, because six rows of it
       // are now sitting underneath.
-      expect(option.description).not.toContain('a pip you roll')
+      expect(option.description).not.toContain('a pip you spin')
     })
 
     /* A real table with real column headers, so the rows are not six pairs
@@ -144,9 +144,9 @@ describe('EventSpinModal', () => {
     it('reads as a table to a screen reader', () => {
       show(optionFor('japan', { type: 'payday' }))
       const table = screen.getByRole('table')
-      expect(within(table).getByRole('columnheader', { name: 'Roll' })).toBeInTheDocument()
+      expect(within(table).getByRole('columnheader', { name: 'Spin' })).toBeInTheDocument()
       expect(within(table).getByRole('columnheader', { name: 'Outcome' })).toBeInTheDocument()
-      expect(table.querySelector('caption')?.textContent).toBe('What each roll of the die is worth')
+      expect(table.querySelector('caption')?.textContent).toBe('What each spin of the wheel is worth')
     })
 
     /* Most rolls have nothing to tabulate — a single threshold, a flat

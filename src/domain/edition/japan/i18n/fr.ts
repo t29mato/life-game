@@ -528,7 +528,7 @@ export const JAPAN_FR: EditionTranslation = {
     },
     'career-jp-ramen-stall-owner': {
       title: 'Patron de yatai',
-      description: 'Gare son échoppe roulante près de la gare à la tombée du jour et transforme la foule du dernier train en petite fête. La file d’attente est le dé.',
+      description: 'Gare son échoppe roulante près de la gare à la tombée du jour et transforme la foule du dernier train en petite fête. La file d’attente est la roue.',
     },
     'career-jp-ramen-shop-owner': {
       title: 'Patron de restaurant de ramen',
@@ -600,7 +600,7 @@ export const JAPAN_FR: EditionTranslation = {
     },
     'career-jp-wedding-photographer': {
       title: 'Photographe de mariage',
-      description: 'Les week-ends de juin sont pris deux ans à l’avance et février est un silence — l’agenda est le dé, et la saison des sanctuaires décide de l’année.',
+      description: 'Les week-ends de juin sont pris deux ans à l’avance et février est un silence — l’agenda est la roue, et la saison des sanctuaires décide de l’année.',
     },
     'career-jp-rental-agent': {
       title: 'Agent de location',
@@ -716,7 +716,7 @@ export const JAPAN_FR: EditionTranslation = {
     },
     'career-jp-manga-artist': {
       title: 'Mangaka',
-      description: 'Enfin publié en série. Les droits d’auteur sont un dé, le sondage des lecteurs une guillotine, et l’échéance revient chaque semaine, à vie.',
+      description: 'Enfin publié en série. Les droits d’auteur sont une roue, le sondage des lecteurs une guillotine, et l’échéance revient chaque semaine, à vie.',
     },
     'career-jp-veterinarian': {
       title: 'Vétérinaire',

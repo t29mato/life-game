@@ -104,7 +104,7 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
     const plan = planMovementVia(state.board, space.id, branchTaken, roll)
     const movedPlayer = movePlayerTo(player, plan.destinationId)
     const label = roadName(state.board, branchTaken)
-    const log = appendLog(state, player.id, `${player.name}'s roll carries them onto ${label}.`, 'info')
+    const log = appendLog(state, player.id, `${player.name}'s spin carries them onto ${label}.`, 'info')
     const players: readonly Player[] = state.players.map((candidate) =>
       candidate.id === movedPlayer.id ? movedPlayer : candidate,
     )

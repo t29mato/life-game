@@ -77,12 +77,12 @@ Prefer many small behavioural tests over a few sprawling ones.
 A seat with `isCpu` plays itself. `decideCpuCommand(state)` returns the command
 that seat would issue for the current phase — it is pure, deterministic, and
 scores the options it is offered rather than picking at random. The UI paces it
-with `CPU_THINK_MS` and routes its roll through the die, so a computer turn
+with `CPU_THINK_MS` and routes its spin through the wheel, so a computer turn
 looks exactly like a person's. It must never return an option id outside
 `pendingDecision.options`: an invalid id would freeze the game.
 
 ### Turn cycle
-`awaitingSpin` → roll (1–6) → `moving` (pawn animates along `movementPath`) →
+`awaitingSpin` → spin (1–6) → `moving` (pawn animates along `movementPath`) →
 `settle` → either `awaitingDecision` (branch/career/house) or `resolved`
 (`lastEvent` populated) → `endTurn` → next non-retired player.
 
@@ -114,7 +114,7 @@ Implement every variant of `SpaceEffect`:
 | `chooseCareer` | Offer 2 random careers from the given pool → decision |
 | `graduate` | `hasDegree = true` |
 | `getMarried` | `isMarried = true`; every other player pays `WEDDING_GIFT` |
-| `haveChildren` | Roll; `arrivals` says how many arrive on that face (New Baby: 1-2 none, 3-5 one, 6 twins), and `celebrationPerChild × arrivals` is paid in gifts. A tile whose every face agrees (Twins) settles on landing with no die |
+| `haveChildren` | Spin; `arrivals` says how many arrive on that face (New Baby: 1-2 none, 3-5 one, 6 twins), and `celebrationPerChild × arrivals` is paid in gifts. A tile whose every face agrees (Twins) settles on landing with no spin |
 | `buyHouse` | Offer 3 affordable-ish houses + a "not yet" option → decision |
 | `collectFromEach` | Every other player pays `amount` to the mover |
 | `payEach` | The mover pays `amount` to every other player |
@@ -211,7 +211,7 @@ Target: **Nintendo first-party polish**. Joyful, chunky, tactile, immaculate.
 - **Buttons**: chunky, fully rounded, with a darker bottom lip (`box-shadow: 0 6px 0 <dark>`). On press the lip collapses and the button translates down — it must feel like a physical key. Never a flat rectangle.
 - **Motion**: springs, not linear fades. Overshoot on entry, squash-and-stretch on the pawn's hop, a satisfying settle on every card. Use `framer-motion`.
 - **Feedback**: every action gets a sound *and* a visual. Money changes roll up digit by digit and flash green/red. Milestones burst confetti.
-- **Dice**: a moulded six-face die, docked over the foot of the board. Multi-turn tumble, decelerating ease-out, the face flickering every quarter turn, a bounce as it settles on the number it rolled.
+- **The wheel**: a moulded spinner numbered 1–6 around its face, docked over the foot of the board. It winds up fast and slows through a long decelerating ease-out, a ticker clicking past each peg as it goes by, and settles with a bounce onto the number it stopped at. The player-facing noun is **the wheel** and the verb is **spin**; nothing on screen calls it a die or a roll (see `releaseNotes.ts`'s header for why the name moved, twice).
 - **Board**: SVG. Rounded-square tiles along a drawn path, tone-coloured, with the emoji centred. The current player's tile pulses. Camera pans smoothly to follow the active pawn.
 - **Accessibility**: full keyboard operation, visible focus rings, `aria-live` for turn and money announcements, and honour `prefers-reduced-motion` by cutting movement to instant transitions (never remove information).
 - **Responsive**: works from 360 px phones to wide desktops. Board scales; panels reflow to a bottom sheet on narrow screens.

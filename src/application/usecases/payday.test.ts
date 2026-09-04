@@ -124,7 +124,7 @@ describe('passedPaydayLine', () => {
     const collection = collectPaydays(fixturePlayer({ career: UNSTEADY, money: 0 }), 2, {
       random: createFakeRandom({ spins: [3, 5] }),
     })
-    expect(passedPaydayLine('Ada', collection)).toBe('Ada passes payday 2x, rolling 3 and 5: $100,800 — now $100,800.')
+    expect(passedPaydayLine('Ada', collection)).toBe('Ada passes payday 2x, spinning 3 and 5: $100,800 — now $100,800.')
   })
 
   it('says a player between jobs picked up shifts', () => {
@@ -133,7 +133,7 @@ describe('passedPaydayLine', () => {
     })
     const amount = '$' + (CASUAL_WAGE_PER_PIP * 6).toLocaleString('en-US')
     expect(passedPaydayLine('Ada', collection)).toBe(
-      `Ada picks up shifts passing payday, rolling a 6: ${amount} — now ${amount}.`,
+      `Ada picks up shifts passing payday, spinning a 6: ${amount} — now ${amount}.`,
     )
   })
 })

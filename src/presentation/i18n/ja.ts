@@ -6,7 +6,7 @@ import type { UiOverlay } from './en'
  * Same rule the Japan board's own overlay states in its header, applied to
  * the chrome: write the sentence the English was *reaching for*, in the words
  * the thing is actually called, and let the explanation go. "Hall of Records"
- * is 殿堂, not 「記録の殿堂」; "Paid by the die" is 「出目で決まる給料」, not a
+ * is 殿堂, not 「記録の殿堂」; "Paid by the wheel" is 「出た目で決まる給料」, not a
  * gloss of the mechanic. A label that has to explain itself is a label that
  * has not been translated yet.
  *
@@ -45,7 +45,7 @@ export const JA: UiOverlay = {
     unit: (raw) => (raw === 'payday' ? '給料日' : raw === 'month' ? '月' : raw === 'share' ? '株' : raw),
     salary: (money, period) => `${money}／${period}`,
     range: (low, high) => `${low}〜${high}`,
-    onTheDie: (range) => `${range}、ダイス次第`,
+    onTheWheel: (range) => `${range}、ルーレット次第`,
     dateLocale: 'ja-JP',
     unknownTime: '時刻不明',
     unknownDate: '日付不明',
@@ -70,7 +70,7 @@ export const JA: UiOverlay = {
 
   title: {
     eyebrow: '運と野心のボードゲーム',
-    tagline: 'サイコロを振って、コマを進めて、自慢できる人生を組み立てる。',
+    tagline: 'ルーレットをまわして、コマを進めて、自慢できる人生を組み立てる。',
     continue: 'つづきから',
     newGame: 'はじめから',
     handbook: 'ハンドブック',
@@ -297,25 +297,25 @@ export const JA: UiOverlay = {
     insurable: (amount) => `${amount} — 保険に入っていればゼロ`,
     payday: '給料。止まっても通り過ぎても入る。',
     payRaise: '給料が上がる。',
-    promotion: '昇進をかけて振る。届かなければ昇給で済む。',
-    tradeYear: 'その道の一年をダイスで。当たり年が外れ年の損を埋める。',
-    chooseCareer: '新しい仕事。どれになるかはダイスが決める。',
+    promotion: '昇進をかけてまわす。届かなければ昇給で済む。',
+    tradeYear: 'その道の一年をルーレットで。当たり年が外れ年の損を埋める。',
+    chooseCareer: '新しい仕事。どれになるかはルーレットが決める。',
     careerChangeForced: '転職。これは断れない。',
     careerChangeOffered: '別の職を二つ提示される。今の仕事に残るのも答え。',
     loseCareer: '失業。次のフェアで拾われるまで収入はない。',
     tuitionFree: 'ゼロ',
     graduate: '卒業。これ以降のフェアは大卒の梯子から配られる。',
     doctorate: '博士号と、それで開く職の棚。',
-    getMarried: 'プロポーズをダイスで決着。決まれば全員から祝儀。',
-    household: '共同口座をダイスで清算。既婚者だけ。',
+    getMarried: 'プロポーズをルーレットで決着。決まれば全員から祝儀。',
+    household: '共同口座をルーレットで清算。既婚者だけ。',
     haveChildren: (children, gifts) => `${children}、そして祝いに${gifts}`,
     childCount: (n) => `子ども+${n}人`,
     /*
      * 「子ども+1人」と言い切れるのは、どの目でも同じ数だけ来る場合だけ。
      * 六分の二の目で誰も来ない盤で言い切れば、マスが果たせない約束になる。
      */
-    childrenOnTheDie: (least, most, gifts) =>
-      `出目次第で子ども${least}〜${most}人、祝いは最大${gifts}`,
+    childrenOnTheWheel: (least, most, gifts) =>
+      `出た目次第で子ども${least}〜${most}人、祝いは最大${gifts}`,
     divorce: (amount) => `別れ話：${amount}、子どもは相手についていく。`,
     buyHouse: '家を買う。ターンはここで止まる。',
     upgradeHouse: '持ち家があるなら、もっといい家に買い替え。',
@@ -332,7 +332,7 @@ export const JA: UiOverlay = {
   card: {
     milestone: '人生の節目',
     passing: '通りがかり',
-    rolled: '出目',
+    rolled: '出た目',
     paid: '支払い',
     borrowed: '借入',
     loanTerms: (loans, amount) => `ローン${loans}件 — 引退時に${amount}返済`,
@@ -355,7 +355,7 @@ export const JA: UiOverlay = {
     kindInsurance: '保険窓口',
     kindBank: '銀行',
     kindRetire: 'その額',
-    kindValueSpin: 'ダイス',
+    kindValueSpin: 'ルーレット',
     theComputer: 'コンピュータ',
     isChoosing: (name) => `${name}が考えている…`,
     thinking: '思案中 — 操作は要らない。',
@@ -376,8 +376,8 @@ export const JA: UiOverlay = {
   },
 
   rollTable: {
-    caption: 'ダイスの目ごとに何がもらえるか',
-    roll: '出目',
+    caption: 'ルーレットの目ごとに何がもらえるか',
+    roll: '出た目',
     career: '職業',
     per: (period) => `${period}あたり`,
     rung: '段',
@@ -417,9 +417,9 @@ export const JA: UiOverlay = {
       '現金に家・株・LIFEタイル・子どもボーナスを足して、ローンの返済を引いた額 — いまゲームが終わったときの得点',
     onAverage: (salary) => `${salary}（平均）`,
     fixedPayNote: (title) => `${title}：給料日ごとに同じ額。`,
-    variablePayNote: (title, perPip) => `${title}：給料日ごとに、出目1につき${perPip}。`,
-    casualNote: (perPip) => `無職のあいだ：給料日ごとに、出目1につき${perPip}。`,
-    casualShifts: (perPip) => `日雇い：出目1につき${perPip}`,
+    variablePayNote: (title, perPip) => `${title}：給料日ごとに、出た目1につき${perPip}。`,
+    casualNote: (perPip) => `無職のあいだ：給料日ごとに、出た目1につき${perPip}。`,
+    casualShifts: (perPip) => `日雇い：出た目1につき${perPip}`,
     graduate: '大卒',
     married: '既婚',
     tiles: (n) => `タイル${n}枚`,
@@ -451,7 +451,7 @@ export const JA: UiOverlay = {
     sharesLine: '株 — 配当の幅の真ん中で見積もり',
     stockLine: (name, ticker, shares) => `${name}（${ticker}） — ${shares}株`,
     lifeTilesLine: (n) => `LIFEタイル — ${n}枚`,
-    childrenLine: (n) => `子ども — ${n}人、最後の一振りの平均で`,
+    childrenLine: (n) => `子ども — ${n}人、最後のひとまわしの平均で`,
     loansLine: (n) => `ローン — ${n}件、引退時に清算`,
     unemployed: '無職',
     casualShifts: '日雇い',
@@ -526,23 +526,23 @@ export const JA: UiOverlay = {
     editionMeta: (symbol, trades) => `${symbol}で数える・${trades}職`,
     wordsHeading: 'このゲームの言葉',
 
-    step1Title: 'ダイスを振る',
+    step1Title: 'ルーレットをまわす',
     step1Body:
-      'ターンは必ず一振りから、1から6。分かれ道だけは二回振る。一回目が道を決め — 1〜3で片方、4〜6でもう片方 — 二回目がその道をどこまで進むかを決める。',
+      'ターンは必ずひとまわしから、1から6。分かれ道だけは二回まわす。一回目が道を決め — 1〜3で片方、4〜6でもう片方 — 二回目がその道をどこまで進むかを決める。',
     step2Title: '道を進む',
     step2Body:
       '通り過ぎただけの給料日や節目も、ちゃんと起きる。止まる場所に着く前に、通りがかりに一枚ずつカードが出る。',
     step3Title: '止まったマスを片づける',
     step3Body:
-      '止まったマスが動き出す。お金が動くか、ダイスが何かを決めるか、本物の決断を突きつけられるか。',
-    step4Title: 'ダイスを次へ',
+      '止まったマスが動き出す。お金が動くか、ルーレットが何かを決めるか、本物の決断を突きつけられるか。',
+    step4Title: 'ルーレットを次へ',
     step4Body:
       '全員のコマが引退にたどり着くまで、順に回る。そこで点数の清算 — 家も株もLIFEタイルも入れて。',
 
     kindPaydayName: '給料日',
     kindPaydayRule: '止まっても、そのまま通り過ぎても給料が入る。',
     kindMilestoneName: '節目',
-    kindMilestoneRule: '止まっても通り過ぎても起きる。大きな出目を途中で切ることはない。',
+    kindMilestoneRule: '止まっても通り過ぎても起きる。大きな出た目を途中で切ることはない。',
     kindOrdinaryName: 'ふつうのマス',
     kindOrdinaryRule: 'コマが実際に止まったときだけ何かが起きる。',
     kindStopName: '停止',
@@ -559,21 +559,21 @@ export const JA: UiOverlay = {
 
     tagCalling: '天職',
     tagRung: (rung, height) => `${height}段中${rung}段目`,
-    tagPaidByDie: '出目で決まる給料',
+    tagPaidByWheel: '出た目で決まる給料',
     climbOn: (spin) => `${spin}以上で`,
 
     glossaryLadderTerm: '梯子',
     glossaryLadderMeaning:
-      '段で書かれた職 — 見習い、スタイリスト、店のオーナー。フェアが雇うのは一番下の段だけ。その上は査定のたびに登るもので、上の段ほど大きな出目が要る。',
+      '段で書かれた職 — 見習い、スタイリスト、店のオーナー。フェアが雇うのは一番下の段だけ。その上は査定のたびに登るもので、上の段ほど大きな出た目が要る。',
     glossaryCallingTerm: '天職',
     glossaryCallingMeaning:
       '上に段がない仕事。昇りもしないし、失業に奪われることもない。査定のたびに、肩書きの代わりにLIFEタイルがつく。',
     glossaryTilesTerm: 'LIFEタイル',
     glossaryTilesMeaning:
       '道すがら拾う思い出 — 完走したフルマラソン、書き上げた小説、引き取った犬。どれも最後の清算で本物の金額になる。',
-    glossaryPerPipTerm: '出目で決まる給料',
+    glossaryPerPipTerm: '出た目で決まる給料',
     glossaryPerPipMeaning:
-      'いい週も悪い週もある仕事がある。この印のついた職は、決まった給料ではなく、給料日ごとに出目×レートで払われる。表示されている賃金は、その平均。',
+      'いい週も悪い週もある仕事がある。この印のついた職は、決まった給料ではなく、給料日ごとに出た目×レートで払われる。表示されている賃金は、その平均。',
     glossaryDegreeTerm: '学位',
     glossaryDegreeMeaning:
       '大学レーンの賞品。学費は先払いで、卒業後のフェアはすべて大卒の梯子から配られる — 請求書と引き換えの底上げ。',
@@ -582,7 +582,7 @@ export const JA: UiOverlay = {
       '失業で失うのは一段だけで、登った分が丸ごと消えるわけではない。次のフェアは、稼いだ段の一つ下から雇ってくれる — 別の職に移っても。',
     glossaryNumberTerm: 'その額',
     glossaryNumberMeaning:
-      '決まったマスで十分な現金を持っていれば、何十年も早く働くのをやめられる。そんなに早く引き出すことの代償を、ダイスで問われる。',
+      '決まったマスで十分な現金を持っていれば、何十年も早く働くのをやめられる。そんなに早く引き出すことの代償を、ルーレットで問われる。',
   },
 
   editions: {

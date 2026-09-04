@@ -532,7 +532,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'career-bo-anticucho-cart': {
       title: 'Patron de charrette à brochettes',
-      description: 'Pousse la charrette-gril au même coin à la tombée du jour et transforme brochettes de cœur de bœuf et sauce cacahuète en petite fête nocturne. La file d’attente est le dé.',
+      description: 'Pousse la charrette-gril au même coin à la tombée du jour et transforme brochettes de cœur de bœuf et sauce cacahuète en petite fête nocturne. La file d’attente est la roue.',
     },
     'career-bo-lunch-house-owner': {
       title: 'Patron de cantine',
@@ -576,7 +576,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'career-bo-band-trumpeter': {
       title: 'Trompettiste de fanfare',
-      description: 'Joue mariages, fêtes patronales et remises de diplômes à plein volume et à pleine altitude, et attend près du téléphone entre deux. La saison des fêtes est le dé.',
+      description: 'Joue mariages, fêtes patronales et remises de diplômes à plein volume et à pleine altitude, et attend près du téléphone entre deux. La saison des fêtes est la roue.',
     },
     'career-bo-touring-band': {
       title: 'Musicien de tournée',
@@ -604,7 +604,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'career-bo-fiesta-photographer': {
       title: 'Photographe de fiesta',
-      description: 'Août est réservé deux ans à l’avance, et le carême n’apporte aucun travail — le calendrier des fêtes est le dé, et les parrains décident de l’année.',
+      description: 'Août est réservé deux ans à l’avance, et le carême n’apporte aucun travail — le calendrier des fêtes est la roue, et les parrains décident de l’année.',
     },
     'career-bo-import-stall-trader': {
       title: 'Revendeur d’import',
@@ -720,7 +720,7 @@ export const BOLIVIA_FR: EditionTranslation = {
     },
     'career-bo-foreign-correspondent': {
       title: 'Correspondant',
-      description: 'Explique les Andes à trois rédactions étrangères à la fois, chacune payant à l’article, aucune sur le même bouclage. La signature est la partie stable ; le revenu, c’est le dé.',
+      description: 'Explique les Andes à trois rédactions étrangères à la fois, chacune payant à l’article, aucune sur le même bouclage. La signature est la partie stable ; le revenu, c’est la roue.',
     },
     'career-bo-veterinarian': {
       title: 'Vétérinaire',

@@ -30,9 +30,9 @@ function turnSteps(t: UiText): readonly { readonly title: string; readonly body:
   return [
     /*
      * Step one used to read "A fork asks twice: pick the road first, then
-     * roll again" — which stopped being true when forks went onto the die.
-     * Nobody picks a road any more: the first roll picks it, 1-3 one way and
-     * 4-6 the other, and the second roll is the distance. Verified against
+     * spin again" — which stopped being true when forks went onto the wheel.
+     * Nobody picks a road any more: the first spin picks it, 1-3 one way and
+     * 4-6 the other, and the second spin is the distance. Verified against
      * `resolveForkBranch` and `spin` rather than taken on trust, because a
      * handbook that disagrees with the rules is worse than no handbook.
      */
@@ -200,7 +200,7 @@ function CareerCard({
           ) : height > 1 ? (
             <span className={styles.tag}>{t.manual.tagRung(rung, height)}</span>
           ) : null}
-          {career.payPerPip ? <span className={styles.tag}>{t.manual.tagPaidByDie}</span> : null}
+          {career.payPerPip ? <span className={styles.tag}>{t.manual.tagPaidByWheel}</span> : null}
         </div>
       ) : null}
     </article>
@@ -419,7 +419,7 @@ export function ManualScreen({ onClose }: ManualScreenProps): ReactElement {
         </ul>
 
         {/* The key to the marks themselves — the same card a first-time
-            player is dealt once before their first roll, kept here for ever
+            player is dealt once before their first spin, kept here for ever
             so "what does the red-and-white stripe mean?" has an answer
             inside the game rather than only in somebody's memory. */}
         <h3 className={styles.subHeading}>{t.manual.marksHeading}</h3>

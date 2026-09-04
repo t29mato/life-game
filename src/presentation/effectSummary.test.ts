@@ -57,7 +57,7 @@ describe('describeEffect', () => {
     const usa = editionFor('usa')
     const line = describeEffect({ type: 'tuition', reason: 'College tuition' }, usa)
     const dearest = Math.max(...usa.economy.tuition.outcomes.map((outcome) => outcome.cost))
-    expect(line).toContain('on the die')
+    expect(line).toContain('on the wheel')
     expect(line).toContain(dearest.toLocaleString(usa.currency.locale))
   })
 })

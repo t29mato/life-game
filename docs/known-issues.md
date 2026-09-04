@@ -76,7 +76,7 @@ animation frames, and gives up 79–81 checks later. The desktop profile does no
 fail, which may mean it does not happen there or only that it settles faster.
 
 **What it is not:** not the all-computer table. That was the first theory, and
-sitting human players down (so the board waits on a roll instead of playing
+sitting human players down (so the board waits on a spin instead of playing
 itself) did not fix it — the same test failed the same way. Not a missing or
 covered control either: the key resolves, is visible and is enabled.
 
