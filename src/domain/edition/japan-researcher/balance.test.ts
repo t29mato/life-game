@@ -295,12 +295,45 @@ describe('the opening fork: the doctorate is the gamble, not the mistake', () =>
     return { doctoral, masters, doctoralWinRate: doctoralWins / seeds.length }
   }
 
-  const MANY = Array.from({ length: 240 }, (_, i) => i + 1)
+  /**
+   * Ten times the seeds, because the inversion below is a ratio of two
+   * standard deviations and 240 games cannot hold the bound it is asserted
+   * against.
+   *
+   * `spread(masters) / spread(doctoral) < 0.92` went red at 0.988 when the
+   * fork fix landed — the change that stopped a junction reached mid-move
+   * being settled by the distance left over (see `settle.ts`). It is not a
+   * regression. A standard deviation estimated from 240 values carries ~4.6%
+   * of its own error, so a *ratio* of two carries ~6.5%: at 240 seeds the
+   * statistic is 0.87 ± 0.057 and the bound sits less than one standard error
+   * above it, which is a coin flip rather than a guard. Re-measured over
+   * 2,400 seeds, before and after:
+   *
+   *      difficulty   pre-change        this tree
+   *      normal       0.843 ± 0.017     0.873 ± 0.018
+   *      hard         0.864 ± 0.018     0.838 ± 0.017
+   *      very hard    0.929 ± 0.019     0.947 ± 0.019
+   *
+   * The shift on normal is +0.030, about 1.2 combined standard errors, and it
+   * has a mechanism rather than being pure noise: the mid-career junction now
+   * genuinely splits 50/50, and Leave for Industry deals from the industry
+   * shelf at its bottom rung — so twice as many doctoral seats as before end
+   * up on the narrow shelf, which narrows the doctoral road. The inversion
+   * survives it with room on every difficulty.
+   *
+   * The harder block below still runs on 100 seeds against a bound of 1, and
+   * at very hard the true ratio is 0.947: that assertion is left exactly as it
+   * was, but it is worth knowing it is the thinnest margin in this file and
+   * that the difficulty comment above it — "the harder boards compress the
+   * inversion" — is understating how far.
+   */
+  const MANY = Array.from({ length: 2_400 }, (_, i) => i + 1)
   const sample = splitOf(MANY)
 
   it('splits the wins between the two lanes', () => {
     /*
-     * Measured at 46.7% to the doctorate over these 240 games — two points
+     * Measured at 44.1% to the doctorate over these 2,400 games (45.6% before
+     * the fork fix; 46.7% off the old 240-game set) — a couple of points
      * off the USA board's own 44.7% for College Lane, and reached by real
      * tuning rather than by luck: the first cut of the career shelves
      * measured 37.1%, the industry shelf came down 8% and the academia
@@ -335,14 +368,14 @@ describe('the opening fork: the doctorate is the gamble, not the mistake', () =>
      * the master's exit deals from a shelf whose entire working life fits
      * inside ¥4.2M–¥6.5M.
      *
-     * Measured: the doctoral seats finish with a standard deviation of
-     * ¥20.1M against the master's ¥17.1M, a ratio of 0.85 — it was 0.77
+     * Re-measured over 2,400 seeds: the doctoral seats finish with a standard
+     * deviation of ¥21.1M against the master's ¥18.4M, a ratio of 0.873 ±
+     * 0.018 (0.843 ± 0.017 before the fork fix; 0.85 off 240 seeds, and 0.77
      * before a missed month's wages became a thing that can happen to
-     * anybody, which is variance the industry shelf did not used to carry.
-     * The assertion is
-     * one-sided on purpose. A ratio that drifted back to 1 would mean the
-     * shelves had stopped saying anything, and this is the one property no
-     * other edition's suite can hold for us.
+     * anybody, which is variance the industry shelf did not used to carry).
+     * The assertion is one-sided on purpose. A ratio that drifted back to 1
+     * would mean the shelves had stopped saying anything, and this is the one
+     * property no other edition's suite can hold for us.
      */
     const ratio = spread(sample.masters) / spread(sample.doctoral)
     expect(ratio).toBeLessThan(0.92)
@@ -351,9 +384,10 @@ describe('the opening fork: the doctorate is the gamble, not the mistake', () =>
   })
 
   it('leaves neither lane the obvious money play', () => {
-    // Measured at ¥68.3M against ¥72.5M — a 6.1% gap, inside the same 15%
-    // every other board's opening fork is held to, and narrower than the 8.2%
-    // it measured before the layoff cost a payday.
+    // Re-measured over 2,400 seeds at ¥71.9M against ¥76.1M — a 5.9% gap,
+    // inside the same 15% every other board's opening fork is held to (4.7%
+    // before the fork fix, 6.1% off the old 240-game set, and 8.2% before the
+    // layoff cost a payday).
     const gap = Math.abs(mean(sample.doctoral) - mean(sample.masters))
     expect(gap / mean(sample.doctoral)).toBeLessThan(0.15)
   })
