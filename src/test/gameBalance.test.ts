@@ -970,6 +970,21 @@ describe('neither opening lane is the right answer', () => {
  * choices are stirred together: a seat that enrolled and stayed at one firm is
  * being compared with a seat that did neither. So each run pins both seats to
  * the same opening road and splits them only at the crossroads.
+ *
+ * **Until the fork fix, this block was mostly not measuring the fork.**
+ * `laneRoll` can only load a roll a seat is about to make in `awaitingSpin`,
+ * and the crossroads is a junction a pawn usually reaches *mid-move* — where
+ * the road used to be settled by the distance left over instead, with no press
+ * to load. Counted over 1,200 seeds, the pin took in **338 of 1,200 games for
+ * the graduate and 368 of 1,200 for the school-leaver**: seven times in ten,
+ * both seats were sent down whichever road the leftover distance picked, which
+ * on that rule was Company Road about three quarters of the time. Two seats on
+ * the same road is why the spread ratio below read 0.997 and 1.007 — a
+ * measurement of nothing, sitting a hair under a tolerance that had already
+ * had to be widened once to hold it.
+ *
+ * With the road settled by a press of its own, the pin takes in 1,200 of 1,200
+ * and the block measures what it always said it did.
  */
 describe('the mid-career fork is a decision, not decoration', () => {
   const ROAD = 'Company Road'
@@ -1013,8 +1028,11 @@ describe('the mid-career fork is a decision, not decoration', () => {
     ['a graduate', () => fromCollege],
     ['a school-leaver', () => fromWork],
   ] as const)('splits its wins evenly for %s', (_who, sampleOf) => {
-    // Measured at 49.0% for the graduate and 47.7% for the school-leaver
-    // (53.7% and 52.3% before the layoff started costing a payday).
+    // Re-measured over 1,200 seeds now the pin actually reaches the fork:
+    // 49.0% for the graduate and 51.2% for the school-leaver (48.7% and 49.7%
+    // before, when seven seats in ten took the same road as their opposite
+    // number whatever they were pinned to — an even split of a coin against
+    // itself). At this block's own 300 seeds the two read 46.3% and 49.0%.
     const sample = sampleOf()
     expect(sample.roadWinRate).toBeGreaterThan(0.42)
     expect(sample.roadWinRate).toBeLessThan(0.58)
@@ -1045,24 +1063,34 @@ describe('the mid-career fork is a decision, not decoration', () => {
     ['a school-leaver', () => fromWork],
   ] as const)('narrows the spread for %s who moves, rather than widening it', (_who, sampleOf) => {
     const sample = sampleOf()
-    // A tolerance, not a strict `<=`, and it has had to widen once. Three
-    // things in the shared trunk push variance onto both seats regardless of
-    // which road they took at the crossroads: the alley carries its own payday
-    // (see hopper-bonus) so the re-draw is never left without a wage before
-    // the next career change; the divorce tile is a rare, binary,
-    // high-variance event for whichever married players draw it; and a new
-    // arrival is now a die rather than a certainty, which puts a child's whole
-    // scoring value — the largest single swing on the results screen — on a
-    // coin the marriage fork hands to whoever it hands it to.
+    // A tolerance, not a strict `<=`, because three things in the shared trunk
+    // push variance onto both seats regardless of which road they took at the
+    // crossroads: the alley carries its own payday (see hopper-bonus) so the
+    // re-draw is never left without a wage before the next career change; the
+    // divorce tile is a rare, binary, high-variance event for whichever
+    // married players draw it; and a new arrival is a die rather than a
+    // certainty, which puts a child's whole scoring value — the largest single
+    // swing on the results screen — on a coin the marriage fork hands to
+    // whoever it hands it to.
     //
-    // Measured over these 300 seeds: the graduate reads 0.977, comfortably the
-    // flatter road, and the school-leaver 1.109, which is the one that drifts
-    // and is the reason the bound is a bound. A standard deviation estimated
-    // from 300 samples carries about 4% of error of its own, so a *ratio* of
-    // two of them carries about 6%: 1.15 is the tolerance that measurement
-    // actually supports. The claim being defended is unchanged — hopping is
-    // not the wilder road — and it is the graduate's 0.977 that carries it.
-    expect(spread(sample.alley)).toBeLessThanOrEqual(spread(sample.road) * 1.15)
+    // **The tolerance comes back in, and the reason it was ever 1.15 is the
+    // reason it does not need to be.** It read 0.977 for the graduate and
+    // 1.109 for the school-leaver, and 1.109 was what the bound was set to
+    // survive — but that was measured while seven seats in ten never reached
+    // the road they were pinned to (see this block's own comment). Two seats
+    // on the same road have the same spread, so the statistic was being pulled
+    // toward 1.000 from both sides, and 1.109 was noise around a number that
+    // meant nothing. With the pin working, 1,200 seeds read **0.901 for the
+    // graduate and 0.917 for the school-leaver** — the alley genuinely the
+    // flatter road on both openings, for the first time this file could tell.
+    //
+    // A standard deviation off 300 samples carries ~4% of its own error, so a
+    // ratio of two carries ~6%; at this block's 300 seeds the pair reads 0.912
+    // and 0.802, and 1.05 sits about two and a half of those errors above the
+    // true figure. Tightened rather than left where it was, because a bound
+    // set to survive an artefact stops guarding anything once the artefact is
+    // gone.
+    expect(spread(sample.alley)).toBeLessThanOrEqual(spread(sample.road) * 1.05)
   })
 })
 
@@ -1087,6 +1115,43 @@ describe('the mid-career fork is a decision, not decoration', () => {
  */
 describe('every policy on sale is a bet, not a verdict', () => {
   const MANY_SEEDS = Array.from({ length: 120 }, (_, i) => i + 1)
+
+  /**
+   * The paired runs get ten times the seeds, and one shared set of declines.
+   *
+   * `prices the home policy within a premium of fair` went red at −$4,959 on
+   * the 120-seed set when the fork fix landed, and it was not a regression: it
+   * was the smallest bound in this file read off a sample that could not carry
+   * it. 120 seeds yield n≈110 buyers, and the per-buyer spread is ~$40,000, so
+   * the mean of that sample carries **±$3,800 of its own error against a
+   * $4,000 bound** — a coin flip dressed as an assertion, and the comment on
+   * the test already suspected as much ("the tightest number in this file").
+   *
+   * Re-measured at 1,200 seeds, before and after the change that tripped it:
+   *
+   *      policy   pre-change (n≈1,150)   this tree (n≈1,140)   premium
+   *      home       +$495 ± $1,328        −$1,078 ± $1,183     $4,000
+   *      auto     −$1,944 ± $1,062        −$1,249 ±   $769     $3,000
+   *      life     +$4,908 ± $2,553        +$4,357 ± $2,253    $20,000
+   *
+   * Every one of them inside its premium on both trees, and the home shift is
+   * $1,573 — under one combined standard error. The claim was true, is true,
+   * and was simply unmeasurable at n≈110. Nothing about the prices moved.
+   *
+   * The extra seeds are affordable because the *declined* run is the same life
+   * for all three policies — an insurance decision consumes no randomness —
+   * so it is played once per seed and shared, which is what the three-fold
+   * saving below pays for.
+   */
+  const PAIRED_SEEDS = Array.from({ length: 1_200 }, (_, i) => i + 1)
+  const declinedBySeed = new Map<number, GameState>()
+  const declinedRun = (seed: number): GameState => {
+    const cached = declinedBySeed.get(seed)
+    if (cached) return cached
+    const run = playGame(seed, 2, 0, { insurance: 'decline' }).finalState
+    declinedBySeed.set(seed, run)
+    return run
+  }
 
   const hazardLandings = (hazard: Hazard | null, difficulty?: Difficulty): number => {
     const landings: SpaceId[] = []
@@ -1129,11 +1194,14 @@ describe('every policy on sale is a bet, not a verdict', () => {
    * seat's own life without it. Only seats that were actually offered the
    * office count — roughly half the table ever lands on one.
    */
+  const deltasByKind = new Map<InsuranceKind, readonly number[]>()
   const policyDeltas = (kind: InsuranceKind): readonly number[] => {
+    const memo = deltasByKind.get(kind)
+    if (memo) return memo
     const deltas: number[] = []
-    for (const seed of MANY_SEEDS) {
+    for (const seed of PAIRED_SEEDS) {
       const bought = playGame(seed, 2, 0, { insurance: kind }).finalState
-      const declined = playGame(seed, 2, 0, { insurance: 'decline' }).finalState
+      const declined = declinedRun(seed)
       for (const player of bought.players) {
         if (!player.insurance.includes(kind)) continue
         const a = bought.results?.standings.find((s) => s.playerId === player.id)?.total ?? 0
@@ -1141,11 +1209,15 @@ describe('every policy on sale is a bet, not a verdict', () => {
         deltas.push(a - b)
       }
     }
-    // Enough buyers for a mean to mean anything. The bar is 50 rather than
-    // 100 because the auto policy is stocked at one window only — the second
-    // office has both crash tiles behind it — so it collects roughly half the
-    // buyers the other two do off the same seeds.
-    expect(deltas.length).toBeGreaterThan(50)
+    // Enough buyers for a mean to mean anything, and "enough" is now set by
+    // the tightest bound this block asserts rather than by a round number:
+    // the home policy's $4,000 needs the per-buyer spread of ~$40,000 divided
+    // by a square root large enough to sit well inside it. 500 puts the
+    // standard error near $1,800; the auto policy is stocked at one window
+    // only — the second office has both crash tiles behind it — so it
+    // collects roughly half the buyers the other two do off the same seeds.
+    expect(deltas.length).toBeGreaterThan(500)
+    deltasByKind.set(kind, deltas)
     return deltas
   }
 
@@ -1156,11 +1228,12 @@ describe('every policy on sale is a bet, not a verdict', () => {
     const better = deltas.filter((d) => d > 0).length / deltas.length
     const worse = deltas.filter((d) => d < 0).length / deltas.length
 
-    // Neither outcome may be a lock. Measured on the standard board: the home
-    // policy leaves a buyer better off 11.4% of the time and worse off 78.1%,
-    // the auto policy 20.3% and 66.1%, and the life policy 59.0% and 41.0%.
-    // The old numbers failed this in both directions at once — 2.8% better for
-    // home, 96.7% better for life.
+    // Neither outcome may be a lock. Re-measured over the 1,200-seed paired
+    // set: the home policy leaves a buyer better off 20.5% of the time and
+    // worse off 74.8%, the auto policy 22.9% and 70.8%, and the life policy
+    // 56.8% and 43.1% (pre-change: 18.8/76.3, 23.3/70.4, 55.6/44.2 — the fork
+    // fix moves none of them). The old prices failed this in both directions
+    // at once — 2.8% better for home, 96.7% better for life.
     expect(better).toBeGreaterThan(0.05)
     expect(worse).toBeGreaterThan(0.2)
   })
@@ -1171,10 +1244,11 @@ describe('every policy on sale is a bet, not a verdict', () => {
     const premium = EDITION_USA.economy.insurancePremium[kind]
 
     // Fair means the expected gap between buying and declining is small
-    // beside the premium itself: measured at -$3,992 (home, on $4,000),
-    // -$1,814 (auto, on $3,000) and +$1,610 (life, on $20,000). A premium's
-    // worth of slack either way is the band, which the old prices missed by a
-    // factor of seven on the covers and by more than that on the life policy.
+    // beside the premium itself. Re-measured on the 1,200-seed paired set:
+    // -$1,078 ± $1,183 (home, on $4,000), -$1,249 ± $769 (auto, on $3,000)
+    // and +$4,357 ± $2,253 (life, on $20,000). A premium's worth of slack
+    // either way is the band, which the old prices missed by a factor of
+    // seven on the covers and by more than that on the life policy.
     //
     // **The home figure is the tightest number in this file and it is worth
     // knowing why.** These are paired runs — the same seed played once buying
@@ -1187,6 +1261,12 @@ describe('every policy on sale is a bet, not a verdict', () => {
     // -$5,117, i.e. straight out of the band. Anyone who moves a tile on the
     // trunk should expect to re-read this number, and should suspect the
     // route before suspecting the price.
+    //
+    // Every one of those readings, this one included, came off 120 seeds —
+    // n≈110 buyers, ±$3,800 against a $4,000 bound. See `PAIRED_SEEDS` above
+    // for what that cost and why the sample is ten times the size now: the
+    // history in this comment is a history of a statistic bouncing at least
+    // as much as of a board moving.
     expect(Math.abs(mean)).toBeLessThan(premium)
   })
 

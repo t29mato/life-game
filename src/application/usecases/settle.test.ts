@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { fixtureMovementBoard, fixturePlayer, fixtureSpace, fixtureState } from '../testing/fixtures'
 import { createFakeRandom } from '../testing/fakes'
 import { settle } from './settle'
+import { spin } from './spin'
 
 describe('settle', () => {
   it('throws when the phase is not moving', () => {
@@ -9,21 +10,26 @@ describe('settle', () => {
     expect(() => settle(state, { random: createFakeRandom() })).toThrow(/moving/)
   })
 
-  it('resolves a fork reached mid-move with the roll still owed, instead of asking', () => {
-    // 1 step owed: `resolveForkBranch` reads that as the roll, and 1 is a
-    // "first road" number — same rule `spin.ts` uses when a player is
-    // already standing on the fork at the top of their turn.
+  it('parks the pawn at a fork reached mid-move and hands the road back to the wheel', () => {
+    // The steps still owed are kept for the travel they were rolled for. They
+    // used to pick the road as well — see the block below for why that was the
+    // bug behind "the second fork always goes up".
     const board = fixtureMovementBoard()
     const player = fixturePlayer({ spaceId: 'fork' })
     const state = fixtureState({ board, players: [player], phase: 'moving', stepsRemaining: 1 })
 
     const next = settle(state, { random: createFakeRandom() })
 
-    expect(next.phase).toBe('moving')
+    expect(next.phase).toBe('awaitingSpin')
     expect(next.pendingDecision).toBeNull()
-    expect(next.movementPath).toEqual(['stopBranch'])
-    expect(next.stepsRemaining).toBe(0)
-    expect(next.log.some((entry) => entry.message.includes('Stop Branch'))).toBe(true)
+    expect(next.chosenExit).toBeNull()
+    expect(next.players[0]!.spaceId).toBe('fork')
+    expect(next.movementPath).toEqual([])
+    // The distance the board already promised is kept, not re-rolled: `spin`
+    // spends it the moment the road is settled, so the pawn covers exactly
+    // the ground it always did.
+    expect(next.stepsRemaining).toBe(1)
+    expect(next.log.some((entry) => entry.message.includes('the road splits'))).toBe(true)
   })
 
   it('applies the destination effect and resolves when there is no fork to choose', () => {
@@ -101,10 +107,13 @@ describe('settle', () => {
     // to show, and the card arrives complete exactly as it always has.
     expect(afterSecond.activePassedEvent?.rolled).toBeUndefined()
 
+    // Only once the queue is empty does the junction itself get a look, and
+    // what it does is hand the road back to the wheel.
     const afterQueue = settle(afterSecond, { random: createFakeRandom() })
-    expect(afterQueue.phase).toBe('moving')
-    expect(afterQueue.movementPath).toEqual(['stopBranch'])
-    expect(afterQueue.stepsRemaining).toBe(0)
+    expect(afterQueue.phase).toBe('awaitingSpin')
+    expect(afterQueue.players[0]!.spaceId).toBe('fork')
+    expect(afterQueue.movementPath).toEqual([])
+    expect(afterQueue.stepsRemaining).toBe(1)
   })
 
   it('goes to awaitingDecision instead of resolved when the landing effect itself needs a decision', () => {
@@ -133,108 +142,100 @@ describe('settle', () => {
   })
 })
 
-describe('a fork mid-move keeps the pawn moving, never stalls it on a question', () => {
+/**
+ * The fix for "the second fork always goes up".
+ *
+ * A fork reached mid-move used to be settled by `stepsRemaining` — what was
+ * left of a roll that had already spent at least a pip getting to the
+ * junction. That number is never a 6, is a 5 only on a 6 thrown from the tile
+ * next door, and piles up on 1, 2 and 3, which is the low half of the die and
+ * therefore the *first* road every time — the one `layoutFork` draws above the
+ * trunk. Measured across 40 seeded four-player games on all seven boards and
+ * all three difficulties, the mid-career junction sent 73-86% of everyone who
+ * reached it that way up the first road, while the two junctions a pawn always
+ * comes to rest on (the start tile, and the `stop` at the estate agent's)
+ * split 50/50 — because those two were already being settled by a press.
+ *
+ * So a junction now pauses the move: the pawn stops on it, `spin.ts` settles
+ * the road on a throw of its own exactly as it always has for the start tile,
+ * and the distance the move already owed is spent in the same breath rather
+ * than re-rolled — so the pawn covers the same ground it always did and only
+ * the road changes hands.
+ */
+describe('a fork mid-move is settled by a press of its own, not by the distance left over', () => {
+  const atTheFork = (stepsRemaining: number) =>
+    fixtureState({
+      board: fixtureMovementBoard(),
+      players: [fixturePlayer({ id: 'p1', spaceId: 'fork' })],
+      currentPlayerIndex: 0,
+      phase: 'moving',
+      stepsRemaining,
+      movementPath: [],
+    })
+
+  it.each([1, 2, 3, 4, 5, 6])('parks rather than branching, whatever the %i steps left owed', (owed) => {
+    const next = settle(atTheFork(owed), { random: createFakeRandom() })
+
+    expect(next.phase).toBe('awaitingSpin')
+    expect(next.players[0]!.spaceId).toBe('fork')
+    expect(next.chosenExit).toBeNull()
+    // The owed distance survives the pause — see `spin.ts`, which spends it
+    // the moment the road is settled rather than throwing for it again.
+    expect(next.stepsRemaining).toBe(owed)
+    expect(next.pendingPath).toEqual([])
+  })
+
   /*
-   * A fork used to stop the pawn and ask which way, so a spin that reached
-   * one mid-move read as having been ignored — the wheel landed, a card
-   * appeared, and the car had not budged. A fork is the wheel's own call now
-   * (see `spin.ts`), reached mid-move or not, so there is no longer a
-   * question to stall on: the same roll that got the player this far keeps
-   * them moving.
+   * The heart of it: the road a player ends up on must not be a function of
+   * how far they happened to be standing from the junction. Under the old rule
+   * these twelve calls produced the first road for every owed distance of 1-3
+   * and the second for every 4-6, whatever the wheel said — and since a
+   * junction is reached with 1, 2 or 3 owed far more often than with 4 or 5,
+   * and never with 6, "the fork always goes up" was the shape of it.
    */
-  it('takes the first road on a low roll and keeps the full distance owed', () => {
-    const state = fixtureState({
-      board: fixtureMovementBoard(),
-      players: [fixturePlayer({ id: 'p1', spaceId: 'fork' })],
-      currentPlayerIndex: 0,
-      phase: 'moving',
-      stepsRemaining: 3,
-      movementPath: [],
-    })
+  it.each([1, 2, 3, 4, 5, 6])('takes the road the wheel names, not the %i steps owed', (owed) => {
+    const parked = settle(atTheFork(owed), { random: createFakeRandom() })
 
-    const next = settle(state, { random: createFakeRandom() })
+    // 2 is a low face and 5 a high one; the owed distance is the same in both.
+    const low = spin(parked, { random: createFakeRandom({ spins: [2] }) })
+    const high = spin(parked, { random: createFakeRandom({ spins: [5] }) })
 
-    expect(next.phase).toBe('moving')
-    expect(next.pendingDecision).toBeNull()
-    // stopBranch is a forced stop, so all 3 owed steps land the player
-    // exactly there regardless — see the second test for a roll that
-    // actually has room to show its distance.
-    expect(next.movementPath).toEqual(['stopBranch'])
+    expect(low.log.some((entry) => entry.message.includes('Stop Branch'))).toBe(true)
+    expect(high.log.some((entry) => entry.message.includes('Long Branch'))).toBe(true)
   })
 
-  it('takes the second road on a high roll', () => {
-    const state = fixtureState({
-      board: fixtureMovementBoard(),
-      players: [fixturePlayer({ id: 'p1', spaceId: 'fork' })],
-      currentPlayerIndex: 0,
-      phase: 'moving',
-      stepsRemaining: 6,
-      movementPath: [],
-    })
+  it('spends the distance the move already owed rather than throwing for it again', () => {
+    const parked = settle(atTheFork(3), { random: createFakeRandom() })
+    const moved = spin(parked, { random: createFakeRandom({ spins: [5] }) })
 
-    const next = settle(state, { random: createFakeRandom() })
-
-    expect(next.phase).toBe('moving')
-    // longBranch → mid → merge → final → retirement: none of the four is a
-    // forced stop, so all 6 owed steps carry the player the whole way to the
-    // terminal space — but `mid` is a payday, so the hop is cut there and
-    // the rest of it waits in `pendingPath` for that card to be read.
-    expect(next.movementPath).toEqual(['longBranch', 'mid'])
-    expect(next.pendingPath).toEqual(['merge', 'final', 'retirement'])
-    expect(next.pendingPassedItems).toEqual([{ kind: 'payday', spaceId: 'mid' }])
+    // One press, not two: the road is settled and the three owed steps carry
+    // the pawn down it in the same breath.
+    expect(moved.phase).toBe('moving')
+    expect(moved.chosenExit).toBeNull()
+    expect(moved.log.some((entry) => entry.message.includes('3 spaces down it'))).toBe(true)
   })
 
   /*
-   * The pause, and then the carrying on. This is the whole of what a sweep
-   * past a payday looks like now: hop to it, stop on it, read the card, and
-   * only then hop onward — where before the pawn crossed the entire distance
-   * in one uninterrupted sweep and was handed the cards afterwards, standing
-   * on a tile that had nothing to do with any of them.
+   * Leg-cutting is unchanged and still lives here: a card just dismissed with
+   * road still owed hands back the next hop rather than the next card.
    */
   it('hands back the rest of the road once a swept-past card is dismissed', () => {
-    const state = fixtureState({
+    const carded = fixtureState({
       board: fixtureMovementBoard(),
-      players: [fixturePlayer({ id: 'p1', spaceId: 'fork' })],
+      players: [fixturePlayer({ id: 'p1', spaceId: 'mid' })],
       currentPlayerIndex: 0,
-      phase: 'moving',
-      stepsRemaining: 6,
+      phase: 'passingEvent',
+      stepsRemaining: 0,
       movementPath: [],
+      pendingPath: ['merge', 'final'],
     })
 
-    // The first leg, and the card it ends on.
-    const moving = settle(state, { random: createFakeRandom() })
-    const carded = settle(moving, { random: createFakeRandom() })
-    expect(carded.phase).toBe('passingEvent')
-    expect(carded.activePassedEvent).not.toBeNull()
-    // Nothing hops while a card is up.
-    expect(carded.movementPath).toEqual([])
-    expect(carded.pendingPath).toEqual(['merge', 'final', 'retirement'])
-
-    // Dismissed: the pawn carries on, and with nothing else queued the rest
-    // of the road is one last leg.
     const onward = settle(carded, { random: createFakeRandom() })
+
     expect(onward.phase).toBe('moving')
     expect(onward.activePassedEvent).toBeNull()
-    expect(onward.movementPath).toEqual(['merge', 'final', 'retirement'])
+    expect(onward.movementPath).toEqual(['merge', 'final'])
     expect(onward.pendingPath).toEqual([])
   })
-
-  it('animates a move that sweeps past nothing in one uninterrupted hop', () => {
-    const state = fixtureState({
-      board: fixtureMovementBoard(),
-      players: [fixturePlayer({ id: 'p1', spaceId: 'fork' })],
-      currentPlayerIndex: 0,
-      phase: 'moving',
-      stepsRemaining: 3,
-      movementPath: [],
-    })
-
-    const next = settle(state, { random: createFakeRandom() })
-
-    // stopBranch halts the move outright, so there is nothing to sweep past
-    // and nothing to cut: exactly the hop this has always been.
-    expect(next.movementPath).toEqual(['stopBranch'])
-    expect(next.pendingPath).toEqual([])
-    expect(next.pendingPassedItems).toEqual([])
-  })
 })
+

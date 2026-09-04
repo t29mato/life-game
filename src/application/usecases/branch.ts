@@ -106,11 +106,19 @@ export function forkRoadNames(
 
 /**
  * The road `roll` sends a player at `spaceId` down, or `undefined` when
- * `spaceId` is not a fork at all. Shared by `spin` (the ordinary case: a
- * player standing on a fork at the top of their turn, where this roll is
- * spent on the road alone) and `settle` (the rarer one: a longer roll
- * started elsewhere and reaches the fork with distance still owed, where it
- * still doubles as the distance) so both split the six faces the same way.
+ * `spaceId` is not a fork at all.
+ *
+ * `spin` is the only caller, and that is the point. A junction reached
+ * mid-move used to be settled by `settle` instead, on `state.stepsRemaining`
+ * — the distance left over from a roll that had already spent pips getting
+ * there. A leftover is not a die: it is never 6, it is 5 only on a 6 thrown
+ * from the tile next door, and its mass sits on 1, 2 and 3, which this
+ * function reads as the first road. Measured across every board and
+ * difficulty, that sent 73-86% of everyone who reached the mid-career
+ * junction that way up the same road, which is what the owner reported as
+ * "the second fork always goes up". So a junction now pauses the move and
+ * comes back through here on a press of its own; see `settle.ts` and
+ * `src/test/forkReality.test.ts`, which is the guard.
  */
 export function resolveForkBranch(
   board: Board,
@@ -122,10 +130,11 @@ export function resolveForkBranch(
   /*
    * The whole gate, in one line, and this is the only line it needs.
    *
-   * `spin` resolves *any* tile with two exits through here, and so does the
-   * mid-move case in `settle` — there is no third way onto a road anywhere in
-   * the game — so a road filtered out here is a road that cannot be reached,
-   * full stop. Somebody who never went to college is left with one road, and
+   * `spin` resolves *any* tile with two exits through here, whether the pawn
+   * began the turn on it or was parked there by a move that ran into it —
+   * there is no other way onto a road anywhere in the game — so a road
+   * filtered out here is a road that cannot be reached, full stop. Somebody
+   * who never went to college is left with one road, and
    * one road is not a fork: they take it whatever the die says, which is
    * exactly what "grad school was never on the table" means mechanically.
    */

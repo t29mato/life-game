@@ -39,6 +39,38 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
     const branchTaken = resolveForkBranch(state.board, player.spaceId, spinValue, player)
     if (branchTaken !== undefined) {
       const label = roadName(state.board, branchTaken)
+      /*
+       * A junction reached mid-move parks whatever distance the move still
+       * owed and comes back here for the road — see `settle.ts`, where that
+       * used to be settled by the owed distance itself and was the bug behind
+       * "the second fork always goes up". So this press does the one job the
+       * owed steps cannot do honestly, and the steps do the one this press
+       * would be re-rolling: the road is settled here, and the distance the
+       * board already promised carries the pawn down it in the same breath.
+       * There is no second press, because there is nothing left to decide.
+       */
+      if (state.stepsRemaining > 0) {
+        const owed = state.stepsRemaining
+        const plan = planMovementVia(state.board, player.spaceId, branchTaken, owed)
+        const movedPlayer = movePlayerTo(player, plan.destinationId)
+        const forkLog = `${player.name} rolls a ${spinValue} — the fork sends them onto ${label}, ${owed} space${owed === 1 ? '' : 's'} down it.`
+        const { leg, rest } = nextMovementLeg(plan.path, plan.passed)
+        return {
+          ...state,
+          players: state.players.map((candidate) =>
+            candidate.id === movedPlayer.id ? movedPlayer : candidate,
+          ),
+          chosenExit: null,
+          pendingPassedItems: plan.passed,
+          activePassedEvent: null,
+          lastSpin: spinValue,
+          movementPath: leg,
+          pendingPath: rest,
+          stepsRemaining: plan.stepsRemaining,
+          phase: 'moving',
+          log: appendLog(state, player.id, forkLog, 'info'),
+        }
+      }
       const forkLog = `${player.name} rolls a ${spinValue} — the fork sends them onto ${label}.`
       return {
         ...state,
