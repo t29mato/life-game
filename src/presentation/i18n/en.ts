@@ -102,9 +102,9 @@ export const EN = {
     slotDetail: (turn: number | string, names: readonly string[]): string =>
       `Turn ${turn} · ${names.join(', ')}`,
     autosaveHint: (slot: number): string => `Your game autosaves to slot ${slot} after every turn.`,
-    forkAhead: 'Fork ahead — this roll picks your road',
-    onRoad: (road: string): string => `You're on ${road} — roll again for how far you go`,
-    rollAgainHint: 'Roll again for how far you go',
+    forkAhead: 'Fork ahead — this spin picks your road',
+    onRoad: (road: string): string => `You're on ${road} — spin again for how far you go`,
+    rollAgainHint: 'Spin again for how far you go',
   },
 
   /** The box lid. */
@@ -300,15 +300,15 @@ export const EN = {
       `${name}, driving with ${seats.join(' and ')}`,
   },
 
-  /** The die, wherever it is thrown. */
-  dice: {
-    roll: 'Roll',
-    rolling: 'Rolling…',
-    rollWithLast: (last: number): string => `Roll — last roll ${last}`,
-    clickToRoll: 'click to roll',
-    tapToRoll: 'Tap to roll',
+  /** The wheel, wherever it is spun. */
+  wheel: {
+    spin: 'Spin',
+    spinning: 'Spinning…',
+    spinWithLast: (last: number): string => `Spin — last spin ${last}`,
+    clickToSpin: 'click to spin',
+    tapToSpin: 'Tap to spin',
     spaceKey: 'Space',
-    rolledA: (face: number): string => `Rolled a ${face}`,
+    landedOn: (face: number): string => `Landed on ${face}`,
   },
 
   /** How much further the car is going. */
@@ -470,10 +470,10 @@ export const EN = {
     laneMixed: 'Mixed route',
   },
 
-  /** The card that puts a die in the middle of the screen. */
+  /** The card that puts the wheel in the middle of the screen. */
   spin: {
     passingThrough: 'Passing through',
-    theDie: 'The die',
+    theWheel: 'The wheel',
   },
 
   /** What each face of the die is worth, as rows. */

@@ -19,6 +19,27 @@ import { App } from './App'
 import { forgetBoardLegend } from './components/BoardLegend/seen'
 import { createFakeAudioPort } from './dev/fakeAudio'
 
+/**
+ * How long a `waitFor` that spans a whole spin is given.
+ *
+ * These were 3–5 s, sized around a die that took ~0.35 s on the test clock.
+ * The die is a wheel now and one spin is ~0.65 s there (`TEMPO.wheelSpinSeconds`
+ * — deliberately longer, because the deceleration is the entertainment), so
+ * every one of those budgets lost a chunk of its slack in one commit and the
+ * tightest of them started going red under load.
+ *
+ * Measured before raising it, because AGENTS.md §3 is right that a `waitFor`
+ * timeout is a bug until proven otherwise: the worst of these tests runs 13.2 s
+ * with the 2.6 s wheel and 12.4 s with a die-length one. The spin is 0.8 s of
+ * it. The other twelve seconds are mounting a ~5,500-node board twice and
+ * polling `getByRole` across it, which is what this file has always cost and
+ * is not something this change introduced. So the honest correction is
+ * proportional headroom on the waits that actually straddle a spin — not a
+ * blanket rise, and not a shorter spin bought by giving up the thing the wheel
+ * exists for.
+ */
+const SPIN_WAIT = { timeout: 12_000 }
+
 const { useRegisterSWMock } = vi.hoisted(() => ({ useRegisterSWMock: vi.fn() }))
 
 vi.mock('virtual:pwa-register/react', () => ({
@@ -342,7 +363,7 @@ describe('a single-option value spin', () => {
 
     // The rail's own wheel sits disabled and hidden from the accessibility
     // tree behind the modal's — only one "Spin" button should ever resolve.
-    const spinButton = screen.getByRole('button', { name: /^roll$/i })
+    const spinButton = screen.getByRole('button', { name: /^spin$/i })
     expect(spinButton).toBeEnabled()
 
     fireEvent.click(spinButton)
@@ -393,7 +414,7 @@ describe('a single-option value spin', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     // The wheel stays disabled — pressing Spin is a choice made inside the
     // card, same as every other decision, not a direct press on the wheel.
-    expect(screen.getByRole('button', { name: /^roll$/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^spin$/i })).toBeDisabled()
   })
 })
 
@@ -419,7 +440,7 @@ describe('a fork the next spin will settle', () => {
     }
     render(<App store={createStubStore(state)} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
-    const panel = screen.getByRole('status', { name: /fork ahead — this roll picks your road/i })
+    const panel = screen.getByRole('status', { name: /fork ahead — this spin picks your road/i })
     expect(within(panel).getByText('1–3')).toBeInTheDocument()
     expect(within(panel).getByText('4–6')).toBeInTheDocument()
     expect(screen.queryByText(/this spin also picks your road/i)).not.toBeInTheDocument()
@@ -448,11 +469,11 @@ describe('a fork the next spin will settle', () => {
     const road = base.board.spaces[roadId]!.lane!.name
     const panel = screen.getByRole('status', { name: new RegExp(`you're on ${road}`, 'i') })
     expect(within(panel).getByText(road)).toBeInTheDocument()
-    expect(within(panel).getByText(/roll again for how far you go/i)).toBeInTheDocument()
+    expect(within(panel).getByText(/spin again for how far you go/i)).toBeInTheDocument()
     // The ranges belonged to a question already answered.
     expect(screen.queryByText('1–3')).not.toBeInTheDocument()
     // And the die is live for that second press, not left disabled mid-turn.
-    expect(screen.getByRole('button', { name: /^roll$/i })).toBeEnabled()
+    expect(screen.getByRole('button', { name: /^spin$/i })).toBeEnabled()
   })
 })
 
@@ -487,7 +508,7 @@ describe('spinning from the keyboard', () => {
     const stub = createStubStore(atAwaitingSpin())
     render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
-    expect(screen.getByRole('button', { name: /^roll$/i })).toHaveFocus()
+    expect(screen.getByRole('button', { name: /^spin$/i })).toHaveFocus()
   })
 
   it.each([' ', 'Enter'])('rolls the board die on %s, wherever focus has ended up', (key) => {
@@ -496,7 +517,7 @@ describe('spinning from the keyboard', () => {
     // Focus dropped back to the page — where it lands whenever a modal that
     // held it unmounts, and precisely the state the die used to be
     // unreachable from.
-    screen.getByRole('button', { name: /^roll$/i }).blur()
+    screen.getByRole('button', { name: /^spin$/i }).blur()
 
     fireEvent.keyDown(window, { key })
 
@@ -535,7 +556,7 @@ describe('spinning from the keyboard', () => {
     // as the card opens, and answers the key from the window whether or not
     // it still holds it. This was the reported half that did not work at all
     // — the modal's die wanted a click.
-    expect(screen.getByRole('button', { name: /^roll$/i })).toHaveFocus()
+    expect(screen.getByRole('button', { name: /^spin$/i })).toHaveFocus()
     fireEvent.keyDown(window, { key })
 
     expect(stub.commands).toContainEqual({ type: 'choose', optionId: VALUE_SPIN_OPTION_ID })
@@ -550,7 +571,7 @@ describe('spinning from the keyboard', () => {
     const stub = createStubStore(state)
     render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
-    screen.getByRole('button', { name: /^roll$/i }).blur()
+    screen.getByRole('button', { name: /^spin$/i }).blur()
     fireEvent.keyDown(window, { key: ' ' })
 
     expect(stub.commands).toContainEqual({ type: 'choose', optionId: VALUE_SPIN_OPTION_ID })
@@ -602,7 +623,7 @@ describe('spinning from the keyboard', () => {
       fireEvent.keyDown(window, { key: ' ' })
       await waitFor(() => expect(store.getState().phase).not.toBe('awaitingDistanceSpin'))
 
-      await waitFor(() => expect(store.getState().phase).not.toBe('moving'), { timeout: 3000 })
+      await waitFor(() => expect(store.getState().phase).not.toBe('moving'), SPIN_WAIT)
     } finally {
       window.matchMedia = originalMatchMedia
     }
@@ -685,7 +706,7 @@ describe('spinning from the keyboard', () => {
       const strip = screen.getByRole('button', { name: /players — open full status/i })
       const stripTextBefore = strip.textContent
 
-      fireEvent.click(screen.getByRole('button', { name: /^roll$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^spin$/i }))
 
       /*
        * The store already knows the outcome — this is exactly the gap the
@@ -706,7 +727,7 @@ describe('spinning from the keyboard', () => {
         () => {
           expect(strip.textContent).not.toBe(stripTextBefore)
         },
-        { timeout: 5000 },
+        SPIN_WAIT,
       )
     } finally {
       window.matchMedia = originalMatchMedia
@@ -770,26 +791,24 @@ describe('a roll the player only drove past', () => {
     // press, the same as any other one they're at the table for.
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByText(/passing through/i)).toBeInTheDocument()
-    const rollButton = within(dialog).getByRole('button', { name: /^roll$/i })
+    const rollButton = within(dialog).getByRole('button', { name: /^spin$/i })
     // …and the card's own numbers are nowhere yet.
     expect(screen.queryByText('Ada becomes a Chef!')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
 
     // Nothing happens on its own — a human seat's roll waits on the press,
     // exactly like every other roll in the game, however the tile was
-    // reached. Still named "Roll", not "Rolling…" or a landed result: it
+    // reached. Still named "Spin", not "Spinning…" or a settled result: it
     // never armed itself.
     await new Promise((resolve) => setTimeout(resolve, 300))
-    expect(within(dialog).getByRole('button', { name: /^roll$/i })).toBe(rollButton)
+    expect(within(dialog).getByRole('button', { name: /^spin$/i })).toBe(rollButton)
     expect(screen.queryByText('Ada becomes a Chef!')).not.toBeInTheDocument()
 
     const user = userEvent.setup()
     await user.click(rollButton)
 
     // Once it settles, the card arrives with everything the roll decided.
-    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), {
-      timeout: 5000,
-    })
+    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), SPIN_WAIT)
     expect(screen.getByText('Ada becomes a Chef!')).toBeInTheDocument()
   })
 
@@ -839,9 +858,7 @@ describe('a roll the player only drove past', () => {
 
     // No press from here — the computer seat's own roll plays out
     // unattended, same as every other one it takes.
-    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), {
-      timeout: 5000,
-    })
+    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), SPIN_WAIT)
   })
 
   it('leaves a swept-past tile that never rolled exactly as it was', () => {
@@ -909,13 +926,11 @@ describe('a roll the player only drove past', () => {
      * an ordering rather than as a wall-clock figure: nothing may settle
      * before the card the die was leading to is actually on screen.
      */
-    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), {
-      timeout: 5000,
-    })
+    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), SPIN_WAIT)
     expect(stub.commands).not.toContainEqual({ type: 'settle' })
 
     // And the loop still runs itself from there — delayed, never deadlocked.
-    await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), { timeout: 5000 })
+    await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), SPIN_WAIT)
   })
 })
 
@@ -972,7 +987,7 @@ describe('a tile the car only drove over', () => {
     render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
     expect(stub.commands).not.toContainEqual({ type: 'settle' })
-    await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), { timeout: 5000 })
+    await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), SPIN_WAIT)
   })
 
   /*
@@ -1012,7 +1027,7 @@ describe('a tile the car only drove over', () => {
 
       expect(screen.getByText('+$37,000')).toBeInTheDocument()
       expect(stub.commands).not.toContainEqual({ type: 'settle' })
-      await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), { timeout: 5000 })
+      await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), SPIN_WAIT)
     } finally {
       window.matchMedia = originalMatchMedia
     }
@@ -1032,7 +1047,7 @@ describe('a tile the car only drove over', () => {
     })
     render(<App store={stub} audio={createFakeAudioPort()} profiles={createInMemoryProfileRepository()} />)
 
-    await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), { timeout: 5000 })
+    await waitFor(() => expect(stub.commands).toContainEqual({ type: 'settle' }), SPIN_WAIT)
     // Long enough for the CPU timer (`CPU_THINK_MS.passingEvent`, run through
     // `paced` — see `tempo.ts`) to have fired too, had it not been held off.
     // Deliberately a flat second and a half rather than derived from the beat:
@@ -1112,8 +1127,8 @@ describe('a decision card answered by turning the die', () => {
     // card for `TEMPO.choiceConfirmMs` before it reaches the store, so the
     // die takes that long to arrive. See `DecisionModal`'s confirm beat.
     const die = await waitFor(
-      () => within(screen.getByRole('dialog')).getByRole('button', { name: /^roll$/i }),
-      { timeout: 8000 },
+      () => within(screen.getByRole('dialog')).getByRole('button', { name: /^spin$/i }),
+      SPIN_WAIT,
     )
     expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/^Rolled$/)).not.toBeInTheDocument()
@@ -1124,9 +1139,7 @@ describe('a decision card answered by turning the die', () => {
 
     // …and only once they throw it and it lands does the card arrive.
     await user.click(die)
-    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), {
-      timeout: 8000,
-    })
+    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), SPIN_WAIT)
     expect(screen.getByText(/^Rolled$/)).toBeInTheDocument()
   })
 
@@ -1146,8 +1159,8 @@ describe('a decision card answered by turning the die', () => {
     // Through the card's own confirm beat first — see the Career Fair test
     // just above.
     const die = await waitFor(
-      () => within(screen.getByRole('dialog')).getByRole('button', { name: /^roll$/i }),
-      { timeout: 8000 },
+      () => within(screen.getByRole('dialog')).getByRole('button', { name: /^spin$/i }),
+      SPIN_WAIT,
     )
     expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/^Rolled$/)).not.toBeInTheDocument()
@@ -1156,9 +1169,7 @@ describe('a decision card answered by turning the die', () => {
     expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument()
 
     await user.click(die)
-    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), {
-      timeout: 8000,
-    })
+    await waitFor(() => expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument(), SPIN_WAIT)
     expect(screen.getByText(/^Rolled$/)).toBeInTheDocument()
   })
 
@@ -1253,7 +1264,7 @@ describe('the closing settlement', () => {
   /** Presses the die on a settlement card, the way a person at the table would. */
   async function pressTheDie(dialog: HTMLElement): Promise<void> {
     const user = userEvent.setup()
-    await user.click(within(dialog).getByRole('button', { name: /^roll$/i }))
+    await user.click(within(dialog).getByRole('button', { name: /^spin$/i }))
   }
 
   /** Waits for whatever is in the air to come down and the results to appear. */
@@ -1312,7 +1323,7 @@ describe('the closing settlement', () => {
 
     await pressTheDie(screen.getByRole('dialog'))
     // The second die, for the shares — and still no results.
-    await waitFor(() => expect(screen.getByText(/ada's shares/i)).toBeInTheDocument(), { timeout: 8_000 })
+    await waitFor(() => expect(screen.getByText(/ada's shares/i)).toBeInTheDocument(), SPIN_WAIT)
     expect(resultsShowing()).toBe(false)
 
     await pressTheDie(screen.getByRole('dialog'))
@@ -1623,7 +1634,7 @@ describe('the die getting out of a card’s way', () => {
    * no die on it.
    */
   const trayOf = (): HTMLElement =>
-    screen.getByRole('button', { name: /^roll/i }).closest('[class*="dieTray"]') as HTMLElement
+    screen.getByRole('button', { name: /^spin/i }).closest('[class*="wheelTray"]') as HTMLElement
 
   it('leaves the board clear while a card owns the screen', () => {
     const store = startedGame()

@@ -7,7 +7,7 @@ import { estimateMinutes, estimatePlaytime } from './estimatePlaytime'
  * were read off 60 seeded all-CPU games per difficulty and player count on the
  * `gameBalance.test.ts` harness (means of 17.8–21.5 across the grid), and the
  * computer seat's seconds are summed from `CPU_THINK_MS`
- * (`decideCpuCommand.ts`), the die's roll/settle (`Dice.tsx`) and the pawn's
+ * (`decideCpuCommand.ts`), the wheel's spin (`TEMPO.wheelSpinSeconds`) and the pawn's
  * hop (`Pawn.tsx`). Only the human seat's 20–30 s is an assumption, which is
  * why every mixed table renders as a range.
  */

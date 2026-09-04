@@ -1,7 +1,7 @@
 import { type ReactElement } from 'react'
 
 /**
- * Chrome-level marks: dice, save, exit, and the like. These are not the
+ * Chrome-level marks: the wheel, save, exit, and the like. These are not the
  * game's illustrated character/scene art (see `GameIcon`) — they are small,
  * single-colour glyphs for buttons and toggles, drawn on a 24×24 grid so they
  * stay crisp at the ~18–20px a button actually renders them at.
@@ -11,7 +11,7 @@ import { type ReactElement } from 'react'
  */
 
 export type UiIconName =
-  | 'dice'
+  | 'wheel'
   | 'plus'
   | 'minus'
   | 'zoom-fit'
@@ -41,15 +41,21 @@ export interface UiIconProps {
 
 function Glyph({ name }: { readonly name: UiIconName }): ReactElement {
   switch (name) {
-    case 'dice':
+    /* Six segments and a ticker over the top — the game's own object, at
+       glyph size. The spokes sit at ±30° and ±90° so none of them points
+       straight up into the ticker and muddles it. */
+    case 'wheel':
       return (
         <g>
-          <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="2" />
-          <circle cx="8.4" cy="8.4" r="1.6" fill="currentColor" />
-          <circle cx="15.6" cy="8.4" r="1.6" fill="currentColor" />
-          <circle cx="8.4" cy="15.6" r="1.6" fill="currentColor" />
-          <circle cx="15.6" cy="15.6" r="1.6" fill="currentColor" />
-          <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+          <circle cx="12" cy="13.4" r="8.2" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path
+            d="M3.8 13.4H20.2M7.9 6.3L16.1 20.5M16.1 6.3L7.9 20.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <circle cx="12" cy="13.4" r="1.7" fill="currentColor" />
+          <path d="M12 6.4L9.6 0.8H14.4Z" fill="currentColor" />
         </g>
       )
     case 'plus':

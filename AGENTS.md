@@ -124,7 +124,7 @@ answer is margin, not a bigger timeout.
 Two things to know before touching the pacing: `TEMPO` is built by
 mapping over `AUTHORED`, so a beat added to that table is scaled for free
 and one added anywhere else is not; and the test clock is deliberately a
-quarter rather than zero, because several tests press the die and assert
+quarter rather than zero, because several tests press the wheel and assert
 in the next statement that the result is not on screen yet. Collapsing
 motion entirely — `prefers-reduced-motion`, `MotionGlobalConfig`, a scale
 of 0 — makes those assertions pass by no longer checking anything.
@@ -156,22 +156,27 @@ were completely fictional. If a measurement moves in a direction you can't
 explain mechanically from the change you made, suspect the fakes before you
 suspect the economy.
 
-## 5. The die-arming contract
+## 5. The wheel-arming contract
 
-Any roll a human is meant to watch must show the die *before* the result is
-known — `dieSettled=false` / `activeSpin='event'` armed before dispatch, so
-`EventSpinModal`/`Dice` mounts and animates before the card reveals what it
-rolled. This has been a real, twice-reported bug class: a decision with a
+Any roll a human is meant to watch must show the wheel *before* the result
+is known — `wheelSettled=false` / `activeSpin='event'` armed before dispatch,
+so `EventSpinModal`/`Wheel` mounts and animates before the card reveals what
+it rolled. This has been a real, twice-reported bug class: a decision with a
 second option (not just "press to spin") can bypass this arming entirely if
 its `onChoose` dispatches straight through. The current answer is
 `DecisionOption.turnsTheDie?: boolean` — every option that reaches for
 `random.spin()` or `random.int()` must be marked, and the calling UI must
-park the choice (not dispatch it) until the die itself has been pressed.
+park the choice (not dispatch it) until the wheel itself has been pressed.
 Grep for `turnsTheDie` before adding a new decision kind that involves any
 randomness, and check both halves: the option is marked, *and* whatever
 resolves it stamps both `lastEvent.rolled` and `lastSpin` (a roll with the
-first but not the second hangs the die with nothing to land on — the other
+first but not the second hangs the wheel with nothing to land on — the other
 half of the same bug class, found in `resolveRetireEarly`).
+
+The field is still called `turnsTheDie`, and `LandingEvent.rolled` is still
+`rolled`: the die became a spinner in the presentation layer only (see
+`src/presentation/components/Wheel/`), and renaming a domain contract to
+follow a drawing is how a rename becomes a migration.
 
 ## 6. Visual verification in a real browser
 
