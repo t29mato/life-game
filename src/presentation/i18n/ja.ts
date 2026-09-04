@@ -63,9 +63,9 @@ export const JA: UiOverlay = {
     slot: (n) => `スロット${n}`,
     slotDetail: (turn, names) => `${turn}ターン目・${names.join('、')}`,
     autosaveHint: (slot) => `毎ターン、スロット${slot}に自動保存される。`,
-    forkAhead: '分かれ道。この一振りで道が決まる',
-    onRoad: (road) => `${road}を進んでいる — もう一度振って進む距離を決める`,
-    rollAgainHint: 'もう一度振って進む距離を決める',
+    forkAhead: '分かれ道。この一回しで道が決まる',
+    onRoad: (road) => `${road}を進んでいる — もう一度まわして進む距離を決める`,
+    rollAgainHint: 'もう一度まわして進む距離を決める',
   },
 
   title: {
@@ -221,14 +221,14 @@ export const JA: UiOverlay = {
     with: (name, seats) => `${name}、${seats.join('と')}乗せて運転中`,
   },
 
-  dice: {
-    roll: '振る',
-    rolling: '振っている…',
-    rollWithLast: (last) => `振る — 前回の出目 ${last}`,
-    clickToRoll: 'クリックで振る',
-    tapToRoll: 'タップで振る',
+  wheel: {
+    spin: 'まわす',
+    spinning: 'まわっている…',
+    spinWithLast: (last) => `まわす — 前回は ${last}`,
+    clickToSpin: 'クリックでまわす',
+    tapToSpin: 'タップでまわす',
     spaceKey: 'Space',
-    rolledA: (face) => `${face}が出た`,
+    landedOn: (face) => `${face}で止まった`,
   },
 
   moveCounter: {
@@ -372,7 +372,7 @@ export const JA: UiOverlay = {
 
   spin: {
     passingThrough: '通りがかり',
-    theDie: 'ダイス',
+    theWheel: 'ルーレット',
   },
 
   rollTable: {

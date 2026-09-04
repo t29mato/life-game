@@ -122,7 +122,7 @@ describe('the UI catalogue', () => {
          */
         expect(unchanged).toEqual([
           'common.cpu',
-          'dice.spaceKey',
+          'wheel.spaceKey',
           'decision.enterKey',
           'decision.spaceKey',
         ])

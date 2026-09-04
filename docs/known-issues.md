@@ -93,6 +93,15 @@ whether the rail is *pressable* while zoomed.
 **To diagnose** you need a browser this machine cannot run (`sudo apt` for
 Chromium's system libraries; the Playwright download itself is already in
 place). Then: zoom twice, and watch `.frame`'s box in the inspector. The prime
-suspects are a framer-motion spring on the zoom that converges asymptotically
-rather than snapping, and the die tray's idle bob (`dieIdleBobSeconds`) if it
-is laying out rather than transforming.
+suspect is a framer-motion spring on the zoom that converges asymptotically
+rather than snapping.
+
+The second suspect has since been eliminated rather than investigated. It was
+the die tray's idle bob (`dieIdleBobSeconds`), which translated the die up and
+down forever while the game waited for a press. The die is a wheel now
+(`Wheel.tsx`), and a spinner between turns is simply a spinner standing still —
+so there is no idle bob any more, and the only thing left moving in that corner
+is the ready ring's opacity, which lays nothing out. If the rail still refuses
+to settle, the spring is the whole of it. `e2e/layout.spec.ts` now measures the
+wheel's box twice, four hundred milliseconds apart, so a wheel that ever starts
+idling again fails a test instead of quietly costing somebody an afternoon.

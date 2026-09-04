@@ -31,17 +31,17 @@
 }
 
 /* The card used to be the scroll container itself (`overflow: hidden auto`),
-   and that is what clipped the die: a thrown cube leaves its own box on
-   purpose — up and out, by most of its own width — and a scroll container
-   crops everything that leaves it. On a card long enough to scroll (a roll
-   with a full outcome table) the die at the bottom was cut off mid-throw,
-   and the shadow of the clipped copy against the card's edge read as a
-   second die overlapping the first. Reported as both (issue #24).
+   and that is what clipped the wheel, back when it was a die that left its
+   own box on purpose — up and out, by most of its own width. A scroll
+   container crops everything that leaves it, so on a card long enough to
+   scroll (a spin with a full outcome table) the die at the bottom was cut off
+   mid-throw, and the shadow of the clipped copy against the card's edge read
+   as a second die overlapping the first. Reported as both (issue #24).
 
    So the scrolling moved *inside*, to the prose that actually needs it, and
-   the card itself clips nothing. The card's own height is still bounded, so
-   nothing about the containment this file already promised has changed —
-   only the die is now free to fly out over the room. */
+   the card itself clips nothing. The wheel stays inside its own box now, but
+   its ready ring breathes past it, and a card that clips nothing cannot crop
+   that either. */
 .card {
   position: relative;
   width: min(26rem, 100%);
@@ -57,10 +57,10 @@
   box-shadow: var(--elev-3);
 }
 
-/* Everything above the die: the prompt, the stakes, the outcome table. This
-   is the part that can outgrow the screen, so this is the part that scrolls
-   — and it is a separate box from the die's own bay, so a scrollbar here
-   can never crop a throw down there. */
+/* Everything above the wheel: the prompt, the stakes, the outcome table.
+   This is the part that can outgrow the screen, so this is the part that
+   scrolls — and it is a separate box from the wheel's own bay, so a scrollbar
+   here can never crop the spin down there. */
 .reading {
   display: flex;
   flex-direction: column;
@@ -71,11 +71,11 @@
   overflow: hidden auto;
 }
 
-/* The die's own layer, and the reason it is one: `overflow: visible` on an
-   ancestor is not enough on its own when the flying cube has to pass over
-   the card's own edge — it has to be painted after the card's background,
-   in a box that nothing crops. */
-.dieBay {
+/* The wheel's own layer, and the reason it is one: `overflow: visible` on an
+   ancestor is not enough on its own when the ready ring reaches past the
+   card's own edge — it has to be painted after the card's background, in a
+   box that nothing crops. */
+.wheelBay {
   position: relative;
   z-index: 1;
   flex: none;
@@ -114,6 +114,6 @@
   color: var(--ink-soft, var(--ink-faint));
 }
 
-/* The die's own outcome table lives in `RollTable` now — one sunken panel
+/* The spin's own outcome table lives in `RollTable` now — one sunken panel
    shared with DecisionModal's in-option insert, so an illustrated row is
    illustrated in both places for free. */

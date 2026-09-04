@@ -3,7 +3,7 @@
  *
  * Every number in this file is a *pacing* number: how long one beat of the
  * play loop is allowed to hold the table up. They were scattered across five
- * components before — a die's throw length in `Dice.tsx`, a hop's in
+ * components before — a spin's length in `Wheel.tsx`, a hop's in
  * `Pawn.tsx`, a card's dwell nowhere at all because there wasn't one — which
  * made the one question a playtest actually asks ("why does a turn take
  * thirty seconds?") unanswerable without reading all five and adding them up.
@@ -18,7 +18,7 @@
  *
  * So the rules the numbers below obey:
  *
- * 1. Result to motion: ≤ 500ms. Whatever a die has to say, the car starts
+ * 1. Result to motion: ≤ 500ms. Whatever the wheel has to say, the car starts
  *    moving within half a second of it saying it.
  * 2. No dead air. If a beat genuinely needs time — a result worth reading,
  *    a passed tile worth seeing — something moves during it. A still screen
@@ -44,18 +44,18 @@
  * This is *not* "turn the animations off in tests". Every beat still happens,
  * in the same order, asynchronously, spread over many animation frames — and
  * that ordering is the entire thing the presentation tests assert: the card
- * is held back while the die is still in the air, the final standings are not
- * readable over the throw that decided them, a computer seat's answer reaches
- * the die by itself. Reduced motion, the other lever available here, *would*
- * weaken those: it collapses a throw to a synchronous assignment, so a test
- * that presses the die and then checks the results are not showing yet would
+ * is held back while the wheel is still turning, the final standings are not
+ * readable over the spin that decided them, a computer seat's answer reaches
+ * the wheel by itself. Reduced motion, the other lever available here, *would*
+ * weaken those: it collapses a spin to a synchronous assignment, so a test
+ * that presses the wheel and then checks the results are not showing yet would
  * be checking nothing. Dividing the clock keeps the shape and drops only the
  * wall-clock cost.
  *
  * The cost was the bug (issue #45). A `waitFor` re-runs its callback on every
  * DOM mutation, an animating frame is a DOM mutation, and each re-run is a
  * whole-document query over this app's ~5,500-node board — so a wait spanning
- * one 2-second die throw pays for a dozen of them, and pays more the busier
+ * one 2-second spin pays for a dozen of them, and pays more the busier
  * the machine is. `App.test.tsx`'s two worst tests measured 11–13 s against
  * `waitFor` budgets of 8–15 s on an idle machine and 16–20 s on a loaded one,
  * which is why the file came up red at random. The polls are synchronous, so
@@ -63,18 +63,18 @@
  * waiting for. Shortening the beats cuts the frames, the polls, and the
  * blocking together.
  *
- * A quarter and no further on purpose. A handful of tests press the die and
+ * A quarter and no further on purpose. A handful of tests press the wheel and
  * assert, in the very next statement, that the result is *not* on screen yet
  * — so the beat has to outlast the gap between React committing the press
- * (where `Dice`'s effect starts the throw) and the assertion running, which
- * is a single `setTimeout(0)` inside `userEvent`. At a quarter the die still
- * owes ~250 ms of throw and settle there. Cutting to zero, or reaching for
+ * (where `Wheel`'s effect starts the spin) and the assertion running, which
+ * is a single `setTimeout(0)` inside `userEvent`. At a quarter the wheel still
+ * owes ~600 ms of spin there. Cutting to zero, or reaching for
  * `prefers-reduced-motion`, would not make those assertions fast — it would
  * make them vacuous, since the result would already be on screen.
  *
  * `import.meta.env.MODE` and not a mutable setter because several components
- * read a tempo at module scope (`Dice.tsx`'s `RETURN_DELAY`, and others), so
- * the value has to be right at import time, before any test body runs. Vite
+ * read a tempo at module scope (a default prop, say), so the value has to be
+ * right at import time, before any test body runs. Vite
  * replaces it statically, so a production bundle folds `SCALE` to 1 and keeps
  * none of this.
  */
@@ -91,41 +91,45 @@ export const paced = (ms: number): number => ms * SCALE
 
 const AUTHORED = {
   /**
-   * The die's flight, launch to flat on the table. Was 1.4s, which put the
-   * settle's tail — see below — past 2.6s from press to number; measured, not
-   * estimated. The physics still bounces two to four times at this length and
-   * the faces are still readable mid-tumble, which is the only thing the long
-   * throw was ever buying.
+   * One spin of the wheel: the flick, and everything it takes to run down.
+   *
+   * This is the one beat in the file that got *longer*, and deliberately —
+   * the whole reason the die became a wheel is that a die has no moment of
+   * doubt in it. "サイコロだと、動いてる間にドキドキ感がないです": a cube in
+   * the air is a fact already decided and merely hidden, whereas a wheel
+   * running out of energy is a question the player can watch being answered.
+   * So the waiting *is* the entertainment now, and rule 2 is satisfied in the
+   * strongest possible way: the thing moving during the wait is the thing the
+   * player is waiting on.
+   *
+   * The die it replaced took ~1.15s from press to number (0.85 + settle).
+   * 2.6s is a bit over twice that, and the shape of it is why the extra is
+   * affordable. Measured off `wheelPhysics.ts` at this length, over two hundred
+   * spins: the first two clicks are ~41ms apart and the last two ~345ms, with a
+   * final ~750ms of visible creep between the last click and the standstill —
+   * the closing click is about eight times the opening one. That last
+   * three-quarters of a second is the entire point — it is where a player can
+   * see the six coming and not know whether the ticker will reach it.
+   *
+   * Nominal rather than exact: a flick with further round the rim to travel
+   * genuinely takes longer, so the realised figure ranges about ±8% (see
+   * `REFERENCE_UNITS`). Reduced motion skips all of it — there is no suspense
+   * to have without motion, and miming one would be a lie rather than a
+   * courtesy.
    */
-  dieThrowSeconds: 0.85,
-  /**
-   * Base for the corrective settle onto the rolled face, scaled by how far
-   * the cube still has to tip. This is the beat the playtest actually felt as
-   * dead: the die is flat on the table, visibly stopped, and still owes up to
-   * a full slow turn before the number is legible. Halved, and its per-turn
-   * multiplier cut with it (`SETTLE_TIME_PER_TURN` in `Dice.tsx`).
-   */
-  dieSettleSeconds: 0.26,
-  /** How long the number is left where the throw ended before the die glides
-   * back under the button. Purely cosmetic — it runs *after* the result has
-   * been reported and the car is already moving — but a die still sliding
-   * around under a moving car is one motion too many, so it is shorter now. */
-  dieReturnDelaySeconds: 0.5,
-  dieReturnSeconds: 0.4,
+  wheelSpinSeconds: 2.6,
 
   /**
-   * How long a die inside a card keeps its number before that card gives way
-   * to the one that spends it.
+   * How long a wheel inside a card keeps its result before that card gives
+   * way to the one that spends it.
    *
-   * This is not a beat being *added* back. It is `dieReturnDelaySeconds`,
-   * above, finally being allowed to happen. The board's own die is docked
-   * beside the map and nothing ever takes it away, so its half-second of
-   * sitting on the number it rolled has always run. A die inside
-   * `EventSpinModal` is a different story: `Dice` reports the result and
-   * paints the settled face in the same commit, App clears `activeSpin` in
-   * the callback, and the modal — die, number and payout table together — is
+   * The board's own wheel sits in its tray and nothing takes it away, so its
+   * result stays on screen as long as the player wants it. A wheel inside
+   * `EventSpinModal` is a different story: `Wheel` lights the winning segment
+   * and calls back in the same commit, App clears `activeSpin` in the
+   * callback, and the modal — wheel, number and payout table together — is
    * unmounted on the very next one. Measured at the code rather than
-   * eyeballed: the settled face got somewhere between zero and one frame.
+   * eyeballed: the settled result got somewhere between zero and one frame.
    *
    * Which is exactly what a player reported, on the one card where it costs
    * something real: a pay-per-pip payday, where the face *is* the wage. "The
@@ -133,19 +137,16 @@ const AUTHORED = {
    * or what I got paid." Both halves of that are the same missing half
    * second.
    *
-   * Rule 2 is not broken by it, because nothing is still: the die is doing
-   * its own return glide through the back half of this, and the payout table
-   * the player is now able to check the face against is on screen for all of
-   * it. Rule 1 is not broken either — that caps the gap between a result and
-   * *motion*, and the motion here started before the hold did.
+   * Rule 1 is not broken by it — that caps the gap between a result and
+   * *motion*, and the pawn's move is what follows this, not a still screen.
+   * Rule 2 is not broken either: the payout table the player is now able to
+   * check the segment against is on screen for all of it, under a wheel that
+   * has just stopped in front of them.
    *
    * A dwell, not an animation, so reduced motion keeps it: how long a number
-   * stays readable is not a motion preference. Held at exactly the die's own
-   * return delay rather than a new number of its own — the card leaves at the
-   * moment the die stops being still, so the last thing on screen is always
-   * the number and never a cube sliding off with the answer still on it.
+   * stays readable is not a motion preference.
    */
-  eventDieHoldMs: 500,
+  eventWheelHoldMs: 500,
 
   /**
    * One tile of travel. The reference is Mario Party's 0.25–0.35s hop; 280ms
@@ -199,9 +200,9 @@ const AUTHORED = {
   choiceToastMs: 1600,
 
   /**
-   * The rolled number's flight from the die to over the car. It exists to
+   * The spun number's flight from the wheel to over the car. It exists to
    * make rule 2 above structurally true rather than merely fast: even at
-   * ~1.2s from press to result there is a hand-off moment between "the die
+   * 2.6s from press to result there is a hand-off moment between "the wheel
    * has spoken" and "the car has started", and something is moving through
    * all of it.
    */
@@ -232,7 +233,7 @@ const AUTHORED = {
    * and a player loses their place in a three-step sequence.
    *
    * Kept under a quarter of a second: this sits directly between a press and
-   * its answer, which rule 1 caps at 500ms for a die and which a menu should
+   * its answer, which rule 1 caps at 500ms for a result and which a menu should
    * beat comfortably. It is an entrance only — the outgoing step is not
    * animated out, because waiting for a screen to leave before the next one
    * arrives is exactly the dead beat this file exists to delete.
@@ -240,22 +241,10 @@ const AUTHORED = {
   titleStepSeconds: 0.22,
 
   /**
-   * One breath of the idle die's bob, up and back down.
-   *
-   * Pure invitation, and the only thing on screen while the game is waiting
-   * for a press: a die that sits perfectly still reads as a picture of a die
-   * (which is exactly how the playtest read it — it also still had the
-   * *previous* player's number on it). Slow on purpose. A quick bob is a
-   * notification; this is an object idling, the way a Mario Party die hangs
-   * over the token whose turn it is.
-   */
-  dieIdleBobSeconds: 1.7,
-
-  /**
    * The gap between the board's own furniture leaving and a card arriving
    * over it.
    *
-   * The playtest saw every card fade *through* the board's die and its "0 TO
+   * The playtest saw every card fade *through* the board's wheel and its "0 TO
    * GO" badge, because both were crossfading at once: two frames of the game
    * visible in the same pixels, which reads as a rendering fault rather than
    * as a transition. So the order is made explicit — the dock fades out over

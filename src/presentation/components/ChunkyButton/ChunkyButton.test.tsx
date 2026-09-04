@@ -26,7 +26,7 @@ describe('ChunkyButton', () => {
   it('renders an optional leading icon', () => {
     const { container } = render(
       <AudioProvider audio={createFakeAudioPort()}>
-        <ChunkyButton icon="dice">Spin</ChunkyButton>
+        <ChunkyButton icon="wheel">Spin</ChunkyButton>
       </AudioProvider>,
     )
     expect(container.querySelector('svg')).toBeInTheDocument()

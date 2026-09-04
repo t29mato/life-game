@@ -5,17 +5,17 @@ import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { useUi } from '../../i18n/LocaleProvider'
 import { TEMPO } from '../../tempo'
-import { Dice } from '../Dice/Dice'
+import { Wheel } from '../Wheel/Wheel'
 import { RollTable } from '../RollTable/RollTable'
 import styles from './EventSpinModal.module.css'
 
 export interface EventSpinModalProps {
   /** What the roll is for — the tile's own name, or the decision's prompt. */
   readonly prompt: string
-  /** One line on what is riding on it, read before the die is thrown. */
+  /** One line on what is riding on it, read before the wheel is spun. */
   readonly stakes: string
   /**
-   * The die's own outcome table — see `DecisionOption.table`. Rendered as an
+   * The spin's own outcome table — see `DecisionOption.table`. Rendered as an
    * actual table beneath `stakes`, which is why `stakes` should never repeat
    * what a row here already says.
    */
@@ -23,7 +23,7 @@ export interface EventSpinModalProps {
   readonly result: SpinValue | null
   readonly onSpin: () => void
   readonly onSpinComplete: () => void
-  /** Bumped by the shell to throw the die for a computer seat. */
+  /** Bumped by the shell to spin the wheel for a computer seat. */
   readonly autoSpinToken?: number
   /**
    * The hidden roll behind a tile the move only swept past, replayed on the
@@ -36,26 +36,26 @@ export interface EventSpinModalProps {
   readonly passedThrough?: boolean
   /**
    * True when nobody is going to press this: a computer seat's own turn, on
-   * either kind of roll. The die throws itself the moment it is on screen
+   * either kind of spin. The wheel spins itself the moment it is on screen
    * rather than waiting on a click nobody is going to make.
    */
   readonly unattended?: boolean
 }
 
 /**
- * Where an event-driven roll lands — tuition, a promotion review, a
- * marriage proposal, career choice, the joint account. It shows the same die
- * the movement roll does, deliberately: one object and one contract, so a
- * player never has to learn a second way of asking the game for a number.
+ * Where an event-driven spin lands — tuition, a promotion review, a
+ * marriage proposal, career choice, the joint account. It shows the same
+ * wheel the movement spin does, deliberately: one object and one contract, so
+ * a player never has to learn a second way of asking the game for a number.
  * What differs is only where it sits. The tile the pawn is standing on has
  * nothing to do with any of these, so this one gets the middle of the screen
  * with its stakes written above it, the same way the choice cards already do.
  *
- * It covers a passed-through tile's roll too — a move swept past it, and its
- * own die already turned inside `applyPassedEvent` — and the player deserves
- * to watch that land rather than read the number off the card afterwards.
- * Same object, same die, same place on the screen; only a computer seat gets
- * to skip the press, on either kind of roll.
+ * It covers a passed-through tile's spin too — a move swept past it, and its
+ * own number already drawn inside `applyPassedEvent` — and the player
+ * deserves to watch that land rather than read it off the card afterwards.
+ * Same object, same wheel, same place on the screen; only a computer seat
+ * gets to skip the press, on either kind of spin.
  */
 export function EventSpinModal({
   prompt,
@@ -73,13 +73,13 @@ export function EventSpinModal({
   const t = useUi()
 
   /*
-   * The throw for a roll nobody was asked for, made through the very
-   * `autoRollToken` a computer seat's own roll already goes through — one
-   * arming path, not two, so the die can never be handed a result it was
-   * never told to expect. `Dice` reacts to a *change* in that token rather
+   * The flick for a spin nobody was asked for, made through the very
+   * `autoSpinToken` a computer seat's own spin already goes through — one
+   * arming path, not two, so the wheel can never be handed a result it was
+   * never told to expect. `Wheel` reacts to a *change* in that token rather
    * than to its value, which is why it is raised from an effect after mount
    * instead of arriving already raised; raising it to the same 1 again is a
-   * no-op React bails out of, so the die is thrown exactly once however
+   * no-op React bails out of, so the wheel is spun exactly once however
    * often this re-renders.
    */
   const [selfToken, setSelfToken] = useState(0)
@@ -127,46 +127,46 @@ export function EventSpinModal({
         transition={entrance.transition}
       >
         {/* The reading half, and the only half that scrolls — see `.reading`.
-            The die below is deliberately outside it, because a thrown die
-            leaves its own box and a scroll container would crop it. */}
+            The wheel below is deliberately outside it, so a scroll container
+            can never crop the ring the ready state breathes around it. */}
         <div className={styles.reading}>
           <header className={styles.header}>
             {/* Named for what it is: a tile driven over is not a tile stopped
                 at, and a player who never chose to stop here should be told
-                why a die is turning for them — whether they are the one
-                throwing it or, on a computer seat, only watching it land. */}
-            <span className={styles.kind}>{passedThrough ? t.spin.passingThrough : t.spin.theDie}</span>
+                why a wheel is turning for them — whether they are the one
+                spinning it or, on a computer seat, only watching it stop. */}
+            <span className={styles.kind}>{passedThrough ? t.spin.passingThrough : t.spin.theWheel}</span>
             <h2 id="event-spin-prompt" className={styles.prompt}>
               {prompt}
             </h2>
-            {/* Empty on a roll where the prompt above and the table below
+            {/* Empty on a spin where the prompt above and the table below
                 between them already say everything — a hiring tile, a tuition
                 bill. The sentence that used to sit here on those told the
-                player to roll the die that is on screen under it, which is
+                player to spin the wheel that is on screen under it, which is
                 the one thing the screen was never going to leave unsaid. */}
             {stakes ? <p className={styles.stakes}>{stakes}</p> : null}
           </header>
 
-          {/* What each face is actually worth, as rows — a player scans this
-              once and knows exactly what to hope for, instead of parsing it
-              back out of a sentence the way `stakes` alone used to ask them
-              to. Only ever present alongside a real breakdown; most rolls
+          {/* What each segment is actually worth, as rows — a player scans
+              this once and knows exactly what to hope for, instead of parsing
+              it back out of a sentence the way `stakes` alone used to ask them
+              to. Only ever present alongside a real breakdown; most spins
               (a single threshold, a flat rate) have nothing to tabulate. */}
           {table && table.length > 0 ? <RollTable rows={table} /> : null}
         </div>
 
-        {/* The die is the whole point of this card, so it is also its A
+        {/* The wheel is the whole point of this card, so it is also its A
             button: focus lands on it as the card opens and Space or Enter
-            throws it, without the player first having to find it with the
-            mouse. Nobody is pressing an unattended throw, so it claims
+            spins it, without the player first having to find it with the
+            mouse. Nobody is pressing an unattended spin, so it claims
             neither focus nor the keys. */}
-        <div className={styles.dieBay}>
-          <Dice
+        <div className={styles.wheelBay}>
+          <Wheel
             result={result}
             disabled={false}
-            onRoll={onSpin}
-            onRollComplete={onSpinComplete}
-            autoRollToken={unattended ? selfToken : autoSpinToken}
+            onSpin={onSpin}
+            onSpinComplete={onSpinComplete}
+            autoSpinToken={unattended ? selfToken : autoSpinToken}
             primary={!unattended}
           />
         </div>

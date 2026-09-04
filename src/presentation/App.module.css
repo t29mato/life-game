@@ -51,8 +51,8 @@
   min-width: 0;
 }
 
-/* A single moulded die of road-amber plastic — the one piece of chrome the
-   masthead keeps. */
+/* A single moulded button of road-amber plastic carrying the wheel — the one
+   piece of chrome the masthead keeps. */
 .emblem {
   display: grid;
   place-items: center;
@@ -322,7 +322,7 @@
 /* ---- The roll dock: what the board says mid-move --------------------------
    A column down the middle of the stage carrying the two things that belong
    to the board itself — the tile just driven over, and how much further there
-   is to go. The die used to be docked here too, and moved out to `.dieTray`
+   is to go. The wheel used to be docked here too, and moved out to `.wheelTray`
    below; the middle of the board belongs to the board.
 
    The dock spans the whole stage, transparent to the pointer so a drag
@@ -344,18 +344,18 @@
   pointer-events: auto;
 }
 
-/* ---- The die's tray -------------------------------------------------------
+/* ---- The wheel's tray -----------------------------------------------------
    Parked in the corner opposite the zoom rail, which is the "HUD side" the
    playtest asked for. It was pinned to the exact centre of the stage before
    — put there deliberately, twice — and what that cost was the tiles and the
    cars directly underneath it, in the one spot the camera is careful to park
-   the active car. The die is still the loudest object on the board and still
-   the screen's A button; it just no longer stands on the map.
+   the active car. The wheel is still the loudest object on the board and
+   still the screen's A button; it just no longer stands on the map.
 
    Bottom-left rather than bottom-right because the zoom rail already owns
    that corner, and low rather than high because a thumb reaches the bottom
    of a phone and the header owns the top. */
-.dieTray {
+.wheelTray {
   position: absolute;
   left: clamp(14px, 2vw, 22px);
   bottom: clamp(14px, 2vw, 22px);
@@ -369,7 +369,7 @@
 }
 
 /* A card is coming, so the board's own furniture gets out of the way first.
-   Every transition to a result card used to crossfade *through* the die and
+   Every transition to a result card used to crossfade *through* the wheel and
    the "0 TO GO" badge — two frames of the game in the same pixels, which
    reads as a fault rather than as a transition (issue #24). This is the
    "old out" half of the fix; the cards' own entrances wait the same beat
@@ -379,21 +379,21 @@
   pointer-events: none;
 }
 
-.dieDock {
+.wheelDock {
   position: relative;
   display: flex;
   justify-content: center;
 }
 
-/* A felt mat under the die — the tile grid behind it is busy enough (a
-   board's worth of icons in every direction) that the die's own cream face
-   used to vanish into it for a beat before a player's eye found it. A real
-   thrown die gets a spot on the table that is unmistakably not the board:
-   a soft paper disc, lofted the same way any raised surface in this game
-   is, plus a wide, faint glow further out that dims the icons right behind
-   it without blocking them. Sized to clear the ready-halo ring (`Dice`'s
-   own `::before`) rather than crop it. */
-.dieDock::before {
+/* A felt mat under the wheel — the tile grid behind it is busy enough (a
+   board's worth of icons in every direction) that the wheel's own rim used
+   to vanish into it for a beat before a player's eye found it. A real
+   spinner gets a spot on the table that is unmistakably not the board: a
+   soft paper disc, lofted the same way any raised surface in this game is,
+   plus a wide, faint glow further out that dims the icons right behind it
+   without blocking them. Sized to clear the ready-halo ring (`Wheel`'s own
+   `::before`) rather than crop it. */
+.wheelDock::before {
   content: '';
   position: absolute;
   inset: -34%;
@@ -410,9 +410,9 @@
 }
 
 /* Named ahead of the press that settles it — a fork's own significance,
-   otherwise invisible until the log line after the die has already stopped.
-   See `forkRoadNames` in `branch.ts`. Rides in the dock directly above the
-   die it belongs to, so the roads and the thing that picks between them are
+   otherwise invisible until the log line after the wheel has already stopped.
+   See `forkRoadNames` in `branch.ts`. Rides in the tray directly above the
+   wheel it belongs to, so the roads and the thing that picks between them are
    read as one object. */
 .forkAhead {
   flex: none;
@@ -465,7 +465,7 @@
    of the board, the half a player was quite possibly reading. It is pulled up
    out of the bottom HUD now instead: a short drawer over the strip, wide
    enough to read a line of the feed without wrapping, and leaving the board's
-   own middle — where the die, the car and the hop counter all live — in
+   own middle — where the wheel, the car and the hop counter all live — in
    view. */
 .logDrawer {
   position: fixed;

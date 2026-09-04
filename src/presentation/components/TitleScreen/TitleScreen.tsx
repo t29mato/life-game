@@ -59,14 +59,14 @@ export interface TitleScreenProps {
  * than as several loose objects on a table.
  */
 const FLOATER_LAYOUT: readonly {
-  readonly icon: IconName | 'ui:dice'
+  readonly icon: IconName | 'ui:wheel'
   readonly top: string
   readonly left: string
   readonly size: string
   readonly delay: string
   readonly duration: string
 }[] = [
-  { icon: 'ui:dice', top: '2%', left: '8%', size: '2.5rem', delay: '0s', duration: '13s' },
+  { icon: 'ui:wheel', top: '2%', left: '8%', size: '2.5rem', delay: '0s', duration: '13s' },
   { icon: 'space:start-of-life', top: '4%', left: '83%', size: '2.2rem', delay: '1.1s', duration: '17s' },
   { icon: 'space:cap-and-gown', top: '34%', left: '2%', size: '1.8rem', delay: '2.3s', duration: '15s' },
   { icon: 'space:corner-office', top: '30%', left: '89%', size: '1.7rem', delay: '3.4s', duration: '19s' },
@@ -314,8 +314,8 @@ export function TitleScreen({ slots, records, profiles, onStart, onContinue }: T
                   animationDuration: f.duration,
                 }}
               >
-                {f.icon === 'ui:dice' ? (
-                  <UiIcon name="dice" size={28} className={styles.floaterGlyph} />
+                {f.icon === 'ui:wheel' ? (
+                  <UiIcon name="wheel" size={28} className={styles.floaterGlyph} />
                 ) : (
                   <GameIcon name={f.icon} size={28} />
                 )}

@@ -172,14 +172,17 @@ arguing.
 Code identifiers are deliberately *not* held to this. `SpinValue`,
 `SPIN_FACES` and `spinForMoney` were spin-native from the first commit and
 never moved; `LandingEvent.rolled` is in `docs/SPEC.md`'s frozen list;
-`dieSettled` and `turnsTheDie` below are die-named and still current. Renaming
-them is churn against a contract, not vocabulary work.
+`turnsTheDie` below is die-named and still current. Renaming them is churn
+against a contract, not vocabulary work. `dieSettled` *was* renamed to
+`wheelSettled` when the component became `Wheel` — that one moved with its
+component rather than as vocabulary work, which is the line: an identifier
+follows a rename of the thing it names, not a rename of what players call it.
 
-### The die-arming contract
+### The wheel-arming contract
 
 Any spin a human is meant to watch must show the wheel *before* the result is
-known — `dieSettled=false` / `activeSpin='event'` armed before dispatch, so
-`EventSpinModal`/`Dice` mounts and animates before the card reveals what it
+known — `wheelSettled=false` / `activeSpin='event'` armed before dispatch, so
+`EventSpinModal`/`Wheel` mounts and animates before the card reveals what it
 landed on. This has been a real, twice-reported bug class: a decision with a
 second option (not just "press to spin") can bypass this arming entirely if
 its `onChoose` dispatches straight through. The current answer is
@@ -191,6 +194,11 @@ randomness, and check both halves: the option is marked, *and* whatever
 resolves it stamps both `lastEvent.rolled` and `lastSpin` (a spin with the
 first but not the second hangs the wheel with nothing to land on — the other
 half of the same bug class, found in `resolveRetireEarly`).
+
+The field is still called `turnsTheDie`, and `LandingEvent.rolled` is still
+`rolled`: the die became a spinner in the presentation layer only (see
+`src/presentation/components/Wheel/`), and renaming a domain contract to
+follow a drawing is how a rename becomes a migration.
 
 ## 6. Visual verification in a real browser
 

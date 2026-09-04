@@ -1,0 +1,290 @@
+/* ==========================================================================
+   Wheel — a six-segment spinner with a flexible ticker, and the press that
+   flicks it. Two layers in the same 100×100 coordinate space: the disc, which
+   turns, and the ticker, which does not — it only bends about its bracket.
+   Stacking them as separate boxes over one button is what keeps the two
+   transforms from fighting: framer-motion writes the disc's rotation every
+   frame and the ticker's bend every frame, and neither has to know about the
+   button's own hover and press.
+
+   The material language is the one `Pawn` and `ChunkyButton` already speak —
+   cast shadow, a press that physically steps down, gradients rather than
+   fills — so the wheel sits on the same table as everything else.
+   ========================================================================== */
+
+/* The wrap owns the wheel's footprint. It has to: the layers inside the
+   button are absolutely positioned so the disc can turn without disturbing
+   layout, which leaves the button with no intrinsic size of its own to offer
+   a shrink-wrapping tray. */
+.wrap {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 136px;
+  max-width: 100%;
+}
+
+.wheel {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+  filter: drop-shadow(0 6px 10px rgba(92, 70, 34, 0.32));
+  transition: transform var(--duration-fast, 0.15s) var(--ease-out);
+}
+
+/* While it is this player's turn to spin, a printed amber target ring
+   breathes gently around the wheel — an invitation, not a glow. This is the
+   *only* thing that moves while the wheel is idle: a spinner at rest is
+   exactly what a spinner looks like between turns, and an idle object that
+   never settles is what `docs/known-issues.md` asks us not to add more of. */
+.wheel::before {
+  content: '';
+  position: absolute;
+  /* Sized and centred on the *disc*, not on the button's square box — the
+     disc sits a little low in it to leave the ticker room, so a plain `inset`
+     would print a ring that is both too wide and visibly off-centre. */
+  left: 4.6%;
+  right: 4.6%;
+  top: 8.6%;
+  bottom: 0.6%;
+  z-index: 0;
+  border-radius: 50%;
+  border: 3px solid color-mix(in srgb, var(--candy-sun) 70%, transparent);
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-out);
+  pointer-events: none;
+}
+
+.ready::before {
+  opacity: 0.55;
+  animation: halo 2.6s var(--ease-in-out) infinite;
+}
+
+@keyframes halo {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.985);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.02);
+  }
+}
+
+.wheel:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+}
+
+/* The control physically steps down, the same way `ChunkyButton` does. */
+.wheel:active:not(:disabled) {
+  transform: translateY(3px) scale(0.97);
+}
+
+.wheel:disabled {
+  cursor: default;
+  filter: saturate(0.72) brightness(0.97) drop-shadow(0 4px 7px rgba(92, 70, 34, 0.24));
+}
+
+.wheel:focus-visible {
+  outline: 3px solid var(--candy-sun);
+  outline-offset: 5px;
+}
+
+/* The turning half. Pointer-transparent: the press target is the whole
+   button, not whichever wedge happens to be under the finger — and on the
+   board the wheel sits over tiles the player must stay able to pan. */
+.disc {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  transform-origin: 50% 54%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* The ticker's bracket is at the top of the box, and the blade swings about
+   it — so the origin is the mount, not the middle of the wheel. */
+.ticker {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  transform-origin: 50% 2%;
+  pointer-events: none;
+  will-change: transform;
+  filter: drop-shadow(0 1px 1.5px rgba(52, 40, 18, 0.5));
+}
+
+.art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The card the segments are printed on, showing as a lip past the rim. */
+.lip {
+  fill: color-mix(in srgb, var(--ink) 30%, var(--surface));
+  stroke: color-mix(in srgb, var(--ink) 62%, var(--candy-sun));
+  stroke-width: 1.2;
+}
+
+.wedge {
+  stroke: color-mix(in srgb, var(--ink) 55%, transparent);
+  stroke-width: 0.6;
+  transition:
+    filter var(--duration-base) var(--ease-out),
+    opacity var(--duration-base) var(--ease-out);
+}
+
+/* The segment this player actually won. Not a colour change — the wedge keeps
+   its own identity — but lit and lifted out of the six, so a wheel that is
+   always pointing *somewhere* can still say which pointing was earned. */
+.wonWedge {
+  filter: brightness(1.22) saturate(1.15);
+}
+
+.settled .wedge:not(.wonWedge) {
+  opacity: 0.82;
+}
+
+.rimRing {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 70%, transparent);
+  stroke-width: 1.6;
+}
+
+.numeral {
+  fill: #fffdf7;
+  stroke: rgba(48, 38, 18, 0.55);
+  stroke-width: 0.7;
+  paint-order: stroke fill;
+  font-size: 15px;
+  font-weight: 900;
+  text-anchor: middle;
+  dominant-baseline: central;
+  user-select: none;
+}
+
+.wonNumeral {
+  fill: #fffef9;
+  stroke: rgba(48, 38, 18, 0.8);
+  stroke-width: 1.1;
+}
+
+/* The pegs: the whole feeling is made of these. Standing proud of the rim,
+   moulded rather than printed — a shadow under each, a highlight on top. */
+.peg {
+  fill: color-mix(in srgb, var(--surface) 88%, var(--candy-sun));
+  stroke: color-mix(in srgb, var(--ink) 78%, transparent);
+  stroke-width: 0.7;
+}
+
+.pegShadow {
+  fill: rgba(46, 34, 14, 0.35);
+}
+
+.pegLight {
+  fill: rgba(255, 255, 255, 0.9);
+}
+
+.hub {
+  stroke: color-mix(in srgb, var(--ink) 66%, transparent);
+  stroke-width: 1.2;
+}
+
+.pin {
+  fill: color-mix(in srgb, var(--ink) 72%, var(--candy-sun));
+}
+
+/* The blade. Dark moulded plastic with one lit edge, tapering to the tip that
+   meets the pegs — thin enough at the end to read as something that gives. */
+.blade {
+  fill: color-mix(in srgb, var(--ink) 86%, var(--candy-sun));
+  stroke: rgba(24, 18, 8, 0.6);
+  stroke-width: 0.5;
+  stroke-linejoin: round;
+}
+
+.bladeLight {
+  fill: rgba(255, 255, 255, 0.42);
+}
+
+.bracket {
+  fill: color-mix(in srgb, var(--ink) 55%, var(--candy-sun));
+  stroke: rgba(24, 18, 8, 0.55);
+  stroke-width: 0.6;
+}
+
+/* How to spin it, under the wheel. Small and quiet — it is an invitation, not
+   a label — and it only exists while this wheel is actually the screen's next
+   input, so it can never advertise a press that would not reach it. */
+.prompt {
+  margin-top: 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.promptTap {
+  display: none;
+}
+
+.promptKey {
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm, 6px);
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--ink) 16%, transparent);
+}
+
+.compact {
+  width: 120px;
+}
+
+/* A phone gives the board every pixel it can, and the wheel sits on top of it
+   — so it shrinks with the screen rather than eating into the map. */
+@media (max-width: 999px) {
+  .compact {
+    width: clamp(72px, 19vw, 96px);
+  }
+
+  /* Presumed touch-first: naming a key the device probably does not have is
+     worse than silence, so the prompt says the half that is true here. */
+  .promptKey,
+  .promptSlash,
+  .promptClick {
+    display: none;
+  }
+
+  .promptTap {
+    display: inline;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ready::before {
+    animation: none;
+    opacity: 0.5;
+  }
+
+  .wheel {
+    transition: none;
+  }
+
+  .wedge {
+    transition: none;
+  }
+}

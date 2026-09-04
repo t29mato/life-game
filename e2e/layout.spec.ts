@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test'
  * phone-width viewport, `.boardArea > *` (the board) rendered far taller than
  * the grid cell it was given — up to 3x the viewport height — and, because
  * `.boardArea` sets no `overflow`, the overflow was never clipped. It just
- * drew straight through the spinner and the player panels below it. Every
+ * drew straight through the wheel and the player panels below it. Every
  * component test used jsdom, which never runs a layout engine and so never
  * had a chance to notice a box was the wrong size. Root cause: a stale
  * `@media (max-width: 720px) { .svg { min-width: 700px } }` rule in
@@ -62,12 +62,13 @@ async function startGame(page: Page): Promise<void> {
   await page.getByRole('button', { name: /start game/i }).click()
   const ready = page.getByRole('button', { name: /i'm ready/i })
   if (await ready.isVisible().catch(() => false)) await ready.click()
-  // `/^roll/` rather than an exact name: the die's accessible name carries the
-  // previous result once there is one ("Roll — last roll 4"), and reads
-  // "Rolling…" mid-throw. It was `/^spin$/` until the vocabulary was unified on
-  // die/roll, which is what had this whole suite failing in CI — the one place
-  // that runs it — while every local run skipped it for want of a browser.
-  await expect(page.getByRole('button', { name: /^roll/i })).toBeVisible()
+  // `/^spin/` rather than an exact name: the wheel's accessible name carries
+  // the previous result once there is one ("Spin — last spin 4"), and reads
+  // "Spinning…" while it is turning. This suite is the one place the button's
+  // name is asserted against a real browser, and it has been broken by a
+  // vocabulary change once already — die/roll replacing an older spin — so it
+  // moves with the control every time, in the same commit.
+  await expect(page.getByRole('button', { name: /^spin/i })).toBeVisible()
 }
 
 /** True if `a` and `b` share any pixels. Touching edges (area 0) do not count as an overlap. */
@@ -92,10 +93,10 @@ test.describe('board layout never overlaps the rest of the table', () => {
     const board = page.getByRole('region', { name: 'Game board' })
     const frame = board.locator(':scope > div').first()
     // Was a `complementary` landmark called "Spinner and players" holding both
-    // the wheel and the seats. The wheel became a die in a tray on the board's
-    // own card, and what is left beside the board is the seats — now a button
-    // that opens the full status. Same question as before, asked of what the
-    // layout actually has: the drawing must not reach into the panel.
+    // the wheel and the seats. The wheel now lives in a tray on the board's own
+    // card, and what is left beside the board is the seats — now a button that
+    // opens the full status. Same question as before, asked of what the layout
+    // actually has: the drawing must not reach into the panel.
     const rail = page.getByRole('button', { name: 'Players — open full status' })
     await expect(frame).toBeVisible()
     await expect(rail).toBeVisible()
@@ -208,35 +209,56 @@ test.describe('board layout never overlaps the rest of the table', () => {
   })
 
   /**
-   * The die moved out of the middle of the board and into its own tray in the
-   * corner (issue #23), which makes it a new box inside the board's cell —
-   * exactly the shape of thing this file exists to keep honest. It is
+   * The spinner sits in its own tray in the corner of the board rather than in
+   * the middle of the map (issue #23), which makes it a box inside the board's
+   * cell — exactly the shape of thing this file exists to keep honest. It is
    * absolutely positioned inside the board's stage, so it cannot spill by
    * construction; this is where that claim gets checked against real layout
    * rather than against the CSS it was written in.
+   *
+   * It matters more for a wheel than it did for a die. The die was a small
+   * cube that flew *out* of its dock and back; the wheel is a bigger, round
+   * object that stays exactly where it is drawn, so what this measures is the
+   * whole of its footprint rather than a launch pad it left. It is also the
+   * only check anywhere that the wheel is a settled object at rest: Playwright
+   * refuses to measure or press a control that will not hold still between two
+   * frames, and a wheel that idled by turning would hang this test the way the
+   * zoom rail already does on phone widths (`docs/known-issues.md`).
    */
-  test('the die tray stays inside the board’s own cell and clear of the zoom rail', async ({ page }) => {
+  test('the wheel’s tray stays inside the board’s own cell and clear of the zoom rail', async ({
+    page,
+  }) => {
     await startGame(page)
 
     const boardArea = page.getByRole('region', { name: 'Game board' })
-    const die = page.getByRole('button', { name: /^roll/i })
+    const wheel = page.getByRole('button', { name: /^spin/i })
     const zoomIn = page.getByRole('button', { name: 'Zoom in' })
-    await expect(die).toBeVisible()
+    await expect(wheel).toBeVisible()
 
     const boardAreaBox = await boardArea.boundingBox()
-    const dieBox = await die.boundingBox()
+    const wheelBox = await wheel.boundingBox()
     const zoomBox = await zoomIn.boundingBox()
     expect(boardAreaBox).not.toBeNull()
-    expect(dieBox).not.toBeNull()
+    expect(wheelBox).not.toBeNull()
     expect(zoomBox).not.toBeNull()
 
     const slack = 4
-    expect(dieBox!.y).toBeGreaterThanOrEqual(boardAreaBox!.y - slack)
-    expect(dieBox!.y + dieBox!.height).toBeLessThanOrEqual(boardAreaBox!.y + boardAreaBox!.height + slack)
-    expect(dieBox!.x).toBeGreaterThanOrEqual(boardAreaBox!.x - slack)
-    expect(dieBox!.x + dieBox!.width).toBeLessThanOrEqual(boardAreaBox!.x + boardAreaBox!.width + slack)
+    expect(wheelBox!.y).toBeGreaterThanOrEqual(boardAreaBox!.y - slack)
+    expect(wheelBox!.y + wheelBox!.height).toBeLessThanOrEqual(
+      boardAreaBox!.y + boardAreaBox!.height + slack,
+    )
+    expect(wheelBox!.x).toBeGreaterThanOrEqual(boardAreaBox!.x - slack)
+    expect(wheelBox!.x + wheelBox!.width).toBeLessThanOrEqual(boardAreaBox!.x + boardAreaBox!.width + slack)
     // Opposite corners, and that is the whole reason the tray is on the left.
-    expect(rectsOverlap(dieBox!, zoomBox!)).toBe(false)
+    expect(rectsOverlap(wheelBox!, zoomBox!)).toBe(false)
+
+    // The same box a moment later. Nothing has been pressed, so a wheel that
+    // is genuinely idle has not moved a pixel — which is what makes every
+    // measurement above, and every click any other test makes near it, safe.
+    await page.waitForTimeout(400)
+    const again = await wheel.boundingBox()
+    expect(again!.x).toBeCloseTo(wheelBox!.x, 1)
+    expect(again!.y).toBeCloseTo(wheelBox!.y, 1)
   })
 
   test('the whole page fits the viewport on a phone — no vertical scroll needed to see every section', async ({

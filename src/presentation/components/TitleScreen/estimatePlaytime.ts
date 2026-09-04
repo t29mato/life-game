@@ -25,16 +25,25 @@ const ROUNDS: Readonly<Record<Difficulty, number>> = {
  */
 const HUMAN_TURN_SECONDS: readonly [number, number] = [20, 30]
 
-/** The die's roll and settle (`Dice.tsx` `rollDuration` + `settleDuration`). */
-const DIE_SECONDS = 1.4 + 0.42
+/**
+ * One spin of the wheel, press to standstill (`TEMPO.wheelSpinSeconds`).
+ *
+ * Written out rather than imported for the same reason `CPU_THINK_MS` is:
+ * `TEMPO` divides itself by four under `vitest`, and a title screen must not
+ * promise a shorter game because a test happens to be running. It was 1.82
+ * here — a die's throw plus its settle — and the wheel that replaced the die is
+ * deliberately slower, which is a real minute or two across a four-CPU game and
+ * so belongs in the estimate rather than being quietly absorbed.
+ */
+const SPIN_SECONDS = 2.6
 
-/** One pawn hop (`Pawn.tsx` `hopDuration`) times the die's average roll of 3.5. */
+/** One pawn hop (`Pawn.tsx` `hopDuration`) times the average spin of 3.5. */
 const TRAVEL_SECONDS = 3.5 * 0.32
 
 /**
  * A representative computer turn, summed from the pauses its turn actually
- * takes rather than assumed: the think beats in `CPU_THINK_MS`, the die's own
- * animation, and the pawn's travel. A decision or a pass-through card does not
+ * takes rather than assumed: the think beats in `CPU_THINK_MS`, the wheel's own
+ * spin, and the pawn's travel. A decision or a pass-through card does not
  * happen every turn, so those two beats are counted at half weight.
  */
 const CPU_TURN_SECONDS =
@@ -42,7 +51,7 @@ const CPU_TURN_SECONDS =
     CPU_THINK_MS.resolved +
     (CPU_THINK_MS.awaitingDecision + CPU_THINK_MS.passingEvent) / 2) /
     1000 +
-  DIE_SECONDS +
+  SPIN_SECONDS +
   TRAVEL_SECONDS
 
 /**
