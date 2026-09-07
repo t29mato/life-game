@@ -552,3 +552,77 @@ If the pair is greenlit, the §9 build-order advice still holds per board: ship 
 the existing effect vocabulary first, playtest, then decide whether the gate-review
 variant earns its plumbing — with the note that it now amortizes across three boards,
 which strengthens its case considerably.
+
+---
+
+## 11. Revision: the opening fork is gone from both boards
+
+**Reported 2026-09-07.** 「研究者側を選んだら、全員博士課程への道になる道を選ぶよう
+にしてください。」 — if the player picks the researcher life, everyone takes the
+doctoral road.
+
+The reasoning is short and it is right. The title screen now asks *which life* —
+classic or researcher — as a step of its own, before the board is built. Having
+answered "a researcher's", both boards' very first fork then offered **the road that
+is not a research career**: Japan's `The Master's Exit` (leave with the master's, take
+the corporate job) and France's `La Grande École` (the prestigious road that bypasses
+university science entirely). The player answered that question one screen earlier.
+Asking it again, as the opening move, reads as the game not having listened.
+
+So on both researcher boards the opening fork is removed. The doctoral course /
+the university becomes the trunk; the start tile still opens the route; every seat
+walks the five years, earns the master's on the gown and the doctorate on the
+defence, and is dealt the academia shelf at the first post. **§§2 and 10.3 above are
+superseded in exactly one respect — the opening fork's existence — and in no other.
+Everything they say about what the two roads *meant* is preserved as the reason each
+board's trunk reads the way it does.**
+
+Sixteen tiles were deleted: `jpr-ms-spring-intake`, `jpr-ms-first-envelope`,
+`jpr-ms-payday-1`, `jpr-ms-company-flat`, `jpr-ms-first-night`, `jpr-ms-clean-room`,
+`jpr-ms-payday-2`, `jpr-ms-payday-3`, `frr-ge-recruitment-forum`, `frr-ge-first-pay`,
+`frr-ge-payday-1`, `frr-ge-deposit`, `frr-ge-first-night`, `frr-ge-school-invoice`,
+`frr-ge-payday-2`, `frr-ge-payday-3`. None was folded onto the trunk: every one of
+them is written for somebody drawing a salary at twenty-three, and there is nobody on
+either board in that position any more.
+
+### 11.1 Where each board's risk claim now lives
+
+The opening fork was never *itself* the risk; it was the instrument that measured it,
+because it decided which career shelf a seat spent its whole life on. With every seat
+now dealt the same shelf, the claims are measured where they actually live.
+
+**Japan.** The suite used to assert that the doctoral lane finished wider than the
+master's exit. That cannot be re-sited to the gated fork as a lane comparison, and the
+reason is mechanical: the ladder sits at segment four of ten and decides only which
+shelf a seat *retires* on, so six tiles of shared variance are added afterwards and
+swamp it (the lane-against-lane spread ratio there measures 1.050 / 0.923 / 0.993).
+The claim is therefore measured on the shelves directly, which is what it was always
+about: over 2,400 seeds the academia shelf finishes ¥29.2M wide against the industry
+shelf's ¥18.7M and the permanent shelf's ¥18.4M, and on hard it is the permanent shelf
+that is ruined 3.6% of the time against industry's 18.6%. Japan's volatility is all in
+getting in, and the Fixed-Term Ladder is the only road out of it — zero of 2,400 Staff
+Job seats ever retire on a permanent post.
+
+**France.** Nothing had to move: §10.3 already put France's risk "front-loaded into a
+single entry gate", and the concours block was already measuring it there. What
+changed is that the *cadre* shelf is no longer a road walked from tile one by half the
+table — it is now only the mid-career leaver, one seat in seven — so two assertions
+that compared the fonctionnaire shelf against it are re-measured against the contract
+shelf the post is actually won from.
+
+### 11.2 A measurement bug found on the way, and worth recording
+
+Both researcher balance suites pinned a seat to a road by loading the fork's own spin,
+and both built that value for a **ten-wedge wheel**. `SPIN_FACES` has been 6 since the
+wheel became a die. A seat pinned to the *first* road therefore walked it three times
+in five and walked the other road the rest of the time; a seat pinned to the second
+walked it every time. Every fork figure either suite ever recorded was that blend.
+
+Two France assertions were passing only on it — "the concours road costs about nothing
+to walk" (measured 0.6%; measured properly on the same commit, 11.0% on normal and
+23.7% on hard) and the hard-difficulty floor and mean comparisons against the cadre
+shelf. They are re-measured and rewritten with the decomposition rather than loosened.
+The concours road's real price — an eighth of a life on normal, a quarter of one on
+hard, in exchange for the only shelf on the board nothing can take away — is left
+measured rather than re-shaped: re-shaping it is a France economy pass, not a fork
+removal.

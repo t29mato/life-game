@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createGameStore } from '../../../application/createGameStore'
 import { decideCpuCommand } from '../../../application/cpu/decideCpuCommand'
 import { isFork } from '../../../application/usecases/branch'
+import { SPIN_FACES } from '../../model/constants'
 import type { RandomPort } from '../../../application/ports/RandomPort'
 import {
   createInMemoryRepository,
@@ -17,24 +18,31 @@ import type { Board, Difficulty, GameState, PlayerColor, SpaceId, SpinValue } fr
  *
  * Every other edition mirrors the USA board's shape at its own currency's
  * scale, so its balance suite can hold the same bands the USA suite holds and
- * be arguing about the same board. This one deliberately swaps which career
- * shelf each opening lane deals from, which moves the volatility from the
- * early-earning road to the road that pays a bill — the single guarantee the
- * base game asserts about its opening fork, inverted on purpose. Nothing about
- * that could be inherited on trust, so it is all re-measured here:
+ * be arguing about the same board. This one does not: it swaps what its career
+ * shelves mean, and its risk sits somewhere no country board keeps any.
+ * Nothing about that could be inherited on trust, so it is all re-measured
+ * here:
  *
- *  - **The inversion itself**, asserted as its own property rather than as a
- *    tolerance around 1. The doctorate lane must finish *wider* than the
- *    master's exit, because that is the truth this whole edition exists to
- *    tell.
- *  - **The fork is still a fork.** The doctorate must not be a trap: the win
- *    split and the gap in the means are held to the same bands every other
- *    board's opening fork is held to.
+ *  - **The gated fork is a real fork.** The Fixed-Term Ladder against The
+ *    Staff Job is now the board's *first* fork with anything at stake, and it
+ *    is held to the same win-split and mean-gap bands every other board's
+ *    opening fork is held to.
+ *  - **The volatility is on the shelf a doctorate opens**, which is where this
+ *    board always kept it — see that block for why the measurement moved off
+ *    the opening fork and onto the shelves themselves.
  *  - **The economy still lands in a playable band** at all three difficulties,
  *    with the same shape of step down between them.
  *  - **The permanent shelf is genuinely untouchable**, which is the mechanical
  *    payoff of the gated road and the one thing on this board no other board
  *    has.
+ *
+ * **The opening fork is gone and its block with it.** On a researcher's board
+ * the doctorate is the premise: the player answers "which life" one screen
+ * before the board is built, so the board's first tile must not ask again and
+ * offer the road out of research. What that block used to measure — the
+ * doctorate lane finishing wider than the master's exit — is re-sited in the
+ * shelf block below, and the reason it can no longer be measured lane against
+ * lane is written there rather than dropped.
  *
  * Every figure quoted in a comment below was measured by this file. Seed
  * counts are trimmed against the USA suite where the mirror makes the extra
@@ -65,13 +73,36 @@ function laneForcingRandom(seed: number): RandomPort & { forceNextSpin(value: Sp
   }
 }
 
-function laneRoll(board: Board, spaceId: SpaceId, wanted: string, entropy: number): SpinValue | null {
+/**
+ * Which face sends this player down one of the roads they are being pinned to.
+ *
+ * A list rather than a single name, because a seat can need holding at more
+ * than one junction in the same life.
+ *
+ * **This helper was wrong, and the wrongness is worth writing down.** It used
+ * to build `1..5` for the first road and `6..10` for the second, which is the
+ * ten-wedge wheel this game used to spin. `SPIN_FACES` has been `6` since the
+ * wheel became a die, and `resolveForkBranch` reads the low *half* — so a 4 or
+ * a 5 asked for the first road and got the second. A seat pinned to the first
+ * road actually walked it three times in five; a seat pinned to the second
+ * walked it every time. Every fork figure this file and the France one ever
+ * recorded was that blend, which is exactly the failure mode `AGENTS.md` §4
+ * warns about: a green suite producing measurements of a board nobody was
+ * playing. It is derived from `SPIN_FACES` now, so it cannot go stale again.
+ */
+function laneRoll(
+  board: Board,
+  spaceId: SpaceId,
+  wanted: readonly string[],
+  entropy: number,
+): SpinValue | null {
   if (!isFork(board, spaceId)) return null
   const space = board.spaces[spaceId]
-  const branch = space?.next.findIndex((nextId) => board.spaces[nextId]?.lane?.name === wanted)
+  const branch = space?.next.findIndex((nextId) => wanted.includes(board.spaces[nextId]?.lane?.name ?? ''))
   if (branch === undefined || branch === -1) return null
-  const offset = (((entropy % 5) + 5) % 5) + 1
-  return (branch === 0 ? offset : offset + 5) as SpinValue
+  const half = SPIN_FACES / 2
+  const offset = (((entropy % half) + half) % half) + 1
+  return (branch === 0 ? offset : offset + half) as SpinValue
 }
 
 const DISPATCH_LIMIT = 5_000
@@ -79,7 +110,7 @@ const DISPATCH_LIMIT = 5_000
 interface PlayOptions {
   readonly cpuSeats?: number
   readonly difficulty?: Difficulty
-  readonly laneBySeat?: readonly string[]
+  readonly laneBySeat?: readonly (readonly string[])[]
   readonly landings?: SpaceId[]
 }
 
@@ -175,6 +206,15 @@ const playGame = (
 const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length
 const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!
 const spread = (xs: number[]): number => Math.sqrt(mean(xs.map((x) => (x - mean(xs)) ** 2)))
+/**
+ * The value `p` of the way up the sorted sample — a floor at `p = 0.25`, a
+ * ceiling at `p = 0.9`. A shelf's ceiling is a fact about the top of a lopsided
+ * distribution, and neither a mean nor a standard deviation says where that is.
+ */
+const quantile = (xs: number[], p: number): number => {
+  const sorted = [...xs].sort((a, b) => a - b)
+  return sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))]!
+}
 
 describe('every researcher game reaches a conclusion', () => {
   it.each([1, 7, 13, 22, 31, 44])('seed %i finishes with a complete result', (seed) => {
@@ -219,12 +259,18 @@ describe('the researcher economy stays in a playable band', () => {
   const bustShare = (totals: number[]) => totals.filter((t) => t < 0).length / totals.length
 
   it('keeps normal comfortably profitable — the country board\'s band, in the same yen', () => {
-    // Measured over these 60 games: mean ¥70.1M, median ¥69.7M, nobody ever
+    // Measured over these 60 games: mean ¥69.0M, median ¥69.3M, nobody ever
     // bust. That is the country Japan board's band (its own measurement is
     // ¥65.9M) with the top of it opened out, because this board's academia
     // shelf genuinely pays more per payday than any country shelf does — a
     // professor out-earns a salaryman, and the ladder that leads to one is
     // the widest in the game.
+    //
+    // It was ¥72.8M / ¥70.3M before the master's exit was removed. Losing that
+    // road costs the table about ¥3.7M of its average, and all of it is the
+    // three early paydays it carried: nobody is hired at twenty-four on this
+    // board any more, so every seat now spends the first nine tiles paying a
+    // bill and earning a teaching fee. It is a poorer board and a truer one.
     expect(mean(normal.totals)).toBeGreaterThan(45_000_000)
     expect(mean(normal.totals)).toBeLessThan(85_000_000)
     expect(median(normal.totals)).toBeGreaterThan(45_000_000)
@@ -239,8 +285,9 @@ describe('the researcher economy stays in a playable band', () => {
   })
 
   it('makes hard a clear step down that is still usually a winning game', () => {
-    // Measured: median ¥37.9M against normal's ¥69.7M, one player in nine bust
-    // (11.7%). It was ¥40.6M and one in ten before the layoff cost a payday.
+    // Measured: median ¥35.4M against normal's ¥69.3M, one player in six bust
+    // (16.1%). It was ¥35.9M and 14.4% with the master's exit still on the
+    // board, and ¥40.6M / one in ten before the layoff cost a payday.
     expect(median(hard.totals)).toBeLessThan(median(normal.totals) * 0.8)
     expect(median(hard.totals)).toBeGreaterThan(10_000_000)
     expect(bustShare(hard.totals)).toBeGreaterThan(0)
@@ -248,12 +295,10 @@ describe('the researcher economy stays in a playable band', () => {
   })
 
   it('puts very hard on a knife edge: the median finishes near zero', () => {
-    // Measured: 42.8% bust, median ¥11.1M, mean ¥2.7M — it was 45.0%, ¥8.1M
-    // and slightly under zero before the layoff cost a payday, which is the
-    // one board where charging for the layoff made the hardest setting
-    // *kinder*: the payday it charges is one this board's very hard setting
-    // was mostly cancelling anyway, and it now arrives half a board earlier,
-    // before the bills that were bankrupting people.
+    // Measured: 44.4% bust, median ¥5.8M, mean −¥4.7M. It was 36.1%, ¥14.2M
+    // and ¥4.2M with the master's exit still on the board — the road that is
+    // gone was the one carrying the early paydays, and very hard is the
+    // setting with the least margin to lose them from.
     expect(bustShare(veryHard.totals)).toBeGreaterThan(0.25)
     expect(bustShare(veryHard.totals)).toBeLessThan(0.7)
     expect(median(veryHard.totals)).toBeGreaterThan(-20_000_000)
@@ -268,150 +313,290 @@ describe('the researcher economy stays in a playable band', () => {
   })
 })
 
-describe('the opening fork: the doctorate is the gamble, not the mistake', () => {
-  const DOCTORAL = 'The Doctoral Course'
-  const MASTERS = "The Master's Exit"
+describe('the gated fork: the ladder is where this board keeps its risk', () => {
+  const LADDER = 'The Fixed-Term Ladder'
+  const STAFF = 'The Staff Job'
 
+  /**
+   * **Why the measurement is here and not at the opening fork.**
+   *
+   * This board used to open on a fork — the doctoral course against the
+   * master's exit — and that fork carried two of this suite's claims: that
+   * neither road was a trap, and that the road paying the bill was the wider
+   * one. The fork is gone, because a researcher's board must not open by
+   * offering the road out of research to a player who chose a researcher's
+   * life one screen earlier.
+   *
+   * The first claim moves here intact: this is now the board's first junction
+   * with anything at stake, and it is held to the same bands.
+   *
+   * The second claim cannot move here *as a lane comparison*, and the reason
+   * is mechanical rather than a matter of taste. The opening fork decided
+   * which career shelf a seat spent its whole life on, so the shelf's width
+   * showed up in the finishing totals directly. This junction sits at segment
+   * four of ten and decides only which shelf a seat *retires* on; six more
+   * tiles of shared variance are added afterwards, and they swamp it.
+   * Measured over 2,400 seeds, both roads pinned, the lane-against-lane
+   * spread ratio here is 1.050 on normal, 0.923 on hard and 0.993 on very
+   * hard — level, from either side, with no direction to assert. (At the
+   * opening fork the same statistic read 0.832 on normal, and that is the
+   * *corrected* figure; the 0.873 this file used to quote was measured
+   * through the broken pin described on `laneRoll`.)
+   *
+   * So the width claim is measured where it actually lives — on the shelves —
+   * in the block below, which is a better instrument for it in any case: it
+   * says which shelf is wide rather than inferring it from who happened to be
+   * dealt one.
+   */
   interface Split {
-    readonly doctoral: number[]
-    readonly masters: number[]
-    readonly doctoralWinRate: number
+    readonly ladder: number[]
+    readonly staff: number[]
+    readonly ladderWinRate: number
   }
 
   const splitOf = (seeds: readonly number[], options: PlayOptions = {}): Split => {
-    const laneBySeat = [DOCTORAL, MASTERS]
-    const doctoral: number[] = []
-    const masters: number[] = []
-    let doctoralWins = 0
+    const laneBySeat = [[LADDER], [STAFF]]
+    const ladder: number[] = []
+    const staff: number[] = []
+    let ladderWins = 0
     for (const seed of seeds) {
       const { finalState } = playGame(seed, 2, seed, { ...options, laneBySeat })
       const results = finalState.results!
       finalState.players.forEach((player, seat) => {
         const total = results.standings.find((s) => s.playerId === player.id)!.total
-        ;(seat === 0 ? doctoral : masters).push(total)
+        ;(seat === 0 ? ladder : staff).push(total)
       })
-      if (finalState.players.findIndex((p) => p.id === results.winnerId) === 0) doctoralWins += 1
+      if (finalState.players.findIndex((p) => p.id === results.winnerId) === 0) ladderWins += 1
     }
-    return { doctoral, masters, doctoralWinRate: doctoralWins / seeds.length }
+    return { ladder, staff, ladderWinRate: ladderWins / seeds.length }
   }
 
-  /**
-   * Ten times the seeds, because the inversion below is a ratio of two
-   * standard deviations and 240 games cannot hold the bound it is asserted
-   * against.
-   *
-   * `spread(masters) / spread(doctoral) < 0.92` went red at 0.988 when the
-   * fork fix landed — the change that stopped a junction reached mid-move
-   * being settled by the distance left over (see `settle.ts`). It is not a
-   * regression. A standard deviation estimated from 240 values carries ~4.6%
-   * of its own error, so a *ratio* of two carries ~6.5%: at 240 seeds the
-   * statistic is 0.87 ± 0.057 and the bound sits less than one standard error
-   * above it, which is a coin flip rather than a guard. Re-measured over
-   * 2,400 seeds, before and after:
-   *
-   *      difficulty   pre-change        this tree
-   *      normal       0.843 ± 0.017     0.873 ± 0.018
-   *      hard         0.864 ± 0.018     0.838 ± 0.017
-   *      very hard    0.929 ± 0.019     0.947 ± 0.019
-   *
-   * The shift on normal is +0.030, about 1.2 combined standard errors, and it
-   * has a mechanism rather than being pure noise: the mid-career junction now
-   * genuinely splits 50/50, and Leave for Industry deals from the industry
-   * shelf at its bottom rung — so twice as many doctoral seats as before end
-   * up on the narrow shelf, which narrows the doctoral road. The inversion
-   * survives it with room on every difficulty.
-   *
-   * The harder block below still runs on 100 seeds against a bound of 1, and
-   * at very hard the true ratio is 0.947: that assertion is left exactly as it
-   * was, but it is worth knowing it is the thinnest margin in this file and
-   * that the difficulty comment above it — "the harder boards compress the
-   * inversion" — is understating how far.
-   */
   const MANY = Array.from({ length: 2_400 }, (_, i) => i + 1)
   const sample = splitOf(MANY)
+  /*
+   * Half the seeds on the harder settings, and every sample taken out here
+   * rather than inside an `it`, which is this file's own pattern. A win rate
+   * carries about 1.4 points of its own error at 1,200 games, against a band
+   * twenty-nine points wide, so nothing is bought by the extra thousand — and
+   * a 2,400-seed set inside a test's own clock times out the moment the
+   * machine has anything else to do.
+   */
+  const FEWER = MANY.slice(0, 1_200)
+  const harder = {
+    hard: splitOf(FEWER, { difficulty: 'hard' }),
+    veryHard: splitOf(FEWER, { difficulty: 'veryHard' }),
+  }
 
-  it('splits the wins between the two lanes', () => {
+  it('splits the wins between the two roads', () => {
     /*
-     * Measured at 44.1% to the doctorate over these 2,400 games (45.6% before
-     * the fork fix; 46.7% off the old 240-game set) — a couple of points
-     * off the USA board's own 44.7% for College Lane, and reached by real
-     * tuning rather than by luck: the first cut of the career shelves
-     * measured 37.1%, the industry shelf came down 8% and the academia
-     * shelf's middle rungs went up to bring it to 42.5%, and the payday now
-     * standing between the Layoff Notice and the career fair carried it the
-     * rest of the way. That last one is not a tuning of this fork at all: it
-     * lands on whichever seat is being re-hired, which is both roads, and it
-     * costs the industry shelf slightly more because a salary is a bigger
-     * thing to miss than a fixed-term contract's.
+     * Measured at 53.6% to the ladder over these 2,400 games, and it is the
+     * same 53.6% the board read before the opening fork was removed — a seat
+     * on the doctoral road plays a bit-identical game either way, confirmed
+     * seed for seed at all three difficulties.
      *
-     * Under a hand's own judgement it is kinder still, and the difference is
-     * this board's own doing. These games take whichever option the seed
-     * happens to index, so half the doctoral seats accept the Career-Change
-     * Fair's offer of an industry job at the door's grade — the very thing a
-     * player looking at their own salary would decline. The band below is
-     * therefore a floor on the road, not a description of how it plays.
+     * The band is the one every opening fork on every board is held to,
+     * unchanged. Under a hand's own judgement the ladder is kinder still: these
+     * games take whichever option the seed happens to index, so half the seats
+     * that clear the Ten-Year Cliff then accept an industry job at the
+     * Career-Change Fair — the one thing nobody would ever do with a post that
+     * cannot be taken away. The band is a floor on the road, not a description
+     * of how it plays.
      */
-    expect(sample.doctoralWinRate).toBeGreaterThan(0.33)
-    expect(sample.doctoralWinRate).toBeLessThan(0.62)
+    expect(sample.ladderWinRate).toBeGreaterThan(0.33)
+    expect(sample.ladderWinRate).toBeLessThan(0.62)
   })
 
-  it('moves the volatility onto the road that pays the bill', () => {
-    /*
-     * **The inversion, and the reason this edition exists.**
-     *
-     * Every other board in this repository asserts that its two opening lanes
-     * are roughly *equally* wide, and the base game was built on the
-     * early-earning lane being the volatile one. Here the volatility belongs
-     * to the doctorate: its career shelf runs from a part-time lecturer paid
-     * by the course to a centre director on a ten-year national programme —
-     * ¥2.45M to ¥14.7M, five times the industry shelf's whole range — while
-     * the master's exit deals from a shelf whose entire working life fits
-     * inside ¥4.2M–¥6.5M.
-     *
-     * Re-measured over 2,400 seeds: the doctoral seats finish with a standard
-     * deviation of ¥21.1M against the master's ¥18.4M, a ratio of 0.873 ±
-     * 0.018 (0.843 ± 0.017 before the fork fix; 0.85 off 240 seeds, and 0.77
-     * before a missed month's wages became a thing that can happen to
-     * anybody, which is variance the industry shelf did not used to carry).
-     * The assertion is one-sided on purpose. A ratio that drifted back to 1
-     * would mean the shelves had stopped saying anything, and this is the one
-     * property no other edition's suite can hold for us.
-     */
-    const ratio = spread(sample.masters) / spread(sample.doctoral)
-    expect(ratio).toBeLessThan(0.92)
-    // …and not so wide that the doctorate is a lottery ticket rather than a road.
-    expect(ratio).toBeGreaterThan(0.5)
+  it('leaves neither road the obvious money play', () => {
+    // Measured over 2,400 seeds at ¥70.1M down the ladder against ¥68.5M down
+    // the staff job — a 2.3% gap, inside the same 15% every board's opening
+    // fork is held to. On hard it is 8.4% (¥35.8M against ¥32.8M), still well
+    // inside. Very hard is not asserted: both means sit within a few million
+    // of zero there, where a ratio of two means says nothing at all.
+    const gap = Math.abs(mean(sample.ladder) - mean(sample.staff))
+    expect(gap / mean(sample.ladder)).toBeLessThan(0.15)
   })
 
-  it('leaves neither lane the obvious money play', () => {
-    // Re-measured over 2,400 seeds at ¥71.9M against ¥76.1M — a 5.9% gap,
-    // inside the same 15% every other board's opening fork is held to (4.7%
-    // before the fork fix, 6.1% off the old 240-game set, and 8.2% before the
-    // layoff cost a payday).
-    const gap = Math.abs(mean(sample.doctoral) - mean(sample.masters))
-    expect(gap / mean(sample.doctoral)).toBeLessThan(0.15)
-  })
-
-  it('keeps both lanes worth walking — neither is a losing move on its own', () => {
-    for (const totals of [sample.doctoral, sample.masters]) {
+  it('keeps both roads worth walking — neither is a losing move on its own', () => {
+    for (const totals of [sample.ladder, sample.staff]) {
       expect(mean(totals)).toBeGreaterThan(10_000_000)
     }
   })
 
-  it.each([
-    ['hard', { difficulty: 'hard' } as PlayOptions],
-    ['very hard', { difficulty: 'veryHard' } as PlayOptions],
-  ])('stays an even fork on the %s, and keeps the inversion', (_label, options) => {
-    // Measured: 51.0% on hard and 48.0% on very hard, with the spread ratio
-    // at 0.68 and 0.96 (47.0%/41.0% and 0.86/0.93 before the layoff cost a
-    // payday). The harder boards compress the inversion — a missed
-    // payroll costs the same whichever shelf you are on — so the ratio is
-    // held to a looser bound here than on the standard board, and still to
-    // the right side of 1.
-    const harder = splitOf(MANY.slice(0, 100), options)
-    expect(harder.doctoralWinRate).toBeGreaterThan(0.33)
-    expect(harder.doctoralWinRate).toBeLessThan(0.62)
-    expect(spread(harder.masters) / spread(harder.doctoral)).toBeLessThan(1)
+  it.each([['hard', harder.hard], ['very hard', harder.veryHard]])(
+    'stays an even fork on the %s',
+    (_label, split) => {
+      // Measured over 1,200 seeds: 54.4% on hard and 52.6% on very hard.
+      expect(split.ladderWinRate).toBeGreaterThan(0.33)
+      expect(split.ladderWinRate).toBeLessThan(0.62)
+    },
+  )
+})
+
+describe('the ladder is the only road to the post nothing can take away', () => {
+  /*
+   * The gate's whole purpose, asserted as an absolute rather than as a rate,
+   * because it is one: the Ten-Year Cliff is the only tile on this board that
+   * deals from the permanent shelf, and it stands at the end of the gated
+   * road. A seat sent down The Staff Job cannot reach that shelf by any route
+   * the board offers, at any difficulty, on any seed.
+   *
+   * This is what the `requires: 'doctorate'` gate is *for*, now that the gate
+   * itself turns nobody away — every seat holds a doctorate by the time it
+   * reaches this junction, so the road, not the qualification, is the thing
+   * that is scarce.
+   */
+  const SEEDS = Array.from({ length: 1_200 }, (_, i) => i + 1)
+
+  const roadsAt = (difficulty?: Difficulty) => {
+    let ladderPermanent = 0
+    let staffPermanent = 0
+    for (const seed of SEEDS) {
+      const { finalState } = playGame(seed, 2, seed, {
+        ...(difficulty ? { difficulty } : {}),
+        laneBySeat: [['The Fixed-Term Ladder'], ['The Staff Job']],
+      })
+      finalState.players.forEach((player, seat) => {
+        if (player.career?.cannotBeLaidOff !== true) return
+        if (seat === 0) ladderPermanent += 1
+        else staffPermanent += 1
+      })
+    }
+    return { ladderPermanent, staffPermanent }
+  }
+
+  // Taken out here rather than inside the tests, like every other sample in
+  // this file: two thousand four hundred games do not belong on one `it`'s
+  // twenty-second clock.
+  const roads = { normal: roadsAt(), hard: roadsAt('hard') }
+
+  it.each([['normal', roads.normal], ['hard', roads.hard]])(
+    'reaches the permanent shelf down the ladder and never down the staff job, on %s',
+    (_label, counted) => {
+      // Measured over 1,200 pinned seats each: exactly half the ladder seats
+      // retire on a permanent post (600 of 1,200 on normal, 600 on hard — the
+      // other half trade it at the Career-Change Fair because the harness
+      // takes whichever option the seed indexes), and zero staff seats do.
+      expect(counted.ladderPermanent).toBeGreaterThan(SEEDS.length * 0.4)
+      expect(counted.staffPermanent).toBe(0)
+    },
+  )
+})
+
+describe('the volatility is on the shelf a doctorate opens', () => {
+  /*
+   * **The claim this edition exists to make, measured where it now lives.**
+   *
+   * Its words have not changed since the first cut of this board: the academia
+   * shelf runs from a part-time lecturer paid by the course to a centre
+   * director on a ten-year national programme — ¥2.45M to ¥14.7M, five times
+   * the industry shelf's whole range — and that is what makes a Japanese
+   * research life a gamble. What has changed is the instrument. The claim used
+   * to be read off the opening fork, because that fork decided which shelf a
+   * seat was dealt; with every seat now dealt the academia shelf at The First
+   * Position, the fork that measured it is gone and the shelves have to be
+   * compared directly. They are the thing the claim was always about.
+   *
+   * Grouped by the shelf a seat was standing on at retirement, over 2,400
+   * seeds with both roads out of the gated fork pinned (4,800 finishes):
+   *
+   *     normal            permanent      industry      academia
+   *     n                    1,200          3,142           458
+   *     floor  (p25)       ¥70.92M        ¥48.50M       ¥72.63M
+   *     median             ¥82.59M        ¥59.58M       ¥91.71M
+   *     ceiling (p90)     ¥106.10M        ¥85.84M      ¥122.75M
+   *     spread             ¥18.43M        ¥18.71M       ¥29.23M
+   *     in the red            0.0%           0.0%          0.0%
+   *
+   *     hard              permanent      industry      academia
+   *     n                    1,200          3,276           324
+   *     floor  (p25)       ¥39.28M         ¥7.88M       ¥41.27M
+   *     median             ¥55.15M        ¥28.86M       ¥64.38M
+   *     ceiling (p90)      ¥82.54M        ¥57.95M       ¥93.26M
+   *     spread             ¥26.06M        ¥28.16M       ¥31.15M
+   *     in the red            3.6%          18.6%          6.2%
+   *
+   * The academia shelf is half again as wide as either shelf a player can
+   * leave it for, and it has both the highest ceiling and, on hard, a ruin
+   * rate between the other two. That is the gamble.
+   */
+  const SEEDS = Array.from({ length: 2_400 }, (_, i) => i + 1)
+
+  const shelvesAt = (difficulty?: Difficulty) => {
+    const permanent: number[] = []
+    const industry: number[] = []
+    const academia: number[] = []
+    for (const seed of SEEDS) {
+      const { finalState } = playGame(seed, 2, seed, {
+        ...(difficulty ? { difficulty } : {}),
+        laneBySeat: [['The Fixed-Term Ladder'], ['The Staff Job']],
+      })
+      const results = finalState.results!
+      for (const player of finalState.players) {
+        const total = results.standings.find((s) => s.playerId === player.id)!.total
+        if (player.career?.cannotBeLaidOff) permanent.push(total)
+        else if (player.career?.requiresDegree === false) industry.push(total)
+        else if (player.career) academia.push(total)
+      }
+    }
+    return { permanent, industry, academia }
+  }
+
+  const normal = shelvesAt()
+  const hard = shelvesAt('hard')
+
+  it('deals every shelf often enough for the comparison to mean anything', () => {
+    // The academia shelf is the thinnest sample of the three and the one every
+    // bound below leans on, so it is the one pinned: 458 finishes on normal
+    // and 324 on hard out of 4,800 seats. Three hundred samples put a standard
+    // deviation's own error near 4%, comfortably smaller than the gaps below.
+    expect(normal.academia.length).toBeGreaterThan(300)
+    expect(hard.academia.length).toBeGreaterThan(300)
+    expect(normal.permanent.length).toBeGreaterThan(300)
+    expect(hard.industry.length).toBeGreaterThan(300)
+  })
+
+  it('finishes the academia shelf half again as wide as either shelf you can leave it for', () => {
+    /*
+     * Measured on normal: ¥29.23M against the industry shelf's ¥18.71M (a
+     * ratio of 1.562) and the permanent shelf's ¥18.43M (1.586). With 458
+     * academia finishes a standard deviation carries about 3.3% of its own
+     * error, so a bound at 1.30 sits four to five standard errors below both.
+     *
+     * Asserted one-sided and on normal, because normal is where the board's
+     * own shape shows. On hard every shelf is widened by the same bills — the
+     * ratios compress to 1.106 and 1.195, which 2,400 seeds cannot carry a
+     * bound against — so hard is asserted below on the statistic where hard's
+     * variance actually shows up, which is who ends the game in the red.
+     */
+    expect(spread(normal.academia)).toBeGreaterThan(spread(normal.industry) * 1.3)
+    expect(spread(normal.academia)).toBeGreaterThan(spread(normal.permanent) * 1.3)
+    // …and it has the highest ceiling of the three, at both settings, which is
+    // the same sentence from the other end and the reason anybody walks it.
+    expect(quantile(normal.academia, 0.9)).toBeGreaterThan(quantile(normal.permanent, 0.9))
+    expect(quantile(normal.academia, 0.9)).toBeGreaterThan(quantile(normal.industry, 0.9))
+    expect(quantile(hard.academia, 0.9)).toBeGreaterThan(quantile(hard.permanent, 0.9))
+    expect(quantile(hard.academia, 0.9)).toBeGreaterThan(quantile(hard.industry, 0.9))
+  })
+
+  it('takes the risk off whoever clears the cliff, and hard is where that shows', () => {
+    /*
+     * §10.3: "Success = a 無期 post: **the safest shelf in the entire game** —
+     * the Layoff Notice tile explicitly cannot touch it." Measured on hard,
+     * where a board with real bills on it can ruin somebody: 3.6% of permanent
+     * finishes end in the red against the industry shelf's 18.6% and the
+     * academia shelf's 6.2%. On 1,200 and 3,276 samples the first gap is
+     * twenty-odd standard errors; the second is asserted with the looser
+     * factor its 324 academia samples can carry.
+     *
+     * This is the *other* half of the Japanese story, and the half the opening
+     * fork could never show: getting in is the gamble, and once you are in
+     * there is nothing left to gamble with.
+     */
+    const red = (xs: number[]): number => xs.filter((t) => t < 0).length / xs.length
+    expect(red(hard.permanent)).toBeLessThan(red(hard.industry) * 0.4)
+    expect(red(hard.permanent)).toBeLessThan(red(hard.academia))
+    // And nobody at all is ruined on a permanent post at normal.
+    expect(red(normal.permanent)).toBe(0)
   })
 })
 

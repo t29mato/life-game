@@ -13,26 +13,43 @@ import {
  * The Researcher: Japan route — the measured skeleton, walked by somebody who
  * spent five years on a stipend.
  *
- * Structurally this board is the USA board, tile for tile: the same five
- * forks, the same stops, the same hardship placements, the same hazard tags,
- * the same payday count on every lane, every sum ×100. That skeleton is where
- * two years of measured balance lives, and this board keeps all of it. What it
- * does not keep is the *meaning* of the forks, and that is the whole point of
- * the edition — see `edition.test.ts`, which lists the four tiles that
- * deliberately diverge and holds every other one to the mirror.
+ * Structurally this board is the USA board, tile for tile — the same stops,
+ * the same hardship placements, the same hazard tags, the same payday count on
+ * every lane, every sum ×100 — **minus one road.** That skeleton is where two
+ * years of measured balance lives, and this board keeps all of it except the
+ * lane it has no business offering. What it does not keep is the *meaning* of
+ * the forks, and that is the whole point of the edition — see
+ * `edition.test.ts`, which lists the tiles that deliberately diverge and holds
+ * every other one to the mirror.
  *
- * The four divergences, and why each one is here:
+ * **Why there are four forks here and five on the USA board.** The player is
+ * asked which life they are living — the classic board or a researcher's —
+ * one screen before the board is built. Having answered "a researcher's", the
+ * opening fork used to answer it again, and in the other direction: the road
+ * opposite the doctoral course was the master's exit, which is the road out of
+ * research. Asking a question the player has already answered, as the opening
+ * move, reads as the game not having listened. So the opening fork is gone and
+ * the doctoral course is the trunk: on a researcher's board the doctorate is
+ * the premise, and where the risk lives has moved to the gated road in the
+ * middle of the board, which is where this country's risk always actually was
+ * (`docs/researcher-edition-concept.md` §10.3: "Japan's volatility is all in
+ * *getting in*"). `balance.test.ts` measures it there.
+ *
+ * The divergences from the skeleton, and why each one is here:
  *
  *  1. **The doctorate is awarded on the opening lane, not in the middle of the
- *     board.** In this life the fork at eighteen is not "degree or no degree",
- *     it is the master's exit into corporate research against the doctoral
- *     course, and by the time anybody reaches the middle of the board that
- *     question was answered years ago. So the graduation tile awards the
- *     master's and the tile after it awards the doctorate, which is what makes
- *     the gated road below able to ask for one.
+ *     board.** In this life the question at eighteen was never "degree or no
+ *     degree", and by the time anybody reaches the middle of the board it was
+ *     answered years ago. So the graduation tile awards the master's and the
+ *     tile after it awards the doctorate, which is what makes the gated road
+ *     below able to ask for one.
  *  2. **The gated road is the Fixed-Term Ladder, gated on the doctorate
  *     itself** rather than on any degree — the strictest gate the engine has,
- *     and the only board that has ever needed it.
+ *     and the only board that has ever needed it. With the opening fork gone
+ *     every player holds the doctorate by the time they reach it, so the gate
+ *     no longer turns anybody away; it is kept because it is a true statement
+ *     about the road, and because it is the line that would have to hold if a
+ *     non-doctoral road were ever written here again.
  *  3. **Its fifth tile is an open call rather than an appointment.** Promotion
  *     inside the ladder is a national competition with several dozen
  *     applicants, so it is a `promotion` roll that lands twice in six and
@@ -59,15 +76,20 @@ const START: SpaceContent = {
 }
 
 /**
- * The Doctoral Course: five years, one question, and a road that is only worth
- * walking if the thing at the end of it is worth having.
+ * The Doctoral Course: five years, one question, and the opening of the board.
  *
  * The lane that mirrors College Lane, and the one this whole edition turns
- * over. Everywhere else on the shelf this is the safe road that buys a floor.
- * Here it is the gamble: the bill is smaller than a country board's (see
+ * over. Everywhere else on the shelf that lane is a road you may decline;
+ * here it is the trunk, because a researcher's board that offered you the exit
+ * into corporate research as its opening move would be asking a question the
+ * title screen already asked. The bill is smaller than a country board's (see
  * `economy.ts` for why a Japanese doctorate costs years rather than money),
- * the shelf it opens is the widest in the game, and the road opposite is the
- * one your whole cohort took.
+ * and the shelf it opens is the widest in the game.
+ *
+ * What it still charges, and charges everybody now, is the years: nine tiles
+ * with no payday on any of them, on a board where the trunk pays for being
+ * passed. That was the price of *choosing* this road; it is the price of
+ * admission to this board.
  */
 const DOCTORAL_COURSE: readonly SpaceContent[] = [
   // Has to stay the fork's first step — see usa/route.ts college-1.
@@ -112,17 +134,20 @@ const DOCTORAL_COURSE: readonly SpaceContent[] = [
      * Its slot on the USA board is Cap and Gown, and mechanically it is the
      * same tile: an `event` awarding the degree, so nobody spins past it. What
      * has moved is what it means. Two years in, the whole cohort is standing
-     * here in the same rented gown, and almost all of them are leaving — this
-     * is the exit the road opposite is named for, seen from inside. Staying is
-     * the decision this lane was chosen to make, and the next tile is what it
-     * buys.
+     * here in the same rented gown, and almost all of them are leaving — the
+     * master's exit, seen from inside, by the one person in the photograph who
+     * is not taking it. Staying is what this board is about, and the next tile
+     * is what it buys.
      *
-     * The `graduate` effect is idempotent here and lands on a player who
-     * already holds a degree, because this board takes university as read for
-     * everybody. It stays a `graduate` tile rather than becoming scenery: it
-     * is the milestone this cohort is actually standing in, it holds the
-     * mirror to the USA board's Cap and Gown, and an edition that ever
-     * dropped the premise would need it working again.
+     * **This tile is doing real work again.** For a while it was not: while
+     * the board still offered the master's exit as a road, the degree had to be
+     * a premise (`EditionSchooling.everyoneGraduates`) so that the player who
+     * took that road was not recorded as a school-leaver all game, and this
+     * tile then landed on somebody who already held one. With that road gone
+     * there is no such player, so the premise went with it and the gown is
+     * where the degree is actually earned — which is what the previous version
+     * of this comment said would have to happen if the premise were ever
+     * dropped.
      */
     id: 'jpr-doc-masters', kind: 'event', title: 'The Master\'s Gown',
     description: 'Two years done, a thesis bound in the university\'s own blue, and a rented gown for the photograph. Most of the people in this room are starting work in April. You are not.',
@@ -153,86 +178,42 @@ const ACADEMIC_FAIR: SpaceContent = {
   tone: 'gold', icon: 'space:grad-job-fair',
 }
 
-/**
- * The Master's Exit: the national default, and on this board the safe road.
+/*
+ * **The Master's Exit is gone, and this note is its headstone.**
  *
- * Mirrors Straight to Work exactly — hired on tile one, paid three times
- * before anybody on the other road has defended — and the spring hiring round
- * makes that promise *more* true here than anywhere. A manufacturer's research
- * division takes a whole cohort at once, on the same date, at the same salary,
- * and everybody knows what everybody else earns.
+ * Eight tiles used to sit here: `jpr-ms-spring-intake`, `jpr-ms-first-envelope`,
+ * `jpr-ms-payday-1`, `jpr-ms-company-flat`, `jpr-ms-first-night`,
+ * `jpr-ms-clean-room`, `jpr-ms-payday-2`, `jpr-ms-payday-3` — the mirror of
+ * Straight to Work, hired on tile one out of a manufacturer's spring intake and
+ * paid three times before anybody on the doctoral road had defended. They were
+ * good tiles and the road was honestly argued: 修士で出る is the national
+ * default, and the person on it had a master's, worked in research, and was
+ * doing the respectable thing.
  *
- * It is not "no degree". That is the difference this edition exists to draw:
- * the person on this road has a master's, works in research, and is doing the
- * respectable thing. What they gave up is the one question that would have
- * been theirs.
+ * They are gone because of *where the board asked the question*, not because
+ * the answer was wrong. The player chooses which life they are living — the
+ * classic board or a researcher's — before the board is built. Offering the
+ * exit from research as the opening move of the researcher's board asks that
+ * question a second time, and it is the one square on the board where a player
+ * cannot have meant to answer it differently.
  *
- * For a while the board said that and the engine did not — the degree was
- * awarded on the doctoral lane only, so anybody who took this one played the
- * whole game recorded as a school-leaver, missing mortarboard and all.
- * University is the edition's premise now rather than a tile on one road (see
- * `EditionSchooling` and this edition's `index.ts`), which is what makes the
- * sentence above true everywhere a player can actually see it.
+ * None of the eight was folded onto the trunk. Every one of them is written for
+ * somebody drawing a salary at twenty-four — the first pay envelope, the
+ * company flat, the clean-room kit, three paydays — and there is nobody on this
+ * board in that position any more. Folding a payday onto the doctoral years
+ * would refund the exact thing the road charges, which the lane comment above
+ * has always said out loud.
  */
-const MASTERS_EXIT: readonly SpaceContent[] = [
-  {
-    id: 'jpr-ms-spring-intake', kind: 'event', title: 'The Spring Intake',
-    description: 'One recruitment season, one interview suit, one start date shared with four hundred other people. You walk in with a research division already assigned and a salary that is the same as everybody else\'s in the room.',
-    effect: { type: 'chooseCareer', pool: 'basic' },
-    tone: 'gold', icon: 'space:first-job-fair',
-  },
-  {
-    id: 'jpr-ms-first-envelope', kind: 'normal', title: 'First Pay Envelope',
-    description: 'Your first pay lands and feels enormous. You take your parents to dinner with it, and they let you pay with visible pride.',
-    effect: { type: 'gainMoney', amount: 200_000, reason: 'First pay envelope' },
-    footnote: 'Part of a month, not a whole one — you started part-way through it. The first full envelope is the next Payday square.',
-    tone: 'orange', icon: 'space:first-paycheck',
-  },
-  payday('jpr-ms-payday-1', 'A full month on the books, and the deposit lands while your old labmates are still arguing with a spectrometer.', missedPayday(
-    'veryHard',
-    'Paid in Arrears',
-    'Nobody mentioned that the first month is paid a month in arrears, and the deposit on the flat did not wait.',
-    90_000,
-    'A month of living on nothing',
-  )),
-  {
-    id: 'jpr-ms-company-flat', kind: 'event', title: 'The Company Flat',
-    description: 'You are earning, so you are expected to be housed: a subsidised flat eleven minutes from the laboratory, a deposit, and a bed you assemble yourself at midnight.',
-    effect: { type: 'payMoney', amount: 180_000, reason: 'Deposit and moving in' },
-    tone: 'orange', icon: 'space:rent-due', unscaled: true,
-  },
-  {
-    id: 'jpr-ms-first-night', kind: 'normal', title: 'First Night In',
-    description: 'You unpack four boxes, three of which are books, and go to sleep at two because the last train home from the laboratory is at midnight anyway.',
-    // Nothing happens here, so it does not wear the rent arrow. See the USA
-    // board's own First Night In.
-    tone: 'orange', icon: 'space:move-in-day',
-    effect: { type: 'none' },
-  },
-  {
-    id: 'jpr-ms-clean-room', kind: 'event', title: 'Clean Room Kit',
-    description: 'Two sets of whites, safety boots, a dosimeter badge, and a training course you pay for and then attend on a Saturday.',
-    effect: { type: 'payMoney', amount: 150_000, reason: 'Kit and safety training' },
-    tone: 'orange', icon: 'space:rent-due', appearsFrom: 'hard',
-  },
-  payday('jpr-ms-payday-2', 'Another month, another envelope, and nobody has once asked what your thesis would have been about.', missedPayday(
-    'hard',
-    'Bonus Halved',
-    'The division misses its number, and the summer bonus is reassessed by somebody who has never been in the building.',
-    120_000,
-    'Half a bonus season',
-  )),
-  payday('jpr-ms-payday-3', 'Three paydays in, and the bank book has started to look like a habit. Your old supervisor is very pleased for you, and says so at length.'),
-]
 
 /**
  * The Corridor, first half: the years between the first position and the first
  * serious question about where the next one comes from.
  *
  * The department's corridor, with the noticeboard nobody has cleared since
- * 2011 — and, since both roads out of the opening fork meet here, also the
- * corridor of a corporate research division. The tiles are written so that
- * both people recognise them, because both of them are standing here.
+ * 2011. These tiles were written so that a corporate research division's
+ * corridor read the same way, because both roads out of the opening fork used
+ * to meet here; only one road arrives now, and they are left exactly as they
+ * were — a sentence that works for two lives works for one of them.
  */
 const CORRIDOR_EARLY: readonly SpaceContent[] = [
   {
@@ -926,27 +907,19 @@ const RETIREMENT: SpaceContent = {
 }
 
 // ---------------------------------------------------------------------------
-// The route: start, five forks, five trunk runs, and retirement — the same
-// grammar as every edition. The ten summaries below are the only writing on
-// this board a player reads *before* deciding anything, so each one is a case
-// put by somebody who believes it, with its cost admitted in the same breath.
+// The route: start, four forks, six trunk runs, and retirement — the same
+// grammar as every edition, one fork short of the USA board's five. The eight
+// summaries below are the only writing on this board a player reads *before*
+// deciding anything, so each one is a case put by somebody who believes it,
+// with its cost admitted in the same breath.
+//
+// The doctoral course opens the board as a run rather than as a road: the
+// route's first tile is still the start tile, as `validateRoute` insists, and
+// the trunk simply carries on through the five years instead of splitting at
+// them. Everything downstream keeps its index — the gated fork is still the
+// route's fifth segment — because the fork that left took exactly the columns
+// the run that replaced it takes.
 // ---------------------------------------------------------------------------
-
-const DOCTORAL_BRANCH: RouteBranch = {
-  identity: {
-    name: 'The Doctoral Course',
-    summary: 'Five more years on a stipend, chasing one question nobody has answered, while everybody you sat the entrance exam with is three salaries in. At the end of it you are one of a handful of people alive qualified to run a laboratory — if a laboratory can be got.',
-  },
-  spaces: [...DOCTORAL_COURSE, ACADEMIC_FAIR],
-}
-
-const MASTERS_BRANCH: RouteBranch = {
-  identity: {
-    name: 'The Master\'s Exit',
-    summary: 'Leave with the master\'s and take the job, the way almost everybody does. Real equipment, real money, a salary the same day every month for forty years — and somebody else deciding what the question is, permanently.',
-  },
-  spaces: MASTERS_EXIT,
-}
 
 const BENCH_BRANCH: RouteBranch = {
   identity: {
@@ -966,10 +939,21 @@ const LEAVE_BRANCH: RouteBranch = {
 
 /**
  * The one branch on this board that names a condition, and the strictest gate
- * the engine has: the doctorate itself, not merely a degree. The summary has
- * to make the case *and* be readable by the half of the table who will never
- * be offered it — the fact that it is only ever shown to a doctor is the
- * gate's business, not the sentence's.
+ * the engine has: the doctorate itself, not merely a degree.
+ *
+ * **And the board's real fork, now that the opening one is gone.** Everybody
+ * at this table holds a doctorate, so the gate turns nobody away and this
+ * junction splits the whole table three faces each — which is the honest place
+ * for a Japanese researcher's board to keep its risk. §10.3 of the concept
+ * document says where that risk lives in this country in as many words: not in
+ * a committee vote and not in the degree, but in the fixed-term years and the
+ * cliff at the end of them. `balance.test.ts` measures the board's win split
+ * and its volatility here.
+ *
+ * The `requires` line stays even though it currently binds on nobody. It is a
+ * true statement about the road — a post on this ladder is not open to
+ * somebody without a doctorate — and it is the line that would have to hold
+ * the moment any non-doctoral road were written onto this board again.
  */
 const LADDER_BRANCH: RouteBranch = {
   identity: {
@@ -1022,7 +1006,7 @@ const INSTRUMENT_BRANCH: RouteBranch = {
 
 export const ROUTE_RESEARCHER_JAPAN: RouteDefinition = {
   segments: [
-    fork(START, DOCTORAL_BRANCH, MASTERS_BRANCH),
+    run('the doctoral course', [START, ...DOCTORAL_COURSE, ACADEMIC_FAIR]),
     run('the corridor', CORRIDOR_EARLY),
     fork(MID_CAREER_FORK, BENCH_BRANCH, LEAVE_BRANCH),
     run('the corridor, after the crossroads', CORRIDOR_LATE),

@@ -54,22 +54,31 @@ export const EDITION_RESEARCHER_JAPAN: Edition = {
     doctorate: PERMANENT_CAREERS,
   },
   /*
-   * University is the premise here, not one of the roads.
+   * What a first degree buys here — and no longer who starts holding one.
    *
-   * Both sides of the opening fork are graduates — the master's exit into a
-   * manufacturer's research division against the doctoral course — and the
-   * prose above and on the route has always said so. The engine did not: with
-   * the degree awarded only on the doctoral lane, everybody who took the
+   * `everyoneGraduates` used to sit alongside this, and it is gone with the
+   * road that needed it. It was there because the opening fork's other side
+   * was the master's exit, which awarded no degree: anybody who took the
    * national default finished the game recorded as a school-leaver, with no
-   * cap and gown on the pawn and no degree on the panel. That is the road the
-   * owner reported seeing and the one this edition was written to not have.
+   * cap and gown on the pawn and no degree on the panel. There was no honest
+   * tile on which to fix that, so the degree was stated as a premise instead.
    *
-   * `degreeOpens: 'basic'` is the other half, and it is what keeps every shelf
-   * exactly where it was measured: on this board the `graduate` shelf is
-   * academia, and academia is opened by the doctorate. A master's opens the
-   * industry shelf, which is precisely what the fairs already deal.
+   * There is no such player now. Everybody walks the doctoral course, and the
+   * course awards the master's on The Master's Gown and the doctorate on The
+   * Defence — both `event` tiles, so both fire for everybody, landed on or
+   * swept past. Keeping the premise would hand every seat a degree at Start of
+   * Life, six tiles before the board says it is earned, and would make the
+   * gown a tile with nothing on it.
+   *
+   * `degreeOpens: 'basic'` stays, and it is the rule that says academia is
+   * opened by the doctorate rather than by a master's: on this board the
+   * `graduate` shelf *is* academia. Between the gown and the defence a player
+   * holds a master's and nothing more, and this is what that entitles them to.
+   * No fair currently sits in that one-tile window, so the rule is not
+   * exercised in play today — it is kept because it is the true statement, not
+   * because tile order happens to spare us from needing it.
    */
-  schooling: { everyoneGraduates: true, degreeOpens: 'basic' },
+  schooling: { degreeOpens: 'basic' },
   houses: HOUSES,
   lifeTiles: LIFE_TILE_DECK,
   stocks: STOCKS,

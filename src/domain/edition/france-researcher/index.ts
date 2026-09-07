@@ -65,21 +65,32 @@ export const EDITION_RESEARCHER_FRANCE: Edition = {
     doctorate: FONCTIONNAIRE_CAREERS,
   },
   /*
-   * Higher education is the premise here, not one of the roads — and on this
-   * board that is even harder to argue with than on the Japanese one, because
-   * the *prestigious* side of the fork is the one that never saw a laboratory:
-   * two years of preparatory class, a national competition, three years at an
-   * engineering school. The route says "it is not 'no degree'" in as many
-   * words. The engine used to say otherwise, on every pawn, all game.
+   * What a first degree buys here — and no longer who starts holding one.
    *
-   * `degreeOpens: 'basic'` keeps every shelf where it was measured. The
-   * `graduate` shelf here is the contract shelf — the hourly lecturer, the
-   * postdoc, the private laboratory — and it is what a *doctorate* opens.
-   * Without this line the Industry Fair, which caps at the contract shelf so
-   * that no career fair can hand out a permanent state post, would start
-   * offering a laid-off engineering cadre a job as an hourly lecturer.
+   * `everyoneGraduates` used to sit alongside this, and it is gone with the
+   * road that needed it. It was there because the opening fork's other side
+   * was la grande école, which awarded no degree: the *prestigious* road was
+   * the one the game recorded as unschooled, on every pawn, all game. There
+   * was no honest tile on which to fix that, so higher education was stated as
+   * a premise instead.
+   *
+   * There is no such player now. Everybody walks the university, and the
+   * university awards the degree on The Research Master's and the doctorate on
+   * The Defence — both `event` tiles, so both fire for everybody, landed on or
+   * swept past. Keeping the premise would hand every seat a degree in a lycée
+   * corridor, six tiles before the board says it is earned.
+   *
+   * `degreeOpens: 'basic'` stays. The `graduate` shelf here is the contract
+   * shelf — the hourly lecturer, the postdoc, the private laboratory — and it
+   * is what a *doctorate* opens; a research master's opens the cadre shelf and
+   * nothing above it. Between the master's and the defence that is the rule
+   * that applies. No fair sits in that one-tile window today, so it is not
+   * exercised in play — it is kept because it is the true statement, and
+   * because it is what stops the Industry Fair (capped at the contract shelf so
+   * that no career fair can hand out a permanent state post) from ever
+   * offering an engineering cadre work as an hourly lecturer.
    */
-  schooling: { everyoneGraduates: true, degreeOpens: 'basic' },
+  schooling: { degreeOpens: 'basic' },
   houses: HOUSES,
   lifeTiles: LIFE_TILE_DECK,
   stocks: STOCKS,

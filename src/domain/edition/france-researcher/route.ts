@@ -13,39 +13,44 @@ import {
  * The Researcher: France route — the measured skeleton, walked by somebody
  * who did not go to a grande école.
  *
- * Structurally this board is the USA board, tile for tile: the same five
- * forks, the same stops, the same hardship placements, the same hazard tags,
- * the same payday count on every lane, every sum at ×1 — the euro sits close
- * enough to the dollar that only the symbol moves, exactly as the country
- * France board found. That skeleton is where two years of measured balance
- * lives, and this board keeps all of it. What it does not keep is the
- * *meaning* of the forks — see `edition.test.ts`, which lists the two tiles
- * that deliberately diverge and holds every other one to the mirror.
+ * Structurally this board is the USA board, tile for tile — the same stops,
+ * the same hardship placements, the same hazard tags, the same payday count on
+ * every lane, every sum at ×1 (the euro sits close enough to the dollar that
+ * only the symbol moves, exactly as the country France board found) — **minus
+ * one road.** That skeleton is where two years of measured balance lives, and
+ * this board keeps all of it except the lane it has no business offering. What
+ * it does not keep is the *meaning* of the forks — see `edition.test.ts`,
+ * which lists the tiles that deliberately diverge and holds every other one to
+ * the mirror.
  *
- * The four things that make this board France, in the order a player meets
+ * **Why there are four forks here and five on the USA board.** The player is
+ * asked which life they are living — the classic board or a researcher's —
+ * one screen before the board is built. Having answered "a researcher's", the
+ * opening fork used to offer them la grande école: the prestigious road that
+ * bypasses university science altogether, which is to say the road that is not
+ * a research career. Asking a question the player has already answered, as the
+ * opening move, reads as the game not having listened. So the opening fork is
+ * gone and the university is the trunk. Nothing is lost by it, because this
+ * board never kept its risk on that fork in the first place — §10.3 puts
+ * France's risk "front-loaded into a single entry gate", and the gate is still
+ * there, five tiles from the end of the trunk's second run.
+ *
+ * The three things that make this board France, in the order a player meets
  * them:
  *
- *  1. **The opening fork is not a choice about education, it is a choice
- *     about a class of institution.** The Grande École is the prestigious
- *     road, and it does not lead through university science at all: two years
- *     of preparatory class, one competition at twenty, three years at a school
- *     whose name opens doors, a contract signed at the school's own
- *     recruitment forum. Nobody on that road ever "decided against a
- *     doctorate". The question never came up. The University is the underdog
- *     road, and the board says so in the summaries rather than pretending the
- *     two are symmetric.
- *  2. **The thesis years can pay.** The tuition tile on the opening lane is a
+ *  1. **The thesis years can pay.** The tuition tile on the opening lane is a
  *     die whose best face is an industrial doctorate — the thesis done inside
  *     a company, on a salary — and it is the only tuition tile anywhere in
  *     this game that puts money *into* a pocket. See `economy.ts`.
- *  3. **The gated road is one entry gate, sat twice.** Two postdoctoral
- *     tiles, a bill for the mobility years, and then the concours: a national
- *     competition that appoints on a five or a six, fail-soft, and available
- *     exactly twice before the lane runs out. Miss both and you walk off the
- *     road still on a contract, straight past a layoff notice and into the
- *     industry fair — which is what ageing out of the concours looks like
- *     from the inside.
- *  4. **What is behind the gate is safety, not money.** The fonctionnaire
+ *  2. **The gated road is one entry gate, sat twice** — and, with the opening
+ *     fork gone, the only fork on this board where anything is genuinely at
+ *     stake. Two postdoctoral tiles, a bill for the mobility years, and then
+ *     the concours: a national competition that appoints on a five or a six,
+ *     fail-soft, and available exactly twice before the lane runs out. Miss
+ *     both and you walk off the road still on a contract, straight past a
+ *     layoff notice and into the industry fair — which is what ageing out of
+ *     the concours looks like from the inside.
+ *  3. **What is behind the gate is safety, not money.** The fonctionnaire
  *     shelf cannot be laid off by anything on this board, and the cadre
  *     shelf's second rung out-earns every post on it. That is the exact
  *     inverse of the Researcher: Japan board, where the permanent shelf's
@@ -53,9 +58,9 @@ import {
  *
  * The voice rule, applied on every tile below: **short sentences, plain
  * words, and the French thing explained in passing rather than named.** The
- * board is in English. Four terms stay because they are the actual
- * English-language terms of art — grande école, concours, fonctionnaire, the
- * industrial doctorate — and even those are explained by what happens on the
+ * board is in English. Three terms stay because they are the actual
+ * English-language terms of art — concours, fonctionnaire, the industrial
+ * doctorate — and even those are explained by what happens on the
  * tile rather than by a glossary. A reader who has never set foot in a French
  * laboratory should get every joke on the first read; a reader who has should
  * wince first.
@@ -67,19 +72,22 @@ const START: SpaceContent = {
 }
 
 /**
- * The University: the road the results said you did not have to take.
+ * The University: the road the results said you did not have to take, and the
+ * opening of the board.
  *
- * The lane that mirrors College Lane, and the underdog of this board. Five
- * years for a master's and a doctorate, on money that arrives if a committee
- * decided in March that it should, while everybody you sat the entrance
- * competition with is three salaries into a career at a firm that has never
- * once asked what your thesis was about.
+ * The lane that mirrors College Lane. Everywhere else on the shelf that lane
+ * is a road you may decline; here it is the trunk, because a researcher's
+ * board whose opening move offered la grande école — the prestigious road that
+ * never enters a university laboratory — would be asking a question the title
+ * screen already asked. Five years for a master's and a doctorate, on money
+ * that arrives if a committee decided in March that it should, while
+ * everybody you sat the entrance competition with is three salaries into a
+ * career at a firm that has never once asked what your thesis was about.
  *
- * The bill on it is a die that can pay you, which is a genuinely French fact
- * and the reason this board's opening fork could be balanced at all — see
- * `economy.ts`. What the lane actually charges is the years: nine tiles, one
- * small teaching fee, and a road opposite that is salaried from its first
- * square.
+ * The bill on it is a die that can pay you, which is a genuinely French fact —
+ * see `economy.ts`. What the lane actually charges, and charges everybody now,
+ * is the years: nine tiles, one small teaching fee, and no payday on any of
+ * them.
  */
 const THE_UNIVERSITY: readonly SpaceContent[] = [
   // Has to stay the fork's first step — see usa/route.ts college-1.
@@ -129,12 +137,15 @@ const THE_UNIVERSITY: readonly SpaceContent[] = [
      * work, and the ones still here are the ones who are going to sign for a
      * thesis in September.
      *
-     * The `graduate` effect is idempotent here and lands on somebody who
-     * already holds a degree, because this board takes higher education as
-     * read for everybody. It stays a `graduate` tile rather than becoming
-     * scenery: it is the milestone this cohort is actually standing in, it
-     * holds the mirror to the USA board's Cap and Gown, and an edition that
-     * ever dropped the premise would need it working again.
+     * **This tile is doing real work again.** For a while it was not: while
+     * the board still offered la grande école as a road, higher education had
+     * to be a premise (`EditionSchooling.everyoneGraduates`) so that the
+     * *prestigious* road was not the one the game recorded as unschooled, and
+     * this tile then landed on somebody who already held a degree. With that
+     * road gone there is no such player, so the premise went with it and the
+     * master's is where the degree is actually earned — which is what the
+     * previous version of this comment said would have to happen if the
+     * premise were ever dropped.
      */
     id: 'frr-uni-master', kind: 'event', title: 'The Research Master\'s',
     description: 'A year of seminars, a first laboratory placement, and a mark that decides whether anybody will fund three more years of you. There is no ceremony. There is a list, on a wall, in July.',
@@ -169,87 +180,43 @@ const FIRST_POST: SpaceContent = {
   tone: 'gold', icon: 'space:grad-job-fair',
 }
 
-/**
- * The Grande École: the road that never saw the fork.
+/*
+ * **La Grande École is gone, and this note is its headstone.**
  *
- * Mirrors Straight to Work exactly — hired on tile one, paid three times
- * before anybody on the other road has defended — and in France that promise
- * is *more* true than anywhere, because the hiring happens before the diploma
- * does. A school's own recruitment forum in the autumn of the final year, a
- * contract signed in November, a start date in September, and a starting
- * salary everybody in the year group compares within a thousand euros.
+ * Eight tiles used to sit here: `frr-ge-recruitment-forum`, `frr-ge-first-pay`,
+ * `frr-ge-payday-1`, `frr-ge-deposit`, `frr-ge-first-night`,
+ * `frr-ge-school-invoice`, `frr-ge-payday-2`, `frr-ge-payday-3` — the mirror of
+ * Straight to Work, hired at the school's own recruitment forum in November of
+ * the final year and paid three times before anybody on the university road had
+ * defended. They were good tiles and the road was honestly argued: it was never
+ * "no degree", it was an engineering diploma and a research job at a firm, and
+ * the doctorate was never on the table because nobody on that road respected
+ * anybody who had one.
  *
- * It is not "no degree", and it is not even a decision. That is the
- * difference this board exists to draw: the person on this road holds an
- * engineering diploma, works in research, and did the prestigious thing. The
- * doctorate was never on the table, because nobody they respected had one.
+ * They are gone because of *where the board asked the question*, not because
+ * the answer was wrong. The player chooses which life they are living — the
+ * classic board or a researcher's — before the board is built. La grande
+ * école is precisely the road that bypasses university science, so offering it
+ * as the opening move of the researcher's board asks that question a second
+ * time and in the other direction.
  *
- * For a while the board said that and the engine did not — the degree was
- * awarded on the university lane only, so the *prestigious* road was the one
- * the game recorded as unschooled. Higher education is the edition's premise
- * now rather than a tile on one road (see `EditionSchooling` and this
- * edition's `index.ts`), which is what makes the paragraph above true
- * everywhere a player can actually see it.
+ * None of the eight was folded onto the trunk. Every one of them is written for
+ * somebody drawing a cadre's salary at twenty-three — the first pay slip, the
+ * deposit and the guarantor, the school's last invoice, three paydays — and
+ * there is nobody on this board in that position any more. Folding a payday
+ * onto the thesis years would refund the exact thing the road charges, which
+ * the lane comment above has always said out loud.
  */
-const THE_GRANDE_ECOLE: readonly SpaceContent[] = [
-  {
-    id: 'frr-ge-recruitment-forum', kind: 'event', title: 'The Recruitment Forum',
-    description: 'Two hundred firms in the school\'s own hall, in November of the final year. You leave with a contract that starts in September and a starting salary the whole year group already knows.',
-    effect: { type: 'chooseCareer', pool: 'basic' },
-    tone: 'gold', icon: 'space:first-job-fair',
-  },
-  {
-    id: 'frr-ge-first-pay', kind: 'normal', title: 'First Pay Slip',
-    description: 'Four pages, eleven lines of contributions, and a number at the bottom that is still more money than anybody in your family earned at twenty-three. You take your parents to dinner with it.',
-    effect: { type: 'gainMoney', amount: 2_000, reason: 'First pay slip' },
-    footnote: 'Part of a month, not a whole one — you started part-way through it. The first full one is the next Payday square.',
-    tone: 'orange', icon: 'space:first-paycheck',
-  },
-  payday('frr-ge-payday-1', 'A full month on the payroll, and the transfer lands while your old classmates are still arguing with a spectrometer.', missedPayday(
-    'veryHard',
-    'Paid in Arrears',
-    'Nobody mentioned that the first month is paid a month behind, and the agency holding the flat\'s deposit did not wait.',
-    900,
-    'A month of living on nothing',
-  )),
-  {
-    id: 'frr-ge-deposit', kind: 'event', title: 'The Deposit and the Guarantor',
-    description: 'Two months up front, a file thicker than a thesis, and a landlord who would also like a guarantor, in France, earning three times the rent.',
-    effect: { type: 'payMoney', amount: 1_800, reason: 'Deposit and first month' },
-    tone: 'orange', icon: 'space:rent-due', unscaled: true,
-  },
-  {
-    id: 'frr-ge-first-night', kind: 'normal', title: 'First Night In',
-    description: 'You unpack four boxes, three of which are books, and eat standing up because the table arrives on Thursday.',
-    // Nothing happens here, so it does not wear the rent arrow. See the USA
-    // board's own First Night In.
-    tone: 'orange', icon: 'space:move-in-day',
-    effect: { type: 'none' },
-  },
-  {
-    id: 'frr-ge-school-invoice', kind: 'event', title: 'The School\'s Last Invoice',
-    description: 'The final year\'s fees, deferred until you had a salary, arrive the month you have one. The school is very proud of you and would like to be paid.',
-    effect: { type: 'payMoney', amount: 1_500, reason: 'The final year\'s fees' },
-    tone: 'orange', icon: 'space:rent-due', appearsFrom: 'hard',
-  },
-  payday('frr-ge-payday-2', 'Another month, another transfer, and nobody has once asked what your thesis would have been about.', missedPayday(
-    'hard',
-    'Bonus Reassessed',
-    'The division misses its number, and the variable part of your pay is reassessed by somebody who has never been in the building.',
-    1_200,
-    'Half a bonus',
-  )),
-  payday('frr-ge-payday-3', 'Three payslips in, and the account has started to look like a habit. Your old physics teacher is very pleased for you, and says so at length.'),
-]
 
 /**
  * The Boulevard, first half: the years between the first contract and the
  * first serious question about where the next one comes from.
  *
- * The plane trees outside the laboratory, and — since both roads out of the
- * opening fork meet here — also the boulevard outside a group's research
- * centre. The tiles are written so that both people recognise them, because
- * both of them are standing here.
+ * The plane trees outside the laboratory. These tiles were written so that the
+ * boulevard outside a group's research centre read the same way, because both
+ * roads out of the opening fork used to meet here; only one road arrives now,
+ * and they are left exactly as they were — a sentence that works for two lives
+ * works for one of them.
  */
 const BOULEVARD_EARLY: readonly SpaceContent[] = [
   {
@@ -984,27 +951,19 @@ const RETIREMENT: SpaceContent = {
 }
 
 // ---------------------------------------------------------------------------
-// The route: start, five forks, five trunk runs, and retirement — the same
-// grammar as every edition. The ten summaries below are the only writing on
-// this board a player reads *before* deciding anything, so each one is a case
-// put by somebody who believes it, with its cost admitted in the same breath.
+// The route: start, four forks, six trunk runs, and retirement — the same
+// grammar as every edition, one fork short of the USA board's five. The eight
+// summaries below are the only writing on this board a player reads *before*
+// deciding anything, so each one is a case put by somebody who believes it,
+// with its cost admitted in the same breath.
+//
+// The university opens the board as a run rather than as a road: the route's
+// first tile is still the start tile, as `validateRoute` insists, and the
+// trunk simply carries on through the thesis years instead of splitting at
+// them. Everything downstream keeps its index — the concours is still the
+// route's fifth segment — because the fork that left took exactly the columns
+// the run that replaced it takes.
 // ---------------------------------------------------------------------------
-
-const UNIVERSITY_BRANCH: RouteBranch = {
-  identity: {
-    name: 'The University',
-    summary: 'Five more years for a master\'s and a thesis, on money a committee decides on in the summer — and one year in six the thesis is done inside a company that pays you to do it. At the end you are a doctor, which in this country is worth everything at one door and nothing at all at most of the others.',
-  },
-  spaces: [...THE_UNIVERSITY, FIRST_POST],
-}
-
-const GRANDE_ECOLE_BRANCH: RouteBranch = {
-  identity: {
-    name: 'The Grande École',
-    summary: 'Two years of preparatory class, one competition, three years at a school whose name opens doors for forty years — and a contract signed at its own recruitment forum before you graduate. Real money from the first month, and nobody on this road ever spends an evening wondering whether to do a doctorate.',
-  },
-  spaces: THE_GRANDE_ECOLE,
-}
 
 const STAY_BRANCH: RouteBranch = {
   identity: {
@@ -1024,10 +983,20 @@ const MOVE_BRANCH: RouteBranch = {
 
 /**
  * The one branch on this board that names a condition, and the strictest gate
- * the engine has: the doctorate itself, not merely a degree. The summary has
- * to make the case *and* be readable by the half of the table who will never
- * be offered it — the fact that it is only ever shown to a doctor is the
- * gate's business, not the sentence's.
+ * the engine has: the doctorate itself, not merely a degree.
+ *
+ * **And the board's only real fork, now that the opening one is gone.**
+ * Everybody at this table holds a doctorate, so the gate turns nobody away and
+ * this junction splits the whole table three faces each — which is where a
+ * French researcher's board was always supposed to keep its risk. §10.3 of the
+ * concept document says so in as many words: France's risk is "front-loaded
+ * into a single entry gate", not spread down a lane. `balance.test.ts`
+ * measures the win split and the shelf spreads here.
+ *
+ * The `requires` line stays even though it currently binds on nobody. It is a
+ * true statement about the road — no concours in this country is open to
+ * somebody without a thesis — and it is the line that would have to hold the
+ * moment any non-doctoral road were written onto this board again.
  */
 const CONCOURS_BRANCH: RouteBranch = {
   identity: {
@@ -1080,7 +1049,7 @@ const LIVRET_BRANCH: RouteBranch = {
 
 export const ROUTE_RESEARCHER_FRANCE: RouteDefinition = {
   segments: [
-    fork(START, UNIVERSITY_BRANCH, GRANDE_ECOLE_BRANCH),
+    run('the university', [START, ...THE_UNIVERSITY, FIRST_POST]),
     run('the boulevard', BOULEVARD_EARLY),
     fork(MID_CAREER_FORK, STAY_BRANCH, MOVE_BRANCH),
     run('the boulevard, after the crossroads', BOULEVARD_LATE),
