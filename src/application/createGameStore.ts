@@ -93,12 +93,36 @@ export function createGameStore(deps: GameStoreDeps): GameStore {
   let recorded: GameResults | null = null
 
   /**
+   * The `UseCaseDeps` last handed to a command, and the `GameText` it was cut
+   * for. Kept so that the overwhelmingly common case — a player who has not
+   * touched the language switcher since their last press — costs a comparison
+   * rather than an object.
+   */
+  let lastText: GameText | null = null
+  let lastDeps: UseCaseDeps | null = null
+
+  /**
    * The use-case dependencies for one command, with the language resolved as
    * late as it can be: a player who changes the setting between two presses
    * gets the second card in the language they just chose.
+   *
+   * The supplier is still asked on *every* command — that is the whole point of
+   * it being a supplier — but its answer is an identity, not a value. Every
+   * catalogue this game can be read in is a singleton (`gameTextFor` keeps one
+   * per locale, forever), so "same language as last press" is `===`, and the
+   * deps object it was wrapped in can be handed straight back. Change the
+   * language and the supplier returns a *different* object, the comparison
+   * fails, and the next command is cut fresh. A supplier that manufactures a
+   * new `GameText` per call still works; it simply pays for one object per
+   * press, exactly as this did before.
    */
   function depsForCommand(): UseCaseDeps {
-    return { random: deps.random, text: deps.text ? deps.text() : EN_TEXT }
+    const text = deps.text ? deps.text() : EN_TEXT
+    if (lastDeps === null || text !== lastText) {
+      lastText = text
+      lastDeps = { random: deps.random, text }
+    }
+    return lastDeps
   }
 
   function setState(next: GameState): void {

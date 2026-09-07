@@ -118,12 +118,27 @@ const TEXT_CACHE = new Map<LocaleId, GameText>()
 export function gameTextFor(locale: LocaleId): GameText {
   const cached = TEXT_CACHE.get(locale)
   if (cached) return cached
+  /*
+   * The edition this catalogue was last asked about, and the answer.
+   *
+   * `editionTextFor` never rebuilds — it keeps a `WeakMap` per edition and a
+   * `Map` per locale inside that — but a use case asks `board(edition)` several
+   * times while composing a single card, and every card in a game asks about
+   * the same board. One slot turns those two hashed lookups into a pointer
+   * comparison. It cannot go stale: an edition re-registered under the same id
+   * is a *different* object, so the comparison fails and the pair is resolved
+   * again, which is the same guarantee the `WeakMap` below it already gives.
+   */
+  let memo: { readonly edition: Edition; readonly text: EditionText } | null = null
   const built: GameText = {
     locale,
     say: narrationFor(locale),
-    // `editionTextFor` keeps its own `WeakMap` per edition and locale, so this
-    // is a lookup rather than a rebuild however often a card asks for it.
-    board: (edition) => editionTextFor(edition, locale),
+    board(edition) {
+      if (memo === null || memo.edition !== edition) {
+        memo = { edition, text: editionTextFor(edition, locale) }
+      }
+      return memo.text
+    },
   }
   TEXT_CACHE.set(locale, built)
   return built
