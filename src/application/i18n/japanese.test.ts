@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import type { GameState, NewGameConfig } from '@domain/model/types'
 // `LocaleId` lives with the overlay contract, not in the game model — every
-// other importer in the tree reads it from here. This line said `model/types`
-// and only failed once both language branches were in the same tree.
+// other importer in the tree reads it from here. This line said `model/types`,
+// and two people fixed it independently: the branch's own typecheck was
+// failing, and the same line broke again when the language branches met.
 import type { LocaleId } from '@domain/edition/i18n/types'
+import { editionFor } from '@domain/edition/registry'
 import { TRADE_YEAR_STORIES } from '@domain/rules/tradeYear'
 import { createGameStore } from '../createGameStore'
 import {
@@ -212,5 +214,82 @@ describe('a game played in Japanese', () => {
     })
     store.dispatch({ type: 'startGame', config: CONFIG })
     expect(store.getState().log[0]!.message).toContain('Welcome to LIFE JOURNEY')
+  })
+})
+
+/**
+ * The store asks its supplier on every single command, and it must go on doing
+ * so — the language switcher is a mid-turn setting, so the *next* press has to
+ * come back in the language just chosen, not in the one the app booted in.
+ *
+ * That per-press question is also the thing most tempting to optimise away, so
+ * it is pinned here rather than left to be inferred. What the store may cache
+ * is the *answer's identity*: `gameTextFor` hands back one catalogue object per
+ * locale forever, so "same language as last press" is a pointer comparison, and
+ * a real switch fails it. Both halves of that bargain are asserted below,
+ * because a cache that never misses and a cache that never hits are the same
+ * bug wearing different clothes.
+ */
+describe('the language a press is answered in', () => {
+  it('follows a switch made between two presses, mid-game', () => {
+    let locale: LocaleId = 'en'
+    const store = createGameStore({
+      random: createSeededRandom(42),
+      repository: createInMemoryRepository(),
+      stats: createInMemoryStatsRepository(),
+      text: () => gameTextFor(locale),
+    })
+
+    store.dispatch({ type: 'startGame', config: CONFIG })
+    const opening = store.getState().log[0]!.message
+    expect(opening).toContain('Welcome to LIFE JOURNEY')
+
+    // The switcher is thrown between two presses, exactly as a player throws it.
+    locale = 'ja'
+    const before = store.getState().log.length
+    store.dispatch({ type: 'spin' })
+    const written = store.getState().log.slice(before).map((entry) => entry.message)
+
+    expect(written.length).toBeGreaterThan(0)
+    // Names stay Latin in both languages; everything else on these lines must
+    // have moved, or the switch did not reach the sentence.
+    for (const line of written) {
+      expect(line.replace(/Mato|Bo\b/g, '')).not.toMatch(ENGLISH_WORDS)
+    }
+
+    // And back again, so this is a switch rather than a one-way latch.
+    locale = 'en'
+    const midpoint = store.getState().log.length
+    while (store.getState().log.length === midpoint) {
+      const state = store.getState()
+      store.dispatch(state.phase === 'moving' || state.phase === 'passingEvent' ? { type: 'settle' } : { type: 'spin' })
+    }
+    expect(store.getState().log.slice(midpoint).some((entry) => ENGLISH_WORDS.test(entry.message))).toBe(true)
+  })
+
+  it('hands back the very same catalogue every time a locale is asked for', () => {
+    // This is what makes the store's per-press question cheap: the answer is an
+    // identity, so an unchanged language is a pointer comparison rather than a
+    // rebuilt catalogue. If this ever stopped holding, the store's cache would
+    // miss on every press and quietly cost an object per command instead.
+    expect(gameTextFor('ja')).toBe(gameTextFor('ja'))
+    expect(gameTextFor('en')).toBe(gameTextFor('en'))
+    expect(gameTextFor('ja')).not.toBe(gameTextFor('en'))
+    expect(gameTextFor('ja').say).toBe(gameTextFor('ja').say)
+  })
+
+  it('hands back the very same board words every time an edition is asked for', () => {
+    // The other half: `board(edition)` is asked several times while one card is
+    // composed and by every card in a game, always about the same board.
+    const text = gameTextFor('ja')
+    const usa = editionFor('usa')
+    const japan = editionFor('japan')
+    expect(text.board(usa)).toBe(text.board(usa))
+    // Alternating editions must not confuse the memo into answering with the
+    // wrong board's words — the failure a one-slot cache is actually prone to.
+    expect(text.board(japan).locale).toBe('ja')
+    expect(text.board(usa)).toBe(text.board(usa))
+    expect(text.board(japan)).toBe(text.board(japan))
+    expect(text.board(usa)).not.toBe(text.board(japan))
   })
 })

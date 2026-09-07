@@ -95,20 +95,34 @@ export interface EditionText {
   marriageRescuedNote(): string | undefined
 }
 
+/**
+ * "There is no translation for this" — one function, shared by every
+ * passthrough there will ever be.
+ *
+ * Written once at module scope rather than freshly per `passthroughText` call
+ * for a reason that outlives the handful of allocations it saves: a caller
+ * writing a card does `words.career(id) ?? career.title` on a hot path, and
+ * V8 remembers what it called there last time. Ten identical-but-distinct
+ * closures — a new set per edition, per locale — turn that call site
+ * polymorphic and eventually megamorphic for no gain, because every one of
+ * them does the same nothing. One shared function keeps English monomorphic.
+ */
+const NOTHING = (): undefined => undefined
+
 /** The answer for English, and for any edition a locale has not reached. */
 function passthroughText(locale: LocaleId): EditionText {
   return {
     locale,
     passthrough: true,
-    space: () => undefined,
-    career: () => undefined,
-    house: () => undefined,
-    stock: () => undefined,
-    lifeTile: () => undefined,
-    lane: () => undefined,
-    tuitionNote: () => undefined,
-    marriageNote: () => undefined,
-    marriageRescuedNote: () => undefined,
+    space: NOTHING,
+    career: NOTHING,
+    house: NOTHING,
+    stock: NOTHING,
+    lifeTile: NOTHING,
+    lane: NOTHING,
+    tuitionNote: NOTHING,
+    marriageNote: NOTHING,
+    marriageRescuedNote: NOTHING,
   }
 }
 
