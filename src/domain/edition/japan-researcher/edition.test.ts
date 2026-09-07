@@ -19,10 +19,19 @@ import { EDITION_RESEARCHER_JAPAN } from './index'
  * A country board promises to be the USA board mechanically, tile for tile, at
  * its own currency's scale. This board promises to be the USA board *except
  * where it means to differ*, and the difference is the whole product. So the
- * mirror below is run with an explicit list of divergences: four tiles and one
+ * mirror below is run with an explicit list of divergences: two tiles and one
  * economy figure, each named, each with a reason. Anything that drifts off the
  * skeleton without being on that list fails here, loudly, which is what stops a
  * well-meaning edit unpicking two years of measured balance.
+ *
+ * **One whole road is now missing from the mirror, and that is the third kind
+ * of difference this file has to express.** The opening fork is gone: on a
+ * researcher's board the doctorate is the premise, so the doctoral course is
+ * the trunk and there is no master's exit to take. The mirror is therefore run
+ * against the USA route *with Straight to Work left out* — see
+ * `USA_WITHOUT_STRAIGHT_TO_WORK` — which keeps every surviving tile held to the
+ * same slot it always answered to, including the two divergences, while saying
+ * out loud which road this board does not have.
  */
 
 const FACTOR = 100
@@ -96,27 +105,32 @@ describe('the researcher japan edition is registered and sound', () => {
   })
 
   /*
-   * **Everybody on this board has been to university, and the engine has to
-   * agree with the prose.**
+   * **`everyoneGraduates` is gone with the road that needed it.**
    *
-   * The route has always said so — the opening fork is the master's exit into
-   * corporate research against the doctoral course, and the lane comment reads
-   * "It is not 'no degree'". The engine said otherwise for as long as the
-   * degree was only ever awarded on the doctoral lane: a player who took the
-   * national default finished the game with `hasDegree` false, which is a
-   * school-leaver everywhere it is read — no cap and gown on the pawn, no
-   * degree on the panel, the school-leaver's shelf at a fair. That is the road
-   * the owner reported and the road this edition exists not to have.
+   * It was there because the opening fork's other side was the master's exit,
+   * which awarded no degree: a player who took the national default finished
+   * the game with `hasDegree` false, which is a school-leaver everywhere it is
+   * read — no cap and gown on the pawn, no degree on the panel, the
+   * school-leaver's shelf at a fair. There was no honest tile on which to fix
+   * that, so the degree was stated as a premise on the edition instead.
    *
-   * The second half is what keeps the shelves where they were measured: here
-   * the `graduate` shelf *is* academia, so a master's opens the industry shelf
-   * and only the doctorate opens the rest.
+   * There is no such player now. Everybody walks the doctoral course, and the
+   * course awards the master's on The Master's Gown and the doctorate on The
+   * Defence — both `event` tiles on the trunk, so both fire for every seat.
+   * Keeping the premise would hand a degree out at Start of Life, six tiles
+   * before the board says it is earned, and would leave the gown with nothing
+   * on it.
+   *
+   * `degreeOpens` stays, and it is the half that keeps the shelves where two
+   * balance passes left them: here the `graduate` shelf *is* academia, so a
+   * master's opens the industry shelf and only the doctorate opens the rest.
+   * Nothing on the board currently deals a shelf in the one-tile window
+   * between the gown and the defence, so the rule is not exercised in play —
+   * it is kept because it is the true statement, not because the tile order
+   * happens to spare us from needing it.
    */
-  it('takes university as read, and says which shelf that degree opens', () => {
-    expect(EDITION_RESEARCHER_JAPAN.schooling).toEqual({
-      everyoneGraduates: true,
-      degreeOpens: 'basic',
-    })
+  it('says which shelf a master\'s opens, and no longer hands one out at the start', () => {
+    expect(EDITION_RESEARCHER_JAPAN.schooling).toEqual({ degreeOpens: 'basic' })
     // The country boards are untouched: there, school is still the fork.
     for (const id of ['usa', 'japan', 'france', 'india', 'bolivia']) {
       expect(editionFor(id).schooling, id).toBeUndefined()
@@ -221,8 +235,26 @@ describe('the researcher japan economy is the tuned economy at ×100, bar one fi
   })
 })
 
-describe('the researcher japan route is the measured skeleton, bar the tiles it argues about', () => {
-  const usaSpaces = spacesOf(EDITION_USA.route)
+/**
+ * The USA route as this board still mirrors it: every tile, in order, with the
+ * opening fork's *second* road left out.
+ *
+ * Reconstructed rather than copied, and reconstructed narrowly — only the
+ * `Straight to Work` lane's tiles are dropped, so a tile that drifted anywhere
+ * else on the skeleton still fails the mirror below, loudly, exactly as it
+ * always did. `spacesOf` lays a fork down as junction, first road, second road,
+ * so dropping the second road leaves `start, college…, main street…` — which is
+ * this board's trunk, tile for tile.
+ */
+const USA_WITHOUT_STRAIGHT_TO_WORK: readonly SpaceContent[] = (() => {
+  const opening = EDITION_USA.route.segments[0]!
+  if (opening.kind !== 'fork') throw new Error('the USA route no longer opens on a fork')
+  const dropped = new Set(opening.branches[1].spaces.map((space) => space.id))
+  return spacesOf(EDITION_USA.route).filter((space) => !dropped.has(space.id))
+})()
+
+describe('the researcher japan route is the measured skeleton, bar the road it does not offer', () => {
+  const usaSpaces = USA_WITHOUT_STRAIGHT_TO_WORK
   const mine = spacesOf(EDITION_RESEARCHER_JAPAN.route)
 
   /** The sums an effect can carry, for the ×100 comparison. */
@@ -244,14 +276,20 @@ describe('the researcher japan route is the measured skeleton, bar the tiles it 
     }
   }
 
-  it('walks the same shape: segment for segment, tile for tile', () => {
-    expect(EDITION_RESEARCHER_JAPAN.route.segments.map((s) => s.kind)).toEqual(
-      EDITION_USA.route.segments.map((s) => s.kind),
-    )
+  it('walks the same shape, one road short: segment for segment, tile for tile', () => {
+    const theirs = EDITION_USA.route.segments.map((s) => s.kind)
+    const ours = EDITION_RESEARCHER_JAPAN.route.segments.map((s) => s.kind)
+    // The opening fork became a run and nothing else moved. That matters
+    // beyond tidiness: every later segment keeps its index, so the gated fork
+    // is still the fifth segment on both boards and the layout engine meets
+    // each junction on the same column it always did.
+    expect(theirs[0]).toBe('fork')
+    expect(ours[0]).toBe('run')
+    expect(ours.slice(1)).toEqual(theirs.slice(1))
     expect(mine).toHaveLength(usaSpaces.length)
   })
 
-  it('mirrors every tile mechanically at ×100, except the two it names', () => {
+  it('mirrors every surviving tile mechanically at ×100, except the two it names', () => {
     mine.forEach((tile, i) => {
       const theirs = usaSpaces[i]!
       const at = `${tile.id} (mirrors ${theirs.id})`
@@ -296,25 +334,58 @@ describe('the researcher japan route is the measured skeleton, bar the tiles it 
     expect(drifted.sort()).toEqual(Object.keys(DIVERGENCES).sort())
   })
 
-  it('awards the doctorate on the opening lane, so the gated road can ask for it', () => {
+  it('opens on the doctoral course itself, with no road out of research beside it', () => {
+    /*
+     * The owner's report, asserted: 「研究者側を選んだら、全員博士課程への道に
+     * なる道を選ぶようにしてください。」 — pick the researcher's life and
+     * everybody takes the doctoral road. The board used to ask that question a
+     * second time on its very first tile, and offer the answer the player had
+     * just declined.
+     */
     const opening = EDITION_RESEARCHER_JAPAN.route.segments[0]!
-    expect(opening.kind).toBe('fork')
-    const doctoralLane = opening.kind === 'fork' ? opening.branches[0] : null
-    expect(doctoralLane!.identity.name).toBe('The Doctoral Course')
+    expect(opening.kind).toBe('run')
+    const spaces = opening.kind === 'run' ? opening.lane.spaces : []
+    // The start tile still opens the route, as `validateRoute` insists.
+    expect(spaces[0]?.kind).toBe('start')
+    expect(spaces[0]?.id).toBe('jpr-start')
+    // No fork anywhere before the mid-career crossroads.
+    const forks = EDITION_RESEARCHER_JAPAN.route.segments.filter((s) => s.kind === 'fork')
+    expect(forks).toHaveLength(4)
+    expect(forks[0]!.kind === 'fork' && forks[0]!.at.id).toBe('jpr-crossroads')
+    // And nothing on this board names the road that used to sit opposite.
+    expect(mine.filter((space) => space.id.startsWith('jpr-ms-'))).toEqual([])
+  })
+
+  it('awards both degrees on the trunk, so the gated road can ask for one', () => {
+    const spaces = mine
+    const effects = spaces.map((space) => space.effect.type)
     // Both milestones, in order: the master's gown, then the defence.
-    const effects = doctoralLane!.spaces.map((space) => space.effect.type)
     expect(effects.indexOf('graduate')).toBeGreaterThan(-1)
     expect(effects.indexOf('doctorate')).toBe(effects.indexOf('graduate') + 1)
-    // Both fire for everybody who walks the lane, not only whoever lands
-    // exactly: an ordinary tile here would make the gated road a promise the
-    // board keeps to some players and not others.
+    // Both fire for everybody, not only whoever lands exactly: an ordinary
+    // tile here would make the gated road a promise the board keeps to some
+    // players and not others. They are on the trunk now rather than on a road,
+    // which is what turns "some players" into "everybody".
     for (const type of ['graduate', 'doctorate'] as const) {
-      const tile = doctoralLane!.spaces.find((space) => space.effect.type === type)!
+      const tile = spaces.find((space) => space.effect.type === type)!
       expect(['event', 'stop']).toContain(tile.kind)
     }
   })
 
   it('gates the ladder on the doctorate itself, and leaves the road opposite open', () => {
+    /*
+     * The gate binds on nobody now, and that is deliberate rather than an
+     * oversight. Every seat passes The Defence — an `event` on the trunk, six
+     * tiles from the start — long before this junction, so `roadsOpenTo`
+     * offers both roads to the whole table and the fork splits three faces
+     * each. The line stays because it is a true statement about the road, and
+     * because it is what would have to hold the moment a non-doctoral road
+     * were written onto this board again. Asserted below: the doctorate is
+     * awarded in front of the gate, on a tile nobody can spin past.
+     */
+    const order = mine.map((space) => space.id)
+    expect(order.indexOf('jpr-doc-defence')).toBeLessThan(order.indexOf('jpr-send-off'))
+
     const gate = EDITION_RESEARCHER_JAPAN.route.segments[4]!
     expect(gate.kind).toBe('fork')
     const [ladder, staff] = gate.kind === 'fork' ? gate.branches : []

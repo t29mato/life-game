@@ -41,17 +41,22 @@ describe('startGame', () => {
   })
 
   /*
-   * The one thing about a seat that the *edition* decides rather than the
-   * board: on a researcher's board both roads out of the opening fork start
-   * after university, so there is no honest tile on which to award the degree
-   * and everybody holds one before the first roll. Every country board leaves
-   * the field unset and starts a seat unschooled, which the test above pins.
+   * `EditionSchooling.everyoneGraduates` is the one thing about a seat the
+   * *edition* decides rather than the board, and no shipped edition asks for
+   * it any more. It existed for the researcher boards while they still offered
+   * a road out of research — the master's exit, la grande école — which awarded
+   * no degree and left half the table recorded as school-leavers. Those roads
+   * are gone: every seat now walks a doctoral course that awards the degree on
+   * an `event` tile of its own, so a researcher's seat starts unschooled like
+   * everybody else's and earns both qualifications on the board.
+   *
+   * The field itself is still live and still tested, in
+   * `domain/rules/player.test.ts`, against an edition built for the purpose.
    */
-  it('starts everybody graduated on a board where university is the premise', () => {
+  it('starts a seat unschooled on a researcher board too, and lets the board award it', () => {
     const state = startGame({ ...config(['Alex', 'Bo']), editionId: 'japan-researcher' }, deps)
     for (const player of state.players) {
-      expect(player.hasDegree).toBe(true)
-      // The doctorate is still a road, not a premise.
+      expect(player.hasDegree).toBe(false)
       expect(player.hasDoctorate).toBe(false)
     }
   })

@@ -9,11 +9,16 @@ import type { EditionTranslation } from '../../i18n/types'
  * voice rule is "the Japanese thing explained in passing rather than named",
  * and it keeps that promise beautifully — "a fixed-term contract", "a rule that
  * says whoever keeps renewing you past ten years owes you one that never ends",
- * "one recruitment season, one start date shared with four hundred other
- * people", "a post is advertised nationally". Every one of those is an
- * explanation standing in for a word, and the word exists: 任期付き, 十年ルール,
- * 新卒一括採用, 公募. Also 学振, 科研費, 若手研究, ポスドク, 助教, 特任, 非常勤,
- * 業績, 公聴会, 教授会, 雇止め.
+ * "a post is advertised nationally". Every one of those is an explanation
+ * standing in for a word, and the word exists: 任期付き, 十年ルール, 公募. Also
+ * 学振, 科研費, 若手研究, ポスドク, 助教, 特任, 非常勤, 業績, 公聴会, 教授会,
+ * 雇止め.
+ *
+ * Nine entries left this file when the master's exit did — the eight
+ * 新卒一括採用 tiles and the 「修士で出る」 lane itself, plus 「博士課程」, which
+ * is not a road any more but the board. See `route.ts`: on a researcher's
+ * board the doctorate is the premise, so the opening fork went and the
+ * doctoral course became the trunk.
  *
  * So the rule is the country Japan board's rule, turned up: write the sentence
  * the English tile was *reaching for*, in the words the thing is actually
@@ -85,52 +90,6 @@ export const RESEARCHER_JAPAN_JA: EditionTranslation = {
     'jpr-doc-first-post': {
       title: '最初のポスト',
       description: '全国の公募が並んでいる。どれにも着任日と任期の終わりと、すでに決まった研究テーマがついている。二つが採ってくれる。',
-    },
-    'jpr-ms-spring-intake': {
-      title: '新卒一括採用',
-      description: '一度きりの就活、一着のリクルートスーツ、四百人と同じ入社日。配属される研究所はもう決まっていて、初任給はこの部屋の全員と同じ額だ。',
-    },
-    'jpr-ms-first-envelope': {
-      title: '初任給',
-      description: '初めての給料はとんでもない大金に見える。それで親を食事に連れていくと、二人は誇らしさを隠さずに払わせてくれる。',
-      reason: '初任給',
-      footnote: 'ひと月まるごとではなく、その途中から働き始めた分。まるひと月分が入るのは次の「給料日」のマス。',
-    },
-    'jpr-ms-payday-1': {
-      title: '給料日',
-      description: 'まるひと月働いた。研究室の同期がまだ分光器と言い争っているうちに、振り込みが届く。',
-      harsher: {
-        title: '給料は翌月払い',
-        description: '初月の給料が一か月遅れで払われることは誰も教えてくれなかったし、部屋の敷金は待ってくれなかった。',
-        reason: '無収入のひと月',
-      },
-    },
-    'jpr-ms-company-flat': {
-      title: '社宅に入る',
-      description: '稼いでいる以上、住まいは構えるものとされる。研究所から十一分の借り上げ社宅、敷金、そして深夜に自分で組み立てるベッド。',
-      reason: '敷金と引っ越し代',
-    },
-    'jpr-ms-first-night': {
-      title: '最初の夜',
-      description: '段ボール四箱を開ける。うち三箱は本だ。眠るのは二時。どうせ研究所からの終電は零時だ。',
-    },
-    'jpr-ms-clean-room': {
-      title: 'クリーンルームの一式',
-      description: '白衣二着、安全靴、線量計のバッジ、そして自腹で申し込んで土曜に受ける講習。',
-      reason: '装備と安全講習',
-    },
-    'jpr-ms-payday-2': {
-      title: '給料日',
-      description: 'ひと月働いてまた給料。修論の続きが何になるはずだったかは、誰にも一度も聞かれない。',
-      harsher: {
-        title: '賞与半減',
-        description: '事業部が数字を落とし、夏の賞与はこの建物に来たこともない誰かに査定し直される。',
-        reason: '半分になった賞与',
-      },
-    },
-    'jpr-ms-payday-3': {
-      title: '給料日',
-      description: '三回目の給料日。通帳の残高が習慣らしい顔をしはじめた。指導教員は心から喜んでくれて、そのことを長々と言う。',
     },
     'jpr-corridor-first-review': {
       title: '最初の面談',
@@ -859,14 +818,6 @@ export const RESEARCHER_JAPAN_JA: EditionTranslation = {
   },
 
   lanes: {
-    'The Doctoral Course': {
-      name: '博士課程',
-      summary: 'まだ誰も答えていない問いひとつのために、学振頼みの五年をもう一度。同じ入試を受けた連中は、もう三年目の給料をもらっている。終えたときには、研究室を任せられる数少ない一人になっている——任せてもらえる研究室があれば。',
-    },
-    'The Master\'s Exit': {
-      name: '修士で出る',
-      summary: '修士を取って就職する。ほとんど全員がそうする。本物の装置、本物の給料、四十年ぶん毎月同じ日に入る給与——そして、問いを決めるのは永久に自分ではない。',
-    },
     'Stay at the Bench': {
       name: '実験台に残る',
       summary: '動かずに、積み上げたものを効かせる。上のポストは誰かが定年になれば空く。値打ちは周りがわかっているし、それを自分の口から言わされることもない。',
