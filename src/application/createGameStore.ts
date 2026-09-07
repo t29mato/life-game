@@ -6,6 +6,8 @@ import type { RandomPort } from './ports/RandomPort'
 import type { GameRepositoryPort, SaveSlotInfo } from './ports/GameRepositoryPort'
 import { AUTOSAVE_SLOT } from './ports/GameRepositoryPort'
 import type { GameRecord, GameRecordEntry, StatsRepositoryPort } from './ports/StatsRepositoryPort'
+import { EN_TEXT, type GameText } from './i18n/text'
+import type { UseCaseDeps } from './usecases/types'
 import { startGame } from './usecases/startGame'
 import { spin } from './usecases/spin'
 import { settle } from './usecases/settle'
@@ -18,6 +20,19 @@ export interface GameStoreDeps {
   readonly random: RandomPort
   readonly repository: GameRepositoryPort
   readonly stats: StatsRepositoryPort
+  /**
+   * What language the engine writes in, asked afresh on every command.
+   *
+   * A supplier rather than a value because the store is built once, at the
+   * composition root, and outlives every language the player picks: the
+   * switcher is a mid-turn setting, and a catalogue captured at construction
+   * would leave the next card in the language the app happened to boot in.
+   * Asking per dispatch costs one `Map` lookup — `gameTextFor` caches per
+   * locale — and means the store never has to be told a preference changed.
+   *
+   * Omitted, the engine writes English, exactly as it always did.
+   */
+  readonly text?: () => GameText
 }
 
 function buildInitialState(): GameState {
@@ -77,6 +92,15 @@ export function createGameStore(deps: GameStoreDeps): GameStore {
    */
   let recorded: GameResults | null = null
 
+  /**
+   * The use-case dependencies for one command, with the language resolved as
+   * late as it can be: a player who changes the setting between two presses
+   * gets the second card in the language they just chose.
+   */
+  function depsForCommand(): UseCaseDeps {
+    return { random: deps.random, text: deps.text ? deps.text() : EN_TEXT }
+  }
+
   function setState(next: GameState): void {
     state = next
     for (const listener of listeners) listener()
@@ -110,19 +134,19 @@ export function createGameStore(deps: GameStoreDeps): GameStore {
         switch (command.type) {
           case 'startGame':
             recorded = null
-            setState(startGame(command.config, deps))
+            setState(startGame(command.config, depsForCommand()))
             return
           case 'spin':
-            setState(spin(state, deps))
+            setState(spin(state, depsForCommand()))
             return
           case 'settle':
-            setState(settle(state, deps))
+            setState(settle(state, depsForCommand()))
             return
           case 'choose':
-            setState(choose(state, command.optionId, deps))
+            setState(choose(state, command.optionId, depsForCommand()))
             return
           case 'endTurn': {
-            const next = endTurn(state, deps)
+            const next = endTurn(state, depsForCommand())
             setState(next)
             // Autosave every turn so a closed tab never costs more than one move.
             deps.repository.save(AUTOSAVE_SLOT, next)
@@ -130,7 +154,7 @@ export function createGameStore(deps: GameStoreDeps): GameStore {
             return
           }
           case 'scoreRoll': {
-            const next = scoreRoll(state, deps)
+            const next = scoreRoll(state, depsForCommand())
             setState(next)
             /*
              * Saved and filed on exactly the same terms as a turn. The

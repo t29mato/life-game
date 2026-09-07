@@ -61,10 +61,13 @@ import {
   insuranceKindFromOptionId,
   rivalsOf,
 } from './applyEffect'
-import { formatMoney, raiseNote, salaryPeriod, salaryRate } from './format'
+import type { EditionText } from '@domain/edition/i18n/text'
+import type { NarrationText } from '../i18n/en'
+import type { GameText } from '../i18n/text'
+import { formatMoney, payRate, raiseNote, salaryPeriodIn, salaryRate } from './format'
 import { appendLog } from './logging'
 import { arrivalCopy, celebrationFor } from './newBaby'
-import type { UseCaseDeps } from './types'
+import { textOf, type UseCaseDeps } from './types'
 
 function replacePlayer(players: readonly Player[], updated: Player): readonly Player[] {
   return players.map((player) => (player.id === updated.id ? updated : player))
@@ -128,9 +131,10 @@ function resolved(state: GameState, players: readonly Player[], event: LandingEv
   }
 }
 
-function resolveBranch(state: GameState, optionId: string, _deps: UseCaseDeps): GameState {
+function resolveBranch(state: GameState, optionId: string, deps: UseCaseDeps): GameState {
   const player = state.players[state.currentPlayerIndex]
   if (!player) throw new Error('choose: no current player')
+  const { say, board: boardWords } = textOf(deps)
 
   /*
    * Chosen before the wheel was spun: commit to the road and hand the turn to
@@ -140,12 +144,13 @@ function resolveBranch(state: GameState, optionId: string, _deps: UseCaseDeps): 
    */
   if (state.stepsRemaining === 0) {
     const target = state.board.spaces[optionId]
-    const log = appendLog(
-      state,
-      player.id,
-      `${player.name} takes ${target?.lane?.name ?? target?.title ?? 'the road ahead'}.`,
-      'info',
-    )
+    const words = boardWords(editionOf(state))
+    const lane = target?.lane?.name
+    const road =
+      (lane ? (words.lane(lane)?.name ?? lane) : undefined) ??
+      (target ? (words.space(target.id, target.description)?.title ?? target.title) : undefined) ??
+      say.move.roadAhead
+    const log = appendLog(state, player.id, say.move.takesRoadLog(player.name, road), 'info')
     return {
       ...state,
       pendingDecision: null,
@@ -159,7 +164,7 @@ function resolveBranch(state: GameState, optionId: string, _deps: UseCaseDeps): 
 
   const plan = planMovementVia(state.board, player.spaceId, optionId, state.stepsRemaining)
   const movedPlayer = movePlayerTo(player, plan.destinationId)
-  const log = appendLog(state, player.id, `${player.name} heads toward ${plan.destinationId}.`, 'info')
+  const log = appendLog(state, player.id, say.move.headsTowardLog(player.name, plan.destinationId), 'info')
 
   /*
    * Left for `settle` to drain, same as every other leg of a move — see
@@ -194,22 +199,24 @@ function resolveCareerStay(
   player: Player,
   space: Space | undefined,
   currency: CurrencySpec,
-  money: (amount: Money) => string,
+  say: NarrationText,
+  words: EditionText,
 ): GameState {
   const staying = player.career
   if (!staying) throw new Error('choose: nothing to stay in')
+  const title = words.career(staying.id)?.title ?? staying.title
   const event = outcomeEvent(
     space,
     player,
-    'Staying Put',
+    say.career.stayCardTitle,
     0,
     // The ladder they keep is the narration's whole point; the note carries
     // the one thing it does not say — what the job actually pays.
-    [`Still a ${staying.title}, on ${money(salaryRate(staying.salary, currency))} a ${salaryPeriod(currency)}.`],
+    [say.career.stayNote(title, payRate(staying.salary, currency, say))],
     'normal',
-    `${player.name} turns them both down. They like it here, and there is further to go yet.`,
+    say.career.stayNarration(player.name),
   )
-  return resolved(state, state.players, event, `${player.name} stays a ${staying.title}.`, 'info')
+  return resolved(state, state.players, event, say.career.stayLog(player.name, title), 'info')
 }
 
 /**
@@ -223,7 +230,8 @@ function resolveCareerSpin(
   space: Space | undefined,
   spinValue: SpinValue,
   edition: ReturnType<typeof editionOf>,
-  money: (amount: Money) => string,
+  say: NarrationText,
+  words: EditionText,
 ): GameState {
   const offeredIds = state.pendingDecision?.offeredCareerIds
   if (!offeredIds) throw new Error('choose: career spin with no offers on the table')
@@ -243,19 +251,24 @@ function resolveCareerSpin(
     const event = outcomeEvent(
       space,
       player,
-      'The Result',
+      say.career.gateMissCardTitle,
       0,
       player.career
-        ? [`Still a ${player.career.title}, on ${money(salaryRate(player.career.salary, edition.currency))} a ${salaryPeriod(edition.currency)}.`]
-        : ['Still between jobs, and still eligible to sit it again.'],
+        ? [
+            say.career.gateMissEmployedNote(
+              words.career(player.career.id)?.title ?? player.career.title,
+              payRate(player.career.salary, edition.currency, say),
+            ),
+          ]
+        : [say.career.gateMissJoblessNote],
       'normal',
-      `Not this time. The list is posted, ${player.name} is not on it, and nothing else about the year has changed.`,
+      say.career.gateMissNarration(player.name),
     )
     return resolved(
       state,
       state.players,
       event,
-      `${player.name} spins a ${spinValue} and is not appointed.`,
+      say.career.gateMissLog(player.name, spinValue),
       'info',
     )
   }
@@ -287,50 +300,64 @@ function resolveCareerSpin(
    */
   // The card prints the die itself and the narration names the job, so the
   // only thing left to say is the wage.
-  const notes = [`${money(salaryRate(taken.salary, edition.currency))} every ${salaryPeriod(edition.currency)}.`]
+  const takenTitle = words.career(taken.id)?.title ?? taken.title
+  const notes = [
+    say.format.everyPeriod(
+      formatMoney(salaryRate(taken.salary, edition.currency), edition.currency),
+      salaryPeriodIn(edition.currency, say),
+    ),
+  ]
 
   const narration = previous
-    ? `Out with the old — ${player.name} leaves the ${previous.title} life behind to become a ${taken.title}.`
-    : `${player.name} is hired as a ${taken.title} — the paydays start counting now!`
-  const event = outcomeEvent(space, player, 'New Career', 0, notes, 'milestone', narration)
+    ? say.career.switchedNarration(
+        player.name,
+        words.career(previous.id)?.title ?? previous.title,
+        takenTitle,
+      )
+    : say.career.hiredNarration(player.name, takenTitle)
+  const event = outcomeEvent(space, player, say.career.hiredCardTitle, 0, notes, 'milestone', narration)
 
   return resolved(
     state,
     replacePlayer(state.players, updated),
     event,
-    `${player.name} spins a ${spinValue} and becomes a ${taken.title}.`,
+    say.career.hiredLog(player.name, spinValue, takenTitle),
     'milestone',
   )
 }
 
-function resolveHouse(state: GameState, optionId: string): GameState {
+function resolveHouse(state: GameState, optionId: string, text: GameText): GameState {
   const player = state.players[state.currentPlayerIndex]
   if (!player) throw new Error('choose: no current player')
   const edition = editionOf(state)
   const { economy, currency } = edition
   const money = (amount: Money): string => formatMoney(amount, currency)
   const space = currentSpace(state, player)
+  const { say } = text
+  const words = text.board(edition)
+  const named = (house: { id: string; name: string }): string =>
+    words.house(house.id)?.name ?? house.name
 
   if (optionId === DECLINE_HOUSE_OPTION_ID) {
     const staying = player.house
     const event = outcomeEvent(
       space,
       player,
-      'House Hunting',
+      say.house.cardTitle,
       0,
       // Nothing moved and nothing changed hands: the narration is the whole
       // of it, and a note repeating it back was the only thing here.
       [],
       'normal',
       staying
-        ? `${player.name} likes the ${staying.name} just fine, thank you very much.`
-        : `${player.name} keeps renting — that cash might be worth more elsewhere!`,
+        ? say.house.stayNarration(player.name, named(staying))
+        : say.house.keepRentingNarration(player.name),
     )
     return resolved(
       state,
       state.players,
       event,
-      staying ? `${player.name} stays in the ${staying.name}.` : `${player.name} keeps renting for now.`,
+      staying ? say.house.stayLog(player.name, named(staying)) : say.house.keepRentingLog(player.name),
       'info',
     )
   }
@@ -345,44 +372,53 @@ function resolveHouse(state: GameState, optionId: string): GameState {
 
   // Which house, and which house it replaced, are the narration's own
   // sentence — what it cannot say is what the old place was credited at.
-  const notes: string[] = previous ? [`Old home credited back at ${money(previous.price)}.`] : []
+  const notes: string[] = previous ? [say.house.tradeInCreditNote(money(previous.price))] : []
 
   const narration = previous
-    ? `Moving up in the world! ${player.name} trades the ${previous.name} for the ${house.name}.`
-    : `${player.name} gets the keys to the ${house.name} — a home of their own at last!`
+    ? say.house.tradedUpNarration(player.name, named(previous), named(house))
+    : say.house.boughtNarration(player.name, named(house))
 
-  const event = outcomeEvent(space, player, 'New Home', delta, notes, emphasisForMoney(delta, economy), narration)
+  const event = outcomeEvent(
+    space,
+    player,
+    say.house.boughtCardTitle,
+    delta,
+    notes,
+    emphasisForMoney(delta, economy),
+    narration,
+  )
 
   return resolved(
     state,
     replacePlayer(state.players, updated),
     event,
     previous
-      ? `${player.name} trades up to the ${house.name}.`
-      : `${player.name} buys the ${house.name}.`,
+      ? say.house.tradedUpLog(player.name, named(house))
+      : say.house.boughtLog(player.name, named(house)),
     'milestone',
   )
 }
 
-function resolveStock(state: GameState, optionId: string): GameState {
+function resolveStock(state: GameState, optionId: string, text: GameText): GameState {
   const player = state.players[state.currentPlayerIndex]
   if (!player) throw new Error('choose: no current player')
   const edition = editionOf(state)
   const { economy, currency } = edition
   const money = (amount: Money): string => formatMoney(amount, currency)
   const space = currentSpace(state, player)
+  const { say } = text
 
   if (optionId === DECLINE_STOCK_OPTION_ID) {
     const event = outcomeEvent(
       space,
       player,
-      'Trading Floor',
+      say.stock.cardTitle,
       0,
       [],
       'normal',
-      `${player.name} keeps their money in their pocket — nobody ever lost it that way.`,
+      say.stock.declinedNarration(player.name),
     )
-    return resolved(state, state.players, event, `${player.name} passes on the shares.`, 'info')
+    return resolved(state, state.players, event, say.stock.declinedLog(player.name), 'info')
   }
 
   const stock = findStock(optionId, edition)
@@ -390,54 +426,54 @@ function resolveStock(state: GameState, optionId: string): GameState {
 
   const updated = buyShares(player, stock, SHARES_PER_PURCHASE, economy)
   const delta = updated.money - player.money
-  const shareLabel = SHARES_PER_PURCHASE === 1 ? 'share' : 'shares'
 
   // What the purchase cost is on the plate and the company is in the
   // narration; the count of shares and what one is worth at the end are the
   // two facts neither of those carries.
   const notes = [
-    `${SHARES_PER_PURCHASE} ${shareLabel} bought.`,
-    `Each share cashes out between ${money(stock.payoutRange[0])} and ${money(stock.payoutRange[1])} at retirement.`,
+    say.stock.boughtNote(SHARES_PER_PURCHASE),
+    say.stock.payoutNote(money(stock.payoutRange[0]), money(stock.payoutRange[1])),
   ]
 
   const event = outcomeEvent(
     space,
     player,
-    'Trading Floor',
+    say.stock.cardTitle,
     delta,
     notes,
     emphasisForMoney(delta, economy),
-    `${player.name} buys into ${stock.ticker}! We find out at retirement whether that was genius or nerve.`,
+    say.stock.boughtNarration(player.name, stock.ticker),
   )
 
   return resolved(
     state,
     replacePlayer(state.players, updated),
     event,
-    `${player.name} buys ${SHARES_PER_PURCHASE} ${shareLabel} of ${stock.ticker} for ${money(Math.abs(delta))}.`,
+    say.stock.boughtLog(player.name, SHARES_PER_PURCHASE, stock.ticker, money(Math.abs(delta))),
     'money-out',
   )
 }
 
-function resolveInsurance(state: GameState, optionId: string): GameState {
+function resolveInsurance(state: GameState, optionId: string, text: GameText): GameState {
   const player = state.players[state.currentPlayerIndex]
   if (!player) throw new Error('choose: no current player')
   const edition = editionOf(state)
   const { economy, currency } = edition
   const money = (amount: Money): string => formatMoney(amount, currency)
   const space = currentSpace(state, player)
+  const { say } = text
 
   if (optionId === DECLINE_INSURANCE_OPTION_ID) {
     const event = outcomeEvent(
       space,
       player,
-      'Insurance Office',
+      say.insurance.cardTitle,
       0,
       [],
       'normal',
-      `${player.name} takes the risk and walks out uninsured. Fingers crossed!`,
+      say.insurance.declinedNarration(player.name),
     )
-    return resolved(state, state.players, event, `${player.name} declines a policy.`, 'info')
+    return resolved(state, state.players, event, say.insurance.declinedLog(player.name), 'info')
   }
 
   const kind = insuranceKindFromOptionId(optionId)
@@ -448,48 +484,51 @@ function resolveInsurance(state: GameState, optionId: string): GameState {
 
   // Not what it cost — the delta plate is showing exactly that, signed, one
   // line up. What a policy is *for* is the note nobody else prints.
-  const notes: string[] = []
-  if (kind === 'life') notes.push('It matures at retirement and pays straight into the final total.')
-  else notes.push(`A ${kind === 'home' ? 'house fire' : 'road accident'} now costs you nothing.`)
+  const notes: string[] = [kind === 'life' ? say.insurance.lifeNote : say.insurance.coverNote(kind)]
 
   const event = outcomeEvent(
     space,
     player,
-    'Insurance Office',
+    say.insurance.cardTitle,
     delta,
     notes,
     emphasisForMoney(delta, economy),
-    `${player.name} is covered, and that premium could look very clever before the game is out.`,
+    say.insurance.boughtNarration(player.name),
   )
 
   return resolved(
     state,
     replacePlayer(state.players, updated),
     event,
-    `${player.name} takes out ${kind} insurance for ${money(economy.insurancePremium[kind])}.`,
+    say.insurance.boughtLog(
+      player.name,
+      say.insurance.policyInline(kind),
+      money(economy.insurancePremium[kind]),
+    ),
     'money-out',
   )
 }
 
-function resolveBank(state: GameState, optionId: string): GameState {
+function resolveBank(state: GameState, optionId: string, text: GameText): GameState {
   const player = state.players[state.currentPlayerIndex]
   if (!player) throw new Error('choose: no current player')
   const edition = editionOf(state)
   const { economy, currency } = edition
   const money = (amount: Money): string => formatMoney(amount, currency)
   const space = currentSpace(state, player)
+  const { say } = text
 
   if (optionId === BANK_DECLINE_OPTION_ID) {
     const event = outcomeEvent(
       space,
       player,
-      'The Bank',
+      say.bank.cardTitle,
       0,
       [],
       'normal',
-      `${player.name} walks straight past the bank. No debts, no drama.`,
+      say.bank.declinedNarration(player.name),
     )
-    return resolved(state, state.players, event, `${player.name} leaves the bank empty-handed.`, 'info')
+    return resolved(state, state.players, event, say.bank.declinedLog(player.name), 'info')
   }
 
   if (optionId === BANK_LOAN_OPTION_ID) {
@@ -498,19 +537,19 @@ function resolveBank(state: GameState, optionId: string): GameState {
     const event = outcomeEvent(
       space,
       player,
-      'The Bank',
+      say.bank.cardTitle,
       delta,
       // How much was borrowed is on the delta plate and in the narration
       // both; how deep the pile now is, is neither.
-      [`Now carrying ${updated.loans} loan${updated.loans > 1 ? 's' : ''}.`],
+      [say.bank.carryingNote(updated.loans)],
       emphasisForMoney(delta, economy),
-      `${money(economy.loanPrincipal)} of the bank's money for ${player.name} — spend it well, it wants more back!`,
+      say.bank.borrowedNarration(money(economy.loanPrincipal), player.name),
     )
     return resolved(
       state,
       replacePlayer(state.players, updated),
       event,
-      `${player.name} takes out a loan: ${money(economy.loanPrincipal)}.`,
+      say.bank.borrowedLog(player.name, money(economy.loanPrincipal)),
       'money-in',
     )
   }
@@ -522,25 +561,23 @@ function resolveBank(state: GameState, optionId: string): GameState {
     const event = outcomeEvent(
       space,
       player,
-      'The Bank',
+      say.bank.cardTitle,
       delta,
       // "Debt free!" is the narration's line when the pile clears; the note
       // only speaks when there is a pile left to count.
       // What the settlement cost is the plate's figure, signed; the note is
       // only for what is left on the pile behind it.
-      updated.loans === 0
-        ? []
-        : [`${updated.loans} loan${updated.loans > 1 ? 's' : ''} still outstanding.`],
+      updated.loans === 0 ? [] : [say.bank.outstandingNote(updated.loans)],
       emphasisForMoney(delta, economy),
       updated.loans === 0
-        ? `Debt free! ${player.name} clears the last loan and walks out of that bank standing tall.`
-        : `${player.name} chips a loan off the pile — cheaper now than it would be at retirement.`,
+        ? say.bank.debtFreeNarration(player.name)
+        : say.bank.repaidNarration(player.name),
     )
     return resolved(
       state,
       replacePlayer(state.players, updated),
       event,
-      `${player.name} repays a loan early for ${money(earlySettlement)}.`,
+      say.bank.repaidLog(player.name, money(earlySettlement)),
       'money-out',
     )
   }
@@ -556,12 +593,15 @@ function resolveTuitionSpin(
   spinValue: SpinValue,
   edition: ReturnType<typeof editionOf>,
   money: (amount: Money) => string,
+  say: NarrationText,
+  words: EditionText,
 ): GameState {
   const { economy } = edition
   // Which of the two bills this tile is sending — the tile says so, and
   // `applyEffect` printed the same spec's bands before the press.
   const bill = space?.effect.type === 'tuition' ? space.effect.bill : undefined
-  const band = tuitionBandFor(tuitionSpecFor(bill, economy).outcomes, spinValue)
+  const outcomes = tuitionSpecFor(bill, economy).outcomes
+  const band = tuitionBandFor(outcomes, spinValue)
   /*
    * Three ways this die can land, not two.
    *
@@ -590,16 +630,42 @@ function resolveTuitionSpin(
    * used to argue with it says nothing it does not already say — except on a
    * full ride, where there is no plate at all and the good news needs saying.
    */
-  const notes = band.cost > 0 ? [] : band.cost < 0 ? [] : ['No tuition due — a full ride.']
+  const notes = band.cost === 0 ? [say.tuition.fullRideNote] : []
 
-  const event = outcomeEvent(space, player, 'Tuition Bill', delta, notes, emphasisForMoney(delta, economy), band.note)
+  /*
+   * The band's own line, in the reader's language.
+   *
+   * `EconomyText.tuitionNotes` has been translated in all ten overlays since
+   * they landed and read by nobody: this is the only place a tuition note ever
+   * reaches a card, and it read `band.note` straight off the English economy.
+   * Positional, because a band has no id — only an order, worst spin first —
+   * and `overlays.test.ts` pins the array lengths so a band added later cannot
+   * shift every note by one.
+   */
+  const narration = words.tuitionNote(outcomes.indexOf(band)) ?? band.note
+
+  const event = outcomeEvent(
+    space,
+    player,
+    say.tuition.cardTitle,
+    delta,
+    notes,
+    emphasisForMoney(delta, economy),
+    narration,
+  )
   return resolved(
     state,
     replacePlayer(state.players, updated),
     event,
-    `${player.name} spins a ${spinValue} for tuition: ${
-      band.cost > 0 ? money(band.cost) : band.cost < 0 ? `${money(-band.cost)} paid to them` : 'a full ride'
-    }.`,
+    say.tuition.billLog(
+      player.name,
+      spinValue,
+      band.cost > 0
+        ? say.tuition.billCharged(money(band.cost))
+        : band.cost < 0
+          ? say.tuition.billPaid(money(-band.cost))
+          : say.tuition.billFullRide,
+    ),
     band.cost > 0 ? 'money-out' : band.cost < 0 ? 'money-in' : 'event',
   )
 }
@@ -612,12 +678,15 @@ function resolvePromotionSpin(
   spinValue: SpinValue,
   edition: ReturnType<typeof editionOf>,
   money: (amount: Money) => string,
+  say: NarrationText,
+  words: EditionText,
 ): GameState {
   const career = player.career
   if (!career) throw new Error('choose: promotion spin with no career')
   const next = nextRungOf(career, edition)
   if (!next) throw new Error('choose: promotion spin with nobody to promote to')
   const needed = career.promotionSpin ?? DEFAULT_PROMOTION_SPIN
+  const nextTitle = words.career(next.id)?.title ?? next.title
 
   if (spinValue < needed) {
     // Never a dead tile: passed over is still a raise.
@@ -626,7 +695,7 @@ function resolvePromotionSpin(
     const event = outcomeEvent(
       space,
       player,
-      'Review',
+      say.promotion.cardTitle,
       0,
       /*
        * One line, and it is the good news.
@@ -641,17 +710,22 @@ function resolvePromotionSpin(
        */
       [
         edition.currency.salaryDisplay
-          ? raiseNote(career.salary, newSalary, edition.currency)
-          : `A raise anyway: ${money(newSalary)}`,
+          ? raiseNote(career.salary, newSalary, edition.currency, say)
+          : say.promotion.raiseAnywayNote(money(newSalary)),
       ],
       'normal',
-      `Not this time, ${player.name} — but they find you a raise on the way out of the room.`,
+      say.promotion.missedNarration(player.name),
     )
     return resolved(
       state,
       replacePlayer(state.players, raised),
       event,
-      `${player.name} spins a ${spinValue} and is passed over for ${next.title}, taking a rise to ${money(salaryRate(newSalary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
+      say.promotion.missedLog(
+        player.name,
+        spinValue,
+        nextTitle,
+        payRate(newSalary, edition.currency, say),
+      ),
       'event',
     )
   }
@@ -664,23 +738,34 @@ function resolvePromotionSpin(
   // the footnote carries the one thing neither says: the wage. The bar it
   // cleared used to sit here too — a second line saying, in words, what the
   // die on the card above it already said in a number.
-  const notes = [`${money(salaryRate(arrived.salary, edition.currency))} every ${salaryPeriod(edition.currency)}.`]
+  const arrivedTitle = words.career(arrived.id)?.title ?? arrived.title
+  const notes = [
+    say.format.everyPeriod(
+      formatMoney(salaryRate(arrived.salary, edition.currency), edition.currency),
+      salaryPeriodIn(edition.currency, say),
+    ),
+  ]
   const event = outcomeEvent(
     space,
     player,
-    'Review',
+    say.promotion.cardTitle,
     0,
     notes,
     'milestone',
     twoAtOnce
-      ? `The top of the wheel! They skip a whole rung: ${player.name} is a ${arrived.title}, and the room is not sure what just happened.`
-      : `Promoted! ${player.name} is a ${arrived.title} now.`,
+      ? say.promotion.doubleNarration(player.name, arrivedTitle)
+      : say.promotion.promotedNarration(player.name, arrivedTitle),
   )
   return resolved(
     state,
     replacePlayer(state.players, promoted),
     event,
-    `${player.name} spins a ${spinValue} and is promoted to ${arrived.title}: ${money(salaryRate(arrived.salary, edition.currency))} a ${salaryPeriod(edition.currency)}.`,
+    say.promotion.promotedLog(
+      player.name,
+      spinValue,
+      arrivedTitle,
+      payRate(arrived.salary, edition.currency, say),
+    ),
     'milestone',
   )
 }
@@ -694,6 +779,8 @@ function resolveMarriageSpin(
   deps: UseCaseDeps,
   edition: ReturnType<typeof editionOf>,
   money: (amount: Money) => string,
+  say: NarrationText,
+  words: EditionText,
 ): GameState {
   const { economy } = edition
   const { marriage } = economy
@@ -707,17 +794,14 @@ function resolveMarriageSpin(
       ...outcomeEvent(
         space,
         player,
-        'Wedding Day',
+        say.marriage.cardTitle,
         0,
         // The card prints the first ask; only the second one needs saying.
         // The tiles are already dealt as their own chips above the notes,
         // so listing their titles here said them twice on one card.
-        [
-          `Asked again, spun a ${askedAgain} — not this year, and not next year either.`,
-          'Single, and the road ahead is entirely yours: children, Family Lane and every bonus on it are still open.',
-        ],
+        [say.marriage.refusedNote(askedAgain), say.marriage.refusedSecondNote],
         'milestone',
-        `No wedding for ${player.name} — so they spend the year on themselves instead, and it makes a far better story.`,
+        say.marriage.refusedNarration(player.name),
       ),
       lifeTilesGained: tiles,
     }
@@ -725,7 +809,7 @@ function resolveMarriageSpin(
       state,
       replacePlayer(state.players, updated),
       event,
-      `${player.name} spins a ${asked} and a ${askedAgain}: no wedding, but a LIFE tile out of the year.`,
+      say.marriage.refusedLog(player.name, asked, askedAgain),
       'event',
     )
   }
@@ -736,7 +820,17 @@ function resolveMarriageSpin(
    * debts, a low first ask is a reception nobody budgeted for, and only the
    * top of the wheel is the marriage everybody pictures.
    */
-  const outcome = askedAgain !== null ? marriage.rescued : marriageBandFor(marriage.outcomes, asked)
+  const rescued = askedAgain !== null
+  const outcome = rescued ? marriage.rescued : marriageBandFor(marriage.outcomes, asked)
+  /*
+   * The band's own line, translated — the other half of the channel
+   * `EconomyText` has been carrying since the overlays landed, unread. A
+   * rescued proposal has its own entry rather than an index, because it is not
+   * one of `outcomes` at all.
+   */
+  const outcomeNote = rescued
+    ? (words.marriageRescuedNote() ?? outcome.note)
+    : (words.marriageNote(marriage.outcomes.indexOf(outcome)) ?? outcome.note)
   const gift = Math.round(economy.weddingGift * outcome.giftMultiplier)
   const payers = rivalsOf(state, player)
 
@@ -744,42 +838,41 @@ function resolveMarriageSpin(
   let mover = marryPlayer(player)
   // The first ask is printed on the card; a second one is a fact of its own
   // and the only spin the card cannot show.
-  const notes: string[] = askedAgain !== null
-    ? [`Asked again, spun a ${askedAgain} — and this time, yes.`, outcome.note]
-    : [outcome.note]
+  const notes: string[] =
+    askedAgain !== null ? [say.marriage.rescuedNote(askedAgain), outcomeNote] : [outcomeNote]
 
   for (const payer of payers) {
     players = replacePlayer(players, debitPlayer(payer, gift, economy))
     mover = creditPlayer(mover, gift)
-    notes.push(`${payer.name} pays a ${money(gift)} wedding gift.`)
+    notes.push(say.marriage.giftNote(payer.name, money(gift)))
   }
   if (outcome.windfall > 0) {
     mover = creditPlayer(mover, outcome.windfall)
-    notes.push(`Two incomes: ${money(outcome.windfall)}`)
+    notes.push(say.marriage.windfallNote(money(outcome.windfall)))
   }
   if (outcome.cost > 0) {
     mover = debitPlayer(mover, outcome.cost, economy)
-    notes.push(`The bill for it all: ${money(-outcome.cost)}`)
+    notes.push(say.marriage.costNote(money(-outcome.cost)))
   }
   players = replacePlayer(players, mover)
 
   const delta = mover.money - player.money
   const narration =
     delta < 0
-      ? `Married! And already ${money(-delta)} down, ${player.name} — nobody tells you about that part.`
+      ? say.marriage.costlyNarration(money(-delta), player.name)
       : payers.length === 0
-        ? `Wedding bells for ${player.name} — a quiet ceremony, but a very happy one.`
+        ? say.marriage.quietNarration(player.name)
         : outcome.giftMultiplier > 1
-          ? `The wedding of the year! Everybody at this table is paying for it, ${player.name}.`
-          : `Wedding bells for ${player.name}! Everybody else, hand over those gift envelopes.`
-  const event = outcomeEvent(space, player, 'Wedding Day', delta, notes, 'milestone', narration)
+          ? say.marriage.lavishNarration(player.name)
+          : say.marriage.marriedNarration(player.name)
+  const event = outcomeEvent(space, player, say.marriage.cardTitle, delta, notes, 'milestone', narration)
   return resolved(
     state,
     players,
     event,
     delta < 0
-      ? `${player.name} gets married, and is ${money(-delta)} worse off for it.`
-      : `${player.name} gets married!`,
+      ? say.marriage.costlyLog(player.name, money(-delta))
+      : say.marriage.marriedLog(player.name),
     'milestone',
   )
 }
@@ -792,6 +885,7 @@ function resolveHouseholdSpin(
   spinValue: SpinValue,
   edition: ReturnType<typeof editionOf>,
   money: (amount: Money) => string,
+  say: NarrationText,
 ): GameState {
   const { economy } = edition
   // The same function the card printed all six months from before the press.
@@ -808,19 +902,27 @@ function resolveHouseholdSpin(
    */
   const narration =
     amount < 0
-      ? `Your partner has been shopping, ${player.name}. That is the month gone.`
+      ? say.household.downNarration(player.name)
       : amount === 0
-        ? `The joint account lands exactly where it started. Nobody wins that argument.`
-        : `Two incomes and a good month for ${player.name}!`
+        ? say.household.evenNarration
+        : say.household.upNarration(player.name)
 
-  const event = outcomeEvent(space, player, 'The Joint Account', delta, [], emphasisForMoney(delta, economy), narration)
+  const event = outcomeEvent(
+    space,
+    player,
+    say.household.cardTitle,
+    delta,
+    [],
+    emphasisForMoney(delta, economy),
+    narration,
+  )
   return resolved(
     state,
     replacePlayer(state.players, updated),
     event,
     amount < 0
-      ? `${player.name}'s joint account takes a hit, spinning a ${spinValue}: ${money(delta)}.`
-      : `${player.name}'s household comes out ahead, spinning a ${spinValue}: ${money(delta)}.`,
+      ? say.household.downLog(player.name, spinValue, money(delta))
+      : say.household.upLog(player.name, spinValue, money(delta)),
     amount < 0 ? 'money-out' : 'money-in',
   )
 }
@@ -850,6 +952,8 @@ function resolveTradeYearSpin(
   share: number,
   edition: ReturnType<typeof editionOf>,
   money: (amount: Money) => string,
+  say: NarrationText,
+  words: EditionText,
 ): GameState {
   const { economy, currency } = edition
   const career = player.career
@@ -860,10 +964,19 @@ function resolveTradeYearSpin(
   // there is no live path here — the guard only keeps the types honest for a
   // decision built by hand in a test.
   if (!year || !career) {
-    const event = outcomeEvent(space, player, 'The Year in the Trade', 0, [], 'normal', `${player.name} has no trade to have a year in.`)
-    return resolved(state, state.players, event, `${player.name} is between jobs, so the year passes them by.`, 'info')
+    const event = outcomeEvent(
+      space,
+      player,
+      say.tradeYear.cardTitle,
+      0,
+      [],
+      'normal',
+      say.tradeYear.noTradeNarration(player.name),
+    )
+    return resolved(state, state.players, event, say.tradeYear.noJobLog(player.name), 'info')
   }
 
+  const title = words.career(career.id)?.title ?? career.title
   const updated =
     year.swing >= 0 ? creditPlayer(player, year.swing) : debitPlayer(player, -year.swing, economy)
   const delta = updated.money - player.money
@@ -871,10 +984,17 @@ function resolveTradeYearSpin(
     ...outcomeEvent(
       space,
       player,
-      'The Year in the Trade',
+      say.tradeYear.cardTitle,
       delta,
-      [`Still a ${career.title}, on the same rung.`],
+      [say.tradeYear.sameRungNote(title)],
       emphasisForMoney(delta, economy),
+      /*
+       * The trade's own vignette, and the one string on this card still read
+       * off the English edition data in every language. `EditionTranslation`
+       * has no slot for `tradeYearStories` — see the PR notes; adding one is a
+       * change to the overlay contract and to all ten overlays, which is a
+       * separate piece of work from opening this channel.
+       */
       year.story,
     ),
     icon: career.icon,
@@ -884,8 +1004,8 @@ function resolveTradeYearSpin(
     replacePlayer(state.players, updated),
     event,
     year.swing >= 0
-      ? `${player.name} has a good year as a ${career.title}, spinning a ${spinValue}: ${money(delta)}.`
-      : `${player.name} has a bad year as a ${career.title}, spinning a ${spinValue}: ${money(delta)}.`,
+      ? say.tradeYear.goodLog(player.name, title, spinValue, money(delta))
+      : say.tradeYear.badLog(player.name, title, spinValue, money(delta)),
     year.swing >= 0 ? 'money-in' : 'money-out',
   )
 }
@@ -906,11 +1026,12 @@ function resolveValueSpin(state: GameState, optionId: string, deps: UseCaseDeps)
   const { currency } = edition
   const money = (amount: Money): string => formatMoney(amount, currency)
   const space = currentSpace(state, player)
+  const text = textOf(deps)
 
   // Staying put is the one decline a value-spin decision can offer, and it
   // never touches the wheel — same as every other decline in the game.
   if (optionId === CAREER_STAY_OPTION_ID) {
-    return resolveCareerStay(state, player, space, currency, money)
+    return resolveCareerStay(state, player, space, currency, text.say, text.board(edition))
   }
 
   if (optionId !== VALUE_SPIN_OPTION_ID) throw new Error(`choose: unknown value-spin option "${optionId}"`)
@@ -965,55 +1086,71 @@ function spinOutcome(
   money: (amount: Money) => string,
 ): GameState {
   const { economy } = edition
+  const text = textOf(deps)
+  const { say } = text
+  const words = text.board(edition)
+  /** The tile's own defence of where the money went, in the reader's language. */
+  const tileReason = space ? words.space(space.id, space.description)?.reason : undefined
 
   // A career spin is identified by the offers it carries, not by the space's
   // own effect — a decision built for a test, or dealt from a tile whose
   // effect the board no longer holds, still resolves correctly this way.
   if (state.pendingDecision?.offeredCareerIds) {
-    return resolveCareerSpin(state, player, space, spinValue, edition, money)
+    return resolveCareerSpin(state, player, space, spinValue, edition, say, words)
   }
 
   if (space?.effect.type === 'spinForMoney') {
     const gain = perPipPayout(space.effect.perPip, spinValue)
     const updated = creditPlayer(player, gain)
     const delta = updated.money - player.money
+    const reason = tileReason ?? space.effect.reason
     const event = outcomeEvent(
       space,
       player,
-      'Spin',
+      say.spinForMoney.cardTitle,
       delta,
-      [space.effect.reason],
+      [reason],
       emphasisForMoney(delta, economy),
       // The plate says how much. What the host is for is that it is done.
-      `The wheel has spoken, and ${player.name} banks it.`,
+      say.spinForMoney.resultNarration(player.name),
     )
     return resolved(
       state,
       replacePlayer(state.players, updated),
       event,
-      `${space.effect.reason} ${player.name} spins a ${spinValue}: ${money(gain)}.`,
+      say.spinForMoney.resultLog(reason, player.name, spinValue, money(gain)),
       gain >= 0 ? 'money-in' : 'money-out',
     )
   }
 
   if (space?.effect.type === 'tuition') {
-    return resolveTuitionSpin(state, player, space, spinValue, edition, money)
+    return resolveTuitionSpin(state, player, space, spinValue, edition, money, say, words)
   }
 
   if (space?.effect.type === 'promotion') {
-    return resolvePromotionSpin(state, player, space, spinValue, edition, money)
+    return resolvePromotionSpin(state, player, space, spinValue, edition, money, say, words)
   }
 
   if (space?.effect.type === 'getMarried') {
-    return resolveMarriageSpin(state, player, space, spinValue, deps, edition, money)
+    return resolveMarriageSpin(state, player, space, spinValue, deps, edition, money, say, words)
   }
 
   if (space?.effect.type === 'household') {
-    return resolveHouseholdSpin(state, player, space, spinValue, edition, money)
+    return resolveHouseholdSpin(state, player, space, spinValue, edition, money, say)
   }
 
   if (space?.effect.type === 'tradeYear') {
-    return resolveTradeYearSpin(state, player, space, spinValue, space.effect.share, edition, money)
+    return resolveTradeYearSpin(
+      state,
+      player,
+      space,
+      spinValue,
+      space.effect.share,
+      edition,
+      money,
+      say,
+      words,
+    )
   }
 
   if (space?.effect.type === 'haveChildren') {
@@ -1033,8 +1170,16 @@ function spinOutcome(
     // The children rework owns this outcome now: the roll decides whether
     // anyone arrived at all, so the card can no longer be titled after the
     // envelopes or narrated as opening them.
-    const copy = arrivalCopy(player.name, arriving, spinValue, gift, money)
-    const event = outcomeEvent(space, player, 'New Baby', delta, copy.notes, copy.emphasis, copy.narration)
+    const copy = arrivalCopy(player.name, arriving, spinValue, gift, money, say)
+    const event = outcomeEvent(
+      space,
+      player,
+      say.baby.cardTitle,
+      delta,
+      copy.notes,
+      copy.emphasis,
+      copy.narration,
+    )
     return resolved(
       state,
       replacePlayer(state.players, updated),
@@ -1067,8 +1212,15 @@ function spinOutcome(
   const perPip = player.career?.payPerPip ?? economy.casualWagePerPip
   const notes =
     kind === 'casual'
-      ? [`Between jobs — shifts pay ${money(perPip)} for every pip you spin.`]
-      : [`${player.career?.title ?? 'Your trade'} — ${money(perPip)} for every pip you spin.`]
+      ? [say.payday.casualRateNote(money(perPip))]
+      : [
+          say.payday.tradeRateNote(
+            player.career
+              ? (words.career(player.career.id)?.title ?? player.career.title)
+              : say.payday.yourTrade,
+            money(perPip),
+          ),
+        ]
   /*
    * And the narration no longer says the total. It said it in full — "That
    * is what the week was worth: ¥2,800,000 for Mato." — directly above a
@@ -1080,14 +1232,22 @@ function spinOutcome(
    */
   const narration =
     kind === 'casual'
-      ? `No wasted week either — ${player.name} picks up every shift going.`
-      : `That is what the week was worth to ${player.name}. The next one will be worth something else.`
+      ? say.payday.casualNarration(player.name)
+      : say.payday.unsteadyNarration(player.name)
   const logMessage =
     kind === 'casual'
-      ? `${player.name} picks up casual shifts, spinning ${spinValue}: ${money(amount)}.`
-      : `${player.name} collects payday, spinning ${spinValue}: ${money(amount)}.`
+      ? say.payday.casualLog(player.name, spinValue, money(amount))
+      : say.payday.unsteadyLog(player.name, spinValue, money(amount))
   const event = {
-    ...outcomeEvent(space, player, 'Payday', delta, notes, emphasisForMoney(delta, economy), narration),
+    ...outcomeEvent(
+      space,
+      player,
+      say.payday.cardTitle,
+      delta,
+      notes,
+      emphasisForMoney(delta, economy),
+      narration,
+    ),
     // The trade this week's shifts were worked at — absent for a casual
     // player between jobs, who has none. See `careerIcon` on `LandingEvent`.
     ...(player.career === null ? {} : { careerIcon: player.career.icon }),
@@ -1113,18 +1273,19 @@ function resolveRetireEarly(state: GameState, optionId: string, deps: UseCaseDep
   const { economy, currency } = edition
   const money = (amount: Money): string => formatMoney(amount, currency)
   const space = currentSpace(state, player)
+  const { say } = textOf(deps)
 
   if (optionId === FIRE_DECLINE_OPTION_ID) {
     const event = outcomeEvent(
       space,
       player,
-      'The Number',
+      say.fire.cardTitle,
       0,
       [],
       'normal',
-      `${player.name} decides the number can wait. There is road left, and road pays.`,
+      say.fire.declinedNarration(player.name),
     )
-    return resolved(state, state.players, event, `${player.name} keeps working.`, 'info')
+    return resolved(state, state.players, event, say.fire.declinedLog(player.name), 'info')
   }
 
   if (optionId !== FIRE_RETIRE_OPTION_ID) {
@@ -1153,21 +1314,21 @@ function resolveRetireEarly(state: GameState, optionId: string, deps: UseCaseDep
     ...outcomeEvent(
       space,
       player,
-      'The Number',
+      say.fire.cardTitle,
       delta,
       [
-        `Bonus: ${money(payout)}`,
-        `${money(economy.fireNumber)} went into the fund to get there.`,
-        `Retirement rank #${rank}, and every payday still on the road belongs to somebody else now.`,
+        say.fire.bonusNote(money(payout)),
+        say.fire.stakeNote(money(economy.fireNumber)),
+        say.fire.rankNote(rank),
       ],
       'milestone',
       // The payout is a note of its own and the rank is another; what the
       // narration is for is whether stopping here was the right call.
       spin >= 5
-        ? `The fund comes back well ahead and ${player.name} never works another day. That is how it is done.`
+        ? say.fire.goodNarration(player.name)
         : spin <= 2
-          ? `The fund comes back at less than went into it. ${player.name} stopped a year too soon, and there is no going back.`
-          : `${player.name} stops working for good. No more paydays — and no more bills either.`,
+          ? say.fire.badNarration(player.name)
+          : say.fire.evenNarration(player.name),
     ),
     // This roll never passes through `resolveSpinOutcome`, so the mark that
     // lets the card print its own die has to be stamped here by hand.
@@ -1179,7 +1340,7 @@ function resolveRetireEarly(state: GameState, optionId: string, deps: UseCaseDep
       state,
       replacePlayer(state.players, updated),
       event,
-      `${player.name} retires early: ${money(economy.fireNumber)} into the fund, a spin of ${spin}, ${money(payout)} back.`,
+      say.fire.retiredLog(player.name, money(economy.fireNumber), spin, money(payout)),
       'milestone',
     ),
     // …and so does the number the wheel on screen has to land on. `rolled` is
@@ -1206,13 +1367,13 @@ export function choose(state: GameState, optionId: string, deps: UseCaseDeps): G
     case 'branch':
       return resolveBranch(state, optionId, deps)
     case 'house':
-      return resolveHouse(state, optionId)
+      return resolveHouse(state, optionId, textOf(deps))
     case 'stock':
-      return resolveStock(state, optionId)
+      return resolveStock(state, optionId, textOf(deps))
     case 'insurance':
-      return resolveInsurance(state, optionId)
+      return resolveInsurance(state, optionId, textOf(deps))
     case 'bank':
-      return resolveBank(state, optionId)
+      return resolveBank(state, optionId, textOf(deps))
     case 'retire':
       return resolveRetireEarly(state, optionId, deps)
     case 'valueSpin':

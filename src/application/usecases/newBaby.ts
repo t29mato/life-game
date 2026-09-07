@@ -1,5 +1,6 @@
 import type { ChildArrivalBand, LandingEmphasis, Money, RollAmountRow } from '@domain/model/types'
 import type { CurrencySpec } from '@domain/edition/types'
+import type { NarrationText } from '../i18n/en'
 import { formatMoney } from './format'
 
 /*
@@ -19,18 +20,14 @@ import { formatMoney } from './format'
  * year in which no child arrived, which is a thing that happens to real
  * families and is not a losing roll — so it is not painted as one. Nothing is
  * deducted, the emphasis stays `normal`, and the card says what happened in
- * one short sentence.
+ * one short sentence. Every translation inherits that rule; the Japanese
+ * catalogue restates it where the strings live.
  * ---------------------------------------------------------------------------
  */
 
 /** What the envelopes come to, given how many arrived. Nobody arrives, nobody gives. */
 export function celebrationFor(children: number, perChild: Money): Money {
   return children * perChild
-}
-
-/** `child` / `children`, so no caller writes the plural by hand. */
-function childLabel(children: number): string {
-  return children === 1 ? 'child' : 'children'
 }
 
 /**
@@ -46,22 +43,28 @@ export function arrivalBands(
   arrivals: readonly ChildArrivalBand[],
   perChild: Money,
   currency: CurrencySpec,
+  say: NarrationText,
 ): readonly RollAmountRow[] {
   let previousUpTo = 0
   return arrivals.map((band) => {
     const range = band.upTo === previousUpTo + 1 ? `${band.upTo}` : `${previousUpTo + 1}-${band.upTo}`
     previousUpTo = band.upTo
-    return { range, amount: arrivalOutcome(band.children, perChild, currency) }
+    return { range, amount: arrivalOutcome(band.children, perChild, currency, say) }
   })
 }
 
 /** One band's news, as the single line the table's Outcome column shows. */
-function arrivalOutcome(children: number, perChild: Money, currency: CurrencySpec): string {
+function arrivalOutcome(
+  children: number,
+  perChild: Money,
+  currency: CurrencySpec,
+  say: NarrationText,
+): string {
   const gift = formatMoney(celebrationFor(children, perChild), currency)
-  if (children === 0) return 'No child this year'
-  if (children === 1) return `One child, +${gift} in gifts`
-  if (children === 2) return `Twins, +${gift} in gifts`
-  return `${children} children, +${gift} in gifts`
+  if (children === 0) return say.roll.noChild
+  if (children === 1) return say.roll.oneChild(gift)
+  if (children === 2) return say.roll.twins(gift)
+  return say.roll.manyChildren(children, gift)
 }
 
 /** Everything a settled arrival has to say, whoever settled it. */
@@ -76,7 +79,10 @@ export interface ArrivalCopy {
  * The card and the log line for an arrival that has happened.
  *
  * `face` is the die that decided it, or `null` for a certain tile that never
- * asked for one — the log says "rolls a 2" only where a 2 was actually rolled.
+ * asked for one — the log says "spins a 2" only where a 2 was actually spun.
+ * The two shapes are separate catalogue entries rather than a lead clause
+ * glued onto a sentence, because a language that puts the verb last cannot
+ * take an English opening and finish it.
  */
 export function arrivalCopy(
   playerName: string,
@@ -84,8 +90,8 @@ export function arrivalCopy(
   face: number | null,
   gift: Money,
   money: (amount: Money) => string,
+  say: NarrationText,
 ): ArrivalCopy {
-  const lead = face === null ? playerName : `${playerName} spins a ${face} and`
   if (children === 0) {
     return {
       // No note. A chip reading "no child" would be the card underlining the
@@ -93,19 +99,18 @@ export function arrivalCopy(
       // into a consolation card.
       notes: [],
       emphasis: 'normal',
-      narration: 'No child this year. The house stays the size it is.',
-      logMessage: `${lead} has no child this year.`,
+      narration: say.baby.noneNarration,
+      logMessage: face === null ? say.baby.noneLog(playerName) : say.baby.noneSpunLog(playerName, face),
     }
   }
-  const label = childLabel(children)
-  const narration =
-    children === 1
-      ? `Congratulations ${playerName} — the family just got bigger!`
-      : `Two at once! ${playerName}'s family just got a good deal bigger.`
+  const narration = children === 1 ? say.baby.oneNarration(playerName) : say.baby.twinsNarration(playerName)
   return {
-    notes: [`+${children} ${label}`, `${money(gift)} in gifts`],
+    notes: [say.baby.arrivalNote(children), say.baby.giftNote(money(gift))],
     emphasis: 'milestone',
     narration,
-    logMessage: `${lead} welcomes ${children} ${label}, and ${money(gift)} in gifts.`,
+    logMessage:
+      face === null
+        ? say.baby.arrivedLog(playerName, children, money(gift))
+        : say.baby.arrivedSpunLog(playerName, face, children, money(gift)),
   }
 }

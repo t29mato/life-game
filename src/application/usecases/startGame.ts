@@ -4,7 +4,7 @@ import { DEFAULT_EDITION_ID, editionFor } from '@domain/edition/registry'
 import { createPlayer } from '@domain/rules/player'
 import { turnStart } from './branch'
 import { appendLog } from './logging'
-import type { UseCaseDeps } from './types'
+import { textOf, type UseCaseDeps } from './types'
 
 function validate(config: NewGameConfig): void {
   const count = config.players.length
@@ -27,7 +27,7 @@ function validate(config: NewGameConfig): void {
 }
 
 /** Builds a fresh game: validates the roster, lays out the board, and moves everyone to `awaitingSpin`. */
-export function startGame(config: NewGameConfig, _deps: UseCaseDeps): GameState {
+export function startGame(config: NewGameConfig, deps: UseCaseDeps): GameState {
   validate(config)
 
   // An all-CPU roster is legal on purpose: watching the computers play each
@@ -78,8 +78,12 @@ export function startGame(config: NewGameConfig, _deps: UseCaseDeps): GameState 
     results: null,
   }
 
-  const names = players.map((player) => player.name).join(', ')
-  const log = appendLog(empty, null, `Welcome to LIFE JOURNEY! Players: ${names}.`, 'info')
+  const log = appendLog(
+    empty,
+    null,
+    textOf(deps).say.turn.welcomeLog(players.map((player) => player.name)),
+    'info',
+  )
 
   // Everybody starts standing on the very first fork, but the opening move
   // of the game is a spin like any other now — see `turnStart` in

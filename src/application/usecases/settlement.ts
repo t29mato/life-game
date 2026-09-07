@@ -14,6 +14,8 @@ import { findStock } from '@domain/edition/lookup'
 import { scaleResale, scaleStockPayout } from '@domain/rules/difficulty'
 import { computeResults } from '@domain/rules/scoring'
 import { SETTLEMENT_FACES, settlementValue } from '@domain/rules/settlement'
+import { EN, type NarrationText } from '../i18n/en'
+import { EN_TEXT, type GameText } from '../i18n/text'
 import { formatMoney } from './format'
 import type { UseCaseDeps } from './types'
 
@@ -143,11 +145,17 @@ export interface ScoreRollPrompt {
  * results screen. Null for a roll whose player has since left the state,
  * which no live game can produce but a corrupt save could.
  */
-export function describeScoreRoll(state: GameState, roll: ScoreRoll): ScoreRollPrompt | null {
+export function describeScoreRoll(
+  state: GameState,
+  roll: ScoreRoll,
+  text: GameText = EN_TEXT,
+): ScoreRollPrompt | null {
   const player = state.players.find((entry) => entry.id === roll.playerId)
   if (!player) return null
   const edition = editionOf(state)
   const currency = edition.currency
+  const { say } = text
+  const words = text.board(edition)
 
   const table: readonly RollAmountRow[] = SETTLEMENT_FACES.map((face) => ({
     range: String(face),
@@ -155,14 +163,17 @@ export function describeScoreRoll(state: GameState, roll: ScoreRoll): ScoreRollP
   }))
 
   if (roll.kind === 'house') {
+    const house = player.house
     return {
       playerId: player.id,
       isCpu: player.isCpu,
-      prompt: `${player.name}'s house`,
+      prompt: say.settlement.housePrompt(player.name),
       // The six prices the buyer might pay are tabled directly beneath this
       // and the die is under those, so the stakes line says only what neither
       // can: whose house, and that it is being sold at all.
-      stakes: `${player.house?.name ?? 'The house'} goes on the market.`,
+      stakes: say.settlement.houseStakes(
+        house ? (words.house(house.id)?.name ?? house.name) : say.settlement.theHouse,
+      ),
       table,
     }
   }
@@ -171,10 +182,10 @@ export function describeScoreRoll(state: GameState, roll: ScoreRoll): ScoreRollP
     return {
       playerId: player.id,
       isCpu: player.isCpu,
-      prompt: `${player.name}'s life policy`,
+      prompt: say.settlement.policyPrompt(player.name),
       // Same shape as the house above: the ladder is tabled below, so "and
       // the die is the fund" was narrating the object on screen.
-      stakes: 'The policy matures. What it paid for over a lifetime is what the fund made.',
+      stakes: say.settlement.policyStakes,
       table,
     }
   }
@@ -184,27 +195,30 @@ export function describeScoreRoll(state: GameState, roll: ScoreRoll): ScoreRollP
   return {
     playerId: player.id,
     isCpu: player.isCpu,
-    prompt: `${player.name}'s shares`,
-    stakes:
-      `${shares} ${shares === 1 ? 'share' : 'shares'} in ` +
-      `${companies} ${companies === 1 ? 'company' : 'companies'} cash out at whatever the market closes on.`,
+    prompt: say.settlement.sharesPrompt(player.name),
+    stakes: say.settlement.sharesStakes(shares, companies),
     table,
   }
 }
 
 /** The line the log keeps for a die that has landed. */
-export function scoreRollLogLine(state: GameState, roll: ScoreRoll, face: SpinValue): string {
+export function scoreRollLogLine(
+  state: GameState,
+  roll: ScoreRoll,
+  face: SpinValue,
+  say: NarrationText = EN,
+): string {
   const player = state.players.find((entry) => entry.id === roll.playerId)
   const edition = editionOf(state)
-  const name = player?.name ?? 'A player'
+  const name = player?.name ?? say.common.someone
   const amount = player ? formatMoney(scoreRollValue(state, player, roll.kind, face, edition), edition.currency) : '?'
   switch (roll.kind) {
     case 'house':
-      return `Spun a ${face} — ${name}'s house sold for ${amount}.`
+      return say.settlement.houseLog(face, name, amount)
     case 'market':
-      return `Spun a ${face} — ${name}'s shares cashed out at ${amount}.`
+      return say.settlement.marketLog(face, name, amount)
     case 'policy':
-      return `Spun a ${face} — ${name}'s life policy matured at ${amount}.`
+      return say.settlement.policyLog(face, name, amount)
   }
 }
 

@@ -781,6 +781,58 @@ export const USA_JA: EditionTranslation = {
       title: '大学教授',
       description: '火曜に講義し、水曜に同僚と論争し、金曜には相手の考えを変えている。学部長の椅子は二度断った。',
     },
+
+    /*
+     * The doctorate shelf — the five ladders behind the博士号 tile.
+     *
+     * `overlays.test.ts` treats this shelf as optional, because it rolled out
+     * one country at a time and requiring it would fail every overlay written
+     * before it landed. Optional is not the same as unreachable: a player who
+     * takes the USA board's grad school road works on one of these ten for the
+     * rest of the game, and every payday, review and log line names it. So it
+     * is written here, and `application/i18n/japanese.test.ts` — which plays
+     * whole games and reads the log back — is what caught its absence.
+     */
+    'career-surgical-fellow': {
+      title: '外科フェロー',
+      description: '当直表の誰もやったことのない手術を週に二回、後ろから見られながら執刀する。',
+    },
+    'career-consultant-surgeon': {
+      title: '指導医（外科）',
+      description: '他院が送ってくる難しい症例を引き受け、その顛末を論文に書く。',
+    },
+    'career-postdoctoral-fellow': {
+      title: 'ポスドク',
+      description: '三年、問いはひとつ、そして研究費は答えが出るより少しだけ早く尽きる。',
+    },
+    'career-research-professor': {
+      title: '研究室主宰者',
+      description: '研究室を回し、金を取ってきて、論文の筆頭には他の六人を並べる。',
+    },
+    'career-propulsion-researcher': {
+      title: '推進系フェロー',
+      description: '帽子ほどの大きさのノズルに四年を費やし、打ち上げ重量を一トン削る。',
+    },
+    'career-chief-propulsion-engineer': {
+      title: 'チーフエンジニア',
+      description: 'エンジンは点火すると書かれた図面に署名し、点火の瞬間その部屋にいる。',
+    },
+    'career-ml-scientist': {
+      title: '研究員',
+      description: '論文を二百本読んで二百一本目を書き、みんなが使うのはその一本になる。',
+    },
+    'career-principal-scientist': {
+      title: '主席研究員',
+      description: '研究室の四十のアイデアからその年やるものを選び、だいたい半分は外す。',
+    },
+    'career-climate-modeller': {
+      title: '気候モデル研究者',
+      description: '一晩で海の百年を回し、一世紀ぶんの検潮記録と突き合わせる。',
+    },
+    'career-chief-climate-scientist': {
+      title: '主席科学者',
+      description: '国会の委員会に、根気よく、九度目の説明をする。誤差範囲とは何かについて。',
+    },
   },
 
   houses: {
