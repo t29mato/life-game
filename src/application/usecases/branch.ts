@@ -1,5 +1,7 @@
 import type { Board, Decision, DecisionOption, GameState, Player, SpaceId, SpinValue } from '@domain/model/types'
 import { SPIN_FACES } from '@domain/model/constants'
+import type { EditionText } from '@domain/edition/i18n/text'
+import { EN, type NarrationText } from '../i18n/en'
 
 /**
  * Choosing which road to take — the wheel's, not the player's.
@@ -71,9 +73,24 @@ function roadsOpenTo(board: Board, spaceId: SpaceId, player: Player): readonly S
  * offer. Every place that has to say which way somebody went — the log, the
  * dock, the fork rail — says it in exactly these words.
  */
-export function roadName(board: Board, spaceId: SpaceId): string {
+export function roadName(
+  board: Board,
+  spaceId: SpaceId,
+  words?: EditionText,
+  say: NarrationText = EN,
+): string {
   const target = board.spaces[spaceId]
-  return target?.lane?.name ?? target?.title ?? 'a new road'
+  if (!target) return say.move.unnamedRoad
+  /*
+   * Both halves translate through the *edition's* overlay rather than through
+   * this layer's catalogue, because both are the board's own words: a lane is
+   * keyed by its English name (see `EditionTranslation.lanes`) and a tile by
+   * its id and the sentence it is carrying. Only the last resort — a branch
+   * with neither — is a phrase the engine invented, and that one is ours.
+   */
+  const lane = target.lane?.name
+  if (lane) return words?.lane(lane)?.name ?? lane
+  return words?.space(target.id, target.description)?.title ?? target.title ?? say.move.unnamedRoad
 }
 
 /**
@@ -93,6 +110,7 @@ export function forkRoadNames(
   board: Board,
   spaceId: SpaceId,
   player: Player,
+  words?: EditionText,
 ): readonly [string, string] | undefined {
   const open = roadsOpenTo(board, spaceId, player)
   // A player only one of whose roads is open is not standing at a fork, they
@@ -101,7 +119,7 @@ export function forkRoadNames(
   // was built to prevent, arriving from the other direction.
   if (open.length < 2) return undefined
   const [firstId, secondId] = open
-  return [roadName(board, firstId!), roadName(board, secondId!)]
+  return [roadName(board, firstId!, words), roadName(board, secondId!, words)]
 }
 
 /**
@@ -155,6 +173,8 @@ export function branchDecision(
   spaceId: SpaceId,
   steps: number | null,
   player: Player,
+  words?: EditionText,
+  say: NarrationText = EN,
 ): Decision {
   const space = board.spaces[spaceId]
   if (!space) throw new Error(`branchDecision: unknown space "${spaceId}"`)
@@ -166,22 +186,24 @@ export function branchDecision(
   const options: DecisionOption[] = (roads.length > 0 ? roads : space.next).map((nextId) => {
     const target = board.spaces[nextId]
     if (!target) throw new Error(`branchDecision: fork points to unknown space "${nextId}"`)
+    const tile = words?.space(target.id, target.description)
+    const lane = target.lane ? words?.lane(target.lane.name) : undefined
     return {
       id: target.id,
       // A lane names itself where it can; otherwise fall back to the first
-      // tile, which is all an unnamed branch has to offer.
-      label: target.lane?.name ?? target.title,
-      description: target.lane?.summary ?? target.description,
+      // tile, which is all an unnamed branch has to offer. Both come from the
+      // edition's overlay before they come from the English route data.
+      label: (target.lane ? (lane?.name ?? target.lane.name) : undefined) ?? tile?.title ?? target.title,
+      description:
+        (target.lane?.summary ? (lane?.summary ?? target.lane.summary) : undefined) ??
+        tile?.description ??
+        target.description,
       icon: target.icon,
     }
   })
 
   const prompt =
-    steps === null
-      ? 'Which way do you go?'
-      : steps > 0
-        ? `Which way do you go? You'll travel ${steps} space${steps === 1 ? '' : 's'} down it.`
-        : 'Which way do you go?'
+    steps === null || steps <= 0 ? say.move.forkPrompt : say.move.forkPromptWithSteps(steps)
 
   return { kind: 'branch', prompt, options }
 }

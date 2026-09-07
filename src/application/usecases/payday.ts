@@ -2,6 +2,8 @@ import type { Money, Player, SpinValue } from '@domain/model/types'
 import type { CurrencySpec, EconomyConstants } from '@domain/edition/types'
 import { USA_CURRENCY, USA_ECONOMY } from '@domain/edition/usa'
 import { paydayKindOf, paydayPayFor, payPlayerSalary, type PaydayKind } from '@domain/rules/player'
+import type { NarrationText } from '../i18n/en'
+import { EN } from '../i18n/en'
 import { formatMoney, paydayReceipt } from './format'
 import type { UseCaseDeps } from './types'
 
@@ -61,11 +63,10 @@ export function collectPaydays(
 }
 
 /** `'a 7'`, `'3 and 8'`, `'3, 8 and 2'`; empty when nothing was spun. */
-export function describeSpins(packets: readonly PaydayPacket[]): string {
+export function describeSpins(packets: readonly PaydayPacket[], say: NarrationText = EN): string {
   const spins = packets.map((packet) => packet.spin).filter((spin): spin is SpinValue => spin !== null)
   if (spins.length === 0) return ''
-  if (spins.length === 1) return `a ${spins[0]}`
-  return `${spins.slice(0, -1).join(', ')} and ${spins[spins.length - 1]}`
+  return say.payday.spinList(spins)
 }
 
 /**
@@ -74,26 +75,32 @@ export function describeSpins(packets: readonly PaydayPacket[]): string {
  * on the balance it left behind, the same as every event this move swept
  * past now does — an amount with nothing to compare it to is a number, not
  * news.
+ *
+ * The count, the sum and the balance go to the catalogue as three arguments
+ * rather than as a pre-glued string: "passes payday 3x" is English word order,
+ * and a language that counts with a counter word has to build the whole
+ * sentence itself.
  */
 export function passedPaydayLine(
   playerName: string,
   collection: PaydayCollection,
   currency: CurrencySpec = USA_CURRENCY,
+  say: NarrationText = EN,
 ): string {
-  const count = collection.packets.length > 1 ? ` ${collection.packets.length}x` : ''
+  const times = collection.packets.length
   const money = formatMoney(collection.total, currency)
-  const balance = ` — now ${formatMoney(collection.player.money, currency)}.`
+  const balance = formatMoney(collection.player.money, currency)
   if (collection.kind === 'salary') {
     // The × 12 breakdown only holds for one payday's worth — sweeping past
     // several in one move multiplies the total, and dividing that by 12 would
     // quote a monthly rate nobody is actually on.
-    const total = collection.packets.length === 1 ? paydayReceipt(collection.total, currency) : money
-    return `${playerName} passes payday${count}: ${total}${balance}`
+    const total = times === 1 ? paydayReceipt(collection.total, currency, say) : money
+    return say.payday.passedSalaryLog(playerName, times, total, balance)
   }
 
-  const spins = describeSpins(collection.packets)
+  const spins = describeSpins(collection.packets, say)
   if (collection.kind === 'casual') {
-    return `${playerName} picks up shifts passing payday${count}, spinning ${spins}: ${money}${balance}`
+    return say.payday.passedCasualLog(playerName, times, spins, money, balance)
   }
-  return `${playerName} passes payday${count}, spinning ${spins}: ${money}${balance}`
+  return say.payday.passedUnsteadyLog(playerName, times, spins, money, balance)
 }

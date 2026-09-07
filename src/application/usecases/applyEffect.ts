@@ -63,14 +63,24 @@ import {
   setMoney,
   totalShares,
 } from '@domain/rules/player'
+import type { EditionText } from '@domain/edition/i18n/text'
+import type { NarrationText } from '../i18n/en'
 import { withBalanceAfter } from './balanceAfter'
 import { withBorrowing } from './borrowing'
 import { withStandingChange } from './standingChange'
-import { formatMoney, paydayReceipt, paydayWorking, raiseNote, salaryPeriod, salaryRate } from './format'
+import {
+  formatMoney,
+  payRate,
+  paydayReceipt,
+  paydayWorking,
+  raiseNote,
+  salaryPeriodIn,
+  salaryRate,
+} from './format'
 import { appendLog } from './logging'
 import { arrivalBands, arrivalCopy, celebrationFor } from './newBaby'
 import { collectPaydays } from './payday'
-import type { UseCaseDeps } from './types'
+import { textOf, type UseCaseDeps } from './types'
 
 export interface EffectResult {
   /**
@@ -169,12 +179,6 @@ const DOUBLE_PROMOTION_SPIN = SPIN_FACES
 const LOW_HALF = `1-${SPIN_FACES / 2}`
 const HIGH_HALF = `${SPIN_FACES / 2 + 1}-${SPIN_FACES}`
 
-const INSURANCE_LABELS: Record<InsuranceKind, string> = {
-  home: 'Home Policy',
-  auto: 'Auto Policy',
-  life: 'Life Policy',
-}
-
 /**
  * What each policy is worth, said as a bet rather than as a freebie.
  *
@@ -197,14 +201,12 @@ function insuranceDescriptions(
   from: SpaceId,
   economy: EconomyConstants,
   currency: CurrencySpec,
+  say: NarrationText,
 ): Record<InsuranceKind, string> {
   const cover = (hazard: Hazard, trouble: string, howOften: string): string => {
     const { count, worst } = hazardBillsAhead(board, from, hazard)
-    if (count === 0) {
-      return `Nothing ahead of you can bill you for ${trouble}. This would cover a road you have already driven.`
-    }
-    const bills = count === 1 ? 'One stretch of road ahead bills' : `${count} stretches of road ahead bill`
-    return `${bills} up to ${formatMoney(worst, currency)} for ${trouble}. ${howOften}, and you pay the premium either way.`
+    if (count === 0) return say.insurance.coverNone(trouble)
+    return say.insurance.coverAhead(count, formatMoney(worst, currency), trouble, howOften)
   }
   const [floor, ceiling] = economy.lifeInsuranceMaturity
   return {
@@ -214,9 +216,9 @@ function insuranceDescriptions(
     // move with difficulty — the crash reaches 50% on Very Hard — while "few"
     // and "plenty" stay true across all three, and the bill above them is read
     // off this board at this difficulty anyway.
-    home: cover('fire', 'a house fire', 'Few lives ever have one'),
-    auto: cover('accident', 'a crash', 'Plenty of lives have one'),
-    life: `Not cover — a fund. It matures on the wheel at the end, anywhere from ${formatMoney(floor, currency)} to ${formatMoney(ceiling, currency)}.`,
+    home: cover('fire', say.insurance.troubleFire, say.insurance.oddsFire),
+    auto: cover('accident', say.insurance.troubleCrash, say.insurance.oddsCrash),
+    life: say.insurance.lifeFund(formatMoney(floor, currency), formatMoney(ceiling, currency)),
   }
 }
 
@@ -345,10 +347,11 @@ function paydayBands(
 function swingBands(
   currency: CurrencySpec,
   swingOf: (face: SpinValue) => Money,
+  say: NarrationText,
 ): readonly RollAmountRow[] {
   return SPIN_VALUES.map((face) => {
     const swing = swingOf(face)
-    if (swing === 0) return { range: String(face), amount: 'Breaks even' }
+    if (swing === 0) return { range: String(face), amount: say.roll.breaksEven }
     const figure = formatMoney(swing, currency)
     return { range: String(face), amount: swing > 0 ? `+${figure}` : figure }
   })
@@ -361,13 +364,17 @@ function swingBands(
  * Data, not a sentence: the presentation layer renders this as a table
  * rather than a player having to parse a comma-joined string themselves.
  */
-function tuitionBands(tuition: TuitionSpec, currency: CurrencySpec): readonly RollAmountRow[] {
+function tuitionBands(
+  tuition: TuitionSpec,
+  currency: CurrencySpec,
+  say: NarrationText,
+): readonly RollAmountRow[] {
   const money = (amount: Money): string => formatMoney(amount, currency)
   let previousUpTo = 0
   return tuition.outcomes.map((band) => {
     const range = band.upTo === previousUpTo + 1 ? `${band.upTo}` : `${previousUpTo + 1}-${band.upTo}`
     previousUpTo = band.upTo
-    if (band.cost === 0) return { range, amount: 'Full ride' }
+    if (band.cost === 0) return { range, amount: say.roll.fullRide }
     // A band that pays — the doctorate done inside a company, on a salary.
     // Signed the way the joint account and the year in the trade are signed,
     // because a bare figure in a column of bills reads as one more bill.
@@ -381,11 +388,21 @@ function tuitionBands(tuition: TuitionSpec, currency: CurrencySpec): readonly Ro
  * A forced career change without this is an uninformed decision: the offers
  * carry their own salaries, but nothing to measure them against.
  */
-function currentIncomeNote(player: Player, economy: EconomyConstants, currency: CurrencySpec): string {
+function currentIncomeNote(
+  player: Player,
+  economy: EconomyConstants,
+  currency: CurrencySpec,
+  say: NarrationText,
+  words: EditionText,
+): string {
   if (!player.career) {
-    return `You are between jobs, picking up shifts at ${formatMoney(economy.casualWagePerPip, currency)} a pip.`
+    return say.career.betweenJobsIncome(formatMoney(economy.casualWagePerPip, currency))
   }
-  return `You currently earn ${formatMoney(salaryRate(player.career.salary, currency), currency)}/${salaryPeriod(currency)} as a ${player.career.title}.`
+  return say.career.currentIncome(
+    formatMoney(salaryRate(player.career.salary, currency), currency),
+    salaryPeriodIn(currency, say),
+    words.career(player.career.id)?.title ?? player.career.title,
+  )
 }
 
 /**
@@ -399,16 +416,23 @@ function currentIncomeNote(player: Player, economy: EconomyConstants, currency: 
  * gamble blind rather than to gamble informed. A calling has nothing above it
  * by design and a one-rung trade is its own ceiling, so neither claims a rung.
  */
-function careerOffer(range: string, career: Career, currency: CurrencySpec, edition: Edition): RollOfferRow {
+function careerOffer(
+  range: string,
+  career: Career,
+  currency: CurrencySpec,
+  edition: Edition,
+  say: NarrationText,
+  words: EditionText,
+): RollOfferRow {
   const ladder = ladderPositionOf(career.id, edition)
   const ranked = !career.isCalling && ladder !== undefined && ladder.height > 1
   return {
     range,
-    career: career.title,
+    career: words.career(career.id)?.title ?? career.title,
     icon: career.icon,
     pay: formatMoney(salaryRate(career.salary, currency), currency),
-    period: salaryPeriod(currency),
-    ...(ranked ? { rung: `${ladder.rung} of ${ladder.height}` } : {}),
+    period: salaryPeriodIn(currency, say),
+    ...(ranked ? { rung: say.roll.rungOf(ladder.rung, ladder.height) } : {}),
   }
 }
 
@@ -423,8 +447,13 @@ function careerOfferTable(
   second: Career,
   currency: CurrencySpec,
   edition: Edition,
+  say: NarrationText,
+  words: EditionText,
 ): readonly RollTableRow[] {
-  return [careerOffer(LOW_HALF, first, currency, edition), careerOffer(HIGH_HALF, second, currency, edition)]
+  return [
+    careerOffer(LOW_HALF, first, currency, edition, say, words),
+    careerOffer(HIGH_HALF, second, currency, edition, say, words),
+  ]
 }
 
 /**
@@ -449,6 +478,8 @@ function gatedCareerOfferTable(
   missNote: string,
   currency: CurrencySpec,
   edition: Edition,
+  say: NarrationText,
+  words: EditionText,
 ): readonly RollTableRow[] {
   const miss: RollAmountRow = {
     range: passSpin === 2 ? '1' : `1-${passSpin - 1}`,
@@ -457,7 +488,11 @@ function gatedCareerOfferTable(
   const cut = passingCut(passSpin)
   const low = cut - 1 === passSpin ? `${passSpin}` : `${passSpin}-${cut - 1}`
   const high = cut === SPIN_FACES ? `${SPIN_FACES}` : `${cut}-${SPIN_FACES}`
-  return [miss, careerOffer(low, first, currency, edition), careerOffer(high, second, currency, edition)]
+  return [
+    miss,
+    careerOffer(low, first, currency, edition, say, words),
+    careerOffer(high, second, currency, edition, say, words),
+  ]
 }
 
 function houseDecisionOptions(
@@ -465,6 +500,8 @@ function houseDecisionOptions(
   declineLabel: string,
   declineDescription: string,
   currency: CurrencySpec,
+  say: NarrationText,
+  words: EditionText,
 ): DecisionOption[] {
   return [
     ...houses.map((house) => {
@@ -473,9 +510,10 @@ function houseDecisionOptions(
         low === high
           ? formatMoney(low, currency)
           : `${formatMoney(low, currency)}–${formatMoney(high, currency)}`
+      const text = words.house(house.id)
       return {
         id: house.id,
-        label: house.name,
+        label: text?.name ?? house.name,
         // Buying is the one board decision whose entire point is a number
         // nobody sees for the rest of the game — the price is right there
         // on the tile, but what it sells for at retirement is buried in
@@ -483,7 +521,7 @@ function houseDecisionOptions(
         // would think to look. Appended, not replacing the house's own
         // description, since that is still what makes one house a
         // different pick from another.
-        description: `${house.description} Sells for ${resale} at retirement.`,
+        description: say.house.optionDescription(text?.description ?? house.description, resale),
         icon: house.icon,
         detail: formatMoney(house.price, currency),
       }
@@ -554,12 +592,37 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
   const money = (amount: Money): string => formatMoney(amount, currency)
   const emphasisOf = (delta: Money): LandingEmphasis => emphasisForMoney(delta, economy)
 
+  /*
+   * The two vocabularies every branch below writes in, bound once.
+   *
+   * `say` is this layer's own catalogue — the narration, the log, the chips.
+   * `words` is the *edition's* overlay, which is where the board's own nouns
+   * live: this tile's `reason`, a career's title, a house's name. Those were
+   * translated in every overlay and read by nobody, because everything here
+   * reached straight past them into the English route data. `tile`, `reason`
+   * and `title` are the three of them this switch asks for most.
+   *
+   * `space.description` is passed to the lookup rather than the id alone
+   * because a tile on Hard is not the tile on Normal and only the sentence it
+   * is actually carrying can tell them apart — see `editionTextFor`.
+   */
+  const text = textOf(deps)
+  const { say } = text
+  const words = text.board(edition)
+  const tile = words.space(space.id, space.description)
+  /** The tile's own defence of where the money went, in the reader's language. */
+  const reasonOf = (english: string): string => tile?.reason ?? english
+  /** What this tile is called. Used for a decision's prompt, which nothing downstream re-translates. */
+  const title = tile?.title ?? space.title
+  const careerTitle = (career: Career): string => words.career(career.id)?.title ?? career.title
+  const houseName = (house: House): string => words.house(house.id)?.name ?? house.name
+
   const effect = space.effect
 
   switch (effect.type) {
     case 'none': {
-      const event = baseEvent(space, 0, [], 'normal', `A quiet stretch of road for ${player.name} — nothing to do but enjoy the view.`)
-      const log = appendLog(state, player.id, `${player.name} lands on ${space.title}.`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', say.landing.quietNarration(player.name))
+      const log = appendLog(state, player.id, say.landing.landsOnLog(player.name, title), 'event')
       return { state: { ...state, log, pendingDecision: null }, event }
     }
 
@@ -578,36 +641,32 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        */
       const narration =
         emphasis === 'big'
-          ? `${money(delta)} into ${player.name}'s pocket — that is a serious jump up the board!`
-          : `Straight into ${player.name}'s pocket.`
-      const event = baseEvent(space, delta, [effect.reason], emphasis, narration)
-      const log = appendLog(
-        state,
-        player.id,
-        `${player.name}: ${effect.reason} (${money(delta)})`,
-        'money-in',
-      )
+          ? say.money.gainBigNarration(money(delta), player.name)
+          : say.money.gainNarration(player.name)
+      const reason = reasonOf(effect.reason)
+      const event = baseEvent(space, delta, [reason], emphasis, narration)
+      const log = appendLog(state, player.id, say.money.log(player.name, reason, money(delta)), 'money-in')
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
     }
 
     case 'payMoney': {
       // The whole point of a premium: a covered player watches the bill go by.
       if (effect.hazard && isCoveredAgainst(player, effect.hazard)) {
-        const policy = HAZARD_POLICY[effect.hazard]
+        const policy = say.insurance.policyInline(HAZARD_POLICY[effect.hazard])
         // "You pay nothing" is the narration's own line — the note is here
         // to name *which* policy just earned its premium back.
-        const notes = [effect.reason, `Your ${INSURANCE_LABELS[policy].toLowerCase()} covers it.`]
+        const notes = [reasonOf(effect.reason), say.insurance.coversItNote(policy)]
         const event = baseEvent(
           space,
           0,
           notes,
           'big',
-          `Insured! That ${effect.hazard} just cost ${player.name} nothing at all.`,
+          say.insurance.coveredNarration(say.insurance.hazard(effect.hazard), player.name),
         )
         const log = appendLog(
           state,
           player.id,
-          `${player.name} is covered: the ${INSURANCE_LABELS[policy].toLowerCase()} waives ${money(effect.amount)}.`,
+          say.insurance.coveredLog(player.name, policy, money(effect.amount)),
           'milestone',
         )
         return { state: { ...state, log, pendingDecision: null }, event }
@@ -615,21 +674,17 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
 
       const updated = debitPlayer(player, effect.amount, economy)
       const delta = updated.money - player.money
-      const notes = [effect.reason]
+      const reason = reasonOf(effect.reason)
+      const notes = [reason]
       const emphasis = emphasisOf(delta)
       const narration =
         emphasis === 'big'
-          ? `Ouch! ${money(Math.abs(delta))} straight out of ${player.name}'s wallet.`
-          // No promise about the next payday: this line runs over bills the
-          // player has no payday coming to fix.
-          : `${player.name} settles it and walks on.`
+          ? say.money.lossBigNarration(money(Math.abs(delta)), player.name)
+          : // No promise about the next payday: this line runs over bills the
+            // player has no payday coming to fix.
+            say.money.lossNarration(player.name)
       const event = baseEvent(space, delta, notes, emphasis, narration)
-      const log = appendLog(
-        state,
-        player.id,
-        `${player.name}: ${effect.reason} (${money(delta)})`,
-        'money-out',
-      )
+      const log = appendLog(state, player.id, say.money.log(player.name, reason, money(delta)), 'money-out')
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
     }
 
@@ -648,21 +703,26 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         // it was the plate's own figure printed a second time: "¥333,333 × 12
         // months = ¥4,000,000" under a chip already reading +¥4,000,000. The
         // plate is the equals sign.
-        const working = paydayWorking(delta, currency)
+        const working = paydayWorking(delta, currency, say)
         const event = {
           ...baseEvent(
             space,
             delta,
             working === undefined ? [] : [working],
             emphasisOf(delta),
-            `Payday — ${player.name} clocks out with the packet in hand.`,
+            say.payday.salaryNarration(player.name),
           ),
           // The trade this packet was earned at, printed the same way a
           // career fair's own table already draws it — see `careerIcon`'s
           // doc comment on `LandingEvent`.
           ...(player.career === null ? {} : { careerIcon: player.career.icon }),
         }
-        const log = appendLog(state, player.id, `${player.name} collects payday: ${paydayReceipt(delta, currency)}.`, 'money-in')
+        const log = appendLog(
+          state,
+          player.id,
+          say.payday.salaryLog(player.name, paydayReceipt(delta, currency, say)),
+          'money-in',
+        )
         return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
       }
 
@@ -682,24 +742,26 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        */
       const description =
         kind === 'casual'
-          ? 'Between jobs, so you pick up shifts.'
-          : `${player.career?.title ?? 'Your trade'} — no two weeks pay the same.`
+          ? say.payday.casualStakes
+          : say.payday.unsteadyStakes(
+              player.career ? careerTitle(player.career) : say.payday.yourTrade,
+            )
       const decision: Decision = {
         kind: 'valueSpin',
-        prompt: space.title,
+        prompt: title,
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Spin',
+            label: say.common.spin,
             description,
             icon: 'space:payday',
             table: paydayBands(player, economy, currency),
           },
         ],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up to spin for the week's pay.`)
-      const log = appendLog(state, player.id, `${player.name} is up for a payday spin.`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', say.payday.waitingNarration(player.name))
+      const log = appendLog(state, player.id, say.payday.waitingLog(player.name), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -710,26 +772,21 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           0,
           [],
           'normal',
-          `Hard to get a raise with no job. Better luck at the next career fair, ${player.name}!`,
+          say.raise.noJobNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} has no job yet, so there's no raise.`, 'info')
+        const log = appendLog(state, player.id, say.raise.noJobLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
       const updated = applyPayRaise(player)
       const newSalary = updated.career?.salary ?? player.career.salary
-      const event = baseEvent(
-        space,
-        0,
-        [raiseNote(player.career.salary, newSalary, currency)],
-        'normal',
-        `A raise for ${player.name}! Every payday from here on is worth more.`,
-      )
+      const note = raiseNote(player.career.salary, newSalary, currency, say)
+      const event = baseEvent(space, 0, [note], 'normal', say.raise.narration(player.name))
       const log = appendLog(
         state,
         player.id,
         currency.salaryDisplay
-          ? `${player.name}: ${raiseNote(player.career.salary, newSalary, currency)}.`
-          : `${player.name}'s salary is raised to ${money(newSalary)}.`,
+          ? say.raise.logWithNote(player.name, note)
+          : say.raise.logFlat(player.name, money(newSalary)),
         'milestone',
       )
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
@@ -746,12 +803,12 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        */
       const decision: Decision = {
         kind: 'valueSpin',
-        prompt: space.title,
+        prompt: title,
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Spin',
+            label: say.common.spin,
             // The title and the narration above this have already said what
             // tile this is; the table below says exactly what each face is
             // worth. Nothing here needs to repeat either — including the
@@ -759,12 +816,12 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             // already focused, and already answering the space bar.
             description: '',
             icon: 'space:tuition-bill',
-            table: tuitionBands(tuitionSpecFor(effect.bill, economy), currency),
+            table: tuitionBands(tuitionSpecFor(effect.bill, economy), currency, say),
           },
         ],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} opens the tuition bill.`)
-      const log = appendLog(state, player.id, `${player.name} is up for the spin: what does tuition come to?`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', say.tuition.narration(player.name))
+      const log = appendLog(state, player.id, say.tuition.log(player.name), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -774,13 +831,14 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const event = baseEvent(
           space,
           0,
-          [effect.reason],
+          [reasonOf(effect.reason)],
           'normal',
-          `Hard to be promoted with no job. Get hired first, ${player.name}!`,
+          say.promotion.noJobNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} has no job, so there is nothing to review.`, 'info')
+        const log = appendLog(state, player.id, say.promotion.noJobLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
+      const jobTitle = careerTitle(career)
 
       /*
        * A calling has no rung above it, and that is the whole point of one.
@@ -799,19 +857,19 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             // The tiles are dealt as their own chips further up the card;
             // listing their titles here printed each of them twice.
             [
-              effect.reason,
-              `There is no rung above ${career.title}, and there was never going to be.`,
-              raiseNote(career.salary, newSalary, currency),
+              reasonOf(effect.reason),
+              say.promotion.callingNote(jobTitle),
+              raiseNote(career.salary, newSalary, currency, say),
             ],
             'milestone',
-            `No promotion for ${player.name} — this is the work, and it is the whole point. A LIFE tile and a raise instead!`,
+            say.promotion.callingNarration(player.name),
           ),
           lifeTilesGained: tiles,
         }
         const log = appendLog(
           state,
           player.id,
-          `${player.name} deepens their calling as a ${career.title}: a LIFE tile, and pay of ${money(salaryRate(newSalary, currency))} a ${salaryPeriod(currency)}.`,
+          say.promotion.callingLog(player.name, jobTitle, payRate(newSalary, currency, say)),
           'milestone',
         )
         return { state: { ...state, players: replacePlayer(state.players, raised), log, pendingDecision: null }, event }
@@ -831,14 +889,14 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           0,
           // "Nobody above you" is exactly what "already runs the place"
           // says, and the new pay is the raise note's own job.
-          [effect.reason, raiseNote(career.salary, newSalary, currency)],
+          [reasonOf(effect.reason), raiseNote(career.salary, newSalary, currency, say)],
           'big',
-          `${player.name} already runs the place — so they simply write themselves a better number.`,
+          say.promotion.topNarration(player.name),
         )
         const log = appendLog(
           state,
           player.id,
-          `${player.name} is already at the top as a ${career.title}, and takes a rise to ${money(salaryRate(newSalary, currency))} a ${salaryPeriod(currency)}.`,
+          say.promotion.topLog(player.name, jobTitle, payRate(newSalary, currency, say)),
           'milestone',
         )
         return { state: { ...state, players: replacePlayer(state.players, raised), log, pendingDecision: null }, event }
@@ -853,21 +911,22 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        * blind one.
        */
       const needed = career.promotionSpin ?? DEFAULT_PROMOTION_SPIN
+      const nextTitle = careerTitle(next)
       const decision: Decision = {
         kind: 'valueSpin',
-        prompt: space.title,
+        prompt: title,
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Spin',
-            description: `${effect.reason} You need a ${needed} or higher (out of ${SPIN_FACES}) to move up to ${next.title}. Miss it and you still take a raise.`,
+            label: say.common.spin,
+            description: say.promotion.stakes(reasonOf(effect.reason), needed, SPIN_FACES, nextTitle),
             icon: 'space:pay-raise-talk',
           },
         ],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} is up for review.`)
-      const log = appendLog(state, player.id, `${player.name} is up for review: ${next.title} on the line.`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', say.promotion.narration(player.name))
+      const log = appendLog(state, player.id, say.promotion.log(player.name, nextTitle), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -875,7 +934,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const shuffled = deps.random.shuffle(edition.lifeTiles)
       const tiles = shuffled.slice(0, effect.count)
       const updated = addLifeTiles(player, tiles)
-      const names = tiles.map((tile) => tile.title).join(', ')
+      const names = tiles.map((dealt) => words.lifeTile(dealt.id)?.title ?? dealt.title).join(', ')
       const event: LandingEvent = {
         ...baseEvent(
           space,
@@ -884,11 +943,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           // chips, icon and all — a note per title was the same list twice.
           [],
           'normal',
-          `${player.name} picks up a LIFE tile — those all count at the very end!`,
+          say.lifeTile.narration(player.name),
         ),
         lifeTilesGained: tiles,
       }
-      const log = appendLog(state, player.id, `${player.name} gains a life tile: ${names}.`, 'event')
+      const log = appendLog(state, player.id, say.lifeTile.log(player.name, names), 'event')
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
     }
 
@@ -914,25 +973,25 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const decision: Decision = {
         kind: 'valueSpin',
         prompt: player.career
-          ? `Choose your career path. ${currentIncomeNote(player, economy, currency)}`
-          : 'Choose your career path',
+          ? say.career.fairPromptWithIncome(currentIncomeNote(player, economy, currency, say, words))
+          : say.career.fairPrompt,
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Spin',
+            label: say.common.spin,
             // The owner's own example of the class. A player looking at a
             // hiring tile, with the two offers tabled beneath and the wheel
             // under those, does not need a sentence telling them to spin it.
             description: '',
             icon: space.icon,
-            table: careerOfferTable(first, second, currency, edition),
+            table: careerOfferTable(first, second, currency, edition, say, words),
           },
         ],
         offeredCareerIds: [first.id, second.id],
       }
-      const event = baseEvent(space, 0, [], 'normal', `Two offers on the table — spin to see which one is yours, ${player.name}!`)
-      const log = appendLog(state, player.id, `${player.name} spins for a career.`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', say.career.fairNarration(player.name))
+      const log = appendLog(state, player.id, say.career.fairLog(player.name), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -941,11 +1000,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const event = baseEvent(
         space,
         0,
-        ['Earned a degree!'],
+        [say.school.degreeNote],
         'milestone',
-        `Cap in the air! ${player.name} is a graduate, and the big careers just opened up.`,
+        say.school.degreeNarration(player.name),
       )
-      const log = appendLog(state, player.id, `${player.name} graduates and earns a degree!`, 'milestone')
+      const log = appendLog(state, player.id, say.school.degreeLog(player.name), 'milestone')
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
     }
 
@@ -954,11 +1013,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const event = baseEvent(
         space,
         0,
-        ['Earned a doctorate!'],
+        [say.school.doctorateNote],
         'milestone',
-        `Doctor ${player.name}. Years of it, and the work nobody else is qualified for is open now.`,
+        say.school.doctorateNarration(player.name),
       )
-      const log = appendLog(state, player.id, `${player.name} is awarded a doctorate!`, 'milestone')
+      const log = appendLog(state, player.id, say.school.doctorateLog(player.name), 'milestone')
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
     }
 
@@ -969,9 +1028,9 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           0,
           [],
           'normal',
-          `${player.name} is already spoken for. They wave at the happy couple and walk on.`,
+          say.marriage.alreadyNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} is already married.`, 'info')
+        const log = appendLog(state, player.id, say.marriage.alreadyLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
 
@@ -986,21 +1045,21 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        */
       const decision: Decision = {
         kind: 'valueSpin',
-        prompt: space.title,
+        prompt: title,
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Spin',
+            label: say.common.spin,
             // No table on this one, so the bar genuinely has to be said —
             // but only the bar. The leading "Spin —" was the scaffolding.
-            description: `A ${marriage.proposalSpin} or higher (out of ${SPIN_FACES}) and it's a yes outright. Lower gets a kinder second ask before it's a no.`,
+            description: say.marriage.stakes(marriage.proposalSpin, SPIN_FACES),
             icon: 'space:wedding-day',
           },
         ],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} takes a knee.`)
-      const log = appendLog(state, player.id, `${player.name} is up for the spin: will they marry?`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', say.marriage.narration(player.name))
+      const log = appendLog(state, player.id, say.marriage.log(player.name), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1014,11 +1073,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const event = baseEvent(
           space,
           0,
-          [effect.reason],
+          [reasonOf(effect.reason)],
           'normal',
-          `${player.name} answers to nobody about money this month.`,
+          say.household.singleNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} has only themselves to answer to.`, 'info')
+        const log = appendLog(state, player.id, say.household.singleLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
 
@@ -1036,22 +1095,22 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        */
       const decision: Decision = {
         kind: 'valueSpin',
-        prompt: space.title,
+        prompt: title,
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Spin',
+            label: say.common.spin,
             // The mechanism, and not the wheel that resolves it: `swingBands`
             // below prints all six outcomes, signed.
-            description: `${effect.reason} — the spending against the two incomes.`,
+            description: say.household.stakes(reasonOf(effect.reason)),
             icon: 'finance:bank-visit',
-            table: swingBands(currency, (face) => householdSwing(player, economy, face)),
+            table: swingBands(currency, (face) => householdSwing(player, economy, face), say),
           },
         ],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} opens the joint statement.`)
-      const log = appendLog(state, player.id, `${player.name} is up for the spin: how did the joint account do?`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', say.household.narration(player.name))
+      const log = appendLog(state, player.id, say.household.log(player.name), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1069,11 +1128,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const event = baseEvent(
           space,
           0,
-          [effect.reason],
+          [reasonOf(effect.reason)],
           'normal',
-          `${player.name} has no trade to have a year in. The year happens to somebody else.`,
+          say.tradeYear.noJobNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} is between jobs, so the year passes them by.`, 'info')
+        const log = appendLog(state, player.id, say.tradeYear.noJobLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
 
@@ -1092,22 +1151,24 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        */
       const decision: Decision = {
         kind: 'valueSpin',
-        prompt: space.title,
+        prompt: title,
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Spin',
-            description: `${effect.reason} Nobody is offering you a different job — only this one, for another year as a ${career.title}.`,
+            label: say.common.spin,
+            description: say.tradeYear.stakes(reasonOf(effect.reason), careerTitle(career)),
             icon: career.icon,
-            table: swingBands(currency, (face) =>
-              tradeYearSwing(career.salary, effect.share, face, currency.tileRounding),
+            table: swingBands(
+              currency,
+              (face) => tradeYearSwing(career.salary, effect.share, face, currency.tileRounding),
+              say,
             ),
           },
         ],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} looks back on the year in the trade.`)
-      const log = appendLog(state, player.id, `${player.name} is up for the spin: what kind of year was it?`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', say.tradeYear.narration(player.name))
+      const log = appendLog(state, player.id, say.tradeYear.log(player.name), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1129,7 +1190,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       if (certain !== null) {
         const gift = celebrationFor(certain, effect.celebrationPerChild)
         const updated = creditPlayer(addChildren(player, certain), gift)
-        const copy = arrivalCopy(player.name, certain, null, gift, money)
+        const copy = arrivalCopy(player.name, certain, null, gift, money, say)
         const event = baseEvent(space, updated.money - player.money, copy.notes, copy.emphasis, copy.narration)
         const log = appendLog(state, player.id, copy.logMessage, 'milestone')
         return {
@@ -1140,12 +1201,12 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
 
       const decision: Decision = {
         kind: 'valueSpin',
-        prompt: space.title,
+        prompt: title,
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Spin',
+            label: say.common.spin,
             // Both halves of the news are in the table below, band by band, so
             // the sentence says what is at stake rather than what the money is
             // — the spin stopped being about the envelopes when a face started
@@ -1153,14 +1214,14 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
             // is on screen and the button under it says so. Echoes the empty
             // face's own line, which answers this sentence with "the house
             // stays the size it is".
-            description: 'Whether the house grows this year.',
+            description: say.baby.stakes,
             icon: 'space:new-baby',
-            table: arrivalBands(effect.arrivals, effect.celebrationPerChild, currency),
+            table: arrivalBands(effect.arrivals, effect.celebrationPerChild, currency, say),
           },
         ],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} is up for the spin: who is in the house next year?`)
-      const log = appendLog(state, player.id, `${player.name} spins for a new arrival.`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', say.baby.narration(player.name))
+      const log = appendLog(state, player.id, say.baby.log(player.name), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1168,11 +1229,18 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const offered = deps.random.shuffle(edition.houses).slice(0, 3)
       const decision: Decision = {
         kind: 'house',
-        prompt: 'Buy a home now, sell it again at retirement',
-        options: houseDecisionOptions(offered, 'Keep renting for now', 'Keep the cash, and own nothing to sell at retirement.', currency),
+        prompt: say.house.buyPrompt,
+        options: houseDecisionOptions(
+          offered,
+          say.house.keepRentingLabel,
+          say.house.keepRentingDescription,
+          currency,
+          say,
+          words,
+        ),
       }
-      const event = baseEvent(space, 0, [], 'normal', `Time to go house hunting, ${player.name}. Pick a front door!`)
-      const log = appendLog(state, player.id, `${player.name} is house hunting.`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', say.house.huntNarration(player.name))
+      const log = appendLog(state, player.id, say.house.huntLog(player.name), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1180,7 +1248,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const payers = rivalsOf(state, player)
       let players = state.players
       let mover = player
-      const notes = [effect.reason]
+      const notes = [reasonOf(effect.reason)]
       const transfers: MoneyTransfer[] = []
       for (const payer of payers) {
         const debited = debitPlayer(payer, effect.amount, economy)
@@ -1189,7 +1257,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         // The lane above already flies the coin between the two names and
         // prints the amount on the end of it. What it cannot show is where
         // the payer was left, which is the half a table actually argues over.
-        notes.push(`${payer.name} is down to ${money(debited.money)}.`)
+        notes.push(say.upset.payerDownToNote(payer.name, money(debited.money)))
         transfers.push({ playerId: payer.id, playerName: payer.name, playerColor: payer.color, amount: -effect.amount })
       }
       players = replacePlayer(players, mover)
@@ -1200,14 +1268,14 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           delta,
           notes,
           emphasisOf(delta),
-          `Everybody pays up — ${player.name} is collecting!`,
+          say.upset.collectNarration(player.name),
         ),
         transfers,
       }
       const log = appendLog(
         state,
         player.id,
-        `${player.name} collects ${money(effect.amount)} from each other player.`,
+        say.upset.collectLog(player.name, money(effect.amount)),
         'money-in',
       )
       return { state: { ...state, players, log, pendingDecision: null }, event }
@@ -1217,7 +1285,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const recipients = rivalsOf(state, player)
       let players = state.players
       let mover = player
-      const notes = [effect.reason]
+      const notes = [reasonOf(effect.reason)]
       const transfers: MoneyTransfer[] = []
       for (const recipient of recipients) {
         mover = debitPlayer(mover, effect.amount, economy)
@@ -1225,7 +1293,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         players = replacePlayer(players, credited)
         // Same division as `collectFromEach`: the lane carries the amount,
         // the note carries where it left them.
-        notes.push(`${recipient.name} is up to ${money(credited.money)}.`)
+        notes.push(say.upset.recipientUpToNote(recipient.name, money(credited.money)))
         transfers.push({
           playerId: recipient.id,
           playerName: recipient.name,
@@ -1241,14 +1309,14 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           delta,
           notes,
           emphasisOf(delta),
-          `The round is on ${player.name} — everybody else gets paid!`,
+          say.upset.payEachNarration(player.name),
         ),
         transfers,
       }
       const log = appendLog(
         state,
         player.id,
-        `${player.name} pays ${money(effect.amount)} to each other player.`,
+        say.upset.payEachLog(player.name, money(effect.amount)),
         'money-out',
       )
       return { state: { ...state, players, log, pendingDecision: null }, event }
@@ -1258,23 +1326,30 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       // Deferred to `resolveValueSpin` in `choose.ts` — see the 'payday' case
       // above for why, and for why the rate that used to be quoted here is
       // now six rows instead of a formula.
+      const reason = reasonOf(effect.reason)
       const decision: Decision = {
         kind: 'valueSpin',
-        prompt: space.title,
+        prompt: title,
         options: [
           {
             id: VALUE_SPIN_OPTION_ID,
             turnsTheDie: true,
-            label: 'Spin',
+            label: say.common.spin,
             // `perPipBands` below says how much, six times over.
-            description: effect.reason,
+            description: reason,
             icon: 'space:payday',
             table: perPipBands(effect.perPip, currency),
           },
         ],
       }
-      const event = baseEvent(space, 0, [], 'normal', `${player.name} lines up for the spin.`)
-      const log = appendLog(state, player.id, `${player.name} is up for a spin: ${effect.reason.toLowerCase()}`, 'event')
+      const event = baseEvent(space, 0, [], 'normal', say.spinForMoney.narration(player.name))
+      /*
+       * The reason keeps its own capitalisation. It used to be lowercased to
+       * sit mid-sentence, which is an English typographic move — Japanese has
+       * no case to fold, and an edition whose reason is a proper noun lost its
+       * capital for a colon that did not need it.
+       */
+      const log = appendLog(state, player.id, say.spinForMoney.log(player.name, reason), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1284,11 +1359,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const event = baseEvent(
         space,
         0,
-        [`Retirement rank #${rank}`],
+        [say.retire.rankNote(rank)],
         'milestone',
-        `${player.name} is home free! Feet up, the hard part is over.`,
+        say.retire.narration(player.name),
       )
-      const log = appendLog(state, player.id, `${player.name} retires!`, 'milestone')
+      const log = appendLog(state, player.id, say.retire.log(player.name), 'milestone')
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
     }
 
@@ -1300,7 +1375,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         options.push({
           id: FIRE_RETIRE_OPTION_ID,
           turnsTheDie: true,
-          label: 'Call it a life',
+          label: say.fire.takeLabel,
           // The floor and the ceiling used to be quoted here, which is the
           // two faces of six a player can already guess. The table under the
           // option prints all six — and this is the one die on the board a
@@ -1311,7 +1386,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           // things the roll can come back as — this one screen said the
           // number four separate times before it was cut back to what only a
           // sentence can say: what stopping costs you that is not money.
-          description: `Stop working today and take the next retirement place — forfeiting every payday still on the road.`,
+          description: say.fire.takeDescription,
           icon: 'space:retirement-fund',
           detail: `-${money(fireNumber)}`,
           table: perPipBands(firePayoutPerPip, currency),
@@ -1319,37 +1394,33 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       }
       options.push({
         id: FIRE_DECLINE_OPTION_ID,
-        label: affordable ? 'Not yet — keep working' : 'Keep working',
+        label: affordable ? say.fire.declineLabelAffordable : say.fire.declineLabel,
         description: affordable
-          ? 'Walk on, collect the rest of the paydays, and take whatever else the last stretch of road has in it.'
-          // The prompt directly above already opens "The number is ¥X."
-          : 'Walk on and keep earning.',
+          ? say.fire.declineDescriptionAffordable
+          : // The prompt directly above already opens "The number is ¥X."
+            say.fire.declineDescription,
         icon: 'space:steady-hustle',
       })
       const decision: Decision = {
         kind: 'retire',
         prompt: affordable
-          ? `You have ${money(player.money)}. Is that enough?`
-          : `The number is ${money(fireNumber)}. You have ${money(player.money)}.`,
+          ? say.fire.promptAffordable(money(player.money))
+          : say.fire.promptShort(money(fireNumber), money(player.money)),
         options,
       }
       const event = baseEvent(
         space,
         0,
-        affordable
-          ? ['The fund buys the rest of your life back, or it does not. One spin.']
-          : [`You need ${money(fireNumber)} in hand to buy your way out here.`],
+        affordable ? [say.fire.noteAffordable] : [say.fire.noteShort(money(fireNumber))],
         'normal',
         affordable
-          ? `${player.name} does the sums at the kitchen table. Enough to stop — or is one more year better?`
-          : `${player.name} does the sums at the kitchen table, and the sums say keep going.`,
+          ? say.fire.narrationAffordable(player.name)
+          : say.fire.narrationShort(player.name),
       )
       const log = appendLog(
         state,
         player.id,
-        affordable
-          ? `${player.name} works out whether to stop working for good.`
-          : `${player.name} is short of the number and walks on.`,
+        affordable ? say.fire.logAffordable(player.name) : say.fire.logShort(player.name),
         'event',
       )
       return { state: { ...state, log, pendingDecision: decision }, event }
@@ -1433,31 +1504,40 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         {
           id: VALUE_SPIN_OPTION_ID,
           turnsTheDie: true,
-          label: 'Spin',
+          label: say.common.spin,
           // The worst of the family before it was cut: this option renders
           // in `DecisionModal`, so "Spin to see which one you take" sat
           // directly under a button whose label is the word Spin, over the
           // two-row offer table, and then again as the stakes line over the
           // wheel. Three times, for one instruction nobody needed once. The
           // gated variant keeps the half a table cannot say.
-          description: gate === undefined ? '' : 'Most people do not get one.',
+          description: gate === undefined ? '' : say.career.gateStakes,
           icon: space.icon,
           table:
             gate === undefined
-              ? careerOfferTable(first, second, currency, edition)
-              : gatedCareerOfferTable(first, second, gate, 'Not this time', currency, edition),
+              ? careerOfferTable(first, second, currency, edition, say, words)
+              : gatedCareerOfferTable(
+                  first,
+                  second,
+                  gate,
+                  say.roll.missed,
+                  currency,
+                  edition,
+                  say,
+                  words,
+                ),
         },
       ]
       if (mayStay && player.career) {
         options.push({
           id: CAREER_STAY_OPTION_ID,
-          label: `Stay as a ${player.career.title}`,
+          label: say.career.stayLabel(careerTitle(player.career)),
           description: hasCalling(player)
-            ? 'This is the work you were made for. Let the recruiters talk to somebody else.'
-            : 'Keep the job, the ladder, and every rung still above you.',
+            ? say.career.stayCallingDescription
+            : say.career.stayDescription,
           icon: player.career.icon,
           detail: money(salaryRate(player.career.salary, currency)),
-          detailUnit: salaryPeriod(currency),
+          detailUnit: salaryPeriodIn(currency, say),
         })
       }
 
@@ -1467,17 +1547,17 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
        * it while dealing the door-in rung would be the game lying about the
        * only thing this tile does differently.
        */
-      const openingLine = crossing
-        ? 'Two doors in, and neither counts a year of what you did before.'
-        : 'Two other trades would take you at the level you are on.'
+      const openingLine = crossing ? say.career.crossingLine : say.career.sameLevelLine
+      const income = currentIncomeNote(player, economy, currency, say, words)
+      const reason = reasonOf(effect.reason)
       const decision: Decision = {
         kind: 'valueSpin',
         prompt:
           gate !== undefined
-            ? `Two posts are open across the whole country, and the panel appoints on a ${gate} or better. ${currentIncomeNote(player, economy, currency)}`
+            ? say.career.gatePrompt(gate, income)
             : mayStay
-              ? `${openingLine} ${currentIncomeNote(player, economy, currency)}`
-              : `Your job is changing — pick your next one. ${currentIncomeNote(player, economy, currency)}`,
+              ? say.career.offerPrompt(openingLine, income)
+              : say.career.forcedPrompt(income),
         options,
         offeredCareerIds: [first.id, second.id],
       }
@@ -1485,30 +1565,30 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         space,
         0,
         [
-          effect.reason,
+          reason,
           ...(gate !== undefined
-            ? ['Miss it and nothing changes: the job, the rung and the money are all still yours.']
+            ? [say.career.gateMissNote]
             : crossing
-              ? ['They are hiring at the bottom rung, and only at the bottom rung.']
+              ? [say.career.crossingNote]
               : mayStay
-                ? ['Same rung, same money today — but a different ladder above it.']
+                ? [say.career.sameRungNote]
                 : []),
         ],
         'milestone',
         gate !== undefined
-          ? `Two posts, one panel, and the whole country applying — ${player.name} sits it.`
+          ? say.career.gateNarration(player.name)
           : mayStay
-            ? `Two offers on the table for ${player.name} — and nobody is making them take either.`
-            : `New offers on the table — ${player.name} is changing careers whether they like it or not!`,
+            ? say.career.offerNarration(player.name)
+            : say.career.forcedNarration(player.name),
       )
       const log = appendLog(
         state,
         player.id,
         gate !== undefined
-          ? `${effect.reason} ${player.name} sits the competition.`
+          ? say.career.gateLog(reason, player.name)
           : mayStay
-            ? `${effect.reason} ${player.name} weighs up two offers.`
-            : `${effect.reason} ${player.name} must pick a new career.`,
+            ? say.career.offerLog(reason, player.name)
+            : say.career.forcedLog(reason, player.name),
         'event',
       )
       return { state: { ...state, log, pendingDecision: decision }, event }
@@ -1519,13 +1599,14 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const event = baseEvent(
           space,
           0,
-          [effect.reason],
+          [reasonOf(effect.reason)],
           'normal',
-          `You cannot lose a job you never had. ${player.name} shrugs and walks on.`,
+          say.layoff.noJobNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} is already out of work.`, 'info')
+        const log = appendLog(state, player.id, say.layoff.noJobLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
+      const held = careerTitle(player.career)
 
       /*
        * You cannot be laid off from a calling. There is no personnel file, no
@@ -1539,16 +1620,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           0,
           // The narration already says they cannot be laid off; the note is
           // here for the title that survived it.
-          [effect.reason, `Still a ${player.career.title}, and nobody can take that away.`],
+          [reasonOf(effect.reason), say.layoff.callingNote(held)],
           'big',
-          `They cannot lay ${player.name} off — this is a calling, and it does not come with a badge to hand back.`,
+          say.layoff.callingNarration(player.name),
         )
-        const log = appendLog(
-          state,
-          player.id,
-          `${player.name} cannot lose their calling as a ${player.career.title}.`,
-          'milestone',
-        )
+        const log = appendLog(state, player.id, say.layoff.callingLog(player.name, held), 'milestone')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
 
@@ -1568,20 +1644,14 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const event = baseEvent(
           space,
           0,
-          [effect.reason, `Still a ${player.career.title}. The post is permanent, and permanent means this.`],
+          [reasonOf(effect.reason), say.layoff.permanentNote(held)],
           'big',
-          `The notice goes round the building and stops at ${player.name}'s door — this post is not the employer's to end.`,
+          say.layoff.permanentNarration(player.name),
         )
-        const log = appendLog(
-          state,
-          player.id,
-          `${player.name} keeps their permanent post as a ${player.career.title}.`,
-          'milestone',
-        )
+        const log = appendLog(state, player.id, say.layoff.permanentLog(player.name, held), 'milestone')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
 
-      const lost = player.career.title
       const rungLost = ladderPositionOf(player.career.id, edition)?.rung ?? 1
       const updated = loseCareerFor(player, rungLost - 1)
       const event = baseEvent(
@@ -1589,11 +1659,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         0,
         // That every payday is shift work now is the narration's line; what
         // it cannot say is the job that was lost and what a shift is worth.
-        [effect.reason, `No longer a ${lost}. Shifts pay ${money(economy.casualWagePerPip)} a pip.`],
+        [reasonOf(effect.reason), say.layoff.note(held, money(economy.casualWagePerPip))],
         'milestone',
-        `Laid off! ${player.name} is out of work — from here every payday is shift work, and the wheel decides how good the week was.`,
+        say.layoff.narration(player.name),
       )
-      const log = appendLog(state, player.id, `${player.name} loses their job as a ${lost}.`, 'event')
+      const log = appendLog(state, player.id, say.layoff.log(player.name, held), 'event')
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
     }
 
@@ -1604,35 +1674,34 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const options: DecisionOption[] = [
         ...offered.map((stock) => {
           const [low, high] = stock.payoutRange
+          const text = words.stock(stock.id)
           return {
             id: stock.id,
-            label: `${stock.name} (${stock.ticker})`,
+            label: say.stock.optionLabel(text?.name ?? stock.name, stock.ticker),
             // Same reasoning as a house's own resale line: the price is
             // right there in `detail`, but what a share actually cashes out
             // at is buried in `payoutRange` and nowhere else a first-time
             // player would think to look.
-            description: `${stock.description} Pays out ${money(low)}–${money(high)} a share at retirement.`,
+            description: say.stock.optionDescription(
+              text?.description ?? stock.description,
+              money(low),
+              money(high),
+            ),
             icon: stock.icon,
             detail: money(stock.price),
-            detailUnit: 'share',
+            detailUnit: say.stock.shareUnit,
           }
         }),
         {
           id: DECLINE_STOCK_OPTION_ID,
-          label: 'Keep your cash',
-          description: 'Nothing spent, and nothing paying out at retirement either.',
+          label: say.stock.declineLabel,
+          description: say.stock.declineDescription,
           icon: 'finance:trading-floor',
         },
       ]
-      const decision: Decision = { kind: 'stock', prompt: 'Buy in now for a payout at retirement?', options }
-      const event = baseEvent(
-        space,
-        0,
-        [],
-        'normal',
-        `The trading floor is open, ${player.name}. Fancy a punt?`,
-      )
-      const log = appendLog(state, player.id, `${player.name} is offered shares to buy.`, 'event')
+      const decision: Decision = { kind: 'stock', prompt: say.stock.prompt, options }
+      const event = baseEvent(space, 0, [], 'normal', say.stock.narration(player.name))
+      const log = appendLog(state, player.id, say.stock.log(player.name), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1642,11 +1711,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const event = baseEvent(
           space,
           0,
-          [effect.reason],
+          [reasonOf(effect.reason)],
           'normal',
-          `Dividend day, but ${player.name} does not own a single share. Nothing to collect!`,
+          say.stock.dividendNoneNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} holds no shares, so the dividend pays nothing.`, 'info')
+        const log = appendLog(state, player.id, say.stock.dividendNoneLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
       const payout = effect.perShare * shares
@@ -1655,14 +1724,14 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const event = baseEvent(
         space,
         delta,
-        [effect.reason, `${shares} share${shares > 1 ? 's' : ''} × ${money(effect.perShare)}`],
+        [reasonOf(effect.reason), say.stock.dividendNote(shares, money(effect.perShare))],
         emphasisOf(delta),
-        `Dividend day! ${player.name}'s portfolio pays out ${money(payout)}.`,
+        say.stock.dividendNarration(player.name, money(payout)),
       )
       const log = appendLog(
         state,
         player.id,
-        `${player.name} collects a dividend on ${shares} share${shares > 1 ? 's' : ''}: ${money(payout)}.`,
+        say.stock.dividendLog(player.name, shares, money(payout)),
         'money-in',
       )
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
@@ -1676,16 +1745,16 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           0,
           [],
           'normal',
-          `${player.name} is already covered on everything on offer. Walk on!`,
+          say.insurance.alreadyNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} is already covered here.`, 'info')
+        const log = appendLog(state, player.id, say.insurance.alreadyLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
-      const descriptions = insuranceDescriptions(state.board, player.spaceId, economy, currency)
+      const descriptions = insuranceDescriptions(state.board, player.spaceId, economy, currency, say)
       const options: DecisionOption[] = [
         ...available.map((kind) => ({
           id: insuranceOptionId(kind),
-          label: INSURANCE_LABELS[kind],
+          label: say.insurance.policyLabel(kind),
           description: descriptions[kind],
           icon: INSURANCE_ICONS[kind],
           detail: money(economy.insurancePremium[kind]),
@@ -1697,20 +1766,14 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         })),
         {
           id: DECLINE_INSURANCE_OPTION_ID,
-          label: 'Take the risk',
-          description: 'Keep the premium. Most lives are fine without it, and the ones that are not pay in full.',
+          label: say.insurance.declineLabel,
+          description: say.insurance.declineDescription,
           icon: 'finance:insurance-office',
         },
       ]
-      const decision: Decision = { kind: 'insurance', prompt: 'A premium now, or the whole bill if it happens?', options }
-      const event = baseEvent(
-        space,
-        0,
-        [],
-        'normal',
-        `The insurance office is open, ${player.name}. A premium now can save a fortune later.`,
-      )
-      const log = appendLog(state, player.id, `${player.name} is offered insurance.`, 'event')
+      const decision: Decision = { kind: 'insurance', prompt: say.insurance.prompt, options }
+      const event = baseEvent(space, 0, [], 'normal', say.insurance.narration(player.name))
+      const log = appendLog(state, player.id, say.insurance.log(player.name), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1723,8 +1786,8 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const options: DecisionOption[] = [
         {
           id: BANK_LOAN_OPTION_ID,
-          label: 'Take out a loan',
-          description: `Borrow ${money(economy.loanPrincipal)} now and pay back ${money(settlement)} at retirement — cash in hand for a house, shares, or a bill you cannot cover.`,
+          label: say.bank.loanLabel,
+          description: say.bank.loanDescription(money(economy.loanPrincipal), money(settlement)),
           icon: 'finance:bank-visit',
           detail: `+${money(economy.loanPrincipal)}`,
         },
@@ -1733,30 +1796,28 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       if (player.loans > 0 && player.money >= earlySettlement) {
         options.push({
           id: BANK_REPAY_OPTION_ID,
-          label: 'Repay a loan early',
-          description: `Clear one loan now for ${money(earlySettlement)} instead of ${money(settlement)} at retirement — ${money(settlement - earlySettlement)} that stays in your final total.`,
+          label: say.bank.repayLabel,
+          description: say.bank.repayDescription(
+            money(earlySettlement),
+            money(settlement),
+            money(settlement - earlySettlement),
+          ),
           icon: 'finance:bank-visit',
           detail: `-${money(earlySettlement)}`,
         })
       }
       options.push({
         id: BANK_DECLINE_OPTION_ID,
-        label: 'Walk on by',
-        description: 'No cash today, and nothing new owed at retirement.',
+        label: say.bank.declineLabel,
+        description: say.bank.declineDescription,
         icon: 'finance:bank-visit',
       })
       // The prompt carries the trade, not just the address: a player who has
       // never seen this tile should be able to weigh it without already
       // knowing what a loan costs here.
-      const decision: Decision = { kind: 'bank', prompt: 'Cash now, or a smaller bill at retirement?', options }
-      const event = baseEvent(
-        space,
-        0,
-        [],
-        'normal',
-        `The bank is open, ${player.name}. Borrow, repay, or stroll right past.`,
-      )
-      const log = appendLog(state, player.id, `${player.name} stops at the bank.`, 'event')
+      const decision: Decision = { kind: 'bank', prompt: say.bank.prompt, options }
+      const event = baseEvent(space, 0, [], 'normal', say.bank.narration(player.name))
+      const log = appendLog(state, player.id, say.bank.log(player.name), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 
@@ -1767,17 +1828,20 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const event = baseEvent(
           space,
           0,
-          [effect.reason],
+          [reasonOf(effect.reason)],
           'normal',
-          `No children, no bill. ${player.name} strolls straight past this one.`,
+          say.children.noneToPayNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} has no children, so there is nothing to pay.`, 'info')
+        const log = appendLog(state, player.id, say.children.noneToPayLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
       const owed = effect.amount * player.children
       const updated = debitPlayer(player, owed, economy)
       const delta = updated.money - player.money
-      const notes = [effect.reason, `${player.children} × ${money(effect.amount)}`]
+      const notes = [
+        reasonOf(effect.reason),
+        say.children.timesNote(player.children, money(effect.amount)),
+      ]
       const event = baseEvent(
         space,
         delta,
@@ -1785,12 +1849,12 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         emphasisOf(delta),
         // The note carries the multiplication, so the narration need only
         // land the total once.
-        `${money(owed)} out the door. Family life is not cheap!`,
+        say.children.payNarration(money(owed)),
       )
       const log = appendLog(
         state,
         player.id,
-        `${player.name} pays ${money(owed)} for ${player.children} children.`,
+        say.children.payLog(player.name, money(owed), player.children),
         'money-out',
       )
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
@@ -1801,11 +1865,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const event = baseEvent(
           space,
           0,
-          [effect.reason],
+          [reasonOf(effect.reason)],
           'normal',
-          `No children to claim for, so nothing for ${player.name} this time.`,
+          say.children.noneToClaimNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} has no children, so there is nothing to claim.`, 'info')
+        const log = appendLog(state, player.id, say.children.noneToClaimLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
       const gained = effect.amount * player.children
@@ -1814,14 +1878,14 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const event = baseEvent(
         space,
         delta,
-        [effect.reason, `${player.children} × ${money(effect.amount)}`],
+        [reasonOf(effect.reason), say.children.timesNote(player.children, money(effect.amount))],
         emphasisOf(delta),
-        `That is ${money(gained)} in — the family pays off this time!`,
+        say.children.collectNarration(money(gained)),
       )
       const log = appendLog(
         state,
         player.id,
-        `${player.name} collects ${money(gained)} for ${player.children} children.`,
+        say.children.collectLog(player.name, money(gained), player.children),
         'money-in',
       )
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
@@ -1836,11 +1900,11 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const event = baseEvent(
           space,
           0,
-          [effect.reason],
+          [reasonOf(effect.reason)],
           'normal',
-          `${player.name} has nobody to separate from. They walk on.`,
+          say.divorce.singleNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} is not married, so there is nothing to end.`, 'info')
+        const log = appendLog(state, player.id, say.divorce.singleLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
 
@@ -1848,19 +1912,18 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const settled = debitPlayer(player, economy.divorceSettlement, economy)
       const updated = divorcePlayer(settled)
       const delta = updated.money - player.money
-      const notes = [effect.reason, `Settlement: ${money(economy.divorceSettlement)}`]
-      if (hadChildren > 0) {
-        const label = hadChildren === 1 ? 'child' : 'children'
-        notes.push(`${hadChildren} ${label} leave with them.`)
-      }
-      const event = baseEvent(
-        space,
-        delta,
-        notes,
-        emphasisOf(delta),
-        `${player.name}'s marriage ends, and the house is a good deal quieter than it was.`,
+      const notes = [
+        reasonOf(effect.reason),
+        say.divorce.settlementNote(money(economy.divorceSettlement)),
+      ]
+      if (hadChildren > 0) notes.push(say.divorce.childrenNote(hadChildren))
+      const event = baseEvent(space, delta, notes, emphasisOf(delta), say.divorce.narration(player.name))
+      const log = appendLog(
+        state,
+        player.id,
+        say.divorce.log(player.name, money(economy.divorceSettlement)),
+        'event',
       )
-      const log = appendLog(state, player.id, `${player.name} divorces and pays a ${money(economy.divorceSettlement)} settlement.`, 'event')
       return { state: { ...state, players: replacePlayer(state.players, updated), log, pendingDecision: null }, event }
     }
 
@@ -1876,13 +1939,13 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const event = baseEvent(
           space,
           0,
-          [effect.reason],
+          [reasonOf(effect.reason)],
           'normal',
           leader
-            ? `${player.name} is already out in front, so there is nothing to swap!`
-            : `There is nobody left to swap wallets with. ${player.name} keeps every penny.`,
+            ? say.upset.swapAheadNarration(player.name)
+            : say.upset.swapNobodyNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} has nobody to swap money with.`, 'info')
+        const log = appendLog(state, player.id, say.upset.swapNobodyLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
 
@@ -1895,9 +1958,9 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           delta,
           // Whose wallet, and how much of a jump it is, are the narration's
           // and the lane's; the note is the two figures that traded places.
-          [effect.reason, `Wallets swapped: ${money(player.money)} ↔ ${money(leader.money)}`],
+          [reasonOf(effect.reason), say.upset.swapNote(money(player.money), money(leader.money))],
           'big',
-          `Swap! ${player.name} takes ${leader.name}'s wallet, and the whole board just changed shape!`,
+          say.upset.swapNarration(player.name, leader.name),
         ),
         transfers: [
           { playerId: leader.id, playerName: leader.name, playerColor: leader.color, amount: -delta },
@@ -1906,7 +1969,7 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
       const log = appendLog(
         state,
         player.id,
-        `${player.name} swaps money with ${leader.name} — ${money(leader.money)} changes hands!`,
+        say.upset.swapLog(player.name, leader.name, money(leader.money)),
         'upset',
       )
       return { state: { ...state, players, log, pendingDecision: null }, event }
@@ -1921,17 +1984,18 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const event = baseEvent(
           space,
           0,
-          [effect.reason],
+          [reasonOf(effect.reason)],
           'normal',
-          `Nobody else is holding a LIFE tile, so ${player.name} leaves empty-handed.`,
+          say.upset.stealNoneNarration(player.name),
         )
-        const log = appendLog(state, player.id, `${player.name} finds no LIFE tile to take.`, 'info')
+        const log = appendLog(state, player.id, say.upset.stealNoneLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
 
-      const tile = deps.random.pick(victim.lifeTiles)
-      let players = replacePlayer(state.players, removeLifeTile(victim, tile.id))
-      players = replacePlayer(players, addLifeTiles(player, [tile]))
+      const taken = deps.random.pick(victim.lifeTiles)
+      const takenTitle = words.lifeTile(taken.id)?.title ?? taken.title
+      let players = replacePlayer(state.players, removeLifeTile(victim, taken.id))
+      players = replacePlayer(players, addLifeTiles(player, [taken]))
       const event: LandingEvent = {
         ...baseEvent(
           space,
@@ -1939,16 +2003,16 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
           // Which tile, and off whom, are the narration's own sentence — and
           // the tile itself is dealt as a chip above. What neither shows is
           // what it will be worth at the final count.
-          [effect.reason, `Worth ${money(tile.value)} at the final count.`],
+          [reasonOf(effect.reason), say.upset.stealNote(money(taken.value))],
           'big',
-          `${player.name} swipes "${tile.title}" right out of ${victim.name}'s hands!`,
+          say.upset.stealNarration(player.name, takenTitle, victim.name),
         ),
-        lifeTilesGained: [tile],
+        lifeTilesGained: [taken],
       }
       const log = appendLog(
         state,
         player.id,
-        `${player.name} takes the "${tile.title}" LIFE tile from ${victim.name}!`,
+        say.upset.stealLog(player.name, takenTitle, victim.name),
         'upset',
       )
       return { state: { ...state, players, log, pendingDecision: null }, event }
@@ -1961,52 +2025,50 @@ function resolveEffect(state: GameState, space: Space, deps: UseCaseDeps): Effec
         const offered = deps.random.shuffle(edition.houses).slice(0, 3)
         const decision: Decision = {
           kind: 'house',
-          prompt: 'Nothing to trade up — buy your first, and sell it at retirement?',
-          options: houseDecisionOptions(offered, 'Keep renting for now', 'Keep the cash, and own nothing to sell at retirement.', currency),
+          prompt: say.house.noneToUpgradePrompt,
+          options: houseDecisionOptions(
+            offered,
+            say.house.keepRentingLabel,
+            say.house.keepRentingDescription,
+            currency,
+            say,
+            words,
+          ),
         }
-        const event = baseEvent(
-          space,
-          0,
-          [],
-          'normal',
-          `No home to upgrade yet, so let's go shopping instead, ${player.name}!`,
-        )
-        const log = appendLog(state, player.id, `${player.name} has no home to trade up, so goes house hunting.`, 'event')
+        const event = baseEvent(space, 0, [], 'normal', say.house.noneToUpgradeNarration(player.name))
+        const log = appendLog(state, player.id, say.house.noneToUpgradeLog(player.name), 'event')
         return { state: { ...state, log, pendingDecision: decision }, event }
       }
 
       const better = edition.houses.filter((house) => house.price > current.price)
       if (better.length === 0) {
-        const event = baseEvent(
-          space,
-          0,
-          [],
-          'normal',
-          `There is nothing left to trade up to — ${player.name} already owns the best address in town!`,
-        )
-        const log = appendLog(state, player.id, `${player.name} already owns the best home available.`, 'info')
+        const event = baseEvent(space, 0, [], 'normal', say.house.bestNarration(player.name))
+        const log = appendLog(state, player.id, say.house.bestLog(player.name), 'info')
         return { state: { ...state, log, pendingDecision: null }, event }
       }
 
+      const currentName = houseName(current)
       const offered = deps.random.shuffle(better).slice(0, 3)
       const decision: Decision = {
         kind: 'house',
-        prompt: `Trade up from the ${current.name}? A dearer house sells for more`,
+        prompt: say.house.upgradePrompt(currentName),
         options: houseDecisionOptions(
           offered,
-          `Stay in the ${current.name}`,
-          'Keep the home you have, and whatever it already sells for at retirement.',
+          say.house.stayLabel(currentName),
+          say.house.stayDescription,
           currency,
+          say,
+          words,
         ),
       }
       const event = baseEvent(
         space,
         0,
-        [`Your ${current.name} is worth ${money(current.price)} towards the move.`],
+        [say.house.tradeInNote(currentName, money(current.price))],
         'normal',
-        `Time to trade up, ${player.name}. What is it going to be?`,
+        say.house.upgradeNarration(player.name),
       )
-      const log = appendLog(state, player.id, `${player.name} is offered a bigger home.`, 'event')
+      const log = appendLog(state, player.id, say.house.upgradeLog(player.name), 'event')
       return { state: { ...state, log, pendingDecision: decision }, event }
     }
 

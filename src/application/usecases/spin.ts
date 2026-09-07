@@ -1,12 +1,14 @@
 import type { GameState } from '@domain/model/types'
 import { nextMovementLeg, planMovement, planMovementVia } from '@domain/board/movement'
 import { movePlayerTo } from '@domain/rules/player'
+import { editionOf } from '@domain/edition/registry'
 import { appendLog } from './logging'
 import { isFork, resolveForkBranch, roadName } from './branch'
-import type { UseCaseDeps } from './types'
+import { textOf, type UseCaseDeps } from './types'
 
 /** Spins for the current player: the road out of a fork, or the distance travelled. */
 export function spin(state: GameState, deps: UseCaseDeps): GameState {
+  const { say, board: boardWords } = textOf(deps)
   if (state.phase !== 'awaitingSpin' && state.phase !== 'awaitingDistanceSpin') {
     throw new Error(`spin: only valid in 'awaitingSpin' or 'awaitingDistanceSpin', got '${state.phase}'`)
   }
@@ -38,7 +40,7 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
   if (state.chosenExit === null && isFork(state.board, player.spaceId)) {
     const branchTaken = resolveForkBranch(state.board, player.spaceId, spinValue, player)
     if (branchTaken !== undefined) {
-      const label = roadName(state.board, branchTaken)
+      const label = roadName(state.board, branchTaken, boardWords(editionOf(state)), say)
       /*
        * A junction reached mid-move parks whatever distance the move still
        * owed and comes back here for the road — see `settle.ts`, where that
@@ -53,7 +55,7 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
         const owed = state.stepsRemaining
         const plan = planMovementVia(state.board, player.spaceId, branchTaken, owed)
         const movedPlayer = movePlayerTo(player, plan.destinationId)
-        const forkLog = `${player.name} spins a ${spinValue} — the fork sends them onto ${label}, ${owed} space${owed === 1 ? '' : 's'} down it.`
+        const forkLog = say.move.forkWithStepsLog(player.name, spinValue, label, owed)
         const { leg, rest } = nextMovementLeg(plan.path, plan.passed)
         return {
           ...state,
@@ -71,7 +73,7 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
           log: appendLog(state, player.id, forkLog, 'info'),
         }
       }
-      const forkLog = `${player.name} spins a ${spinValue} — the fork sends them onto ${label}.`
+      const forkLog = say.move.forkLog(player.name, spinValue, label)
       return {
         ...state,
         chosenExit: branchTaken,
@@ -87,7 +89,7 @@ export function spin(state: GameState, deps: UseCaseDeps): GameState {
     : planMovement(state.board, player.spaceId, spinValue)
 
   const movedPlayer = movePlayerTo(player, plan.destinationId)
-  const log = appendLog(state, player.id, `${player.name} spins a ${spinValue}.`, 'info')
+  const log = appendLog(state, player.id, say.move.spinLog(player.name, spinValue), 'info')
   const players = state.players.map((candidate) => (candidate.id === movedPlayer.id ? movedPlayer : candidate))
 
   /*

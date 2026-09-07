@@ -1,9 +1,10 @@
 import type { GameState } from '@domain/model/types'
 import { nextMovementLeg } from '@domain/board/movement'
+import { editionOf } from '@domain/edition/registry'
 import { applyEffect } from './applyEffect'
 import { appendLog } from './logging'
 import { applyPassedEvent } from './passedEvents'
-import type { UseCaseDeps } from './types'
+import { textOf, type UseCaseDeps } from './types'
 
 /**
  * Resolves whatever the pawn's move still owes: a payday or `event` tile
@@ -109,12 +110,9 @@ export function settle(state: GameState, deps: UseCaseDeps): GameState {
    * covers exactly the ground it always did. Only the road changes hands.
    */
   if (state.stepsRemaining > 0 && space.next.length > 1) {
-    const log = appendLog(
-      state,
-      player.id,
-      `${player.name} pulls up at ${space.title}, where the road splits.`,
-      'info',
-    )
+    const { say, board: boardWords } = textOf(deps)
+    const title = boardWords(editionOf(state)).space(space.id, space.description)?.title ?? space.title
+    const log = appendLog(state, player.id, say.move.pullsUpAtForkLog(player.name, title), 'info')
     return {
       ...state,
       chosenExit: null,

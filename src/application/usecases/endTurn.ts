@@ -3,10 +3,11 @@ import { turnStart } from './branch'
 import { appendLog } from './logging'
 import { buildScoreRolls } from './settlement'
 import { finishScoring } from './scoreRoll'
-import type { UseCaseDeps } from './types'
+import { textOf, type UseCaseDeps } from './types'
 
 /** Dismisses `lastEvent` and hands play to the next non-retired player, or ends the game. */
 export function endTurn(state: GameState, deps: UseCaseDeps): GameState {
+  const { say } = textOf(deps)
   if (state.phase !== 'resolved') {
     throw new Error(`endTurn: only valid in 'resolved', got '${state.phase}'`)
   }
@@ -42,12 +43,7 @@ export function endTurn(state: GameState, deps: UseCaseDeps): GameState {
     const opened: GameState = { ...cleared, scoreRolls }
     if (scoreRolls.length === 0) return finishScoring(opened, deps)
 
-    const log = appendLog(
-      opened,
-      null,
-      'Everybody has retired. Time to find out what it was all worth.',
-      'milestone',
-    )
+    const log = appendLog(opened, null, say.turn.everybodyRetiredLog, 'milestone')
     return { ...opened, phase: 'scoring', log }
   }
 
@@ -59,7 +55,12 @@ export function endTurn(state: GameState, deps: UseCaseDeps): GameState {
   } while (state.players[nextIndex]?.isRetired)
 
   const nextPlayer = state.players[nextIndex]
-  const log = appendLog(cleared, nextPlayer?.id ?? null, `${nextPlayer?.name ?? 'Next player'}'s turn.`, 'info')
+  const log = appendLog(
+    cleared,
+    nextPlayer?.id ?? null,
+    say.turn.nextLog(nextPlayer?.name ?? say.turn.nextPlayer),
+    'info',
+  )
 
   const handedOver: GameState = { ...cleared, currentPlayerIndex: nextIndex, turn, log }
   return { ...handedOver, ...turnStart(handedOver, nextIndex) }

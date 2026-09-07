@@ -3,7 +3,7 @@ import { editionOf } from '@domain/edition/registry'
 import { formatAmount } from './format'
 import { appendLog } from './logging'
 import { nextScoreRoll, resultsFromScoreRolls, scoreRollLogLine } from './settlement'
-import type { UseCaseDeps } from './types'
+import { textOf, type UseCaseDeps } from './types'
 
 /**
  * Closes the game: the standings, the star children, the winner's line in the
@@ -13,6 +13,7 @@ import type { UseCaseDeps } from './types'
  */
 export function finishScoring(state: GameState, deps: UseCaseDeps): GameState {
   const edition = editionOf(state)
+  const { say } = textOf(deps)
   const results = resultsFromScoreRolls(state, deps)
   const winner = results.standings.find((standing) => standing.playerId === results.winnerId)
   const total = winner ? formatAmount(winner.total, edition.currency) : '?'
@@ -27,15 +28,15 @@ export function finishScoring(state: GameState, deps: UseCaseDeps): GameState {
       { ...state, log },
       standing.playerId,
       stars === 1
-        ? `One of ${standing.name}'s children turned out to be a star — ${bonus} into the final total!`
-        : `${stars} of ${standing.name}'s children turned out to be stars — ${bonus} into the final total!`,
+        ? say.settlement.oneStarLog(standing.name, bonus)
+        : say.settlement.starsLog(stars, standing.name, bonus),
       'milestone',
     )
   }
   log = appendLog(
     { ...state, log },
     null,
-    `The game is over! ${winner?.name ?? 'A player'} wins with ${total}.`,
+    say.settlement.gameOverLog(winner?.name ?? say.common.someone, total),
     'milestone',
   )
 
@@ -82,7 +83,7 @@ export function scoreRoll(state: GameState, deps: UseCaseDeps): GameState {
     ...state,
     scoreRolls,
     lastSpin: face,
-    log: appendLog(state, pending.playerId, scoreRollLogLine(state, pending, face), 'money-in'),
+    log: appendLog(state, pending.playerId, scoreRollLogLine(state, pending, face, textOf(deps).say), 'money-in'),
   }
 
   return nextScoreRoll(scoreRolls) ? thrown : finishScoring(thrown, deps)

@@ -15,6 +15,7 @@ import type { PlayerProfileRepositoryPort } from '@application/ports/PlayerProfi
 import { CPU_THINK_MS, decideCpuCommand } from '@application/cpu/decideCpuCommand'
 import { forkRoadNames, roadName } from '@application/usecases/branch'
 import { describeScoreRoll, nextScoreRoll } from '@application/usecases/settlement'
+import { gameTextFor } from '@application/i18n/text'
 import type {
   Decision,
   DecisionOption,
@@ -53,7 +54,7 @@ import { TurnBanner } from './components/TurnBanner/TurnBanner'
 import { TurnHandoff } from './components/TurnHandoff/TurnHandoff'
 import { UpdateBanner } from './components/UpdateBanner/UpdateBanner'
 import { AudioProvider } from './hooks/useAudio'
-import { LocaleProvider, useUi } from './i18n/LocaleProvider'
+import { LocaleProvider, useEditionText, useLocale, useUi } from './i18n/LocaleProvider'
 import { useGameState } from './hooks/useGameState'
 import { useHandoffMode } from './hooks/useHandoffMode'
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
@@ -192,6 +193,14 @@ export function App(props: AppProps): ReactElement {
 function GameShell({ store, audio, profiles }: AppProps): ReactElement {
   const t = useUi()
   const state = useGameState(store)
+  const { locale } = useLocale()
+  /*
+   * The board's own words, for the three places the *shell* names a thing
+   * the engine did not: the two roads out of a fork, the road just taken,
+   * and whose holding a closing die is for. Everything else on screen goes
+   * through a card the engine already wrote in this language.
+   */
+  const editionText = useEditionText(state.editionId)
   const [audioUnlocked, setAudioUnlocked] = useState(false)
 
   // Browsers refuse to start audio until the user has interacted, so the very
@@ -674,8 +683,11 @@ function GameShell({ store, audio, profiles }: AppProps): ReactElement {
   // wheel will be read off — published before the spin, so the number that
   // comes up is one the player was already hoping for or dreading.
   const scoreRollPrompt = useMemo(
-    () => (displayedScoreRoll ? describeScoreRoll(state, displayedScoreRoll) : null),
-    [state, displayedScoreRoll],
+    () =>
+      displayedScoreRoll
+        ? describeScoreRoll(state, displayedScoreRoll, gameTextFor(locale))
+        : null,
+    [state, displayedScoreRoll, locale],
   )
 
   /*
@@ -947,11 +959,11 @@ function GameShell({ store, audio, profiles }: AppProps): ReactElement {
   const pressable = !handoffVisible && activePlayer !== undefined && !activePlayer.isCpu
   const forkAhead =
     pressable && activePlayer && state.phase === 'awaitingSpin'
-      ? forkRoadNames(state.board, activePlayer.spaceId, activePlayer)
+      ? forkRoadNames(state.board, activePlayer.spaceId, activePlayer, editionText)
       : undefined
   const roadTaken =
     pressable && state.phase === 'awaitingDistanceSpin' && state.chosenExit
-      ? roadName(state.board, state.chosenExit)
+      ? roadName(state.board, state.chosenExit, editionText)
       : undefined
   /* A `carDriving` flag used to live here, fading the wheel out for the whole
      of a move: the wheel sat dead centre, the camera parks the active car near
