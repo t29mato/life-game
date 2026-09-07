@@ -16,12 +16,17 @@
    button are absolutely positioned so the disc can turn without disturbing
    layout, which leaves the button with no intrinsic size of its own to offer
    a shrink-wrapping tray. */
+/* Sized against the *smaller* side of the window, so growing the height of a
+   desktop window does not push a wheel wider than the card it sits in. The
+   floor is the size this was before it scaled at all; the ceiling is there
+   because past a point a bigger wheel stops reading as an object on a table
+   and starts reading as a screen with a wheel painted on it. */
 .wrap {
   position: relative;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  width: 136px;
+  width: clamp(136px, 26vmin, 260px);
   max-width: 100%;
 }
 
@@ -250,8 +255,14 @@
   box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--ink) 16%, transparent);
 }
 
+/* The tray on the board's own card. It was a flat 120px, which is a phone
+   size that a 1440px window simply kept — the wheel is the thing a turn is
+   spent watching now, and on a desktop it was a coin in the corner of a map.
+   It still has to share the card with the zoom rail opposite and must not eat
+   the board, so it grows on `vmin` and stops well short of the tray's own
+   room; `e2e/layout.spec.ts` is what actually holds it to that. */
 .compact {
-  width: 120px;
+  width: clamp(120px, 20vmin, 200px);
 }
 
 /* A phone gives the board every pixel it can, and the wheel sits on top of it
