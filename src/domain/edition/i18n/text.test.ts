@@ -35,7 +35,14 @@ describe('editionTextFor', () => {
   it('is a passthrough for an edition the locale has not reached', () => {
     // Registered but with no overlay written — the honest answer is English,
     // and it has to be the *same* answer as English's own, not an error.
-    expect(translationFor('france-researcher', 'ja')).toBeUndefined()
+    //
+    // The pair named here is an example, not a fixture: it has to be a pair
+    // that genuinely has no overlay, so it moves every time a translator
+    // finishes one. It was `france-researcher/ja` until that overlay landed.
+    // The next person to translate this pair should repoint it at whatever is
+    // still missing rather than delete the case — the passthrough is the
+    // behaviour half this file's contract rests on.
+    expect(translationFor('france-researcher', 'fr')).toBeUndefined()
     expect(editionTextFor(EDITION_USA, 'en').passthrough).toBe(true)
   })
 

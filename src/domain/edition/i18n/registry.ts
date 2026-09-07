@@ -11,6 +11,7 @@ import { INDIA_FR } from '../india/i18n/fr'
 import { BOLIVIA_JA } from '../bolivia/i18n/ja'
 import { BOLIVIA_FR } from '../bolivia/i18n/fr'
 import { RESEARCHER_JAPAN_JA } from '../japan-researcher/i18n/ja'
+import { RESEARCHER_FRANCE_JA } from '../france-researcher/i18n/ja'
 
 /**
  * The shelf of overlays, keyed the way a caller actually asks for one.
@@ -40,6 +41,7 @@ const SHELF: readonly EditionTranslation[] = [
   BOLIVIA_JA,
   BOLIVIA_FR,
   RESEARCHER_JAPAN_JA,
+  RESEARCHER_FRANCE_JA,
 ]
 
 const TRANSLATIONS = new Map<string, EditionTranslation>(

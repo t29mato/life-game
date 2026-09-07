@@ -15,6 +15,7 @@ import { INDIA_FR } from '../india/i18n/fr'
 import { BOLIVIA_JA } from '../bolivia/i18n/ja'
 import { BOLIVIA_FR } from '../bolivia/i18n/fr'
 import { RESEARCHER_JAPAN_JA } from '../japan-researcher/i18n/ja'
+import { RESEARCHER_FRANCE_JA } from '../france-researcher/i18n/ja'
 
 /**
  * The compile-time check `types.ts` cannot do.
@@ -47,6 +48,7 @@ const OVERLAYS: readonly EditionTranslation[] = [
   BOLIVIA_JA,
   BOLIVIA_FR,
   RESEARCHER_JAPAN_JA,
+  RESEARCHER_FRANCE_JA,
 ]
 
 /** Whether this effect carries a player-facing `reason` for the log and the card. */
