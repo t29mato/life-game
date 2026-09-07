@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import type { GameState, LocaleId, NewGameConfig } from '@domain/model/types'
+import type { GameState, NewGameConfig } from '@domain/model/types'
+// `LocaleId` lives with the overlay contract, not in the game model — every
+// other importer in the tree reads it from here. This line said `model/types`
+// and only failed once both language branches were in the same tree.
+import type { LocaleId } from '@domain/edition/i18n/types'
 import { TRADE_YEAR_STORIES } from '@domain/rules/tradeYear'
 import { createGameStore } from '../createGameStore'
 import {
