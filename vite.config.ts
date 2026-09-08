@@ -93,6 +93,11 @@ export default defineConfig({
         // running an older one notices the mismatch on its own; no separate
         // version number needs to be threaded through here to make that true.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // The social card is never rendered by the game — only ever fetched
+        // by a crawler building a link preview, from the network, once. The
+        // pattern above would otherwise spend a quarter of a megabyte of
+        // every visitor's offline budget on a picture they cannot reach.
+        globIgnores: ['og.png'],
         cleanupOutdatedCaches: true,
         navigateFallback: 'index.html',
       },

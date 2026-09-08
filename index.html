@@ -19,7 +19,71 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Life Journey" />
+
+    <!-- Without these, the game shared anywhere — a post, a chat, a message —
+         arrives as a bare string of characters: no title card, no board, no
+         reason to click. The URLs are absolute on purpose. Crawlers fetch the
+         card from wherever the link was pasted, and cannot resolve a relative
+         path against the `/life-game/` base the GitHub Pages build is served
+         under. Both deployments therefore point at the same canonical card. -->
+    <link rel="canonical" href="https://life-journey-boardgame.vercel.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://life-journey-boardgame.vercel.app/" />
+    <meta property="og:site_name" content="LIFE JOURNEY" />
+    <meta property="og:title" content="LIFE JOURNEY — spin, hop, build a life" />
+    <meta
+      property="og:description"
+      content="Spin your way through a whole life — college or a first job, careers and paydays, marriage, a house, and a retirement you hope you can afford. Five country editions, 2–4 players around one screen, about fifteen minutes."
+    />
+    <meta property="og:image" content="https://life-journey-boardgame.vercel.app/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="The LIFE JOURNEY title screen: pick your token and colour, then a country edition"
+    />
+    <!-- `summary` would crush the title screen into a small square. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="LIFE JOURNEY — spin, hop, build a life" />
+    <meta
+      name="twitter:description"
+      content="A browser board game about spinning your way through a whole life. Five country editions, 2–4 players, about fifteen minutes. Free, no account, plays offline."
+    />
+    <meta name="twitter:image" content="https://life-journey-boardgame.vercel.app/og.png" />
+
     <title>LIFE JOURNEY — spin, hop, build a life</title>
+
+    <!-- Counts how many people open the game. The Vercel analytics wired up in
+         `main.tsx` only reports from a Vercel deployment — the GitHub Pages
+         copy fetches an endpoint only Vercel serves and gets a 404 — so this
+         is what covers both.
+
+         It is gated on the hostname rather than on `import.meta.env.PROD`,
+         because the dev server is the only thing that is *not* a production
+         build: `npm run preview`, the CI static serve and the Playwright E2E
+         run all serve one, and gating on the build would fold every E2E
+         traversal into the numbers.
+
+         Note that gtag sets cookies and does track people across sites. Nothing
+         here asks for consent yet, which European visitors are entitled to. -->
+    <script>
+      (function () {
+        var h = location.hostname
+        if (h !== 't29mato.github.io' && h.slice(-11) !== '.vercel.app') return
+        var id = 'G-NLJ3QEDKQ7'
+        var s = document.createElement('script')
+        s.async = true
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + id
+        document.head.appendChild(s)
+        window.dataLayer = window.dataLayer || []
+        function gtag() {
+          window.dataLayer.push(arguments)
+        }
+        window.gtag = gtag
+        gtag('js', new Date())
+        gtag('config', id)
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

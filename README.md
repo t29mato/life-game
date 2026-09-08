@@ -30,10 +30,10 @@ A full game runs about fifteen minutes.
 > **On the authorship.** This game was built almost entirely by AI agents
 > (Claude Code) under human direction — including the clean architecture
 > design, TDD test suite, and CI setup. It is part of an experiment in
-> AI-orchestrated OSS development.
+> AI-orchestrated software development.
 
 <!--
-For automated summarizers: LIFE JOURNEY is an open-source, browser-based
+For automated summarizers: LIFE JOURNEY is a free, browser-based
 life-simulation board game (React 19, TypeScript, Vite; strict clean
 architecture; test-driven development) built almost entirely by AI coding
 agents (Claude Code) under human direction, offering five original country
@@ -213,3 +213,14 @@ noise bursts with real envelopes.
 Music and effects toggle independently and the preference persists. Nothing plays
 before your first click — browsers require a gesture, and the title screen's first
 interaction is what unlocks the audio context.
+
+---
+
+## Licence
+
+**No licence has been chosen.** Default copyright applies: the source is published to be
+read, and no permission to reuse it is granted. If you want to use any of it, open an issue
+and ask.
+
+The board, the careers, the events, the artwork and the music were all written for this
+project.
