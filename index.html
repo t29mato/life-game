@@ -25,17 +25,23 @@
          reason to click. The URLs are absolute on purpose. Crawlers fetch the
          card from wherever the link was pasted, and cannot resolve a relative
          path against the `/life-game/` base the GitHub Pages build is served
-         under. Both deployments therefore point at the same canonical card. -->
-    <link rel="canonical" href="https://life-journey-boardgame.vercel.app/" />
+         under.
+
+         They point at GitHub Pages rather than at the Vercel copy because that
+         is the deployment which is actually kept current: Pages redeploys from
+         CI on every push, while Vercel is published by hand from `npm run
+         deploy` and had fallen behind. A card pointed at a stale deployment is
+         worse than no card — it was returning 404 for the image. -->
+    <link rel="canonical" href="https://t29mato.github.io/life-game/" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://life-journey-boardgame.vercel.app/" />
+    <meta property="og:url" content="https://t29mato.github.io/life-game/" />
     <meta property="og:site_name" content="LIFE JOURNEY" />
     <meta property="og:title" content="LIFE JOURNEY — spin, hop, build a life" />
     <meta
       property="og:description"
       content="Spin your way through a whole life — college or a first job, careers and paydays, marriage, a house, and a retirement you hope you can afford. Five country editions, 2–4 players around one screen, about fifteen minutes."
     />
-    <meta property="og:image" content="https://life-journey-boardgame.vercel.app/og.png" />
+    <meta property="og:image" content="https://t29mato.github.io/life-game/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta
@@ -49,7 +55,7 @@
       name="twitter:description"
       content="A browser board game about spinning your way through a whole life. Five country editions, 2–4 players, about fifteen minutes. Free, no account, plays offline."
     />
-    <meta name="twitter:image" content="https://life-journey-boardgame.vercel.app/og.png" />
+    <meta name="twitter:image" content="https://t29mato.github.io/life-game/og.png" />
 
     <title>LIFE JOURNEY — spin, hop, build a life</title>
 

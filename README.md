@@ -2,7 +2,7 @@
 
 [![Deploy to GitHub Pages](https://github.com/t29mato/life-game/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/t29mato/life-game/actions/workflows/deploy-pages.yml)
 
-**[▶ Play now](https://life-journey-boardgame.vercel.app)** — React 19 + TypeScript + Vite, strict clean architecture, developed test-first.
+**[▶ Play now](https://t29mato.github.io/life-game/)** — React 19 + TypeScript + Vite, strict clean architecture, developed test-first.
 
 A browser board game about spinning your way through a whole life — college or a
 first job, careers and paydays, marriage, kids, a house, shares and insurance, a
